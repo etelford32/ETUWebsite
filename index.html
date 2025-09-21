@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore the Universe — Open‑World Space Adventure</title>
+  <meta name="description" content="Explore the Universe is an open‑world space adventure with living factions, realistic astrophysics, and a global scoreboard. Discover. Build. Survive. Dominate." />
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- SEO / Social -->
+  <meta property="og:title" content="Explore the Universe — Open‑World Space Adventure" />
+  <meta property="og:description" content="A living galaxy with dynamic AI, realistic space physics, and community leaderboards." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exploretheuniverse.com/" />
+  <meta property="og:image" content="https://exploretheuniverse.com/og-cover.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- JSON‑LD Game schema -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"VideoGame",
+    "name":"Explore the Universe",
+    "url":"https://exploretheuniverse.com/",
+    "image":"https://exploretheuniverse.com/og-cover.jpg",
+    "description":"Open‑world space adventure with realistic astrophysics and dynamic factions.",
+    "genre":["Open World","Action","Strategy","Simulation"],
+    "creator":{"@type":"Organization","name":"Telford Projects"},
+    "operatingSystem":["Windows","macOS","Linux"],
+    "applicationCategory":"GameApplication"
+  }
+  </script>
+
+  <!-- Tailwind (CDN for prototype) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            deep: {
+              900: '#040614',
+              800: '#070b1f',
+              700: '#0d1330'
+            }
+          },
+          boxShadow: {
+            glow: '0 0 30px rgba(99, 102, 241, .35)'
+          },
+          backgroundImage: {
+            grid: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Subtle starfield */
+    .starfield{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+    .starfield i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.8}
+    .backdrop-blur-2xs{backdrop-filter:blur(6px)}
+    /* Video covers hero */
+    .hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55) saturate(1.1)}
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+  <!-- Top Announcement -->
+  <div class="w-full bg-indigo-600/10 border-b border-indigo-500/20 text-center text-sm py-2">
+    <span class="mr-3">🚀 Playtest Sign‑ups are open</span>
+    <a href="#signup" class="underline decoration-dotted hover:text-white">Join the Alpha</a>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-2xs bg-deep-900/70 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-center justify-between h-16">
+        <a href="#home" class="flex items-center gap-3 group">
+          <img src="/media/logo.svg" alt="Explore the Universe logo" class="w-9 h-9"/>
+          <strong class="tracking-wide text-lg group-hover:text-white">Explore the Universe</strong>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="#features" class="opacity-90 hover:opacity-100">Features</a>
+          <a href="#factions" class="opacity-90 hover:opacity-100">Factions</a>
+          <a href="#leaderboard" class="opacity-90 hover:opacity-100">Leaderboard</a>
+          <a href="#roadmap" class="opacity-90 hover:opacity-100">Roadmap</a>
+          <a href="#faq" class="opacity-90 hover:opacity-100">FAQ</a>
+        </nav>
+        <div class="hidden md:flex items-center gap-3">
+          <a href="#download" class="px-3 py-2 rounded-md border border-white/20 hover:border-white/40">Download</a>
+          <a href="#signup" class="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 shadow-glow">Sign up</a>
+        </div>
+        <button id="menuBtn" class="md:hidden p-2 rounded hover:bg-white/10" aria-label="Open menu">☰</button>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="md:hidden hidden border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 py-4 space-y-3">
+        <a href="#features" class="block">Features</a>
+        <a href="#factions" class="block">Factions</a>
+        <a href="#leaderboard" class="block">Leaderboard</a>
+        <a href="#roadmap" class="block">Roadmap</a>
+        <a href="#faq" class="block">FAQ</a>
+        <div class="pt-3 flex gap-3">
+          <a href="#download" class="px-3 py-2 rounded-md border border-white/20">Download</a>
+          <a href="#signup" class="px-4 py-2 rounded-md bg-indigo-600">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section id="home" class="relative h-[78vh] min-h-[560px] flex items-end">
+    <!-- Replace with cinematic trailer (web‑optimized)—see media notes -->
+    <video class="hero-video" src="/media/hero-trailer.mp4" autoplay muted loop playsinline poster="/media/hero-poster.jpg"></video>
+
+    <!-- stars overlay -->
+    <div class="starfield" aria-hidden="true"></div>
+
+    <div class="relative w-full">
+      <div class="max-w-7xl mx-auto px-4 lg:px-6 pb-12">
+        <div class="max-w-3xl">
+          <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
+            A Living Galaxy. <span class="text-indigo-400">Your Legend.</span>
+          </h1>
+          <p class="mt-4 text-lg md:text-xl text-slate-200/90">
+            Explore, trade, build, and battle across a simulated cosmos powered by realistic physics and adaptive AI factions.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="#download" class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow font-medium">Download / Wishlist</a>
+            <a href="#leaderboard" class="px-5 py-3 rounded-lg border border-white/20 hover:border-white/40">Global Leaderboard</a>
+            <a href="#trailer" class="px-5 py-3 rounded-lg border border-white/20 hover:border-white/40">Watch Trailer</a>
+          </div>
+          <div class="mt-5 flex items-center gap-4 text-sm text-slate-300/80">
+            <span>Single‑player + Online Stats</span>
+            <span>•</span>
+            <span>Windows / macOS / Linux</span>
+            <span>•</span>
+            <span>Controller + KB/M</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust / badges -->
+  <section class="border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-slate-300/80 text-sm">
+      <div class="flex items-center gap-6">
+        <span class="uppercase tracking-widest">Powered by</span>
+        <img src="/media/badges/physics.svg" class="h-6 opacity-80" alt="Realistic physics"/>
+        <img src="/media/badges/ai.svg" class="h-6 opacity-80" alt="Adaptive AI"/>
+        <img src="/media/badges/procgen.svg" class="h-6 opacity-80" alt="Procedural generation"/>
+      </div>
+      <div>
+        <a href="#press" class="underline decoration-dotted">Press Kit</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="max-w-3xl">
+        <h2 class="text-3xl md:text-4xl font-bold">Why this galaxy feels alive</h2>
+        <p class="mt-3 text-slate-300">Systems‑driven gameplay meets astrophysical authenticity. Every star, orbit, and economy matters.</p>
+      </header>
+
+      <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Card -->
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Realistic Spaceflight</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Inertial navigation, orbital mechanics, and fuel‑aware trajectories—accessible with helpful assists.</p>
+        </article>
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Dynamic Factions</h3>
+          <p class="mt-2 text-sm text-slate-300/90">AI civilizations expand, trade, and wage war. Your choices shift the balance.</p>
+        </article>
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Evolving Economy</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Simulated markets, smuggling routes, mining, crafting, and research trees.</p>
+        </article>
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Boss Encounters</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Face colossal entities and stations with multi‑phase mechanics and environmental hazards.</p>
+        </article>
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Procedural Galaxies</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Seeded star maps with handcrafted points of interest and story arcs.</p>
+        </article>
+        <article class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Online Scoreboard</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Challenge the community in time trials, discoveries, and faction influence.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cinematic trailer / Gallery -->
+  <section id="trailer" class="py-14 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="grid lg:grid-cols-3 gap-6 items-center">
+        <div class="lg:col-span-2">
+          <div class="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10">
+            <!-- Replace src with hosted trailer; provide WebM + MP4 -->
+            <video controls poster="/media/trailer-poster.jpg" class="w-full h-full object-cover">
+              <source src="/media/trailer.webm" type="video/webm" />
+              <source src="/media/trailer.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <h3 class="text-2xl font-semibold">Watch the Trailer</h3>
+          <p class="text-slate-300/90">Get a first look at deep‑space traversal, station sieges, and faction AI in motion.</p>
+          <ul class="text-sm text-slate-300 list-disc pl-5">
+            <li>Show real gameplay: flight, docking, combat, and the map.</li>
+            <li>End with a call to wishlist / sign up.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Factions snapshot -->
+  <section id="factions" class="py-20 bg-gradient-to-b from-deep-900 to-deep-800">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="max-w-3xl mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold">Factions shaping the galaxy</h2>
+        <p class="mt-2 text-slate-300">From crystalline intellects to mycelial swarms, each civilization plays by its own rules.</p>
+      </header>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- 4 faction cards -->
+        <article class="group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/media/factions/cyl-card.jpg" alt="Crystal AI faction preview" class="rounded-xl mb-3 aspect-[16/9] object-cover"/>
+          <h3 class="font-semibold">CYL • Crystal Intelligences</h3>
+          <p class="text-sm text-slate-300/90">Light‑bending defenses and precision strikes.</p>
+        </article>
+        <article class="group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/media/factions/mycelari-card.jpg" alt="Mycelial swarm faction preview" class="rounded-xl mb-3 aspect-[16/9] object-cover"/>
+          <h3 class="font-semibold">Mycelari • Fungal Swarm</h3>
+          <p class="text-sm text-slate-300/90">Spore‑based expansion and biomass economy.</p>
+        </article>
+        <article class="group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/media/factions/megabot-card.jpg" alt="Megabot empire preview" class="rounded-xl mb-3 aspect-[16/9] object-cover"/>
+          <h3 class="font-semibold">Megabot • Machine Empire</h3>
+          <p class="text-sm text-slate-300/90">Modular forms, overwhelming firepower, station‑scale bosses.</p>
+        </article>
+        <article class="group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/media/factions/forest-card.jpg" alt="Wild forest entities preview" class="rounded-xl mb-3 aspect-[16/9] object-cover"/>
+          <h3 class="font-semibold">Wild • Ent‑born Guardians</h3>
+          <p class="text-sm text-slate-300/90">Pollen‑based growth and terrain control.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard preview -->
+  <section id="leaderboard" class="py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <header>
+          <h2 class="text-3xl font-bold">Global Leaderboard</h2>
+          <p class="text-slate-300">Top discoveries, speed‑runs, and faction influence—updated live.</p>
+        </header>
+        <a href="/leaderboard" class="px-4 py-2 rounded-md border border-white/20 hover:border-white/40">View Full Board →</a>
+      </div>
+
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full text-left text-sm min-w-[640px]">
+          <thead class="text-slate-300/80">
+            <tr class="border-b border-white/10">
+              <th class="py-3">Rank</th>
+              <th>Commander</th>
+              <th>Mode</th>
+              <th>Score</th>
+              <th>Best Time</th>
+              <th>Last Update</th>
+            </tr>
+          </thead>
+          <tbody id="lbBody" class="divide-y divide-white/10">
+            <!-- JS populates -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section id="roadmap" class="py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="max-w-3xl">
+        <h2 class="text-3xl md:text-4xl font-bold">Roadmap</h2>
+        <p class="mt-2 text-slate-300">Follow development from Alpha to 1.0 and beyond.</p>
+      </header>
+      <ol class="mt-10 grid md:grid-cols-3 gap-6">
+        <li class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">Alpha</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Core flight & combat</li>
+            <li>2 factions playable</li>
+            <li>Leaderboard v1</li>
+          </ul>
+        </li>
+        <li class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">Beta</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Story arcs & bosses</li>
+            <li>Co‑op stats & events</li>
+            <li>Market & crafting</li>
+          </ul>
+        </li>
+        <li class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">1.0</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Full faction roster</li>
+            <li>Endgame systems</li>
+            <li>Modding tools</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Devlog / News -->
+  <section id="news" class="py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-end justify-between">
+        <header>
+          <h2 class="text-3xl font-bold">Latest Devlog</h2>
+          <p class="text-slate-300">Deep dives on AI, physics, and worldbuilding.</p>
+        </header>
+        <a href="/devlog" class="text-sm underline decoration-dotted">Read more →</a>
+      </div>
+      <div class="mt-8 grid md:grid-cols-3 gap-6">
+        <!-- 3 posts, replace links & images -->
+        <article class="rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/media/devlog/ai.jpg" alt="AI systems" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Adaptive Faction AI</h3>
+            <p class="text-sm text-slate-300/90 mt-2">How empires grow, fight, and negotiate over time.</p>
+          </div>
+        </article>
+        <article class="rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/media/devlog/physics.jpg" alt="Physics" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Flight & Orbital Mechanics</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Balancing realism with fun assists.</p>
+          </div>
+        </article>
+        <article class="rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/media/devlog/boss.jpg" alt="Boss" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Designing Station Bosses</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Multi‑phase challenges and environmental hazards.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download / CTA -->
+  <section id="download" class="py-16 bg-gradient-to-b from-deep-900 to-deep-800">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold">Download & Wishlist</h2>
+        <p class="mt-3 text-slate-300">Get early builds, post feedback, and climb the leaderboard.</p>
+        <div class="mt-6 grid sm:grid-cols-3 gap-3">
+          <a class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-center" href="#">Windows</a>
+          <a class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-center" href="#">macOS</a>
+          <a class="px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-center" href="#">Linux</a>
+        </div>
+        <p class="mt-4 text-xs text-slate-400">Requires 8 GB RAM, 4‑core CPU, integrated or discrete GPU. ~2.5 GB free space.</p>
+      </div>
+      <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+        <h3 class="font-semibold">Join the Alpha</h3>
+        <p class="text-sm text-slate-300/90 mt-1">Get keys, patch notes, and event invites.</p>
+        <form id="signup" class="mt-4 grid sm:grid-cols-[1fr_auto] gap-3" onsubmit="return fakeSubmit(event)">
+          <label class="sr-only" for="email">Email</label>
+          <input id="email" type="email" required placeholder="you@galaxy.space" class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
+          <button class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow">Request Access</button>
+        </form>
+        <p id="signupMsg" class="mt-3 text-sm text-emerald-400 hidden">Thanks! Check your inbox for confirmation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6">
+      <h2 class="text-3xl font-bold">FAQ</h2>
+      <div class="mt-8 grid md:grid-cols-2 gap-6 text-sm">
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5" open>
+          <summary class="font-semibold cursor-pointer">Is this single‑player or multiplayer?</summary>
+          <p class="mt-2 text-slate-300/90">Primarily single‑player with online scoreboards and live events. Co‑op stats are planned.</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">How realistic is the physics?</summary>
+          <p class="mt-2 text-slate-300/90">We model inertial flight and orbits with assists for accessibility. "Simulation when you want it."</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">Will there be mods?</summary>
+          <p class="mt-2 text-slate-300/90">Yes—tools and APIs post‑1.0.</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">Which platforms?</summary>
+          <p class="mt-2 text-slate-300/90">Windows, macOS, Linux at launch; console evaluation later.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
+      <div class="grid md:grid-cols-4 gap-6">
+        <div>
+          <img src="/media/logo.svg" alt="Explore the Universe" class="w-8 h-8"/>
+          <p class="mt-3 max-w-xs">An open‑world space adventure by Telford Projects. Built with science, art, and a pinch of chaos.</p>
+        </div>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Game</h4>
+          <a class="block" href="#features">Features</a>
+          <a class="block" href="#factions">Factions</a>
+          <a class="block" href="#download">Download</a>
+        </nav>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Community</h4>
+          <a class="block" href="/leaderboard">Leaderboard</a>
+          <a class="block" href="/forum">Forum</a>
+          <a class="block" href="/discord">Discord</a>
+        </nav>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Company</h4>
+          <a class="block" href="#press">Press Kit</a>
+          <a class="block" href="/privacy">Privacy</a>
+          <a class="block" href="/terms">Terms</a>
+        </nav>
+      </div>
+      <p class="mt-8 text-xs">© <span id="year"></span> Telford Projects. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // mobile menu
+    const mBtn = document.getElementById('menuBtn');
+    const mMenu = document.getElementById('mobileMenu');
+    if (mBtn) mBtn.addEventListener('click',()=>mMenu.classList.toggle('hidden'));
+
+    // simple starfield sprinkle
+    const sf = document.querySelector('.starfield');
+    for(let i=0;i<120;i++){
+      const s=document.createElement('i');
+      s.style.top=Math.random()*100+'%';
+      s.style.left=Math.random()*100+'%';
+      s.style.opacity = (Math.random()*0.7+0.3).toFixed(2);
+      s.style.transform = `scale(${Math.random()*1.2+0.4})`;
+      sf.appendChild(s);
+    }
+
+    // demo leaderboard data (replace with API)
+    const demoLB = [
+      {rank:1,name:'E.T.',mode:'Any% Run',score:987654,time:'12:34',updated:'2m ago'},
+      {rank:2,name:'NovaKite',mode:'Discovery',score:963420,time:'—',updated:'5m ago'},
+      {rank:3,name:'CrystalMind',mode:'Faction Influence',score:951210,time:'—',updated:'9m ago'},
+      {rank:4,name:'SporeSpine',mode:'Boss Rush',score:912340,time:'18:12',updated:'15m ago'},
+      {rank:5,name:'MegabotX',mode:'Siege',score:889990,time:'—',updated:'22m ago'}
+    ];
+    const tbody=document.getElementById('lbBody');
+    demoLB.forEach(row=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td class="py-3">${row.rank}</td>
+        <td>${row.name}</td>
+        <td>${row.mode}</td>
+        <td>${row.score.toLocaleString()}</td>
+        <td>${row.time}</td>
+        <td>${row.updated}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // fake signup
+    function fakeSubmit(e){
+      e.preventDefault();
+      document.getElementById('signupMsg').classList.remove('hidden');
+      return false;
+    }
+  </script>
+
+  <!--
+  ========================= MEDIA PRODUCTION GUIDE =========================
+  1) LOGO (SVG)
+     - /media/logo.svg — vector mark + wordmark; monochrome and inverted variants
+  2) HERO TRAILER (MP4 + WEBM) + POSTER
+     - /media/hero-trailer.mp4 (H.264, 1080p, ~20–30 Mbps master, web: 6–8 Mbps)
+     - /media/hero-trailer.webm (VP9/AV1 optional)
+     - /media/hero-poster.jpg (3840×2160, <600 KB, perceptual compression)
+     - Content: quick cuts of flight, docking, combat, faction shots, map; 25–45s
+  3) TRAILER BLOCK
+     - /media/trailer.mp4 + /media/trailer.webm + /media/trailer-poster.jpg
+  4) BADGES (SVG)
+     - /media/badges/physics.svg, ai.svg, procgen.svg
+  5) FACTION CARDS (JPG/WEBP)
+     - 4 images at 1920×1080 (or WEBP), under 350 KB each
+     - /media/factions/cyl-card.jpg, mycelari-card.jpg, megabot-card.jpg, forest-card.jpg
+  6) DEVLOG THUMBNAILS (JPG/WEBP)
+     - 3 images at 1920×1080, under 250 KB each
+     - /media/devlog/ai.jpg, physics.jpg, boss.jpg
+  7) OG COVER
+     - /og-cover.jpg (1200×630, <500 KB)
+  8) ICONS / FAVICONS
+     - /favicon.ico, /apple-touch-icon.png (180×180), /site.webmanifest
+
+  PERFORMANCE NOTES
+  - Serve images as AVIF/WEBP with JPG fallback via <picture> in production
+  - Use lazyloading where appropriate (loading="lazy")
+  - Consider CloudFront/Cloudflare + Brotli + HTTP/3
+  - Defer non‑critical scripts; inline critical CSS if not using Tailwind CDN
+
+  ACCESSIBILITY NOTES
+  - Ensure sufficient contrast for text over video
+  - Provide captions for trailers; avoid autoplay with audio
+
+  BACKEND INTEGRATION HOOKS
+  - Leaderboard: replace demoLB with fetch('/api/leaderboard')
+  - Sign‑up: post to '/api/signup' and show response
+  - Press kit: link to /press with downloadable assets
+  ========================================================================
+  -->
+</body>
+</html>
