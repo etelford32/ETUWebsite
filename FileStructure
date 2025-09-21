@@ -1,0 +1,158 @@
+exploretheuniverse/
+├─ README.md
+├─ LICENSE
+├─ .editorconfig
+├─ .gitignore
+├─ .gitattributes
+├─ package.json
+├─ pnpm-lock.yaml                         # or yarn.lock / package-lock.json
+├─ .env.example                           # document all required env vars
+│
+├─ apps/
+│  └─ web/                                # The website (static-first, PWA)
+│     ├─ public/                          # Served at site root
+│     │  ├─ favicon.ico
+│     │  ├─ robots.txt
+│     │  ├─ sitemap.xml                   # generated at build
+│     │  ├─ manifest.webmanifest          # PWA
+│     │  ├─ og-cover.jpg
+│     │  ├─ apple-touch-icon.png
+│     │  └─ media/
+│     │     ├─ logo.svg
+│     │     ├─ badges/{physics.svg,ai.svg,procgen.svg}
+│     │     ├─ hero/
+│     │     │  ├─ hero-trailer.mp4
+│     │     │  ├─ hero-trailer.webm
+│     │     │  └─ hero-poster.jpg
+│     │     ├─ trailer/{trailer.mp4,trailer.webm,trailer-poster.jpg}
+│     │     ├─ factions/{cyl-card.webp,mycelari-card.webp,megabot-card.webp,forest-card.webp}
+│     │     ├─ devlog/{ai.webp,physics.webp,boss.webp}
+│     │     ├─ screenshots/               # in-game shots for press & store
+│     │     └─ downloads/                 # platform installers or links
+│     │
+│     ├─ src/
+│     │  ├─ index.html                    # (you already have v1 hero page)
+│     │  ├─ pages/                        # static pages & route templates
+│     │  │  ├─ leaderboard.html
+│     │  │  ├─ download.html
+│     │  │  ├─ forum.html                 # stub; can migrate to real forum
+│     │  │  ├─ press.html                 # press kit
+│     │  │  ├─ privacy.html
+│     │  │  ├─ terms.html
+│     │  │  ├─ devlog/                    # blog/devlog (SSG-friendly)
+│     │  │  │  ├─ index.html
+│     │  │  │  └─ posts/                  # generated from /content
+│     │  │  └─ 404.html
+│     │  │
+│     │  ├─ components/                   # HTML partials / includes
+│     │  │  ├─ header.html
+│     │  │  ├─ footer.html
+│     │  │  ├─ hero.html
+│     │  │  └─ cards/
+│     │  │     ├─ feature-card.html
+│     │  │     └─ faction-card.html
+│     │  │
+│     │  ├─ styles/
+│     │  │  ├─ tailwind.css
+│     │  │  └─ globals.css
+│     │  │
+│     │  ├─ scripts/
+│     │  │  ├─ main.js
+│     │  │  ├─ ui/
+│     │  │  │  ├─ menu.js
+│     │  │  │  └─ starfield.js
+│     │  │  ├─ analytics/
+│     │  │  │  ├─ analytics.js            # gtag/plausible wrapper
+│     │  │  │  └─ events.js               # custom events (wishlist, signup)
+│     │  │  ├─ api/
+│     │  │  │  ├─ leaderboard-client.js   # fetch to /api/leaderboard
+│     │  │  │  └─ signup-client.js        # POST to /api/signup
+│     │  │  └─ pwa/
+│     │  │     └─ service-worker.js
+│     │  │
+│     │  ├─ data/                         # small static JSON (non-secret)
+│     │  │  └─ roadmap.json
+│     │  └─ schemas/                      # JSON-LD helpers (if templating)
+│     │     └─ videogame.schema.js
+│     │
+│     ├─ content/                         # source of truth for SSG pages
+│     │  ├─ devlog/                       # markdown posts + front-matter
+│     │  │  ├─ 2025-09-01-adaptive-faction-ai.md
+│     │  │  ├─ 2025-09-08-orbital-mechanics-assists.md
+│     │  │  └─ 2025-09-15-station-bosses.md
+│     │  ├─ press/
+│     │  │  ├─ press-release-2025-10.md
+│     │  │  └─ fact-sheet.md
+│     │  └─ faq.md
+│     │
+│     ├─ tests/
+│     │  ├─ e2e/                          # Playwright/Cypress
+│     │  │  ├─ homepage.spec.ts
+│     │  │  └─ leaderboard.spec.ts
+│     │  └─ unit/
+│     │     └─ schema.spec.ts
+│     │
+│     └─ build/                           # build artifacts (gitignored)
+│
+├─ services/
+│  └─ api/                                # Serverless backend (AWS Lambda)
+│     ├─ src/
+│     │  ├─ leaderboard/
+│     │  │  ├─ get.ts                     # GET /api/leaderboard
+│     │  │  └─ upsert.ts                  # internal admin
+│     │  ├─ signup/
+│     │  │  └─ post.ts                    # POST /api/signup → SES/Cognito
+│     │  ├─ auth/
+│     │  │  └─ validate-session.ts
+│     │  ├─ utils/
+│     │  │  ├─ db.ts                      # DynamoDB client
+│     │  │  ├─ env.ts
+│     │  │  └─ response.ts
+│     │  └─ schemas/
+│     │     └─ leaderboard.ts             # zod/io-ts validation
+│     ├─ package.json
+│     ├─ tsconfig.json
+│     └─ serverless.yml                   # or SAM/Architect
+│
+├─ infra/                                 # IaC: AWS + CDN + DNS
+│  ├─ terraform/
+│  │  ├─ main.tf                          # S3 (static), CloudFront, ACM
+│  │  ├─ variables.tf
+│  │  ├─ outputs.tf
+│  │  └─ api.tf                           # APIGW + Lambda + DynamoDB + SES
+│  └─ pipelines/
+│     ├─ github-actions/
+│     │  ├─ web-deploy.yml                # build web, upload to S3, CF invalidation
+│     │  └─ api-deploy.yml                # deploy serverless
+│     └─ scripts/
+│        ├─ build_sitemap.mjs
+│        ├─ prerender_devlog.mjs          # SSG generation from /content
+│        └─ validate_links.mjs
+│
+├─ ops/
+│  ├─ monitoring/
+│  │  ├─ uptime.json                      # health checks (Statuspage/Uptime)
+│  │  └─ alerts.md
+│  ├─ analytics/
+│  │  ├─ plausible.json                   # or GA4 config
+│  │  └─ events-catalog.md
+│  └─ security/
+│     ├─ headers.conf                     # CSP, HSTS, COOP/COEP, etc.
+│     └─ threat-model.md
+│
+├─ docs/                                   # Contributor & design docs
+│  ├─ CONTRIBUTING.md
+│  ├─ CODE_OF_CONDUCT.md
+│  ├─ STYLEGUIDE.md
+│  ├─ MEDIA_GUIDE.md                       # export settings, sizes, codecs
+│  └─ PRESS_KIT_CHECKLIST.md
+│
+└─ tools/
+   ├─ img/                                 # image pipeline (Sharp)
+   │  ├─ ingest/                           # raw > processed
+   │  ├─ process.mjs
+   │  └─ presets.json
+   └─ scripts/
+      ├─ bump-version.mjs
+      ├─ generate-open-graph.mjs
+      └─ sync-downloads.mjs
