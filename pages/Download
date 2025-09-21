@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Download / Sign‑Up — Explore the Universe</title>
+  <meta name="description" content="Reserve your Pilot + Ship names for multiplayer and get notified when Explore the Universe launches. Release: Jan 6, 2026. Price: $25." />
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- Social -->
+  <meta property="og:title" content="Reserve your Pilot + Ship • Explore the Universe" />
+  <meta property="og:description" content="Claim your unique Pilot and Ship names for multiplayer. Release Jan 6, 2026 — $25." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://exploretheuniverse.com/og-cover.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- JSON‑LD Product + Offer -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "Explore the Universe (PC/Mac/Linux)",
+    "image": ["https://exploretheuniverse.com/og-cover.jpg"],
+    "description": "Open‑world space adventure with realistic physics and dynamic factions.",
+    "brand": {"@type":"Brand","name":"Telford Projects"},
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/PreOrder",
+      "url": "https://exploretheuniverse.com/download",
+      "validFrom": "2025-09-21T00:00:00-07:00",
+      "priceValidUntil": "2026-01-06T00:00:00-08:00",
+      "category": "VideoGame"
+    }
+  }
+  </script>
+
+  <!-- Tailwind (CDN for prototype) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { deep: { 900:'#040614',800:'#070b1f',700:'#0d1330' } },
+          boxShadow: { glow: '0 0 30px rgba(99,102,241,.35)' }
+        }
+      }
+    }
+  </script>
+  <style>
+    .backdrop-blur-2xs{backdrop-filter:blur(6px)}
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+  <!-- Header (lite) -->
+  <header class="sticky top-0 z-30 backdrop-blur-2xs bg-deep-900/70 border-b border-white/10">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <img src="/media/logo.svg" alt="Explore the Universe logo" class="w-8 h-8"/>
+        <strong>Explore the Universe</strong>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm">
+        <a href="/" class="opacity-80 hover:opacity-100">Home</a>
+        <a href="/leaderboard" class="opacity-80 hover:opacity-100">Leaderboard</a>
+        <a href="/devlog" class="opacity-80 hover:opacity-100">Devlog</a>
+        <a href="/press" class="opacity-80 hover:opacity-100">Press Kit</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero / Preorder CTA -->
+  <section class="border-b border-white/10 bg-deep-800/40">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6 py-10">
+      <h1 class="text-4xl md:text-5xl font-bold">Reserve Your Pilot + Ship</h1>
+      <p class="mt-3 text-lg text-slate-300 max-w-3xl">Sign up for early access news and claim a unique <span class="font-semibold">Pilot Name</span> and <span class="font-semibold">Ship Name</span> for multiplayer. Release <span class="whitespace-nowrap">Jan 6, 2026</span>. Launch price <span class="font-semibold">$25</span>.</p>
+
+      <!-- Countdown -->
+      <div class="mt-6 p-4 rounded-xl bg-white/5 ring-1 ring-white/10 inline-flex items-center gap-6">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-slate-400">Launch In</div>
+          <div id="countdown" class="text-2xl font-mono"></div>
+        </div>
+        <a href="#signup" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow">Claim Yours</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sign-up + Name Reservation -->
+  <section id="signup" class="py-12">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-8">
+      <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+        <h2 class="text-2xl font-semibold">Sign Up</h2>
+        <p class="text-sm text-slate-300/90 mt-1">Get updates, keys, and event invites. Choose your platform and region.</p>
+        <form id="signupForm" class="mt-4 grid gap-3" onsubmit="return handleSignup(event)">
+          <label class="text-sm" for="email">Email</label>
+          <input id="email" type="email" required placeholder="you@galaxy.space" class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm" for="platform">Platform</label>
+              <select id="platform" class="w-full px-3 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15">
+                <option>Windows</option>
+                <option>macOS</option>
+                <option>Linux</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm" for="region">Region</label>
+              <select id="region" class="w-full px-3 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15">
+                <option>NA</option>
+                <option>EU</option>
+                <option>APAC</option>
+                <option>LATAM</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="inline-flex items-center gap-2 text-sm mt-2">
+            <input type="checkbox" id="agree" required class="w-4 h-4" /> I agree to the <a class="underline decoration-dotted" href="/terms" target="_blank" rel="noopener">Terms</a> & <a class="underline decoration-dotted" href="/privacy" target="_blank" rel="noopener">Privacy</a>.
+          </label>
+
+          <button class="mt-2 px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow">Sign Up</button>
+          <p id="signupMsg" class="text-sm text-emerald-400 hidden">Thanks! Check your inbox to confirm.</p>
+        </form>
+      </div>
+
+      <!-- Reservation panel -->
+      <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+        <h2 class="text-2xl font-semibold">Claim Pilot + Ship</h2>
+        <p class="text-sm text-slate-300/90 mt-1">Generate names or roll your own. Must be unique across multiplayer.</p>
+
+        <div class="grid gap-4 mt-4">
+          <div>
+            <label class="text-sm" for="pilot">Pilot Name</label>
+            <div class="flex gap-2 mt-1">
+              <input id="pilot" maxlength="24" placeholder="e.g., NovaKite" class="flex-1 px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15" />
+              <button class="px-3 py-2 rounded-lg border border-white/20 hover:border-white/40" onclick="return gen('pilot')">🎲</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-sm" for="ship">Ship Name</label>
+            <div class="flex gap-2 mt-1">
+              <input id="ship" maxlength="30" placeholder="e.g., ISS Starweaver" class="flex-1 px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15" />
+              <button class="px-3 py-2 rounded-lg border border-white/20 hover:border-white/40" onclick="return gen('ship')">🎲</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="checkBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20" onclick="return checkAvailability()">Check Availability</button>
+            <button id="claimBtn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow disabled:opacity-50" onclick="return claim()" disabled>Claim</button>
+          </div>
+          <p id="claimMsg" class="text-sm"></p>
+        </div>
+
+        <p class="text-xs text-slate-400 mt-4">Names are subject to moderation. Offensive or trademark‑violating names may be revoked.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- What you get -->
+  <section class="py-12 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6 grid md:grid-cols-3 gap-6">
+      <div class="p-5 rounded-xl bg-white/5 ring-1 ring-white/10">
+        <h3 class="font-semibold">$25 at Launch</h3>
+        <p class="text-sm text-slate-300/90 mt-1">Single purchase. No lootboxes. Free post‑launch updates.</p>
+      </div>
+      <div class="p-5 rounded-xl bg-white/5 ring-1 ring-white/10">
+        <h3 class="font-semibold">Jan 6, 2026</h3>
+        <p class="text-sm text-slate-300/90 mt-1">Download for Windows, macOS, and Linux.</p>
+      </div>
+      <div class="p-5 rounded-xl bg-white/5 ring-1 ring-white/10">
+        <h3 class="font-semibold">Early Access Perks</h3>
+        <p class="text-sm text-slate-300/90 mt-1">Exclusive badge and name reservation for multiplayer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer (lite) -->
+  <footer class="border-t border-white/10">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
+      <p>© <span id="year"></span> Telford Projects</p>
+    </div>
+  </footer>
+
+  <script>
+    // === Release Countdown ===
+    const RELEASE_ISO = '2026-01-06T00:00:00-08:00'; // Jan 6, 2026 PT
+    const cd = document.getElementById('countdown');
+    function tick(){
+      const now = new Date();
+      const rel = new Date(RELEASE_ISO);
+      const ms = rel - now;
+      if(ms <= 0){ cd.textContent = 'Released'; return; }
+      const d = Math.floor(ms/86400000);
+      const h = Math.floor(ms%86400000/3600000);
+      const m = Math.floor(ms%3600000/60000);
+      const s = Math.floor(ms%60000/1000);
+      cd.textContent = `${d}d ${h}h ${m}m ${s}s`;
+    }
+    tick(); setInterval(tick,1000);
+
+    // === Random Name Generators ===
+    const PILOT_A = ['Nova','Astra','Ion','Cyra','Kael','Lyra','Orion','Vega','Kei','Rhea','Sable','Zen','Nyx','Juno','Kade','Quill','Rune','Soren','Tali','Vale'];
+    const PILOT_B = ['Kite','Flux','Drift','Storm','Prime','Vector','Spark','Warden','Trace','Rider','Arc','Shade','Blaze','Quasar','Rogue','Night','Wave','Dawn','Star','Hollow'];
+    const SHIP_A  = ['ISS','SSV','CSV','HMS','RSV','SV'];
+    const SHIP_B  = ['Star','Void','Nebula','Solar','Eclipse','Quantum','Vanguard','Odyssey','Aurora','Pioneer','Frontier','Atlas','Catalyst','Zenith','Eon'];
+    const SHIP_C  = ['weaver','runner','spear','rider','song','wing','cradle','lancer','dream','arrow','spire','drifter'];
+    function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function titleCase(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+    function gen(type){
+      if(type==='pilot'){
+        document.getElementById('pilot').value = `${rand(PILOT_A)}${rand(PILOT_B)}`;
+      } else {
+        document.getElementById('ship').value = `${rand(SHIP_A)} ${rand(SHIP_B)}${titleCase(rand(SHIP_C))}`;
+      }
+      return false;
+    }
+
+    // === Client -> API Contracts ===
+    // POST /api/signup { email, platform, region } -> { ok, message }
+    async function handleSignup(e){
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const platform = document.getElementById('platform').value;
+      const region = document.getElementById('region').value;
+      const agree = document.getElementById('agree').checked;
+      if(!agree){ alert('Please accept Terms & Privacy.'); return false; }
+      try{
+        const res = await fetch('/api/signup',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ email, platform, region, list: 'prelaunch-2026-v1' })
+        });
+        const json = await res.json();
+        const msg = document.getElementById('signupMsg');
+        msg.textContent = json.message || 'Thanks! Check your inbox to confirm.';
+        msg.classList.remove('hidden');
+      }catch(err){ alert('Network error. Please try again.'); }
+      return false;
+    }
+
+    // GET /api/claim/check?pilot=&ship= -> { ok, pilot:{available}, ship:{available} }
+    async function checkAvailability(){
+      const pilot = document.getElementById('pilot').value.trim();
+      const ship  = document.getElementById('ship').value.trim();
+      const msg = document.getElementById('claimMsg');
+      if(!pilot || !ship){ msg.textContent='Enter Pilot and Ship first.'; msg.className='text-sm text-amber-400'; return false; }
+      try{
+        const res = await fetch(`/api/claim/check?pilot=${encodeURIComponent(pilot)}&ship=${encodeURIComponent(ship)}`);
+        const j = await res.json();
+        if(j.ok && j.pilot?.available && j.ship?.available){
+          msg.textContent = 'Both available — you can claim them now.';
+          msg.className = 'text-sm text-emerald-400';
+          document.getElementById('claimBtn').disabled = false;
+        }else{
+          const taken = [!j.pilot?.available?'Pilot':null, !j.ship?.available?'Ship':null].filter(Boolean).join(' & ');
+          msg.textContent = `${taken} name unavailable. Try another.`;
+          msg.className = 'text-sm text-rose-400';
+          document.getElementById('claimBtn').disabled = true;
+        }
+      }catch(e){ msg.textContent='Error checking names. Try again.'; msg.className='text-sm text-rose-400'; }
+      return false;
+    }
+
+    // POST /api/claim { pilot, ship } -> { ok, reservationId, expiresAtISO }
+    async function claim(){
+      const pilot = document.getElementById('pilot').value.trim();
+      const ship  = document.getElementById('ship').value.trim();
+      const btn = document.getElementById('claimBtn');
+      const msg = document.getElementById('claimMsg');
+      if(!pilot || !ship) return false;
+      btn.disabled = true;
+      try{
+        const res = await fetch('/api/claim',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ pilot, ship })
+        });
+        const j = await res.json();
+        if(j.ok){
+          localStorage.setItem('etu_reservation', JSON.stringify(j));
+          const eta = j.expiresAtISO ? new Date(j.expiresAtISO).toLocaleString() : '—';
+          msg.innerHTML = `✅ Reserved! Reservation ID <code class="text-xs">${j.reservationId}</code> ${j.expiresAtISO?`(holds until ${eta})`:''}`;
+          msg.className = 'text-sm text-emerald-400';
+        }else{
+          msg.textContent = j.message || 'Could not reserve. Try a different name.';
+          msg.className = 'text-sm text-rose-400';
+          btn.disabled = false;
+        }
+      }catch(e){
+        msg.textContent = 'Network error. Please try again.';
+        msg.className = 'text-sm text-rose-400';
+        btn.disabled = false;
+      }
+      return false;
+    }
+
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+  <!--
+  ================== BACKEND CONTRACT (for services/api) ==================
+  1) POST /api/signup
+     Request: { email:string, platform:'Windows'|'macOS'|'Linux', region:'NA'|'EU'|'APAC'|'LATAM', list:string }
+     Response: { ok:boolean, message?:string }
+     Notes: store in Cognito or DynamoDB; send SES double‑opt‑in if needed.
+
+  2) GET /api/claim/check?pilot=&ship=
+     Response: { ok:true, pilot:{ available:boolean }, ship:{ available:boolean } }
+     Notes: normalize names (case‑insensitive), enforce charset & length, blacklist terms.
+
+  3) POST /api/claim
+     Request: { pilot:string, ship:string }
+     Response: { ok:boolean, reservationId:string, expiresAtISO?:string, message?:string }
+     Notes: create a short‑lived hold (e.g., 24h) in DynamoDB with TTL; require verified email
+           to convert hold → permanent assignment. Emit analytics event.
+
+  4) Data model (DynamoDB suggested):
+     - Table: etu_names
+       PK: name_type#name (e.g., 'pilot#novakite')
+       SK: 'v1'
+       attrs: { state:'held'|'assigned', reservedBy: userId, expiresAt:number, createdAt:number }
+
+  5) Validation:
+     - Pilot: 3–24 chars, A–Z, a–z, 0–9, hyphen, underscore; no double separators; start with letter.
+     - Ship: 3–30 chars, allow spaces; compact internal whitespace; no leading/trailing space.
+
+  ========================================================================
+  -->
+</body>
+</html>
