@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patch v0.3.2 — AI behavior trees + perf fixes — Topic</title>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    /* ============ THEME (same variables as home) ============ */
+    :root{
+      --bg:#0b1117; --surface:#0f1621; --surface-2:#111a26; --border:#233143;
+      --text:#e6edf3; --muted:#94a3b8; --primary:#65b7ff; --primary-600:#3ea2ff;
+      --accent:#7ee787; --danger:#ff6b6b; --radius:12px; --shadow:0 1px 1px rgba(0,0,0,.05), 0 8px 40px rgba(0,0,0,.25);
+      --font: ui-sans-serif, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+    }
+    @media (prefers-color-scheme: light){
+      :root{--bg:#f7fafc; --surface:#ffffff; --surface-2:#f2f4f7; --border:#e5e7eb; --text:#0f172a; --muted:#64748b; --shadow:0 1px 1px rgba(0,0,0,.04), 0 8px 32px rgba(0,0,0,.08);}
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font:16px/1.6 var(--font); background:var(--bg); color:var(--text)}
+    a{color:var(--primary); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:1100px; margin:0 auto; padding:0 16px}
+    .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    :focus-visible{outline:2px solid var(--primary); outline-offset:2px}
+    code,kbd,pre{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.95em}
+
+    header{
+      position:sticky; top:0; z-index:50; backdrop-filter:saturate(180%) blur(10px);
+      background: color-mix(in oklab, var(--surface), transparent 10%); border-bottom:1px solid var(--border);
+    }
+    .nav{display:flex; align-items:center; gap:12px; padding:12px 0}
+    .brand{display:flex; gap:10px; align-items:center; font-weight:700}
+    .logo{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--primary),var(--accent))}
+    .nav-spacer{flex:1}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:10px 14px;border-radius:10px;text-decoration:none;box-shadow:var(--shadow)}
+    .btn-primary{background:var(--primary);border-color:transparent;color:#04121e}
+    .icon{width:18px;height:18px}
+
+    /* ============ BREADCRUMBS & TITLE ============ */
+    .crumbs{display:flex; gap:8px; align-items:center; color:var(--muted); padding:16px 0 6px}
+    .crumbs a{color:inherit}
+    .topic-head{padding:8px 0 16px; border-bottom:1px solid var(--border)}
+    .topic-title{margin:0; font-size:1.6rem; line-height:1.3; font-weight:800; letter-spacing:.2px}
+    .topic-meta{display:flex; gap:10px; flex-wrap:wrap; color:var(--muted); margin-top:8px}
+    .badge{display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .6rem; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); font-size:.8rem; color:var(--muted)}
+
+    /* ============ LAYOUT ============ */
+    .thread{
+      display:grid; grid-template-columns: 1fr 280px; gap:20px; padding:16px 0 32px;
+    }
+    @media (max-width: 960px){ .thread{grid-template-columns: 1fr} .side{order:-1} }
+
+    /* ============ POSTS ============ */
+    .post{
+      display:grid; grid-template-columns: 64px 1fr; gap:16px; padding:16px; border-bottom:1px solid var(--border);
+      background:var(--surface);
+    }
+    .post:first-child{border-top:1px solid var(--border); border-top-left-radius:var(--radius); border-top-right-radius:var(--radius)}
+    .post:last-of-type{border-bottom-left-radius:var(--radius); border-bottom-right-radius:var(--radius)}
+    .avatar{width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#7aa2f7,#b07fff)}
+    .post-h{
+      display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    }
+    .author{font-weight:700}
+    .post-num{margin-left:auto; color:var(--muted)}
+    .post-meta{color:var(--muted); font-size:.9rem}
+    .post-body{min-height:40px}
+    .post-body h3{margin:1.25em 0 .5em}
+    .post-body p{margin:.6em 0}
+    .post-actions{display:flex; gap:8px; margin-top:8px}
+    .chip{display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .55rem; border:1px solid var(--border); border-radius:999px; background:var(--surface-2); color:var(--muted); font-size:.85rem}
+
+    blockquote{margin:.8em 0; padding:.6em .8em; border-left:3px solid var(--primary); background:var(--surface-2); color:var(--text)}
+    pre{margin:.8em 0; padding:12px; background:#0b0f14; color:#e6edf3; border:1px solid var(--border); border-radius:10px; overflow:auto}
+    @media (prefers-color-scheme: light){ pre{background:#0f172a; color:#e2e8f0} }
+    code{background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:.1rem .35rem}
+
+    /* ============ SIDEBAR ============ */
+    .side .card{border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); padding:12px}
+    .side-title{margin:4px 0 8px; font-size:.95rem; color:var(--muted)}
+    .stat{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--border)}
+    .stat:last-child{border-bottom:none}
+    .watch{display:flex; gap:8px; align-items:center}
+    .userlist{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    .userlist .u{width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#7ee787,#65b7ff)}
+
+    /* ============ COMPOSER ============ */
+    .composer{margin-top:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow)}
+    .composer h3{margin:0; padding:12px; border-bottom:1px solid var(--border); font-size:1rem}
+    .composer .row{display:flex; flex-direction:column; gap:8px; padding:12px}
+    .composer textarea{width:100%; min-height:140px; padding:10px 12px; border-radius:10px; background:var(--surface-2); color:var(--text); border:1px solid var(--border)}
+    .composer .actions{display:flex; gap:8px; justify-content:flex-end}
+    .btn-primary{background:var(--primary); border-color:transparent; color:#04121e}
+    .btn-danger{background:var(--danger); border-color:transparent; color:#1b0000}
+  </style>
+</head>
+<body>
+<a class="visually-hidden" href="#main">Skip to content</a>
+
+<!-- Icons -->
+<svg width="0" height="0" style="position:absolute;visibility:hidden">
+  <symbol id="i-reply" viewBox="0 0 24 24"><path fill="currentColor" d="M10 8V4l-8 8 8 8v-4h2c6 0 9-2 10-10-3 4-6 6-12 6h-0z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-8-4.438-8-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.562-8 10-8 10z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path fill="currentColor" d="M10 14a4 4 0 0 1 0-6l2-2a4 4 0 0 1 6 6l-1 1"/><path fill="currentColor" d="M14 10a4 4 0 0 1 0 6l-2 2a4 4 0 0 1-6-6l1-1"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a6 6 0 0 1 6 6v4l2 3H4l2-3V9a6 6 0 0 1 6-6zm0 18a3 3 0 0 1-3-3h6a3 3 0 0 1-3 3z"/></symbol>
+</svg>
+
+<header>
+  <div class="container nav" role="navigation" aria-label="Primary">
+    <div class="brand"><div class="logo" aria-hidden="true"></div><span>Explore the Universe — Community</span></div>
+    <div class="nav-spacer"></div>
+    <a class="btn" href="forum-home.html">All Topics</a>
+    <a class="btn btn-primary" href="#reply">Reply</a>
+  </div>
+</header>
+
+<main id="main" class="container">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="forum-home.html">Home</a> › <a href="#">Announcements</a> › <span aria-current="page">Patch v0.3.2</span>
+  </nav>
+
+  <header class="topic-head">
+    <h1 class="topic-title">Patch v0.3.2 — AI behavior trees + perf fixes <span class="badge">v0.3</span> <span class="badge">Announcements</span></h1>
+    <div class="topic-meta">
+      <span>Started by <strong>elliot</strong></span>
+      <span>•</span>
+      <span>Posted <time datetime="2025-09-14T18:20:00Z">Sep 14, 2025</time></span>
+      <span>•</span>
+      <span>42 replies</span>
+      <span>•</span>
+      <span>3.2k views</span>
+    </div>
+  </header>
+
+  <section class="thread" aria-label="Thread">
+    <!-- ===== POSTS ===== -->
+    <div>
+      <!-- OP -->
+      <article class="post" id="post-1" itemscope itemtype="https://schema.org/DiscussionForumPosting">
+        <meta itemprop="headline" content="Patch v0.3.2 — AI behavior trees + perf fixes" />
+        <div class="avatar" aria-hidden="true"></div>
+        <div>
+          <div class="post-h">
+            <div class="author" itemprop="author" itemscope itemtype="https://schema.org/Person">
+              <span itemprop="name">elliot</span>
+            </div>
+            <div class="post-meta">
+              <time datetime="2025-09-14T18:20:00Z" itemprop="datePublished">Sep 14</time>
+              · <span itemprop="position">#1</span>
+            </div>
+            <div class="post-num">OP</div>
+          </div>
+          <div class="post-body" itemprop="articleBody">
+            <p>Hey folks—v0.3.2 focuses on AI and perf stability. Highlights:</p>
+            <ul>
+              <li>Behavior trees for NPC pilots (less jitter, more readable state).</li>
+              <li>Physics hot‑path now branches by collider family (10–18% faster).</li>
+              <li>New <code>ecs.schedule()</code> hooks for mod integrations.</li>
+            </ul>
+            <h3>Upgrade notes</h3>
+            <blockquote>Back up your <code>~/.etu/mods</code> folder before updating. API changes are minor but not zero.</blockquote>
+            <pre><code># CLI
+etu update --channel beta
+etu verify --deep
+</code></pre>
+          </div>
+          <div class="post-actions">
+            <span class="chip"><svg class="icon"><use href="#i-reply"></use></svg> Reply</span>
+            <span class="chip"><svg class="icon"><use href="#i-heart"></use></svg> 128</span>
+            <span class="chip"><svg class="icon"><use href="#i-link"></use></svg> Share</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- A reply -->
+      <article class="post" id="post-2">
+        <div class="avatar" aria-hidden="true"></div>
+        <div>
+          <div class="post-h">
+            <div class="author">astrofox</div>
+            <div class="post-meta"><time datetime="2025-09-14T20:10:00Z">Sep 14</time> · <span>#2</span></div>
+          </div>
+          <div class="post-body">
+            <p>Great work! Confirmed smoother dogfights. Question: can mods intercept BT blackboard writes?</p>
+          </div>
+          <div class="post-actions">
+            <span class="chip"><svg class="icon"><use href="#i-reply"></use></svg> Reply</span>
+            <span class="chip"><svg class="icon"><use href="#i-heart"></use></svg> 9</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Another reply -->
+      <article class="post" id="post-3">
+        <div class="avatar" aria-hidden="true"></div>
+        <div>
+          <div class="post-h">
+            <div class="author">elliot</div>
+            <div class="post-meta"><time datetime="2025-09-14T21:02:00Z">Sep 14</time> · <span>#3</span></div>
+          </div>
+          <div class="post-body">
+            <p>Yes—use the new scheduler hook <code>ecs.schedule("bt:beforeWrite", fn)</code>. Docs incoming.</p>
+          </div>
+          <div class="post-actions">
+            <span class="chip"><svg class="icon"><use href="#i-reply"></use></svg> Reply</span>
+            <span class="chip"><svg class="icon"><use href="#i-heart"></use></svg> 11</span>
+          </div>
+        </div>
+      </article>
+      <!-- /repeat -->
+    </div>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="side" aria-label="Thread controls">
+      <div class="card">
+        <div class="side-title">Thread</div>
+        <div class="stat"><span>Created</span><span>Sep 14, 2025</span></div>
+        <div class="stat"><span>Last reply</span><span>1d ago</span></div>
+        <div class="stat"><span>Replies</span><span>42</span></div>
+        <div class="stat"><span>Views</span><span>3.2k</span></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="side-title">Notifications</div>
+        <label class="watch">
+          <svg class="icon"><use href="#i-bell"></use></svg>
+          <select aria-label="Watch level">
+            <option>Watching</option>
+            <option>Tracking</option>
+            <option>Normal</option>
+            <option>Muted</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="side-title">Participants</div>
+        <div class="userlist" aria-label="Users in thread">
+          <div class="u" title="elliot"></div>
+          <div class="u" title="astrofox"></div>
+          <div class="u" title="cobalt"></div>
+          <div class="u" title="nova"></div>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===== COMPOSER ===== -->
+  <section class="composer" id="reply" aria-label="Reply composer">
+    <h3>Reply</h3>
+    <div class="row">
+      <label for="editor" class="visually-hidden">Write your reply</label>
+      <textarea id="editor" placeholder="Write in Markdown. Drag & drop images."></textarea>
+      <div class="actions">
+        <button class="btn">Preview</button>
+        <button class="btn btn-danger">Discard</button>
+        <button class="btn btn-primary">Post Reply</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- SEO structured data -->
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"DiscussionForumPosting",
+  "headline":"Patch v0.3.2 — AI behavior trees + perf fixes",
+  "datePublished":"2025-09-14T18:20:00Z",
+  "author":{"@type":"Person","name":"elliot"}
+}
+</script>
+</body>
+</html>
