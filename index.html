@@ -54,7 +54,13 @@
       }
     }
   </script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // TODO: replace with your real values
+    window.SUPABASE_URL = "https://osvrbwvxnbpwsmgvdmkm.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdnJid3Z4bmJwd3NtZ3ZkbWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MjM4MTYsImV4cCI6MjA3NDk5OTgxNn0.1WS43PMFLACSXhR2TGDUEJb0VIIsQhcE3HaPBQra8sQ";
+  </script>
+ 
   <style>
     /* Subtle starfield */
     .starfield{position:absolute;inset:0;overflow:hidden;pointer-events:none}
@@ -374,12 +380,17 @@
       <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
         <h3 class="font-semibold">Join the Alpha</h3>
         <p class="text-sm text-slate-300/90 mt-1">Get keys, patch notes, and event invites.</p>
-        <form id="signup" class="mt-4 grid sm:grid-cols-[1fr_auto] gap-3" onsubmit="return fakeSubmit(event)">
+        <form id="signup" class="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
           <label class="sr-only" for="email">Email</label>
-          <input id="email" type="email" required placeholder="you@galaxy.space" class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
-          <button class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow">Request Access</button>
+          <input id="email" type="email" name="email" required placeholder="you@galaxy.space"
+                 autocomplete="email"
+                 class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
+          <!-- Honeypot (hidden to humans) -->
+          <input type="text" name="planet" tabindex="-1" autocomplete="off" style="position:absolute;left:-5000px;opacity:0;">
+          <button id="signupBtn" class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow">Request Access</button>
         </form>
-        <p id="signupMsg" class="mt-3 text-sm text-emerald-400 hidden">Thanks! Check your inbox for confirmation.</p>
+        <p id="signupMsg" class="mt-3 text-sm text-emerald-400 hidden">Thanks! Check your inbox for a confirmation link.</p>
+        <p id="signupErr" class="mt-3 text-sm text-rose-400 hidden"></p>
       </div>
     </div>
   </section>
@@ -490,6 +501,65 @@
       return false;
     }
   </script>
+  <script>
+    (async () => {
+      const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    
+      const form = document.getElementById('signup');
+      const emailInput = document.getElementById('email');
+      const btn = document.getElementById('signupBtn');
+      const ok = document.getElementById('signupMsg');
+      const err = document.getElementById('signupErr');
+    
+      // small helper
+      function setLoading(state){
+        btn.disabled = state;
+        btn.textContent = state ? 'Sending…' : 'Request Access';
+      }
+    
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        err.classList.add('hidden');
+    
+        // Honeypot trip? bail
+        const botTrap = (new FormData(form)).get('planet');
+        if (botTrap) return;
+    
+        const email = (emailInput.value || '').trim();
+        if (!email) return;
+    
+        setLoading(true);
+        try {
+          const { error } = await supabase.auth.signUp({
+            email,
+            options: {
+              emailRedirectTo: 'https://exploretheuniverse2175.com/#signup-complete',
+              data: { newsletter: true } // this goes into user metadata
+            }
+          });
+    
+          if (error) throw error;
+    
+          ok.classList.remove('hidden');
+          form.reset();
+        } catch (e2) {
+          err.textContent = e2.message || 'Sign-up failed. Please try again.';
+          err.classList.remove('hidden');
+        } finally {
+          setLoading(false);
+        }
+      });
+    
+      // Optional: if user returns with a session (after clicking email link),
+      // we can greet them and fetch their profile.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Example: fetch their profile
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        console.log('Welcome back,', profile?.email || session.user.email);
+      }
+    })();
+    </script>
 
   <!--
   ========================= MEDIA PRODUCTION GUIDE =========================
