@@ -1,29 +1,52 @@
 "use client";
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 
-function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`mx-auto max-w-6xl px-4 ${className}`}>{children}</section>;
+type Mode = "signup" | "signin" | "magic";
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
+      {children}
+    </div>
+  );
 }
 
-export default function Landing() {
+export default function Page() {
+  const [mode, setMode] = useState<Mode>("signup");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const router = useRouter();
 
-  const subscribe = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setMsg(null);
     try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Failed");
-      setMsg("Subscribed! See you in the alpha.");
-      setEmail("");
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${location.origin}/auth/callback` },
+        });
+        if (error) throw error;
+        setMsg("Check your email to confirm your account.");
+      } else if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        router.push("/dashboard");
+      } else {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: `${location.origin}/auth/callback` },
+        });
+        if (error) throw error;
+        setMsg("Magic link sent. Check your inbox.");
+      }
     } catch (err: any) {
       setMsg(err?.message ?? "Something went wrong.");
     } finally {
@@ -31,113 +54,103 @@ export default function Landing() {
     }
   };
 
-  return (
-    <main className="relative overflow-clip">
-      {/* Cosmic backdrop */}
-      <div className="absolute inset-0 bg-etu-cosmic-gradient pointer-events-none" />
-      <div className="absolute inset-0 etu-starfield pointer-events-none" />
+  const oauth = async (provider: "google" | "github") => {
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
+  };
 
-      {/* HERO */}
-      <Section className="relative pt-24 pb-16 text-center text-white">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight drop-shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+  return (
+    <main className="relative min-h-[85vh] grid place-items-center px-6">
+      {/* Cosmic backdrop to match ETU */}
+      <div className="absolute inset-0 bg-etu-cosmic-gradient" />
+      <div className="absolute inset-0 etu-starfield" />
+
+      <div className="relative z-10 w-full flex flex-col items-center text-white text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-[0_0_20px_rgba(124,58,237,0.45)]">
           Explore the Universe <span className="text-etu-accent">2175</span>
         </h1>
-        <p className="mt-4 max-w-2xl mx-auto text-lg opacity-90">
-          AI empires. Terraforming feedback loops. Real astrophysics. One living cosmos.
+        <p className="opacity-90 mt-2 max-w-xl">
+          Create an account or sign in to continue your journey.
         </p>
 
-        <form onSubmit={subscribe} className="mt-8 w-full max-w-md mx-auto flex gap-2">
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded px-3 py-2 bg-black/50 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-etu-accent"
-          />
-          <button
-            disabled={busy}
-            className="rounded px-5 py-2 bg-etu-accent text-white font-semibold shadow-[0_0_20px_rgba(124,58,237,0.6)] hover:scale-[1.02] transition"
-          >
-            {busy ? "Joining…" : "Join the Alpha"}
-          </button>
-        </form>
-        {msg && <p className="mt-3 text-sm text-etu-accent">{msg}</p>}
-
-        <div className="mt-6 flex gap-5 justify-center text-sm">
-          <Link href="/login" className="underline">Sign in</Link>
-          <Link href="/dashboard" className="underline">Dashboard</Link>
-        </div>
-
-        {/* Hero visual */}
-        <div className="mt-10 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-          <div className="relative aspect-video bg-black">
-            {/* Replace with <iframe> YouTube when ready */}
-            <img
-              src="/images/etu_hero.jpg"
-              alt="ETU-2175 cinematic still"
-              className="w-full h-full object-cover opacity-90"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <Card>
+          {/* Mode switcher */}
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            {(["signup","signin","magic"] as Mode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`py-2 rounded transition ${
+                  mode === m ? "bg-etu-accent" : "bg-white/10 hover:bg-white/15"
+                }`}
+              >
+                {m === "signup" ? "Sign up" : m === "signin" ? "Sign in" : "Magic link"}
+              </button>
+            ))}
           </div>
-        </div>
-        <p className="text-xs opacity-70 mt-2">Trailer “Rise of Megabot” — coming soon</p>
-      </Section>
 
-      {/* FEATURES */}
-      <Section className="relative py-14 text-white">
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { title: "AI Empires", desc: "Mycelari spores, Crystal Mason fleets, Megabot’s hegemony. They learn and expand." },
-            { title: "Astrophysics-Driven", desc: "Atmospheres, magnetospheres, orbital mechanics informed by modern research." },
-            { title: "Procedural Worlds", desc: "Ocean worlds, rogue giants, ring cities — billions of seeds to explore." },
-          ].map((f) => (
-            <div key={f.title} className="rounded-2xl p-5 bg-white/5 border border-white/10 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold">{f.title}</h3>
-              <p className="mt-2 opacity-90">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
+          {/* Auth form */}
+          <form onSubmit={onSubmit} className="mt-4 space-y-3 text-left">
+            <input
+              className="w-full rounded px-3 py-2 bg-black/50 border border-white/20 placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-etu-accent"
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {mode !== "magic" && (
+              <input
+                className="w-full rounded px-3 py-2 bg-black/50 border border-white/20 placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-etu-accent"
+                type="password"
+                required
+                placeholder={mode === "signup" ? "Create a password" : "Your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            )}
+            <button
+              disabled={busy}
+              className="w-full rounded py-2 bg-etu-accent font-semibold shadow-[0_0_20px_rgba(124,58,237,0.6)] hover:scale-[1.01] transition disabled:opacity-60"
+            >
+              {busy
+                ? "Working…"
+                : mode === "signup"
+                ? "Create account"
+                : mode === "signin"
+                ? "Sign in"
+                : "Send magic link"}
+            </button>
+          </form>
 
-      {/* FACTIONS */}
-      <Section className="relative py-4 text-white">
-        <h2 className="text-2xl font-bold mb-6 text-center">Factions</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { name: "Megabot", blurb: "Planet-scale AI war machine. Modular limbs, laser arrays, missile fingers.", img: "/images/factions/megabot.jpg" },
-            { name: "Mycelari", blurb: "Fungal intelligence. The Bloom Queen harvests entire worlds.", img: "/images/factions/mycelari.jpg" },
-            { name: "Crystal Mason’s Federation", blurb: "Space dwarves mining gas giants with crystal-fusion tech.", img: "/images/factions/cmf.jpg" },
-          ].map((c) => (
-            <div key={c.name} className="rounded-2xl overflow-hidden bg-white/5 border border-white/10">
-              <div className="h-44 bg-center bg-cover" style={{ backgroundImage: `url(${c.img})` }} />
-              <div className="p-5">
-                <h3 className="text-lg font-semibold">{c.name}</h3>
-                <p className="opacity-90 mt-1">{c.blurb}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
+          {/* OAuth */}
+          <div className="my-4 text-center text-sm opacity-70">or</div>
+          <div className="grid gap-2">
+            <button onClick={() => oauth("google")} className="w-full border border-white/15 rounded py-2 bg-white/10 hover:bg-white/15">
+              Continue with Google
+            </button>
+            <button onClick={() => oauth("github")} className="w-full border border-white/15 rounded py-2 bg-white/10 hover:bg-white/15">
+              Continue with GitHub
+            </button>
+          </div>
 
-      {/* FOOT CTA */}
-      <Section className="relative py-12 text-center text-white">
-        <p className="opacity-90">Be among the first to terraform and conquer.</p>
-        <form onSubmit={subscribe} className="mt-4 w-full max-w-md mx-auto flex gap-2">
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded px-3 py-2 bg-black/50 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-etu-accent"
-          />
-          <button disabled={busy} className="rounded px-5 py-2 bg-etu-accent text-white font-semibold shadow-[0_0_20px_rgba(124,58,237,0.6)]">
-            {busy ? "Joining…" : "Join the Alpha"}
-          </button>
-        </form>
-        {msg && <p className="mt-3 text-sm text-etu-accent">{msg}</p>}
-      </Section>
+          {msg && <p className="mt-4 text-sm text-etu-accent">{msg}</p>}
+
+          <div className="mt-4 flex items-center justify-between text-xs opacity-80">
+            <a
+              className="underline"
+              href="https://exploretheuniverse2175.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Back to Main Site
+            </a>
+            <Link href="/login" className="underline">Old login</Link>
+          </div>
+        </Card>
+      </div>
     </main>
   );
 }
