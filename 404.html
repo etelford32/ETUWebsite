@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404 — Lost in Space | Explore the Universe</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.ico" />
+  <!-- Tailwind (same as index) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            deep: {900:'#040614',800:'#070b1f',700:'#0d1330'}
+          },
+          boxShadow: { glow:'0 0 30px rgba(99,102,241,.35)'}
+        }
+      }
+    }
+  </script>
+  <style>
+    html,body{height:100%}
+    /* Layers of stars for subtle parallax */
+    .stars, .stars:before, .stars:after{
+      content:"";
+      position:absolute; inset:0; background-repeat:repeat;
+      background-image:
+        radial-gradient(2px 2px at 20px 30px, #ffffffaa 50%, transparent 51%),
+        radial-gradient(1px 1px at 50px 80px, #ffffff88 50%, transparent 51%),
+        radial-gradient(1px 1px at 90px 40px, #ffffff66 50%, transparent 51%),
+        radial-gradient(2px 2px at 130px 120px, #ffffffaa 50%, transparent 51%);
+      background-size: 200px 200px;
+      animation: drift1 120s linear infinite;
+      opacity:.7; pointer-events:none;
+    }
+    .stars:before{animation: drift2 180s linear infinite; opacity:.5}
+    .stars:after {animation: drift3 240s linear infinite; opacity:.35}
+    @keyframes drift1{from{transform:translate3d(0,0,0)}to{transform:translate3d(-200px,-200px,0)}}
+    @keyframes drift2{from{transform:translate3d(0,0,0)}to{transform:translate3d(-300px,-100px,0)}}
+    @keyframes drift3{from{transform:translate3d(0,0,0)}to{transform:translate3d(-100px,-300px,0)}}
+
+    /* Tiny ship idle + thrust flicker */
+    @keyframes bob { 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+    @keyframes thruster { 0%,100%{opacity:.6; transform:scaleY(.9)} 50%{opacity:1; transform:scaleY(1.2)} }
+
+    /* Glitchy headline */
+    .glitch{
+      position:relative; display:inline-block;
+      text-shadow: 0 0 8px rgba(129,140,248,.35);
+    }
+    .glitch:before,.glitch:after{
+      content:attr(data-text);
+      position:absolute; left:0; top:0; mix-blend-mode:screen;
+      clip-path: inset(0 0 0 0);
+      animation: glitch 2.2s infinite steps(2,end);
+      opacity:.75;
+    }
+    .glitch:before{ transform:translate(2px,-1px); color:#60a5fa }
+    .glitch:after { transform:translate(-2px,1px); color:#a78bfa }
+    @keyframes glitch{
+      0%{clip-path:inset(0 0 85% 0)}
+      10%{clip-path:inset(15% 0 60% 0)}
+      20%{clip-path:inset(40% 0 30% 0)}
+      30%{clip-path:inset(70% 0 0 0)}
+      40%{clip-path:inset(0 0 85% 0)}
+      50%{clip-path:inset(10% 0 60% 0)}
+      60%{clip-path:inset(45% 0 20% 0)}
+      70%{clip-path:inset(80% 0 0 0)}
+      100%{clip-path:inset(0 0 85% 0)}
+    }
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100 relative overflow-hidden selection:bg-indigo-500/40">
+  <!-- Starfield -->
+  <div class="stars"></div>
+
+  <main class="relative min-h-full grid place-items-center p-6">
+    <section class="max-w-3xl w-full text-center">
+      <!-- Tiny ship -->
+      <div class="mx-auto mb-6 w-28 h-28">
+        <svg viewBox="0 0 120 120" class="mx-auto drop-shadow-lg" style="animation:bob 4s ease-in-out infinite">
+          <!-- Hull -->
+          <path d="M60 15 L90 60 L60 105 L30 60 Z" fill="#1f2937" stroke="#94a3b8" stroke-width="2"/>
+          <!-- Cockpit -->
+          <circle cx="55" cy="60" r="9" fill="#60a5fa" opacity=".8"/>
+          <!-- Thruster -->
+          <g transform="translate(90,60)">
+            <polygon points="0,0 22,-6 22,6" fill="#f59e0b" style="animation:thruster .25s ease-in-out infinite"/>
+            <polygon points="10,0 28,-4 28,4" fill="#f97316" opacity=".7" style="animation:thruster .25s .05s ease-in-out infinite"/>
+          </g>
+        </svg>
+      </div>
+
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight">
+        <span class="glitch" data-text="404 — Sector Not Found">404 — Sector Not Found</span>
+      </h1>
+
+      <p class="mt-4 text-slate-300/90 text-lg">
+        This route isn’t charted yet. We’re <span class="text-indigo-400 font-semibold">iterating at lightspeed</span> and will fix it soon.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a href="/" class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 shadow-glow font-medium">Return to Home</a>
+        <a href="/devlog" class="px-5 py-3 rounded-lg border border-white/20 hover:border-white/40">Read the Devlog</a>
+        <a href="mailto:etelford32@gmail.com?subject=Broken%20Link%20on%20ETU" class="px-5 py-3 rounded-lg border border-white/20 hover:border-white/40">Report Issue</a>
+      </div>
+
+      <p class="mt-8 text-xs text-slate-400">
+        Error code: <span class="text-slate-300">ETU-404</span> • Timestamp: <span id="ts">—</span>
+      </p>
+    </section>
+  </main>
+
+  <script>
+    // timestamp
+    document.getElementById('ts').textContent = new Date().toISOString();
+
+    // Add a few sprinkle stars dynamically
+    (function addSprinkles(){
+      const layer = document.createElement('div');
+      layer.style.position='absolute'; layer.style.inset='0'; layer.style.pointerEvents='none';
+      for(let i=0;i<80;i++){
+        const s = document.createElement('i');
+        const size = Math.random()*2+1;
+        Object.assign(s.style,{position:'absolute',width:size+'px',height:size+'px',borderRadius:'50%',background:'#fff',opacity:Math.random()*.7+.3});
+        s.style.left = (Math.random()*100)+'%';
+        s.style.top  = (Math.random()*100)+'%';
+        layer.appendChild(s);
+      }
+      document.body.appendChild(layer);
+    })();
+  </script>
+</body>
+</html>

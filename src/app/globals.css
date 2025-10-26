@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @import "tailwindcss";
 
 :root {
@@ -23,4 +24,46 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+=======
+/* ETU theme tokens */
+:root {
+  --etu-accent: #7c3aed; /* neon indigo/violet */
+  --etu-space-1: #0a0614;
+  --etu-space-2: #0b1023;
+  --etu-space-3: #111936;
+}
+
+.text-etu-accent { color: var(--etu-accent); }
+.bg-etu-accent { background-color: var(--etu-accent); }
+
+/* Cosmic gradient */
+.bg-etu-cosmic-gradient {
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(124,58,237,0.35), transparent 60%),
+              radial-gradient(800px 400px at 10% 20%, rgba(56,189,248,0.25), transparent 60%),
+              radial-gradient(600px 300px at 90% 30%, rgba(236,72,153,0.15), transparent 60%),
+              linear-gradient(180deg, var(--etu-space-2), var(--etu-space-3) 70%, var(--etu-space-1));
+}
+
+/* Starfield (pure CSS, lightweight) */
+.etu-starfield::before,
+.etu-starfield::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.9) 50%, transparent 51%);
+  animation: etu-parallax 80s linear infinite;
+  opacity: 0.6;
+}
+.etu-starfield::after { animation-duration: 120s; opacity: 0.35; }
+
+@keyframes etu-parallax {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-800px); }
+>>>>>>> 9933d4c2199784b60aa8a040b2632ecf0b3a04ef
 }

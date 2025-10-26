@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Global Leaderboard — Explore the Universe 2175</title>
+  <meta name="description" content="Global leaderboards for Explore the Universe 2175: discoveries, speed-runs, and faction influence."/>
+  <link rel="icon" href="/favicon.ico"/>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Global Leaderboard — Explore the Universe 2175"/>
+  <meta property="og:description" content="Top commanders across discoveries, speed-runs, and faction influence."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://exploretheuniverse2175.com/leaderboard/"/>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { deep:{900:'#040614',800:'#070b1f',700:'#0d1330'} },
+          boxShadow: { glow:'0 0 30px rgba(99,102,241,.35)'}
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .starfield{position:fixed;inset:0;pointer-events:none}
+    .starfield i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.85}
+    .backdrop-blur-2xs{backdrop-filter:blur(6px)}
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-2xs bg-deep-900/70 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-center justify-between h-16">
+        <a href="/" class="flex items-center gap-3 group">
+          <img src="/media/logo.png" alt="ETU logo" class="w-9 h-9"/>
+          <strong class="tracking-wide text-lg group-hover:text-white">Explore the Universe 2175</strong>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="/#features" class="opacity-90 hover:opacity-100">Features</a>
+          <a href="/#factions" class="opacity-90 hover:opacity-100">Factions</a>
+          <a href="/leaderboard" class="opacity-100">Leaderboard</a>
+          <a href="/#roadmap" class="opacity-90 hover:opacity-100">Roadmap</a>
+          <a href="/#faq" class="opacity-90 hover:opacity-100">FAQ</a>
+        </nav>
+        <a href="/#download" class="hidden md:inline-flex px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 shadow-glow">Join Alpha</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Starfield -->
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Page header -->
+  <section class="border-b border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+      <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Global Leaderboard</h1>
+      <p class="mt-2 text-slate-300/90">Top discoveries, speed-runs, boss rushes, and faction influence.</p>
+
+      <!-- Filters -->
+      <div class="mt-6 grid gap-3 sm:grid-cols-3">
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-slate-300/70 mb-2">Mode</label>
+          <select id="filterMode" class="w-full bg-deep-900/70 border border-white/15 rounded-lg px-3 py-2">
+            <option value="">All</option>
+            <option>Any% Run</option>
+            <option>Discovery</option>
+            <option>Boss Rush</option>
+            <option>Faction Influence</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-slate-300/70 mb-2">Season</label>
+          <select id="filterSeason" class="w-full bg-deep-900/70 border border-white/15 rounded-lg px-3 py-2">
+            <option value="S1">S1</option>
+            <option value="S2">S2</option>
+            <option value="S3">S3</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-slate-300/70 mb-2">Commander</label>
+          <input id="filterName" placeholder="Search name…" class="w-full bg-deep-900/70 border border-white/15 rounded-lg px-3 py-2"/>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-6 py-10">
+    <div class="rounded-2xl overflow-hidden ring-1 ring-white/10 bg-white/5">
+      <div class="overflow-x-auto">
+        <table id="lbTable" class="min-w-[720px] w-full text-left text-sm">
+          <thead class="bg-white/5">
+            <tr class="border-b border-white/10">
+              <th data-sort="rank"    class="py-3 px-3 cursor-pointer">Rank ▲</th>
+              <th data-sort="name"    class="px-3 cursor-pointer">Commander</th>
+              <th data-sort="mode"    class="px-3 cursor-pointer">Mode</th>
+              <th data-sort="score"   class="px-3 cursor-pointer">Score</th>
+              <th data-sort="best"    class="px-3 cursor-pointer">Best Time</th>
+              <th data-sort="updated" class="px-3 cursor-pointer">Last Update</th>
+            </tr>
+          </thead>
+          <tbody id="lbBody" class="divide-y divide-white/10"></tbody>
+        </table>
+      </div>
+
+      <div class="p-4 flex items-center justify-between">
+        <p id="rowsInfo" class="text-xs text-slate-400"></p>
+        <button id="loadMore" class="px-4 py-2 rounded-md border border-white/20 hover:border-white/40">
+          Load more
+        </button>
+      </div>
+    </div>
+    <p class="mt-4 text-xs text-slate-400">Seasons reset periodically. Cheating or exploits will void scores.</p>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 mt-12">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <p>© <span id="year"></span> Telford Projects</p>
+        <nav class="flex gap-5">
+          <a href="/">Home</a>
+          <a href="/#download">Join Alpha</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // starfield
+    const sf = document.querySelector('.starfield');
+    for (let i=0;i<140;i++){ const s=document.createElement('i');
+      s.style.top=Math.random()*100+'%';
+      s.style.left=Math.random()*100+'%';
+      s.style.opacity=(Math.random()*0.7+0.3).toFixed(2);
+      s.style.transform=`scale(${Math.random()*1.2+0.4})`;
+      sf.appendChild(s);
+    }
+
+    // demo data (replace with API)
+    let allRows = [
+      {rank:1,name:'E.T.',        mode:'Any% Run',         score:987654, best:'12:34', updated:'2m', season:'S1'},
+      {rank:2,name:'NovaKite',    mode:'Discovery',        score:963420, best:'—',     updated:'5m', season:'S1'},
+      {rank:3,name:'CrystalMind', mode:'Faction Influence',score:951210, best:'—',     updated:'9m', season:'S1'},
+      {rank:4,name:'SporeSpine',  mode:'Boss Rush',        score:912340, best:'18:12', updated:'15m',season:'S1'},
+      {rank:5,name:'MegabotX',    mode:'Siege',            score:889990, best:'—',     updated:'22m',season:'S1'},
+      // add many more as needed…
+    ];
+    let sortKey = 'rank', sortAsc = true, page = 1, pageSize = 20;
+
+    const $ = (id)=>document.getElementById(id);
+    const body = $('lbBody'), rowsInfo = $('rowsInfo');
+
+    function render() {
+      let rows = [...allRows];
+
+      // filters
+      const mode = document.getElementById('filterMode').value;
+      const season = document.getElementById('filterSeason').value;
+      const q = (document.getElementById('filterName').value||'').toLowerCase();
+      if (mode) rows = rows.filter(r=>r.mode===mode);
+      if (season) rows = rows.filter(r=>r.season===season);
+      if (q) rows = rows.filter(r=>r.name.toLowerCase().includes(q));
+
+      // sort
+      rows.sort((a,b)=>{
+        const va=a[sortKey], vb=b[sortKey];
+        if (typeof va==='number' && typeof vb==='number') return sortAsc? va-vb : vb-va;
+        return sortAsc? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+      });
+
+      // paginate
+      const total = rows.length;
+      const slice = rows.slice(0, page*pageSize);
+
+      // draw
+      body.innerHTML = slice.map(r=>`
+        <tr>
+          <td class="py-3 px-3">${r.rank}</td>
+          <td class="px-3">${r.name}</td>
+          <td class="px-3">${r.mode}</td>
+          <td class="px-3">${r.score.toLocaleString()}</td>
+          <td class="px-3">${r.best}</td>
+          <td class="px-3">${r.updated} ago</td>
+        </tr>
+      `).join('');
+
+      rowsInfo.textContent = `Showing ${Math.min(slice.length,total)} of ${total} entries`;
+      document.getElementById('loadMore').classList.toggle('hidden', slice.length >= total);
+    }
+
+    // sorting handlers
+    document.querySelectorAll('th[data-sort]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.getAttribute('data-sort');
+        if (sortKey === key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = true; }
+        // update arrow
+        document.querySelectorAll('th[data-sort]').forEach(x=>{
+          x.textContent = x.textContent.replace(/[▲▼]/g,'').trim();
+        });
+        th.textContent = th.textContent + (sortAsc ? ' ▲' : ' ▼');
+        render();
+      });
+    });
+
+    // filters + load more
+    document.getElementById('filterMode').addEventListener('change', ()=>{page=1;render();});
+    document.getElementById('filterSeason').addEventListener('change', ()=>{page=1;render();});
+    document.getElementById('filterName').addEventListener('input', ()=>{page=1;render();});
+    document.getElementById('loadMore').addEventListener('click', ()=>{page++;render();});
+
+    // init
+    document.getElementById('year').textContent = new Date().getFullYear?.() || new Date().getFullYear();
+    render();
+
+    // === Hook up to your API later ===
+    // Example:
+    // fetch('/api/leaderboard?season=S1')
+    //   .then(r=>r.json())
+    //   .then(data => { allRows = data; page=1; render(); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore the Universe 2175 — Open-World Space Adventure</title>
+  <meta name="description" content="Explore the Universe 2175 is an open-world space adventure with living factions, realistic astrophysics, and a global scoreboard. Explore. Build. Survive. Dominate." />
+
+  <!-- Icons / Social -->
+  <link rel="icon" href="/favicon.ico" />
+  <meta property="og:title" content="Explore the Universe 2175 — Open-World Space Adventure" />
+  <meta property="og:description" content="A living galaxy with adaptive AI, realistic space physics, and community leaderboards." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exploretheuniverse2175.com/" />
+  <meta property="og:image" content="https://exploretheuniverse2175.com/og-cover.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"VideoGame",
+    "name":"Explore the Universe 2175",
+    "url":"https://exploretheuniverse2175.com/",
+    "image":"https://exploretheuniverse2175.com/og-cover.jpg",
+    "description":"Open-world space adventure with realistic astrophysics and dynamic factions.",
+    "genre":["Open World","Action","Strategy","Simulation"],
+    "creator":{"@type":"Organization","name":"Telford Projects"},
+    "operatingSystem":["Windows","macOS","Linux"],
+    "applicationCategory":"GameApplication"
+  }
+  </script>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            deep: { 900:'#040614', 800:'#070b1f', 700:'#0d1330' }
+          },
+          boxShadow: {
+            glow: '0 0 30px rgba(99,102,241,.35)'
+          },
+          backgroundImage: {
+            grid: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Starfield + utilities */
+    .starfield{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+    .starfield i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.8}
+    .backdrop-blur-2xs{backdrop-filter:blur(6px)}
+
+    /* Hyperspace buttons */
+    .btn-warp{
+      position:relative; overflow:hidden;
+      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+      border:1px solid rgba(255,255,255,.25);
+      background: radial-gradient(220% 220% at 50% 0%, rgba(99,102,241,.25) 0%, rgba(15,23,42,.35) 50%, rgba(15,23,42,.6) 100%);
+    }
+    .btn-warp:hover{ transform:translateY(-1px); box-shadow:0 0 24px rgba(129,140,248,.35), inset 0 0 30px rgba(99,102,241,.25); border-color:rgba(255,255,255,.45)}
+    .btn-warp::before, .btn-warp::after{
+      content:""; position:absolute; inset:auto -40% auto -40%; height:180%;
+      border-radius:50%; filter:blur(16px); opacity:.0; transition:opacity .25s ease, transform .6s ease;
+      background: conic-gradient(from 0deg, rgba(168,85,247,.0), rgba(168,85,247,.25), rgba(99,102,241,.35), rgba(236,72,153,.25), rgba(168,85,247,.0));
+    }
+    .btn-warp::before{ top:-130%; transform:scale(.6)}
+    .btn-warp::after { bottom:-130%; transform:scale(.6)}
+    .btn-warp:hover::before{ opacity:.6; transform:scale(1)}
+    .btn-warp:hover::after { opacity:.45; transform:scale(1)}
+
+    /* CTA micro pulse */
+    @keyframes pulseTrail { 0%,100%{box-shadow:0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px rgba(99,102,241,.35)} }
+    .shadow-glow { animation: pulseTrail 3.2s ease-in-out infinite }
+
+    /* Section reveal */
+    .reveal{ opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s ease }
+    .reveal.show{ opacity:1; transform:translateY(0) }
+
+    /* Black-hole canvas fills hero */
+    .hero-canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+
+    /* Gradient mask behind hero text for readability */
+    .hero-mask{
+      position:absolute; inset:0 0 auto 0; height:60%;
+      background: linear-gradient(180deg, rgba(4,6,20,.70) 0%, rgba(4,6,20,.35) 60%, rgba(4,6,20,0) 100%);
+      pointer-events:none;
+    }
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+
+  <!-- Top Announcement -->
+  <div class="w-full bg-indigo-600/10 border-b border-indigo-500/20 text-center text-sm py-2">
+    <span class="mr-3">🚀 Playtest Sign-ups are open</span>
+    <a href="#download" class="underline decoration-dotted hover:text-white">Join the Alpha</a>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-2xs bg-deep-900/70 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-center justify-between h-16">
+        <a href="#home" class="flex items-center gap-3 group">
+          <img src="/logo3.png" alt="Explore the Universe 2175 logo" class="w-10 h-10"/>
+          <strong class="tracking-wide text-lg group-hover:text-white">Explore the Universe 2175</strong>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="#features" class="opacity-90 hover:opacity-100">Features</a>
+          <a href="#factions" class="opacity-90 hover:opacity-100">Factions</a>
+          <a href="#leaderboard" class="opacity-90 hover:opacity-100">Leaderboard</a>
+          <a href="#roadmap" class="opacity-90 hover:opacity-100">Roadmap</a>
+          <a href="#faq" class="opacity-90 hover:opacity-100">FAQ</a>
+        </nav>
+        <div class="hidden md:flex items-center gap-3">
+          <a href="#download" class="btn-warp px-3 py-2 rounded-md">Download</a>
+          <a href="#download" class="btn-warp px-4 py-2 rounded-md shadow-glow">Sign up</a>
+        </div>
+        <button id="menuBtn" class="md:hidden p-2 rounded hover:bg-white/10" aria-label="Open menu">☰</button>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="md:hidden hidden border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 py-4 space-y-3">
+        <a href="#features" class="block">Features</a>
+        <a href="#factions" class="block">Factions</a>
+        <a href="#leaderboard" class="block">Leaderboard</a>
+        <a href="#roadmap" class="block">Roadmap</a>
+        <a href="#faq" class="block">FAQ</a>
+        <div class="pt-3 flex gap-3">
+          <a href="#download" class="px-3 py-2 rounded-md border border-white/20">Download</a>
+          <a href="#download" class="px-4 py-2 rounded-md bg-indigo-600">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO with WebGL Black Hole -->
+  <section id="home" class="relative h-[78vh] min-h-[560px] flex items-end overflow-hidden">
+    <canvas id="bh-canvas" class="hero-canvas"></canvas>
+    <img id="bh-fallback" src="/media/hero-poster.jpg" alt="Black hole"
+         class="absolute inset-0 w-full h-full object-cover hidden" />
+    <div class="starfield" aria-hidden="true"></div>
+    <div class="hero-mask"></div>
+
+    <div class="relative w-full">
+      <div class="max-w-7xl mx-auto px-4 lg:px-6 pb-12">
+        <div class="max-w-3xl">
+          <h1 class="reveal text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
+            A Living Galaxy. <span class="text-indigo-400">Your Legend.</span>
+          </h1>
+          <p class="reveal mt-4 text-lg md:text-xl text-slate-200/90">
+            Explore, trade, build, and battle across a simulated cosmos powered by realistic physics and adaptive AI factions.
+          </p>
+          <div class="reveal mt-6 flex flex-wrap gap-3">
+            <a href="#download" class="btn-warp px-5 py-3 rounded-lg font-medium">Download / Wishlist</a>
+            <a href="#leaderboard" class="btn-warp px-5 py-3 rounded-lg">Global Leaderboard</a>
+            <a href="#trailer" class="btn-warp px-5 py-3 rounded-lg">Watch Trailer</a>
+          </div>
+          <div class="reveal mt-5 flex items-center gap-4 text-sm text-slate-300/80">
+            <span>Single-player + Online Stats</span><span>•</span>
+            <span>Windows / macOS / Linux</span><span>•</span>
+            <span>Controller + KB/M</span>
+          </div>
+
+          <!-- tiny control pill -->
+          <div class="reveal mt-6 inline-flex items-center gap-2 text-xs bg-white/10 border border-white/15 rounded-xl px-3 py-2 backdrop-blur-2xs">
+            <span class="opacity-80">Hero Sim Quality</span>
+            <select id="bh-quality" class="bg-transparent border border-white/20 rounded-md px-2 py-1">
+              <option value="1">High</option>
+              <option value="0.75" selected>Medium</option>
+              <option value="0.5">Low</option>
+            </select>
+            <button id="bh-pause" class="ml-2 px-2 py-1 border border-white/20 rounded-md">Pause</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Badges -->
+  <section class="reveal border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-slate-300/80 text-sm">
+      <div class="flex items-center gap-6">
+        <span class="uppercase tracking-widest">Powered by</span>
+        <img src="/media/badges/physics.svg" class="h-6 opacity-80" alt="Realistic physics"/>
+        <img src="/media/badges/ai.svg" class="h-6 opacity-80" alt="Adaptive AI"/>
+        <img src="/media/badges/procgen.svg" class="h-6 opacity-80" alt="Procedural generation"/>
+      </div>
+      <div>
+        <a href="#press" class="underline decoration-dotted">Press Kit</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="reveal max-w-3xl">
+        <h2 class="text-3xl md:text-4xl font-bold">Why this galaxy feels alive</h2>
+        <p class="mt-3 text-slate-300">Systems-driven gameplay meets astrophysical authenticity. Every star, orbit, and economy matters.</p>
+      </header>
+
+      <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Realistic Spaceflight</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Inertial navigation, orbital mechanics, and fuel-aware trajectories—accessible with helpful assists.</p>
+        </article>
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Dynamic Factions</h3>
+          <p class="mt-2 text-sm text-slate-300/90">AI civilizations expand, trade, and wage war. Your choices shift the balance.</p>
+        </article>
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Evolving Economy</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Simulated markets, smuggling routes, mining, crafting, and research trees.</p>
+        </article>
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Boss Encounters</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Multi-phase entities and station-scale fights with environmental hazards.</p>
+        </article>
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Procedural Galaxies</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Seeded star maps with handcrafted points of interest and story arcs.</p>
+        </article>
+        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <h3 class="font-semibold text-lg">Online Scoreboard</h3>
+          <p class="mt-2 text-sm text-slate-300/90">Challenge the community in time trials, discoveries, and faction influence.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trailer -->
+  <section id="trailer" class="reveal py-14 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="grid lg:grid-cols-3 gap-6 items-center">
+        <div class="lg:col-span-2">
+          <div class="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10">
+            <video controls poster="/media/trailer-poster.jpg" class="w-full h-full object-cover">
+              <source src="/media/trailer.webm" type="video/webm" />
+              <source src="/ETU_Logo2.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <h3 class="text-2xl font-semibold">Watch the Trailer</h3>
+          <p class="text-slate-300/90">Deep-space traversal, station sieges, and faction AI in motion.</p>
+          <div class="flex gap-3">
+            <a href="#download" class="btn-warp px-4 py-2 rounded-md">Join Alpha</a>
+            <a href="#leaderboard" class="btn-warp px-4 py-2 rounded-md">View Scores</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Factions -->
+  <section id="factions" class="py-20 bg-gradient-to-b from-deep-900 to-deep-800">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="reveal max-w-3xl mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold">Factions shaping the galaxy</h2>
+        <p class="mt-2 text-slate-300">From crystalline intellects to mycelial swarms, each civilization plays by its own rules.</p>
+      </header>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/Crystal_Race.jpg" alt="Crystal AI" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
+          <h3 class="font-semibold">CYL • Crystal Intelligences</h3>
+          <p class="text-sm text-slate-300/90">Light-bending defenses and precision strikes.</p>
+        </article>
+        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/Mycelari_Hero2.jpg" alt="Mycelari swarm" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
+          <h3 class="font-semibold">Mycelari • Fungal Swarm</h3>
+          <p class="text-sm text-slate-300/90">Spore-based expansion and biomass economy.</p>
+        </article>
+        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/eveil_robot_hero1.jpg" alt="Megabot empire" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
+          <h3 class="font-semibold">Megabot • Machine Empire</h3>
+          <p class="text-sm text-slate-300/90">Modular forms, overwhelming firepower, station-scale bosses.</p>
+        </article>
+        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
+          <img src="/Wild_Race.jpg" alt="Wild Guardians" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
+          <h3 class="font-semibold">Wild • Ent-born Guardians</h3>
+          <p class="text-sm text-slate-300/90">Pollen-based growth and terrain control.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard preview -->
+  <section id="leaderboard" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <header>
+          <h2 class="text-3xl font-bold">Global Leaderboard</h2>
+          <p class="text-slate-300">Top discoveries, speed-runs, and faction influence—updated live.</p>
+        </header>
+        <a href="/leaderboard" class="btn-warp px-4 py-2 rounded-md">View Full Board →</a>
+      </div>
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full text-left text-sm min-w-[640px]">
+          <thead class="text-slate-300/80">
+            <tr class="border-b border-white/10">
+              <th class="py-3">Rank</th><th>Commander</th><th>Mode</th><th>Score</th><th>Best Time</th><th>Last Update</th>
+            </tr>
+          </thead>
+          <tbody id="lbBody" class="divide-y divide-white/10"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section id="roadmap" class="reveal py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <header class="max-w-3xl">
+        <h2 class="text-3xl md:text-4xl font-bold">Roadmap</h2>
+        <p class="mt-2 text-slate-300">Follow development from Alpha to 1.0 and beyond.</p>
+      </header>
+      <ol class="mt-10 grid md:grid-cols-3 gap-6">
+        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">Alpha</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Core flight & combat</li><li>2 factions playable</li><li>Leaderboard v1</li>
+          </ul>
+        </li>
+        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">Beta</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Story arcs & bosses</li><li>Co-op stats & events</li><li>Market & crafting</li>
+          </ul>
+        </li>
+        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+          <h3 class="font-semibold">1.0</h3>
+          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
+            <li>Full faction roster</li><li>Endgame systems</li><li>Modding tools</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Devlog -->
+  <section id="news" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-end justify-between">
+        <header>
+          <h2 class="text-3xl font-bold">Latest Devlog</h2>
+          <p class="text-slate-300">Deep dives on AI, physics, and worldbuilding.</p>
+        </header>
+        <a href="/devlog" class="underline decoration-dotted">Read more →</a>
+      </div>
+      <div class="mt-8 grid md:grid-cols-3 gap-6">
+        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/ai_systems.jpg" alt="AI systems" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Adaptive Faction AI</h3>
+            <p class="text-sm text-slate-300/90 mt-2">How empires grow, fight, and negotiate over time.</p>
+          </div>
+        </article>
+        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/physics.jpg" alt="Physics" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Flight & Orbital Mechanics</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Balancing realism with fun assists.</p>
+          </div>
+        </article>
+        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+          <img src="/upgrade.jpg" alt="Boss" class="w-full aspect-[16/9] object-cover"/>
+          <div class="p-5">
+            <h3 class="font-semibold">Designing Station Bosses</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Multi-phase challenges and environmental hazards.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download / CTA + Supabase Signup -->
+  <section id="download" class="reveal py-16 bg-gradient-to-b from-deep-900 to-deep-800">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h2 class="text-3xl md:text-4xl font-bold">Download & Wishlist</h2>
+        <p class="mt-3 text-slate-300">Get early builds, post feedback, and climb the leaderboard.</p>
+        <div class="mt-6 grid sm:grid-cols-3 gap-3">
+          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>Windows</a>
+          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>macOS</a>
+          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>Linux</a>
+        </div>
+        <p class="mt-4 text-xs text-slate-400">Requires 8 GB RAM, 4-core CPU, integrated or discrete GPU. ~2.5 GB free space.</p>
+      </div>
+      <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
+        <h3 class="font-semibold">Join the Alpha</h3>
+        <p class="text-sm text-slate-300/90 mt-1">Get keys, patch notes, and event invites.</p>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
+          <label class="sr-only" for="email">Email</label>
+          <input id="email" type="email" name="email" required placeholder="you@galaxy.space"
+                 autocomplete="email"
+                 class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
+          <!-- Honeypot -->
+          <input type="text" name="planet" tabindex="-1" autocomplete="off" style="position:absolute;left:-5000px;opacity:0;">
+          <button id="signupBtn" class="btn-warp px-5 py-3 rounded-lg">Request Access</button>
+        </form>
+        <p id="signupMsg" class="mt-3 text-sm text-emerald-400 hidden">Thanks! Check your inbox for a confirmation link.</p>
+        <p id="signupErr" class="mt-3 text-sm text-rose-400 hidden"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
+    <div class="max-w-5xl mx-auto px-4 lg:px-6">
+      <h2 class="text-3xl font-bold">FAQ</h2>
+      <div class="mt-8 grid md:grid-cols-2 gap-6 text-sm">
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5" open>
+          <summary class="font-semibold cursor-pointer">Is this single-player or multiplayer?</summary>
+          <p class="mt-2 text-slate-300/90">Primarily single-player with online scoreboards and live events. Co-op stats are planned.</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">How realistic is the physics?</summary>
+          <p class="mt-2 text-slate-300/90">We model inertial flight and orbits with assists for accessibility. "Simulation when you want it."</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">Will there be mods?</summary>
+          <p class="mt-2 text-slate-300/90">Yes—tools and APIs post-1.0.</p>
+        </details>
+        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
+          <summary class="font-semibold cursor-pointer">Which platforms?</summary>
+          <p class="mt-2 text-slate-300/90">Windows, macOS, Linux at launch; console evaluation later.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
+      <div class="grid md:grid-cols-4 gap-6">
+        <div>
+          <img src="/media/logo.png" alt="Explore the Universe 2175" class="w-8 h-8"/>
+          <p class="mt-3 max-w-xs">An open-world space adventure by Telford Projects. Built with science, art, and a pinch of chaos.</p>
+        </div>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Game</h4>
+          <a class="block" href="#features">Features</a>
+          <a class="block" href="#factions">Factions</a>
+          <a class="block" href="#download">Download</a>
+        </nav>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Community</h4>
+          <a class="block" href="/leaderboard">Leaderboard</a>
+          <a class="block" href="/forum">Forum</a>
+          <a class="block" href="/discord">Discord</a>
+        </nav>
+        <nav class="space-y-2">
+          <h4 class="font-semibold text-slate-200">Company</h4>
+          <a class="block" href="#press">Press Kit</a>
+          <a class="block" href="/privacy">Privacy</a>
+          <a class="block" href="/terms">Terms</a>
+        </nav>
+      </div>
+      <p class="mt-8 text-xs">© <span id="year"></span> Telford Projects. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Core Scripts -->
+  <script>
+    // mobile menu
+    const mBtn = document.getElementById('menuBtn');
+    const mMenu = document.getElementById('mobileMenu');
+    mBtn?.addEventListener('click',()=>mMenu.classList.toggle('hidden'));
+
+    // star sprinkle
+    const sfl = document.querySelectorAll('.starfield');
+    sfl.forEach(sf=>{
+      for(let i=0;i<140;i++){
+        const s=document.createElement('i');
+        s.style.top=Math.random()*100+'%';
+        s.style.left=Math.random()*100+'%';
+        s.style.opacity=(Math.random()*0.7+0.3).toFixed(2);
+        s.style.transform=`scale(${Math.random()*1.2+0.4})`;
+        sf.appendChild(s);
+      }
+    });
+
+    // demo leaderboard data (replace with API)
+    const demoLB = [
+      {rank:1,name:'E.T.',mode:'Any% Run',score:987654,time:'12:34',updated:'2m ago'},
+      {rank:2,name:'NovaKite',mode:'Discovery',score:963420,time:'—',updated:'5m ago'},
+      {rank:3,name:'CrystalMind',mode:'Faction Influence',score:951210,time:'—',updated:'9m ago'},
+      {rank:4,name:'SporeSpine',mode:'Boss Rush',score:912340,time:'18:12',updated:'15m ago'},
+      {rank:5,name:'MegabotX',mode:'Siege',score:889990,time:'—',updated:'22m ago'}
+    ];
+    const tbody=document.getElementById('lbBody');
+    if (tbody){
+      demoLB.forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td class="py-3">${row.rank}</td>
+          <td>${row.name}</td>
+          <td>${row.mode}</td>
+          <td>${row.score.toLocaleString()}</td>
+          <td>${row.time}</td>
+          <td>${row.updated}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Section reveal
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if (e.isIntersecting) e.target.classList.add('show');
+      })
+    }, { threshold:0.12 });
+    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  </script>
+
+  <!-- WebGL Black Hole Shader -->
+  <script>
+  (function(){
+    const canvas = document.getElementById('bh-canvas');
+    const fallback = document.getElementById('bh-fallback');
+    const qSelect = document.getElementById('bh-quality');
+    const pauseBtn = document.getElementById('bh-pause');
+
+    let gl = canvas.getContext('webgl', { antialias:false, preserveDrawingBuffer:false });
+    if (!gl) { fallback.classList.remove('hidden'); return; }
+
+    const vert = `
+    attribute vec2 a_pos;
+    void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
+
+    const frag = `
+    precision highp float;
+    uniform vec2 u_res;
+    uniform float u_time;
+    uniform vec2 u_mouse;
+    const float BH_RADIUS = 0.14;
+    const float DISK_R_IN = 0.16;
+    const float DISK_R_OUT = 0.45;
+
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+    float noise(vec2 p){
+      vec2 i=floor(p), f=fract(p);
+      float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
+      vec2 u=f*f*(3.-2.*f);
+      return mix(a,b,u.x)+ (c-a)*u.y*(1.-u.x)+ (d-b)*u.x*u.y;
+    }
+    vec3 starfield(vec2 uv){
+      float s=0.0;
+      s += noise(uv*2.0)*0.35;
+      s += noise(uv*4.0)*0.25;
+      s += noise(uv*8.0)*0.18;
+      vec3 neb = mix(vec3(0.02,0.02,0.06), vec3(0.15,0.06,0.25), s);
+      float stars = step(0.995, fract(sin(dot(floor(uv*200.0), vec2(12.9898,78.233)))*43758.5453));
+      stars += step(0.9985, fract(sin(dot(floor(uv*300.0+10.0), vec2(4.898,7.23)))*23421.631));
+      vec3 starCol = vec3(0.9,0.9,1.0)*stars;
+      return neb + starCol;
+    }
+    vec2 lensOffset(vec2 p){
+      float r = length(p);
+      float eps = 1e-4;
+      r = max(r, BH_RADIUS+eps);
+      float strength = 0.06;
+      float bend = strength / r;
+      return normalize(p) * bend;
+    }
+    float diskMask(vec2 p){
+      float r = length(p);
+      float tilt = 0.35;
+      float y = p.y + sin(p.x*8.0+u_time*0.5)*0.005;
+      float band = smoothstep(DISK_R_IN, DISK_R_IN+0.01, r) * (1.0 - smoothstep(DISK_R_OUT-0.01, DISK_R_OUT, r));
+      band *= exp(-abs(y)*40.0*(1.0-tilt));
+      return band;
+    }
+    void main(){
+      vec2 uv = (gl_FragCoord.xy / u_res);
+      vec2 p = (uv - 0.5);
+      p.x *= u_res.x/u_res.y;
+      vec2 center = vec2(0.0) + (u_mouse - 0.5)*0.15;
+      vec2 rp = p - center;
+
+      vec2 off = lensOffset(rp);
+      vec3 bg = starfield( (p + off)*1.6 + vec2(u_time*0.01, 0.0) );
+
+      float d = diskMask(rp);
+      vec3 diskCol = mix(vec3(0.2,0.0,0.35), vec3(0.4,0.1,0.9), smoothstep(0.0,1.0,d));
+      diskCol += vec3(1.0,0.6,1.2)*pow(d, 3.0);
+      diskCol *= (1.0 + 0.15*sin(u_time + rp.x*20.0));
+
+      float r = length(rp);
+      float horizon = smoothstep(BH_RADIUS, BH_RADIUS-0.002, r);
+
+      vec3 col = bg + diskCol*d*1.4;
+      col = mix(col, vec3(0.0), horizon);
+      float vig = smoothstep(0.95, 0.2, length(p));
+      col *= vig;
+      col = pow(col, vec3(0.95));
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+
+    function compile(type, src){
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+        console.error(gl.getShaderInfoLog(s));
+        throw new Error('Shader compile error');
+      }
+      return s;
+    }
+    const vs = compile(gl.VERTEX_SHADER, vert);
+    const fs = compile(gl.FRAGMENT_SHADER, frag);
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(prog)); throw new Error('Program link error'); }
+    gl.useProgram(prog);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'a_pos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes = gl.getUniformLocation(prog, 'u_res');
+    const uTime = gl.getUniformLocation(prog, 'u_time');
+    const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let renderScale = parseFloat(qSelect?.value || '0.75');
+    let paused = false;
+    let mouse = {x:0.5, y:0.5};
+
+    function resize(){
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width * dpr * renderScale));
+      const h = Math.max(1, Math.floor(rect.height * dpr * renderScale));
+      if (canvas.width !== w || canvas.height !== h){
+        canvas.width = w; canvas.height = h;
+        gl.viewport(0,0,w,h);
+      }
+    }
+    window.addEventListener('resize', resize, { passive:true });
+    canvas.addEventListener('mousemove', (e)=>{
+      const r = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX - r.left) / r.width;
+      mouse.y = 1.0 - (e.clientY - r.top) / r.height;
+    }, { passive:true });
+    qSelect?.addEventListener('change', ()=>{ renderScale = parseFloat(qSelect.value); resize(); });
+    pauseBtn?.addEventListener('click', ()=>{ paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; });
+
+    let start = performance.now();
+    function frame(){
+      if (!paused){
+        resize();
+        const t = (performance.now() - start)/1000.0;
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform1f(uTime, t);
+        gl.uniform2f(uMouse, mouse.x, mouse.y);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+      requestAnimationFrame(frame);
+    }
+    frame();
+  })();
+  </script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Your Supabase creds
+    const SUPABASE_URL = "https://osvrbwvxnbpwsmgvdmkm.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdnJid3Z4bmJwd3NtZ3ZkbWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MjM4MTYsImV4cCI6MjA3NDk5OTgxNn0.1WS43PMFLACSXhR2TGDUEJb0VIIsQhcE3HaPBQra8sQ";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('signupForm');
+    const emailInput = document.getElementById('email');
+    const btn = document.getElementById('signupBtn');
+    const ok = document.getElementById('signupMsg');
+    const err = document.getElementById('signupErr');
+
+    function setLoading(state){
+      if(!btn) return;
+      btn.disabled = state;
+      btn.textContent = state ? 'Sending…' : 'Request Access';
+    }
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.classList.add('hidden');
+      if ((new FormData(form)).get('planet')) return; // honeypot
+
+      const email = (emailInput?.value || '').trim();
+      if (!email) return;
+
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo: 'https://exploretheuniverse2175.com/#signup-complete',
+            data: { newsletter: true }
+          }
+        });
+        if (error) throw error;
+
+        ok.classList.remove('hidden');
+        form.reset();
+      } catch (e2) {
+        err.textContent = e2.message || 'Sign-up failed. Please try again.';
+        err.classList.remove('hidden');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // Reveal alpha-only elements for authenticated users
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        document.querySelectorAll('[data-alpha-only]').forEach(el => el.classList.remove('hidden'));
+      }
+    })();
+  </script>
+
+  <!--
+  ========= NOTES =========
+  - Keep /media/logo.png, /og-cover.jpg, /favicon.ico present
+  - Consider adding .nojekyll + CNAME (exploretheuniverse2175.com) in repo root
+  - For heavier images, use WebP/AVIF and loading="lazy"
+  -->
+</body>
+</html>
