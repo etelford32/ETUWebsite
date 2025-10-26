@@ -1,30 +1,7 @@
-<<<<<<< HEAD
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-=======
 /* ETU theme tokens */
 :root {
   --etu-accent: #7c3aed; /* neon indigo/violet */
@@ -38,10 +15,11 @@ body {
 
 /* Cosmic gradient */
 .bg-etu-cosmic-gradient {
-  background: radial-gradient(1200px 600px at 50% -10%, rgba(124,58,237,0.35), transparent 60%),
-              radial-gradient(800px 400px at 10% 20%, rgba(56,189,248,0.25), transparent 60%),
-              radial-gradient(600px 300px at 90% 30%, rgba(236,72,153,0.15), transparent 60%),
-              linear-gradient(180deg, var(--etu-space-2), var(--etu-space-3) 70%, var(--etu-space-1));
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(124,58,237,0.35), transparent 60%),
+    radial-gradient(800px 400px at 10% 20%, rgba(56,189,248,0.25), transparent 60%),
+    radial-gradient(600px 300px at 90% 30%, rgba(236,72,153,0.15), transparent 60%),
+    linear-gradient(180deg, var(--etu-space-2), var(--etu-space-3) 70%, var(--etu-space-1));
 }
 
 /* Starfield (pure CSS, lightweight) */
@@ -65,5 +43,4 @@ body {
 @keyframes etu-parallax {
   from { transform: translateY(0); }
   to   { transform: translateY(-800px); }
->>>>>>> 9933d4c2199784b60aa8a040b2632ecf0b3a04ef
 }
