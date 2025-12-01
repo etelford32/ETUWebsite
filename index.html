@@ -1,744 +1,1041 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta -->
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Explore the Universe 2175 — Open-World Space Adventure</title>
-  <meta name="description" content="Explore the Universe 2175 is an open-world space adventure with living factions, realistic astrophysics, and a global scoreboard. Explore. Build. Survive. Dominate." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explore the Universe 2175 — Christmas Launch 2025</title>
+  <meta name="description" content="Open-world space adventure with realistic physics, living factions, and epic combat. Launching December 25, 2025 - Wishlist now on Steam!">
 
-  <!-- Icons / Social -->
-  <link rel="icon" href="/favicon.ico" />
-  <meta property="og:title" content="Explore the Universe 2175 — Open-World Space Adventure" />
-  <meta property="og:description" content="A living galaxy with adaptive AI, realistic space physics, and community leaderboards." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://exploretheuniverse2175.com/" />
+  <!-- Social Meta -->
+  <meta property="og:title" content="Explore the Universe 2175 — Christmas Launch 2025" />
+  <meta property="og:description" content="A living galaxy with adaptive AI factions and realistic space physics" />
   <meta property="og:image" content="https://exploretheuniverse2175.com/ETU_XMAS.png" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:url" content="https://exploretheuniverse2175.com/" />
 
-  <!-- JSON-LD -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"VideoGame",
-    "name":"Explore the Universe 2175",
-    "url":"https://exploretheuniverse2175.com/",
-    "image":"https://exploretheuniverse2175.com/ETU_XMAS.png",
-    "description":"Open-world space adventure with realistic astrophysics and dynamic factions.",
-    "genre":["Open World","Action","Strategy","Simulation"],
-    "creator":{"@type":"Organization","name":"Telford Projects"},
-    "operatingSystem":["Windows","macOS","Linux"],
-    "applicationCategory":"GameApplication"
-  }
-  </script>
-
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            deep: { 900:'#040614', 800:'#070b1f', 700:'#0d1330' }
-          },
-          boxShadow: {
-            glow: '0 0 30px rgba(99,102,241,.35)'
-          },
-          backgroundImage: {
-            grid: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0)'
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="icon" href="/favicon.ico" />
 
   <style>
-    /* Starfield + utilities */
-    .starfield{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-    .starfield i{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:.8}
-    .backdrop-blur-2xs{backdrop-filter:blur(6px)}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* Hyperspace buttons */
-    .btn-warp{
-      position:relative; overflow:hidden;
-      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
-      border:1px solid rgba(255,255,255,.25);
-      background: radial-gradient(220% 220% at 50% 0%, rgba(99,102,241,.25) 0%, rgba(15,23,42,.35) 50%, rgba(15,23,42,.6) 100%);
+    :root {
+      --deep-900: #040614;
+      --deep-800: #070b1f;
+      --deep-700: #0d1330;
+      --indigo: #6366f1;
+      --purple: #8b5cf6;
+      --blue: #3b82f6;
+      --neon-blue: #00d9ff;
+      --neon-purple: #bf00ff;
+      --neon-cyan: #00fff2;
     }
-    .btn-warp:hover{ transform:translateY(-1px); box-shadow:0 0 24px rgba(129,140,248,.35), inset 0 0 30px rgba(99,102,241,.25); border-color:rgba(255,255,255,.45)}
-    .btn-warp::before, .btn-warp::after{
-      content:""; position:absolute; inset:auto -40% auto -40%; height:180%;
-      border-radius:50%; filter:blur(16px); opacity:.0; transition:opacity .25s ease, transform .6s ease;
-      background: conic-gradient(from 0deg, rgba(168,85,247,.0), rgba(168,85,247,.25), rgba(99,102,241,.35), rgba(236,72,153,.25), rgba(168,85,247,.0));
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--deep-900);
+      color: #fff;
+      line-height: 1.6;
+      overflow-x: hidden;
     }
-    .btn-warp::before{ top:-130%; transform:scale(.6)}
-    .btn-warp::after { bottom:-130%; transform:scale(.6)}
-    .btn-warp:hover::before{ opacity:.6; transform:scale(1)}
-    .btn-warp:hover::after { opacity:.45; transform:scale(1)}
 
-    /* CTA micro pulse */
-    @keyframes pulseTrail { 0%,100%{box-shadow:0 0 0 rgba(99,102,241,0)} 50%{box-shadow:0 0 20px rgba(99,102,241,.35)} }
-    .shadow-glow { animation: pulseTrail 3.2s ease-in-out infinite }
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
 
-    /* Section reveal */
-    .reveal{ opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s ease }
-    .reveal.show{ opacity:1; transform:translateY(0) }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
 
-    /* Black-hole canvas fills hero */
-    .hero-canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+    /* NEON TEXT EFFECTS */
+    h1 {
+      color: #ffffff;
+      text-shadow:
+        0 0 10px rgba(99, 102, 241, 0.9),
+        0 0 20px rgba(99, 102, 241, 0.7),
+        0 0 30px rgba(99, 102, 241, 0.5),
+        0 0 40px rgba(99, 102, 241, 0.3),
+        0 0 70px rgba(99, 102, 241, 0.2);
+    }
 
-    /* Gradient mask behind hero text for readability */
-    .hero-mask{
-      position:absolute; inset:0 0 auto 0; height:60%;
-      background: linear-gradient(180deg, rgba(4,6,20,.70) 0%, rgba(4,6,20,.35) 60%, rgba(4,6,20,0) 100%);
-      pointer-events:none;
+    h2 {
+      color: #ffffff;
+      text-shadow:
+        0 0 10px rgba(59, 130, 246, 0.9),
+        0 0 20px rgba(59, 130, 246, 0.6),
+        0 0 30px rgba(59, 130, 246, 0.4),
+        0 0 50px rgba(59, 130, 246, 0.2);
+    }
+
+    h3 {
+      color: #e0e7ff;
+      text-shadow:
+        0 0 8px rgba(139, 92, 246, 0.8),
+        0 0 15px rgba(139, 92, 246, 0.5),
+        0 0 25px rgba(139, 92, 246, 0.3);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #00d9ff, #bf00ff, #00fff2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: brightness(1.4);
+      text-shadow:
+        0 0 30px rgba(0, 217, 255, 0.6),
+        0 0 60px rgba(191, 0, 255, 0.4),
+        0 0 90px rgba(0, 255, 242, 0.3);
+      animation: neon-pulse 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes neon-pulse {
+      from {
+        filter: brightness(1.2) drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
+      }
+      to {
+        filter: brightness(1.6) drop-shadow(0 0 40px rgba(99, 102, 241, 0.9));
+      }
+    }
+
+    /* Top Banner */
+    .banner {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+      text-align: center;
+      padding: 12px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .banner-flex {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .banner strong {
+      color: #ffffff;
+      text-shadow:
+        0 0 10px rgba(99, 102, 241, 0.8),
+        0 0 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .countdown-compact {
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+      color: #00fff2;
+      font-weight: bold;
+      text-shadow:
+        0 0 10px rgba(0, 255, 242, 0.8),
+        0 0 20px rgba(0, 255, 242, 0.5),
+        0 0 30px rgba(0, 255, 242, 0.3);
+    }
+
+    /* Header */
+    header {
+      background: rgba(4, 6, 20, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 15px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-flex {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: white;
+      transition: transform 0.3s;
+    }
+
+    .logo-flex:hover {
+      transform: scale(1.05);
+    }
+
+    .logo-img {
+      width: 40px;
+      height: 40px;
+    }
+
+    .logo-text {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #ffffff;
+      text-shadow:
+        0 0 10px rgba(99, 102, 241, 0.7),
+        0 0 20px rgba(99, 102, 241, 0.4);
+    }
+
+    nav {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+
+    nav a {
+      color: rgba(255, 255, 255, 0.9);
+      text-decoration: none;
+      transition: all 0.3s;
+      font-size: 0.95rem;
+    }
+
+    nav a:hover {
+      color: #00d9ff;
+      text-shadow:
+        0 0 10px rgba(0, 217, 255, 0.8),
+        0 0 20px rgba(0, 217, 255, 0.5);
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      min-height: 85vh;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .hero-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .starfield {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .starfield i {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    }
+
+    .hero-mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: linear-gradient(180deg, rgba(4,6,20,0.7) 0%, rgba(4,6,20,0.35) 60%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      padding: 60px 20px;
+    }
+
+    .hero h1 {
+      font-size: 4.5rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      font-size: 1.4rem;
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 30px;
+      text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.3),
+        0 0 10px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Countdown Box */
+    .countdown-box {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.25));
+      border: 2px solid rgba(99, 102, 241, 0.5);
+      border-radius: 20px;
+      padding: 40px;
+      margin: 30px 0;
+      max-width: 900px;
+      box-shadow:
+        0 20px 60px rgba(99, 102, 241, 0.4),
+        inset 0 0 40px rgba(99, 102, 241, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .countdown-label {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      color: #00fff2;
+      text-align: center;
+      text-shadow:
+        0 0 10px rgba(0, 255, 242, 0.9),
+        0 0 20px rgba(0, 255, 242, 0.6),
+        0 0 30px rgba(0, 255, 242, 0.4);
+      font-weight: bold;
+    }
+
+    .countdown-numbers {
+      font-size: 4rem;
+      font-weight: 900;
+      font-family: 'Courier New', monospace;
+      margin: 15px 0;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      color: #ffffff;
+      text-shadow:
+        0 0 15px rgba(0, 217, 255, 0.9),
+        0 0 30px rgba(0, 217, 255, 0.6),
+        0 0 45px rgba(0, 217, 255, 0.4),
+        0 0 60px rgba(0, 217, 255, 0.2);
+    }
+
+    .countdown-unit {
+      display: inline-block;
+    }
+
+    .countdown-unit span {
+      font-size: 1.2rem;
+      color: #bf00ff;
+      font-weight: normal;
+      text-shadow:
+        0 0 10px rgba(191, 0, 255, 0.8),
+        0 0 20px rgba(191, 0, 255, 0.5);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 16px 40px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      border-radius: 12px;
+      transition: all 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      color: white;
+      border: none;
+      box-shadow:
+        0 10px 30px rgba(99, 102, 241, 0.5),
+        0 0 20px rgba(99, 102, 241, 0.3);
+      animation: pulse-glow 3s ease-in-out infinite;
+      text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.5),
+        0 0 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.05) translateY(-2px);
+      box-shadow:
+        0 15px 50px rgba(99, 102, 241, 0.7),
+        0 0 40px rgba(99, 102, 241, 0.6);
+      text-shadow:
+        0 0 15px rgba(255, 255, 255, 0.8),
+        0 0 30px rgba(99, 102, 241, 0.8);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow:
+          0 10px 30px rgba(99, 102, 241, 0.5),
+          0 0 20px rgba(99, 102, 241, 0.3);
+      }
+      50% {
+        box-shadow:
+          0 10px 50px rgba(99, 102, 241, 0.8),
+          0 0 40px rgba(99, 102, 241, 0.6);
+      }
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    /* Sections */
+    section {
+      padding: 80px 20px;
+    }
+
+    .section-dark {
+      background: rgba(7, 11, 31, 0.5);
+    }
+
+    h2 {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 20px;
+    }
+
+    .section-subtitle {
+      font-size: 1.3rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 50px;
+      text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.2),
+        0 0 10px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Feature Grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 25px;
+      margin-top: 40px;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 35px;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow:
+        0 10px 40px rgba(99, 102, 241, 0.2),
+        0 0 20px rgba(99, 102, 241, 0.15);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+    }
+
+    .feature-card h3 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      color: #00d9ff;
+      text-shadow:
+        0 0 10px rgba(0, 217, 255, 0.8),
+        0 0 20px rgba(0, 217, 255, 0.5),
+        0 0 30px rgba(0, 217, 255, 0.3);
+    }
+
+    .feature-card p {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Faction Grid */
+    .faction-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      margin-top: 40px;
+    }
+
+    .faction-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 0;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .faction-card:hover {
+      transform: translateY(-5px);
+      box-shadow:
+        0 15px 40px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(99, 102, 241, 0.3);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .faction-img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+
+    .faction-content {
+      padding: 20px;
+    }
+
+    .faction-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+
+    /* Video Section */
+    .video-container {
+      position: relative;
+      aspect-ratio: 16/9;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .video-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Roadmap */
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .roadmap-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 35px;
+      transition: all 0.3s;
+    }
+
+    .roadmap-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+    }
+
+    .roadmap-card.active {
+      border-color: rgba(34, 197, 94, 0.5);
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+    }
+
+    .roadmap-card.in-progress {
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+    }
+
+    .roadmap-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .roadmap-icon {
+      font-size: 2rem;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    }
+
+    .roadmap-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #00fff2;
+      text-shadow:
+        0 0 10px rgba(0, 255, 242, 0.8),
+        0 0 20px rgba(0, 255, 242, 0.5);
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* Footer */
+    footer {
+      background: rgba(0, 0, 0, 0.5);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 50px 20px 30px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-section h4 {
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      color: #00d9ff;
+      text-shadow:
+        0 0 10px rgba(0, 217, 255, 0.6),
+        0 0 20px rgba(0, 217, 255, 0.4);
+    }
+
+    .footer-section a {
+      display: block;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+
+    .footer-section a:hover {
+      color: #00fff2;
+      text-shadow:
+        0 0 8px rgba(0, 255, 242, 0.6),
+        0 0 15px rgba(0, 255, 242, 0.4);
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav { display: none; }
+      .mobile-menu-btn { display: block; }
+      .hero h1 { font-size: 2.5rem; }
+      .hero p { font-size: 1.1rem; }
+      .countdown-numbers { font-size: 2.5rem; }
+      .countdown-box { padding: 25px 20px; }
+      h2 { font-size: 2rem; }
+      .btn-group { flex-direction: column; }
+      .btn { width: 100%; }
     }
   </style>
 </head>
-<body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+<body>
 
-  <!-- Top Announcement -->
-  <div class="w-full bg-indigo-600/10 border-b border-indigo-500/20 text-center text-sm py-2">
-    <span class="mr-3">🚀 Playtest Sign-ups are open</span>
-    <a href="#download" class="underline decoration-dotted hover:text-white">Join the Alpha</a>
+  <!-- Top Banner -->
+  <div class="banner">
+    <div class="banner-flex">
+      <span style="font-size: 1.5rem;">🎄</span>
+      <span><strong>Christmas Day Launch:</strong></span>
+      <span class="countdown-compact" id="topCountdown">Loading...</span>
+      <span style="opacity: 0.5;">•</span>
+      <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="btn btn-primary"
+         style="padding: 8px 20px; font-size: 0.9rem;">
+        Wishlist on Steam
+      </a>
+    </div>
   </div>
 
   <!-- Header -->
-  <header class="sticky top-0 z-40 backdrop-blur-2xs bg-deep-900/70 border-b border-white/10">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <div class="flex items-center justify-between h-16">
-        <a href="#home" class="flex items-center gap-3 group">
-          <img src="/logo3.png" alt="Explore the Universe 2175 logo" class="w-10 h-10"/>
-          <strong class="tracking-wide text-lg group-hover:text-white">Explore the Universe 2175</strong>
+  <header>
+    <div class="container">
+      <div class="header-flex">
+        <a href="#home" class="logo-flex">
+          <img src="/logo3.png" alt="ETU 2175" class="logo-img">
+          <span class="logo-text">Explore the Universe 2175</span>
         </a>
-        <nav class="hidden md:flex items-center gap-6 text-sm">
-          <a href="#features" class="opacity-90 hover:opacity-100">Features</a>
-          <a href="#factions" class="opacity-90 hover:opacity-100">Factions</a>
-          <a href="#leaderboard" class="opacity-90 hover:opacity-100">Leaderboard</a>
-          <a href="#roadmap" class="opacity-90 hover:opacity-100">Roadmap</a>
-          <a href="#faq" class="opacity-90 hover:opacity-100">FAQ</a>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="#factions">Factions</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <a href="#trailer">Trailer</a>
+          <a href="#roadmap">Roadmap</a>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+             target="_blank"
+             class="btn btn-primary"
+             style="padding: 8px 20px; font-size: 0.9rem;">
+            Wishlist
+          </a>
         </nav>
-        <div class="hidden md:flex items-center gap-3">
-          <a href="#download" class="btn-warp px-3 py-2 rounded-md">Download</a>
-          <a href="#download" class="btn-warp px-4 py-2 rounded-md shadow-glow">Sign up</a>
-        </div>
-        <button id="menuBtn" class="md:hidden p-2 rounded hover:bg-white/10" aria-label="Open menu">☰</button>
-      </div>
-    </div>
-    <!-- Mobile menu -->
-    <div id="mobileMenu" class="md:hidden hidden border-t border-white/10">
-      <div class="max-w-7xl mx-auto px-4 py-4 space-y-3">
-        <a href="#features" class="block">Features</a>
-        <a href="#factions" class="block">Factions</a>
-        <a href="#leaderboard" class="block">Leaderboard</a>
-        <a href="#roadmap" class="block">Roadmap</a>
-        <a href="#faq" class="block">FAQ</a>
-        <div class="pt-3 flex gap-3">
-          <a href="#download" class="px-3 py-2 rounded-md border border-white/20">Download</a>
-          <a href="#download" class="px-4 py-2 rounded-md bg-indigo-600">Sign up</a>
-        </div>
+        <button class="mobile-menu-btn">☰</button>
       </div>
     </div>
   </header>
 
-  <!-- HERO with WebGL Black Hole -->
-  <section id="home" class="relative h-[78vh] min-h-[560px] flex items-end overflow-hidden">
-    <canvas id="bh-canvas" class="hero-canvas"></canvas>
-    <img id="bh-fallback" src="/media/hero-poster.jpg" alt="Black hole"
-         class="absolute inset-0 w-full h-full object-cover hidden" />
-    <div class="starfield" aria-hidden="true"></div>
+  <!-- Hero Section -->
+  <section id="home" class="hero">
+    <canvas id="heroCanvas" class="hero-canvas"></canvas>
+    <div class="starfield"></div>
     <div class="hero-mask"></div>
 
-    <div class="relative w-full">
-      <div class="max-w-7xl mx-auto px-4 lg:px-6 pb-12">
-        <div class="max-w-3xl">
-          <h1 class="reveal text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
-            A Living Galaxy. <span class="text-indigo-400">Your Legend.</span>
+    <div class="hero-content">
+      <div class="container">
+        <div style="max-width: 900px;">
+          <h1>
+            <span class="gradient-text">Create the Future.</span><br>
+            Forge Your Destiny.
           </h1>
-          <p class="reveal mt-4 text-lg md:text-xl text-slate-200/90">
-            Explore, trade, build, and battle across a simulated cosmos powered by realistic physics and adaptive AI factions.
+          <p>Explore, trade, build, and battle across a simulated cosmos powered by realistic physics and adaptive AI factions.</p>
+
+          <!-- Countdown Box -->
+          <div class="countdown-box">
+            <div class="countdown-label">🎄 Christmas Day Launch in:</div>
+            <div class="countdown-numbers" id="heroCountdown">Loading...</div>
+            <p style="text-align: center; margin: 15px 0; color: #cbd5e1;">December 25, 2025 • Wishlist for launch notifications</p>
+            <div style="text-align: center;">
+              <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="btn btn-primary"
+                 style="font-size: 1.3rem; padding: 20px 50px;">
+                🎄 WISHLIST ON STEAM NOW
+              </a>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+               target="_blank"
+               class="btn btn-secondary">Steam Page</a>
+            <a href="/leaderboard" class="btn btn-secondary">Leaderboard</a>
+            <a href="#trailer" class="btn btn-secondary">Watch Trailer</a>
+          </div>
+
+          <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem; margin-top: 20px;">
+            🎮 Single-player + Online Stats • 💻 Windows / macOS / Linux • 🎯 Controller + KB/M
           </p>
-          <div class="reveal mt-6 flex flex-wrap gap-3">
-            <a href="#download" class="btn-warp px-5 py-3 rounded-lg font-medium">Download / Wishlist</a>
-            <a href="#leaderboard" class="btn-warp px-5 py-3 rounded-lg">Global Leaderboard</a>
-            <a href="#trailer" class="btn-warp px-5 py-3 rounded-lg">Watch Trailer</a>
-          </div>
-          <div class="reveal mt-5 flex items-center gap-4 text-sm text-slate-300/80">
-            <span>Single-player + Online Stats</span><span>•</span>
-            <span>Windows / macOS / Linux</span><span>•</span>
-            <span>Controller + KB/M</span>
-          </div>
-
-          <!-- tiny control pill -->
-          <div class="reveal mt-6 inline-flex items-center gap-2 text-xs bg-white/10 border border-white/15 rounded-xl px-3 py-2 backdrop-blur-2xs">
-            <span class="opacity-80">Hero Sim Quality</span>
-            <select id="bh-quality" class="bg-transparent border border-white/20 rounded-md px-2 py-1">
-              <option value="1">High</option>
-              <option value="0.75" selected>Medium</option>
-              <option value="0.5">Low</option>
-            </select>
-            <button id="bh-pause" class="ml-2 px-2 py-1 border border-white/20 rounded-md">Pause</button>
-          </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Badges -->
-  <section class="reveal border-t border-white/10 bg-deep-800/40">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-slate-300/80 text-sm">
-      <div class="flex items-center gap-6">
-        <span class="uppercase tracking-widest">Powered by</span>
-        <img src="/media/badges/physics.svg" class="h-6 opacity-80" alt="Realistic physics"/>
-        <img src="/media/badges/ai.svg" class="h-6 opacity-80" alt="Adaptive AI"/>
-        <img src="/media/badges/procgen.svg" class="h-6 opacity-80" alt="Procedural generation"/>
-      </div>
-      <div>
-        <a href="#press" class="underline decoration-dotted">Press Kit</a>
       </div>
     </div>
   </section>
 
   <!-- Features -->
-  <section id="features" class="py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <header class="reveal max-w-3xl">
-        <h2 class="text-3xl md:text-4xl font-bold">Why this galaxy feels alive</h2>
-        <p class="mt-3 text-slate-300">Systems-driven gameplay meets astrophysical authenticity. Every star, orbit, and economy matters.</p>
-      </header>
+  <section id="features">
+    <div class="container">
+      <h2>Why This Galaxy Feels Alive</h2>
+      <p class="section-subtitle">Systems-driven gameplay meets astrophysical authenticity</p>
 
-      <div class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Realistic Spaceflight</h3>
-          <p class="mt-2 text-sm text-slate-300/90">Inertial navigation, orbital mechanics, and fuel-aware trajectories—accessible with helpful assists.</p>
-        </article>
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Dynamic Factions</h3>
-          <p class="mt-2 text-sm text-slate-300/90">AI civilizations expand, trade, and wage war. Your choices shift the balance.</p>
-        </article>
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Evolving Economy</h3>
-          <p class="mt-2 text-sm text-slate-300/90">Simulated markets, smuggling routes, mining, crafting, and research trees.</p>
-        </article>
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Boss Encounters</h3>
-          <p class="mt-2 text-sm text-slate-300/90">Multi-phase entities and station-scale fights with environmental hazards.</p>
-        </article>
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Procedural Galaxies</h3>
-          <p class="mt-2 text-sm text-slate-300/90">Seeded star maps with handcrafted points of interest and story arcs.</p>
-        </article>
-        <article class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <h3 class="font-semibold text-lg">Online Scoreboard</h3>
-          <p class="mt-2 text-sm text-slate-300/90">Challenge the community in time trials, discoveries, and faction influence.</p>
-        </article>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <h3>Realistic Spaceflight</h3>
+          <p>Inertial navigation, orbital mechanics, and fuel-aware trajectories with helpful flight assists</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>Dynamic Factions</h3>
+          <p>AI civilizations expand, trade, and wage war. Your choices shift the balance of power</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>Evolving Economy</h3>
+          <p>Simulated markets, smuggling routes, mining, crafting, and research trees</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👾</div>
+          <h3>Epic Boss Encounters</h3>
+          <p>Multi-phase entities and station-scale fights with environmental hazards</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌌</div>
+          <h3>Procedural Galaxies</h3>
+          <p>Seeded star maps with handcrafted points of interest and story arcs</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Online Scoreboard</h3>
+          <p>Challenge the community in time trials, discoveries, and faction influence</p>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Trailer -->
-  <section id="trailer" class="reveal py-14 border-t border-white/10 bg-deep-800/40">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <div class="grid lg:grid-cols-3 gap-6 items-center">
-        <div class="lg:col-span-2">
-          <div class="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10">
-            <video controls poster="/media/trailer-poster.jpg" class="w-full h-full object-cover">
-              <source src="/media/trailer.webm" type="video/webm" />
-              <source src="/ETU1.mp4" type="video/mp4" />
-            </video>
-          </div>
+  <section id="trailer" class="section-dark">
+    <div class="container">
+      <h2>Official Cinematic Trailer</h2>
+      <p class="section-subtitle">Experience the epic scale of space exploration and faction warfare</p>
+
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <div class="video-container">
+          <video controls poster="/media/trailer-poster.jpg">
+            <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4">
+            <source src="/ETU1.mp4" type="video/mp4">
+          </video>
         </div>
-        <div class="space-y-4">
-          <h3 class="text-2xl font-semibold">Watch the Trailer</h3>
-          <p class="text-slate-300/90">Deep-space traversal, station sieges, and faction AI in motion.</p>
-          <div class="flex gap-3">
-            <a href="#download" class="btn-warp px-4 py-2 rounded-md">Join Alpha</a>
-            <a href="#leaderboard" class="btn-warp px-4 py-2 rounded-md">View Scores</a>
-          </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+             target="_blank"
+             class="btn btn-primary">
+            Wishlist on Steam
+          </a>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Factions -->
-  <section id="factions" class="py-20 bg-gradient-to-b from-deep-900 to-deep-800">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <header class="reveal max-w-3xl mb-8">
-        <h2 class="text-3xl md:text-4xl font-bold">Factions shaping the galaxy</h2>
-        <p class="mt-2 text-slate-300">From crystalline intellects to mycelial swarms, each civilization plays by its own rules.</p>
-      </header>
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
-          <img src="/Crystal_Race.jpg" alt="Crystal AI" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
-          <h3 class="font-semibold">CYL • Crystal Intelligences</h3>
-          <p class="text-sm text-slate-300/90">Light-bending defenses and precision strikes.</p>
-        </article>
-        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
-          <img src="/Mycelari_Hero2.jpg" alt="Mycelari swarm" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
-          <h3 class="font-semibold">Mycelari • Fungal Swarm</h3>
-          <p class="text-sm text-slate-300/90">Spore-based expansion and biomass economy.</p>
-        </article>
-        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
-          <img src="/eveil_robot_hero1.jpg" alt="Megabot empire" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
-          <h3 class="font-semibold">Megabot • Machine Empire</h3>
-          <p class="text-sm text-slate-300/90">Modular forms, overwhelming firepower, station-scale bosses.</p>
-        </article>
-        <article class="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition">
-          <img src="/Wild_Race.jpg" alt="Wild Guardians" class="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"/>
-          <h3 class="font-semibold">Wild • Ent-born Guardians</h3>
-          <p class="text-sm text-slate-300/90">Pollen-based growth and terrain control.</p>
-        </article>
-      </div>
-    </div>
-  </section>
+  <section id="factions">
+    <div class="container">
+      <h2>Factions Shaping the Galaxy</h2>
+      <p class="section-subtitle">From crystalline intellects to mycelial swarms, each civilization plays by its own rules</p>
 
-  <!-- Leaderboard preview -->
-  <section id="leaderboard" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <header>
-          <h2 class="text-3xl font-bold">Global Leaderboard</h2>
-          <p class="text-slate-300">Top discoveries, speed-runs, and faction influence—updated live.</p>
-        </header>
-        <a href="/leaderboard" class="btn-warp px-4 py-2 rounded-md">View Full Board →</a>
-      </div>
-      <div class="mt-6 overflow-x-auto">
-        <table class="w-full text-left text-sm min-w-[640px]">
-          <thead class="text-slate-300/80">
-            <tr class="border-b border-white/10">
-              <th class="py-3">Rank</th><th>Commander</th><th>Mode</th><th>Score</th><th>Best Time</th><th>Last Update</th>
-            </tr>
-          </thead>
-          <tbody id="lbBody" class="divide-y divide-white/10"></tbody>
-        </table>
+      <div class="faction-grid">
+        <div class="faction-card">
+          <img src="/Crystal_Race.jpg" alt="Crystal AI" class="faction-img">
+          <div class="faction-content">
+            <h3 style="color: #6366f1;">CYL • Crystal Intelligences</h3>
+            <p>Light-bending defenses and precision strikes</p>
+          </div>
+        </div>
+        <div class="faction-card">
+          <img src="/Mycelari_Hero2.jpg" alt="Mycelari" class="faction-img">
+          <div class="faction-content">
+            <h3 style="color: #a855f7;">Mycelari • Fungal Swarm</h3>
+            <p>Spore-based expansion and biomass economy</p>
+          </div>
+        </div>
+        <div class="faction-card">
+          <img src="/eveil_robot_hero1.jpg" alt="Megabot" class="faction-img">
+          <div class="faction-content">
+            <h3 style="color: #ef4444;">Megabot • Machine Empire</h3>
+            <p>Modular forms, overwhelming firepower, station-scale bosses</p>
+          </div>
+        </div>
+        <div class="faction-card">
+          <img src="/Wild_Race.jpg" alt="Wild" class="faction-img">
+          <div class="faction-content">
+            <h3 style="color: #22c55e;">Wild • Ent-born Guardians</h3>
+            <p>Pollen-based growth and terrain control</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Roadmap -->
-  <section id="roadmap" class="reveal py-20 bg-gradient-to-b from-deep-800/30 to-deep-900">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <header class="max-w-3xl">
-        <h2 class="text-3xl md:text-4xl font-bold">Roadmap</h2>
-        <p class="mt-2 text-slate-300">Follow development from Alpha to 1.0 and beyond.</p>
-      </header>
-      <ol class="mt-10 grid md:grid-cols-3 gap-6">
-        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
-          <h3 class="font-semibold">Alpha</h3>
-          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
-            <li>Core flight & combat</li><li>2 factions playable</li><li>Leaderboard v1</li>
-          </ul>
-        </li>
-        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
-          <h3 class="font-semibold">Beta</h3>
-          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
-            <li>Story arcs & bosses</li><li>Co-op stats & events</li><li>Market & crafting</li>
-          </ul>
-        </li>
-        <li class="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
-          <h3 class="font-semibold">1.0</h3>
-          <ul class="mt-2 text-sm list-disc pl-5 text-slate-300/90">
-            <li>Full faction roster</li><li>Endgame systems</li><li>Modding tools</li>
-          </ul>
-        </li>
-      </ol>
-    </div>
-  </section>
+  <section id="roadmap" class="section-dark">
+    <div class="container">
+      <h2>Development Roadmap</h2>
+      <p class="section-subtitle">Follow our journey from Alpha to 1.0 and beyond</p>
 
-  <!-- Devlog -->
-  <section id="news" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <div class="flex items-end justify-between">
-        <header>
-          <h2 class="text-3xl font-bold">Latest Devlog</h2>
-          <p class="text-slate-300">Deep dives on AI, physics, and worldbuilding.</p>
-        </header>
-        <a href="/devlog" class="underline decoration-dotted">Read more →</a>
-      </div>
-      <div class="mt-8 grid md:grid-cols-3 gap-6">
-        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <img src="/ai_systems.jpg" alt="AI systems" class="w-full aspect-[16/9] object-cover"/>
-          <div class="p-5">
-            <h3 class="font-semibold">Adaptive Faction AI</h3>
-            <p class="text-sm text-slate-300/90 mt-2">How empires grow, fight, and negotiate over time.</p>
+      <div class="roadmap-grid">
+        <div class="roadmap-card active">
+          <div class="roadmap-header">
+            <span class="roadmap-icon">✅</span>
+            <h3 class="roadmap-title">Alpha</h3>
           </div>
-        </article>
-        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <img src="/physics.jpg" alt="Physics" class="w-full aspect-[16/9] object-cover"/>
-          <div class="p-5">
-            <h3 class="font-semibold">Flight & Orbital Mechanics</h3>
-            <p class="text-sm text-slate-300/90 mt-2">Balancing realism with fun assists.</p>
+          <div class="roadmap-item">
+            <span style="color: #22c55e;">✓</span>
+            <span>Core flight & combat systems</span>
           </div>
-        </article>
-        <article class="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-          <img src="/upgrade.jpg" alt="Boss" class="w-full aspect-[16/9] object-cover"/>
-          <div class="p-5">
-            <h3 class="font-semibold">Designing Station Bosses</h3>
-            <p class="text-sm text-slate-300/90 mt-2">Multi-phase challenges and environmental hazards.</p>
+          <div class="roadmap-item">
+            <span style="color: #22c55e;">✓</span>
+            <span>2 factions playable</span>
           </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download / CTA + Supabase Signup -->
-  <section id="download" class="reveal py-16 bg-gradient-to-b from-deep-900 to-deep-800">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-10 items-center">
-      <div>
-        <h2 class="text-3xl md:text-4xl font-bold">Download & Wishlist</h2>
-        <p class="mt-3 text-slate-300">Get early builds, post feedback, and climb the leaderboard.</p>
-        <div class="mt-6 grid sm:grid-cols-3 gap-3">
-          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>Windows</a>
-          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>macOS</a>
-          <a class="btn-warp px-4 py-3 rounded-lg text-center hidden" href="#" data-alpha-only>Linux</a>
+          <div class="roadmap-item">
+            <span style="color: #22c55e;">✓</span>
+            <span>Leaderboard integration</span>
+          </div>
         </div>
-        <p class="mt-4 text-xs text-slate-400">Requires 8 GB RAM, 4-core CPU, integrated or discrete GPU. ~2.5 GB free space.</p>
-      </div>
-      <div class="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
-        <h3 class="font-semibold">Join the Alpha</h3>
-        <p class="text-sm text-slate-300/90 mt-1">Get keys, patch notes, and event invites.</p>
 
-        <!-- SIGNUP FORM -->
-        <form id="signupForm" class="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
-          <label class="sr-only" for="email">Email</label>
-          <input id="email" type="email" name="email" required placeholder="you@galaxy.space"
-                 autocomplete="email"
-                 class="px-4 py-3 rounded-lg bg-deep-900/70 ring-1 ring-white/15 focus:ring-indigo-500/60 outline-none" />
-          <!-- Honeypot -->
-          <input type="text" name="planet" tabindex="-1" autocomplete="off" style="position:absolute;left:-5000px;opacity:0;">
-          <button id="signupBtn" class="btn-warp px-5 py-3 rounded-lg">Request Access</button>
-        </form>
-        <p id="signupMsg" class="mt-3 text-sm text-emerald-400 hidden">Thanks! Check your inbox for a confirmation link.</p>
-        <p id="signupErr" class="mt-3 text-sm text-rose-400 hidden"></p>
-      </div>
-    </div>
-  </section>
+        <div class="roadmap-card in-progress">
+          <div class="roadmap-header">
+            <span class="roadmap-icon">🚧</span>
+            <h3 class="roadmap-title">Beta</h3>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #6366f1;">○</span>
+            <span>Story arcs & boss battles</span>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #6366f1;">○</span>
+            <span>Co-op stats & events</span>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #6366f1;">○</span>
+            <span>Market & crafting systems</span>
+          </div>
+        </div>
 
-  <!-- FAQ -->
-  <section id="faq" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
-    <div class="max-w-5xl mx-auto px-4 lg:px-6">
-      <h2 class="text-3xl font-bold">FAQ</h2>
-      <div class="mt-8 grid md:grid-cols-2 gap-6 text-sm">
-        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5" open>
-          <summary class="font-semibold cursor-pointer">Is this single-player or multiplayer?</summary>
-          <p class="mt-2 text-slate-300/90">Primarily single-player with online scoreboards and live events. Co-op stats are planned.</p>
-        </details>
-        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
-          <summary class="font-semibold cursor-pointer">How realistic is the physics?</summary>
-          <p class="mt-2 text-slate-300/90">We model inertial flight and orbits with assists for accessibility. "Simulation when you want it."</p>
-        </details>
-        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
-          <summary class="font-semibold cursor-pointer">Will there be mods?</summary>
-          <p class="mt-2 text-slate-300/90">Yes—tools and APIs post-1.0.</p>
-        </details>
-        <details class="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
-          <summary class="font-semibold cursor-pointer">Which platforms?</summary>
-          <p class="mt-2 text-slate-300/90">Windows, macOS, Linux at launch; console evaluation later.</p>
-        </details>
+        <div class="roadmap-card">
+          <div class="roadmap-header">
+            <span class="roadmap-icon">🎯</span>
+            <h3 class="roadmap-title">1.0</h3>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #a855f7;">○</span>
+            <span>Full faction roster</span>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #a855f7;">○</span>
+            <span>Endgame systems</span>
+          </div>
+          <div class="roadmap-item">
+            <span style="color: #a855f7;">○</span>
+            <span>Modding tools & APIs</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="border-t border-white/10">
-    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
-      <div class="grid md:grid-cols-4 gap-6">
-        <div>
-          <img src="/media/logo.png" alt="Explore the Universe 2175" class="w-8 h-8"/>
-          <p class="mt-3 max-w-xs">An open-world space adventure by Telford Projects. Built with science, art, and a pinch of chaos.</p>
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h4>Game</h4>
+          <a href="#features">Features</a>
+          <a href="#factions">Factions</a>
+          <a href="#roadmap">Roadmap</a>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0" target="_blank">Steam Page</a>
         </div>
-        <nav class="space-y-2">
-          <h4 class="font-semibold text-slate-200">Game</h4>
-          <a class="block" href="#features">Features</a>
-          <a class="block" href="#factions">Factions</a>
-          <a class="block" href="#download">Download</a>
-        </nav>
-        <nav class="space-y-2">
-          <h4 class="font-semibold text-slate-200">Community</h4>
-          <a class="block" href="/leaderboard">Leaderboard</a>
-          <a class="block" href="/forum">Forum</a>
-          <a class="block" href="/discord">Discord</a>
-        </nav>
-        <nav class="space-y-2">
-          <h4 class="font-semibold text-slate-200">Company</h4>
-          <a class="block" href="#press">Press Kit</a>
-          <a class="block" href="/privacy">Privacy</a>
-          <a class="block" href="/terms">Terms</a>
-        </nav>
+        <div class="footer-section">
+          <h4>Community</h4>
+          <a href="/leaderboard">Leaderboard</a>
+          <a href="/pages/forum-home.html">Forum</a>
+          <a href="#">Discord</a>
+          <a href="#">Dev Blog</a>
+        </div>
+        <div class="footer-section">
+          <h4>Company</h4>
+          <a href="#">Press Kit</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="mailto:support@exploretheuniverse2175.com">Support</a>
+        </div>
+        <div class="footer-section">
+          <h4>Connect</h4>
+          <a href="#">Twitter</a>
+          <a href="#">YouTube</a>
+          <a href="#">Reddit</a>
+        </div>
       </div>
-      <p class="mt-8 text-xs">© <span id="year"></span> Telford Projects. All rights reserved.</p>
+
+      <div class="footer-bottom">
+        <p>&copy; <span id="year">2024</span> Telford Projects. All rights reserved.</p>
+      </div>
     </div>
   </footer>
 
-  <!-- Core Scripts -->
+  <!-- JavaScript -->
   <script>
-    // mobile menu
-    const mBtn = document.getElementById('menuBtn');
-    const mMenu = document.getElementById('mobileMenu');
-    mBtn?.addEventListener('click',()=>mMenu.classList.toggle('hidden'));
+    // Countdown Timer
+    const launchDate = new Date('2025-12-25T00:00:00-08:00');
 
-    // star sprinkle
-    const sfl = document.querySelectorAll('.starfield');
-    sfl.forEach(sf=>{
-      for(let i=0;i<140;i++){
-        const s=document.createElement('i');
-        s.style.top=Math.random()*100+'%';
-        s.style.left=Math.random()*100+'%';
-        s.style.opacity=(Math.random()*0.7+0.3).toFixed(2);
-        s.style.transform=`scale(${Math.random()*1.2+0.4})`;
-        sf.appendChild(s);
+    function updateCountdown() {
+      const now = new Date();
+      const diff = launchDate - now;
+
+      if (diff <= 0) {
+        const topEl = document.getElementById('topCountdown');
+        const heroEl = document.getElementById('heroCountdown');
+        if (topEl) topEl.textContent = 'LAUNCHED! 🎉';
+        if (heroEl) heroEl.innerHTML = '<div style="font-size: 3rem;">AVAILABLE NOW! 🎉</div>';
+        return;
       }
-    });
 
-    // demo leaderboard data (replace with API)
-    const demoLB = [
-      {rank:1,name:'E.T.',mode:'Any% Run',score:987654,time:'12:34',updated:'2m ago'},
-      {rank:2,name:'NovaKite',mode:'Discovery',score:963420,time:'—',updated:'5m ago'},
-      {rank:3,name:'CrystalMind',mode:'Faction Influence',score:951210,time:'—',updated:'9m ago'},
-      {rank:4,name:'SporeSpine',mode:'Boss Rush',score:912340,time:'18:12',updated:'15m ago'},
-      {rank:5,name:'MegabotX',mode:'Siege',score:889990,time:'—',updated:'22m ago'}
-    ];
-    const tbody=document.getElementById('lbBody');
-    if (tbody){
-      demoLB.forEach(row=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td class="py-3">${row.rank}</td>
-          <td>${row.name}</td>
-          <td>${row.mode}</td>
-          <td>${row.score.toLocaleString()}</td>
-          <td>${row.time}</td>
-          <td>${row.updated}</td>`;
-        tbody.appendChild(tr);
-      });
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      // Top countdown
+      const topEl = document.getElementById('topCountdown');
+      if (topEl) {
+        topEl.textContent = days + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's';
+      }
+
+      // Hero countdown
+      const heroEl = document.getElementById('heroCountdown');
+      if (heroEl) {
+        heroEl.innerHTML =
+          '<div class="countdown-unit">' + days + '<span>d</span></div>' +
+          '<div class="countdown-unit">' + String(hours).padStart(2, '0') + '<span>h</span></div>' +
+          '<div class="countdown-unit">' + String(minutes).padStart(2, '0') + '<span>m</span></div>' +
+          '<div class="countdown-unit">' + String(seconds).padStart(2, '0') + '<span>s</span></div>';
+      }
     }
 
-    document.getElementById('year').textContent = new Date().getFullYear();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
 
-    // Section reveal
-    const io = new IntersectionObserver((entries)=>{
-      entries.forEach(e=>{
-        if (e.isIntersecting) e.target.classList.add('show');
-      })
-    }, { threshold:0.12 });
-    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+    // Set year
+    const yearEl = document.getElementById('year');
+    if (yearEl) {
+      yearEl.textContent = new Date().getFullYear();
+    }
+
+    // Starfield
+    const starfield = document.querySelector('.starfield');
+    if (starfield) {
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('i');
+        star.style.top = Math.random() * 100 + '%';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.opacity = (Math.random() * 0.7 + 0.3).toFixed(2);
+        star.style.transform = 'scale(' + (Math.random() * 1.2 + 0.4) + ')';
+        starfield.appendChild(star);
+      }
+    }
+
+    // Simple canvas background
+    const canvas = document.getElementById('heroCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        drawBackground();
+      }
+
+      function drawBackground() {
+        const gradient = ctx.createRadialGradient(
+          canvas.width / 2, canvas.height / 3, 0,
+          canvas.width / 2, canvas.height / 3, canvas.width
+        );
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+        gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.05)');
+        gradient.addColorStop(1, 'rgba(4, 6, 20, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+    }
   </script>
 
-  <!-- WebGL Black Hole Shader -->
-  <script>
-  (function(){
-    const canvas = document.getElementById('bh-canvas');
-    const fallback = document.getElementById('bh-fallback');
-    const qSelect = document.getElementById('bh-quality');
-    const pauseBtn = document.getElementById('bh-pause');
-
-    let gl = canvas.getContext('webgl', { antialias:false, preserveDrawingBuffer:false });
-    if (!gl) { fallback.classList.remove('hidden'); return; }
-
-    const vert = `
-    attribute vec2 a_pos;
-    void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
-
-    const frag = `
-    precision highp float;
-    uniform vec2 u_res;
-    uniform float u_time;
-    uniform vec2 u_mouse;
-    const float BH_RADIUS = 0.14;
-    const float DISK_R_IN = 0.16;
-    const float DISK_R_OUT = 0.45;
-
-    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
-    float noise(vec2 p){
-      vec2 i=floor(p), f=fract(p);
-      float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
-      vec2 u=f*f*(3.-2.*f);
-      return mix(a,b,u.x)+ (c-a)*u.y*(1.-u.x)+ (d-b)*u.x*u.y;
-    }
-    vec3 starfield(vec2 uv){
-      float s=0.0;
-      s += noise(uv*2.0)*0.35;
-      s += noise(uv*4.0)*0.25;
-      s += noise(uv*8.0)*0.18;
-      vec3 neb = mix(vec3(0.02,0.02,0.06), vec3(0.15,0.06,0.25), s);
-      float stars = step(0.995, fract(sin(dot(floor(uv*200.0), vec2(12.9898,78.233)))*43758.5453));
-      stars += step(0.9985, fract(sin(dot(floor(uv*300.0+10.0), vec2(4.898,7.23)))*23421.631));
-      vec3 starCol = vec3(0.9,0.9,1.0)*stars;
-      return neb + starCol;
-    }
-    vec2 lensOffset(vec2 p){
-      float r = length(p);
-      float eps = 1e-4;
-      r = max(r, BH_RADIUS+eps);
-      float strength = 0.06;
-      float bend = strength / r;
-      return normalize(p) * bend;
-    }
-    float diskMask(vec2 p){
-      float r = length(p);
-      float tilt = 0.35;
-      float y = p.y + sin(p.x*8.0+u_time*0.5)*0.005;
-      float band = smoothstep(DISK_R_IN, DISK_R_IN+0.01, r) * (1.0 - smoothstep(DISK_R_OUT-0.01, DISK_R_OUT, r));
-      band *= exp(-abs(y)*40.0*(1.0-tilt));
-      return band;
-    }
-    void main(){
-      vec2 uv = (gl_FragCoord.xy / u_res);
-      vec2 p = (uv - 0.5);
-      p.x *= u_res.x/u_res.y;
-      vec2 center = vec2(0.0) + (u_mouse - 0.5)*0.15;
-      vec2 rp = p - center;
-
-      vec2 off = lensOffset(rp);
-      vec3 bg = starfield( (p + off)*1.6 + vec2(u_time*0.01, 0.0) );
-
-      float d = diskMask(rp);
-      vec3 diskCol = mix(vec3(0.2,0.0,0.35), vec3(0.4,0.1,0.9), smoothstep(0.0,1.0,d));
-      diskCol += vec3(1.0,0.6,1.2)*pow(d, 3.0);
-      diskCol *= (1.0 + 0.15*sin(u_time + rp.x*20.0));
-
-      float r = length(rp);
-      float horizon = smoothstep(BH_RADIUS, BH_RADIUS-0.002, r);
-
-      vec3 col = bg + diskCol*d*1.4;
-      col = mix(col, vec3(0.0), horizon);
-      float vig = smoothstep(0.95, 0.2, length(p));
-      col *= vig;
-      col = pow(col, vec3(0.95));
-      gl_FragColor = vec4(col, 1.0);
-    }`;
-
-    function compile(type, src){
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-        console.error(gl.getShaderInfoLog(s));
-        throw new Error('Shader compile error');
-      }
-      return s;
-    }
-    const vs = compile(gl.VERTEX_SHADER, vert);
-    const fs = compile(gl.FRAGMENT_SHADER, frag);
-    const prog = gl.createProgram();
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(prog)); throw new Error('Program link error'); }
-    gl.useProgram(prog);
-
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'a_pos');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(prog, 'u_res');
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-    const uMouse = gl.getUniformLocation(prog, 'u_mouse');
-
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
-    let renderScale = parseFloat(qSelect?.value || '0.75');
-    let paused = false;
-    let mouse = {x:0.5, y:0.5};
-
-    function resize(){
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width * dpr * renderScale));
-      const h = Math.max(1, Math.floor(rect.height * dpr * renderScale));
-      if (canvas.width !== w || canvas.height !== h){
-        canvas.width = w; canvas.height = h;
-        gl.viewport(0,0,w,h);
-      }
-    }
-    window.addEventListener('resize', resize, { passive:true });
-    canvas.addEventListener('mousemove', (e)=>{
-      const r = canvas.getBoundingClientRect();
-      mouse.x = (e.clientX - r.left) / r.width;
-      mouse.y = 1.0 - (e.clientY - r.top) / r.height;
-    }, { passive:true });
-    qSelect?.addEventListener('change', ()=>{ renderScale = parseFloat(qSelect.value); resize(); });
-    pauseBtn?.addEventListener('click', ()=>{ paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; });
-
-    let start = performance.now();
-    function frame(){
-      if (!paused){
-        resize();
-        const t = (performance.now() - start)/1000.0;
-        gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, t);
-        gl.uniform2f(uMouse, mouse.x, mouse.y);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-      }
-      requestAnimationFrame(frame);
-    }
-    frame();
-  })();
-  </script>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // Your Supabase creds
-    const SUPABASE_URL = "https://osvrbwvxnbpwsmgvdmkm.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdnJid3Z4bmJwd3NtZ3ZkbWttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MjM4MTYsImV4cCI6MjA3NDk5OTgxNn0.1WS43PMFLACSXhR2TGDUEJb0VIIsQhcE3HaPBQra8sQ";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const form = document.getElementById('signupForm');
-    const emailInput = document.getElementById('email');
-    const btn = document.getElementById('signupBtn');
-    const ok = document.getElementById('signupMsg');
-    const err = document.getElementById('signupErr');
-
-    function setLoading(state){
-      if(!btn) return;
-      btn.disabled = state;
-      btn.textContent = state ? 'Sending…' : 'Request Access';
-    }
-
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      err.classList.add('hidden');
-      if ((new FormData(form)).get('planet')) return; // honeypot
-
-      const email = (emailInput?.value || '').trim();
-      if (!email) return;
-
-      setLoading(true);
-      try {
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
-            emailRedirectTo: 'https://exploretheuniverse2175.com/#signup-complete',
-            data: { newsletter: true }
-          }
-        });
-        if (error) throw error;
-
-        ok.classList.remove('hidden');
-        form.reset();
-      } catch (e2) {
-        err.textContent = e2.message || 'Sign-up failed. Please try again.';
-        err.classList.remove('hidden');
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    // Reveal alpha-only elements for authenticated users
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        document.querySelectorAll('[data-alpha-only]').forEach(el => el.classList.remove('hidden'));
-      }
-    })();
-  </script>
-
-  <!--
-  ========= NOTES =========
-  - Keep /media/logo.png, /og-cover.jpg, /favicon.ico present
-  - Consider adding .nojekyll + CNAME (exploretheuniverse2175.com) in repo root
-  - For heavier images, use WebP/AVIF and loading="lazy"
-  -->
 </body>
 </html>
