@@ -630,6 +630,163 @@
       color: rgba(255, 255, 255, 0.6);
     }
 
+    /* Epic Feature Section */
+    .epic-feature-section {
+      position: relative;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .epic-feature-container {
+      position: relative;
+      width: 100%;
+      max-height: 70vh;
+      overflow: hidden;
+    }
+
+    .epic-feature-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .epic-feature-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg,
+        rgba(4,6,20,0.3) 0%,
+        rgba(4,6,20,0.6) 50%,
+        rgba(4,6,20,0.85) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .epic-feature-content {
+      text-align: center;
+      padding: 40px 20px;
+      max-width: 900px;
+    }
+
+    .epic-feature-title {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 20px;
+      color: #ffffff;
+      text-shadow:
+        0 0 15px rgba(0, 217, 255, 0.9),
+        0 0 30px rgba(0, 217, 255, 0.6),
+        0 0 45px rgba(0, 217, 255, 0.4);
+    }
+
+    .epic-feature-subtitle {
+      font-size: 1.4rem;
+      margin-bottom: 30px;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.3),
+        0 0 10px rgba(99, 102, 241, 0.3);
+    }
+
+    .epic-cta-btn {
+      font-size: 1.4rem !important;
+      padding: 22px 60px !important;
+      box-shadow:
+        0 15px 50px rgba(99, 102, 241, 0.6),
+        0 0 40px rgba(99, 102, 241, 0.5) !important;
+      animation: mega-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes mega-pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow:
+          0 15px 50px rgba(99, 102, 241, 0.6),
+          0 0 40px rgba(99, 102, 241, 0.5);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow:
+          0 20px 70px rgba(99, 102, 241, 0.8),
+          0 0 60px rgba(99, 102, 241, 0.7);
+      }
+    }
+
+    /* Enhanced Trailer Section */
+    .trailer-hero {
+      padding: 100px 20px !important;
+    }
+
+    /* Christmas Section */
+    .christmas-section {
+      padding: 80px 20px;
+      background: linear-gradient(180deg, rgba(7, 11, 31, 0.8), rgba(4, 6, 20, 0.9));
+      border-top: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .christmas-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .christmas-content {
+      text-align: left;
+    }
+
+    .christmas-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      margin-bottom: 25px;
+      color: #ffffff;
+      text-shadow:
+        0 0 15px rgba(0, 255, 242, 0.9),
+        0 0 30px rgba(0, 255, 242, 0.6),
+        0 0 45px rgba(0, 255, 242, 0.4),
+        0 0 60px rgba(0, 255, 242, 0.2);
+    }
+
+    .christmas-subtitle {
+      font-size: 1.4rem;
+      margin-bottom: 35px;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.8;
+      text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.2);
+    }
+
+    .christmas-cta-group {
+      margin-top: 30px;
+    }
+
+    .christmas-image-container {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(99, 102, 241, 0.3);
+      border: 2px solid rgba(99, 102, 241, 0.4);
+    }
+
+    .christmas-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .christmas-image-container:hover .christmas-image {
+      transform: scale(1.05);
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       nav { display: none; }
@@ -641,6 +798,39 @@
       h2 { font-size: 2rem; }
       .btn-group { flex-direction: column; }
       .btn { width: 100%; }
+
+      /* Epic Feature Mobile */
+      .epic-feature-container {
+        max-height: 50vh;
+      }
+      .epic-feature-title {
+        font-size: 1.8rem;
+      }
+      .epic-feature-subtitle {
+        font-size: 1rem;
+      }
+      .epic-cta-btn {
+        font-size: 1.1rem !important;
+        padding: 16px 30px !important;
+      }
+
+      /* Christmas Mobile */
+      .christmas-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      .christmas-content {
+        text-align: center;
+      }
+      .christmas-title {
+        font-size: 2rem;
+      }
+      .christmas-subtitle {
+        font-size: 1.1rem;
+      }
+      .trailer-hero {
+        padding: 60px 20px !important;
+      }
     }
   </style>
 </head>
@@ -736,6 +926,55 @@
     </div>
   </section>
 
+  <!-- Epic Feature Image with Steam CTA -->
+  <section class="epic-feature-section">
+    <div class="epic-feature-container">
+      <img src="/Explore_Epic5.png" alt="Explore the Universe 2175 - Epic Space Battle" class="epic-feature-img">
+      <div class="epic-feature-overlay">
+        <div class="epic-feature-content">
+          <h2 class="epic-feature-title">Experience the Ultimate Space Adventure</h2>
+          <p class="epic-feature-subtitle">Join thousands of commanders exploring the galaxy</p>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="btn btn-primary epic-cta-btn">
+            🎮 WISHLIST ON STEAM NOW
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trailer Section - Below the Fold -->
+  <section id="trailer" class="section-dark trailer-hero">
+    <div class="container">
+      <h2>🎬 Watch the Official Cinematic Trailer</h2>
+      <p class="section-subtitle">Witness epic space battles, stunning visuals, and the future of space exploration</p>
+
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <div class="video-container">
+          <video controls poster="/media/trailer-poster.jpg">
+            <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4">
+            <source src="/ETU1.mp4" type="video/mp4">
+          </video>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+          <p style="font-size: 1.2rem; margin-bottom: 20px; color: #00fff2; text-shadow: 0 0 10px rgba(0, 255, 242, 0.6);">
+            🎄 Ready to explore? Wishlist now for exclusive launch notifications!
+          </p>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="btn btn-primary"
+             style="font-size: 1.3rem; padding: 20px 60px;">
+            ADD TO STEAM WISHLIST
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Features -->
   <section id="features">
     <div class="container">
@@ -772,31 +1011,6 @@
           <div class="feature-icon">🏆</div>
           <h3>Online Scoreboard</h3>
           <p>Challenge the community in time trials, discoveries, and faction influence</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Trailer -->
-  <section id="trailer" class="section-dark">
-    <div class="container">
-      <h2>Official Cinematic Trailer</h2>
-      <p class="section-subtitle">Experience the epic scale of space exploration and faction warfare</p>
-
-      <div style="max-width: 1000px; margin: 0 auto;">
-        <div class="video-container">
-          <video controls poster="/media/trailer-poster.jpg">
-            <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4">
-            <source src="/ETU1.mp4" type="video/mp4">
-          </video>
-        </div>
-
-        <div style="text-align: center; margin-top: 30px;">
-          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
-             target="_blank"
-             class="btn btn-primary">
-            Wishlist on Steam
-          </a>
         </div>
       </div>
     </div>
@@ -903,6 +1117,30 @@
             <span style="color: #a855f7;">○</span>
             <span>Modding tools & APIs</span>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Christmas Launch Celebration -->
+  <section class="christmas-section">
+    <div class="container">
+      <div class="christmas-container">
+        <div class="christmas-content">
+          <h2 class="christmas-title">🎄 Christmas Day Launch 2025</h2>
+          <p class="christmas-subtitle">The galaxy awaits. Join us on December 25th for the adventure of a lifetime.</p>
+          <div class="christmas-cta-group">
+            <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/?beta=0"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="btn btn-primary"
+               style="font-size: 1.2rem; padding: 18px 50px;">
+              🎁 WISHLIST NOW & GET NOTIFIED
+            </a>
+          </div>
+        </div>
+        <div class="christmas-image-container">
+          <img src="/ETU_XMAS.png" alt="Explore the Universe 2175 - Christmas 2025 Launch" class="christmas-image">
         </div>
       </div>
     </div>
