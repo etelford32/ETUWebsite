@@ -77,24 +77,48 @@
     }
 
     .gradient-text {
-      background: linear-gradient(135deg, #00d9ff, #bf00ff, #00fff2);
+      background: linear-gradient(90deg, #00d9ff, #bf00ff, #00fff2, #00d9ff);
+      background-size: 200% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       filter: brightness(1.4);
-      text-shadow:
-        0 0 30px rgba(0, 217, 255, 0.6),
-        0 0 60px rgba(191, 0, 255, 0.4),
-        0 0 90px rgba(0, 255, 242, 0.3);
-      animation: neon-pulse 3s ease-in-out infinite alternate;
+      animation: shimmer-wave 3s ease-in-out infinite, neon-pulse 2s ease-in-out infinite alternate;
+      position: relative;
+      display: inline-block;
+    }
+
+    @keyframes shimmer-wave {
+      0% {
+        background-position: 0% center;
+      }
+      100% {
+        background-position: 200% center;
+      }
     }
 
     @keyframes neon-pulse {
       from {
-        filter: brightness(1.2) drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
+        filter: brightness(1.2) drop-shadow(0 0 20px rgba(0, 217, 255, 0.8)) drop-shadow(0 0 40px rgba(191, 0, 255, 0.6));
       }
       to {
-        filter: brightness(1.6) drop-shadow(0 0 40px rgba(99, 102, 241, 0.9));
+        filter: brightness(1.8) drop-shadow(0 0 40px rgba(0, 217, 255, 1)) drop-shadow(0 0 60px rgba(191, 0, 255, 0.8));
+      }
+    }
+
+    /* Forge Your Destiny text animation */
+    .hero h1 {
+      animation: float-in 1s ease-out;
+    }
+
+    @keyframes float-in {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -210,7 +234,7 @@
       position: relative;
       min-height: 85vh;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       overflow: hidden;
     }
 
@@ -240,6 +264,58 @@
       border-radius: 50%;
       opacity: 0.8;
       box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      animation: twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+      animation-delay: var(--twinkle-delay, 0s);
+    }
+
+    @keyframes twinkle {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+    }
+
+    /* Shooting stars */
+    .starfield::before,
+    .starfield::after {
+      content: '';
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.8);
+      animation: shooting-star 8s linear infinite;
+    }
+
+    .starfield::before {
+      top: 20%;
+      left: -50px;
+      animation-delay: 2s;
+    }
+
+    .starfield::after {
+      top: 60%;
+      left: -50px;
+      animation-delay: 5s;
+    }
+
+    @keyframes shooting-star {
+      0% {
+        transform: translateX(0) translateY(0);
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(100vw) translateY(50vh);
+        opacity: 0;
+      }
     }
 
     .hero-mask {
@@ -343,6 +419,27 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       cursor: pointer;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:active::before {
+      width: 300px;
+      height: 300px;
     }
 
     .btn-primary {
@@ -447,14 +544,42 @@
       border-radius: 15px;
       padding: 35px;
       transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
     }
 
-    .feature-card:hover {
-      transform: translateY(-5px);
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .feature-card:hover::before,
+    .feature-card:active::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .feature-card:hover,
+    .feature-card:active {
+      transform: translateY(-5px) scale(1.02);
       border-color: rgba(99, 102, 241, 0.5);
       box-shadow:
         0 10px 40px rgba(99, 102, 241, 0.2),
         0 0 20px rgba(99, 102, 241, 0.15);
+    }
+
+    .feature-card * {
+      position: relative;
+      z-index: 1;
     }
 
     .feature-icon {
@@ -492,10 +617,29 @@
       padding: 0;
       overflow: hidden;
       transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
     }
 
-    .faction-card:hover {
-      transform: translateY(-5px);
+    .faction-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .faction-card:hover::after,
+    .faction-card:active::after {
+      left: 100%;
+    }
+
+    .faction-card:hover,
+    .faction-card:active {
+      transform: translateY(-5px) scale(1.03);
       box-shadow:
         0 15px 40px rgba(0, 0, 0, 0.5),
         0 0 30px rgba(99, 102, 241, 0.3);
@@ -1241,46 +1385,78 @@
       yearEl.textContent = new Date().getFullYear();
     }
 
-    // Starfield
+    // Enhanced Starfield with random twinkling
     const starfield = document.querySelector('.starfield');
     if (starfield) {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 150; i++) {
         const star = document.createElement('i');
         star.style.top = Math.random() * 100 + '%';
         star.style.left = Math.random() * 100 + '%';
         star.style.opacity = (Math.random() * 0.7 + 0.3).toFixed(2);
         star.style.transform = 'scale(' + (Math.random() * 1.2 + 0.4) + ')';
+
+        // Random twinkle timing
+        const duration = (Math.random() * 3 + 2).toFixed(1);
+        const delay = (Math.random() * 5).toFixed(1);
+        star.style.setProperty('--twinkle-duration', duration + 's');
+        star.style.setProperty('--twinkle-delay', delay + 's');
+
         starfield.appendChild(star);
       }
     }
 
-    // Simple canvas background
+    // Enhanced canvas background with nebula effect
     const canvas = document.getElementById('heroCanvas');
     if (canvas) {
       const ctx = canvas.getContext('2d');
+      let animationFrame;
+      let time = 0;
 
       function resizeCanvas() {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-        drawBackground();
       }
 
       function drawBackground() {
+        time += 0.005;
+
+        // Animated gradient
+        const centerX = canvas.width / 2 + Math.sin(time) * 50;
+        const centerY = canvas.height / 3 + Math.cos(time * 0.7) * 30;
+
         const gradient = ctx.createRadialGradient(
-          canvas.width / 2, canvas.height / 3, 0,
-          canvas.width / 2, canvas.height / 3, canvas.width
+          centerX, centerY, 0,
+          centerX, centerY, canvas.width
         );
-        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-        gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.05)');
+
+        const alpha = 0.15 + Math.sin(time) * 0.05;
+        gradient.addColorStop(0, `rgba(99, 102, 241, ${alpha})`);
+        gradient.addColorStop(0.3, `rgba(139, 92, 246, ${alpha * 0.6})`);
+        gradient.addColorStop(0.6, `rgba(99, 102, 241, ${alpha * 0.3})`);
         gradient.addColorStop(1, 'rgba(4, 6, 20, 0)');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        animationFrame = requestAnimationFrame(drawBackground);
       }
 
       resizeCanvas();
+      drawBackground();
       window.addEventListener('resize', resizeCanvas);
     }
+
+    // Mobile touch interaction for cards
+    const interactiveCards = document.querySelectorAll('.feature-card, .faction-card, .roadmap-card');
+    interactiveCards.forEach(card => {
+      card.addEventListener('touchstart', function(e) {
+        this.style.transform = 'scale(0.98)';
+      });
+
+      card.addEventListener('touchend', function(e) {
+        this.style.transform = '';
+      });
+    });
   </script>
 
 </body>
