@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Starfield + utilities */
+.starfield {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.starfield i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.backdrop-blur-2xs {
+  backdrop-filter: blur(6px);
+}
+
+/* Hyperspace buttons */
+.btn-warp {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: radial-gradient(220% 220% at 50% 0%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.35) 50%, rgba(15, 23, 42, 0.6) 100%);
+}
+
+.btn-warp:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(129, 140, 248, 0.35), inset 0 0 30px rgba(99, 102, 241, 0.25);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.btn-warp::before,
+.btn-warp::after {
+  content: "";
+  position: absolute;
+  inset: auto -40% auto -40%;
+  height: 180%;
+  border-radius: 50%;
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.6s ease;
+  background: conic-gradient(from 0deg, rgba(168, 85, 247, 0), rgba(168, 85, 247, 0.25), rgba(99, 102, 241, 0.35), rgba(236, 72, 153, 0.25), rgba(168, 85, 247, 0));
+}
+
+.btn-warp::before {
+  top: -130%;
+  transform: scale(0.6);
+}
+
+.btn-warp::after {
+  bottom: -130%;
+  transform: scale(0.6);
+}
+
+.btn-warp:hover::before {
+  opacity: 0.6;
+  transform: scale(1);
+}
+
+.btn-warp:hover::after {
+  opacity: 0.45;
+  transform: scale(1);
+}
+
+/* CTA micro pulse */
+@keyframes pulseTrail {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(99, 102, 241, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+  }
+}
+
+.shadow-glow {
+  animation: pulseTrail 3.2s ease-in-out infinite;
+}
+
+/* Section reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Black-hole canvas fills hero */
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Gradient mask behind hero text for readability */
+.hero-mask {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 60%;
+  background: linear-gradient(180deg, rgba(4, 6, 20, 0.7) 0%, rgba(4, 6, 20, 0.35) 60%, rgba(4, 6, 20, 0) 100%);
+  pointer-events: none;
+}
