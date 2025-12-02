@@ -524,7 +524,7 @@
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   </script>
 
-  <!-- WebGL Black Hole Shader -->
+  <!-- WebGL Black Hole with Particle Accretion Disk -->
   <script>
   (function(){
     const canvas = document.getElementById('bh-canvas');
@@ -532,143 +532,287 @@
     const qSelect = document.getElementById('bh-quality');
     const pauseBtn = document.getElementById('bh-pause');
 
-    let gl = canvas.getContext('webgl', { antialias:false, preserveDrawingBuffer:false });
-    if (!gl) { fallback.classList.remove('hidden'); return; }
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) { fallback.classList.remove('hidden'); return; }
 
-    const vert = `
-    attribute vec2 a_pos;
-    void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
+    // Physics constants
+    const BH_RADIUS = 0.14;
+    const DISK_R_IN = 0.16;
+    const DISK_R_OUT = 0.55;
+    const G = 0.008; // Gravitational constant
+    const PARTICLE_COUNT = 3000;
+    const CLUSTER_DISTANCE = 0.025;
 
-    const frag = `
-    precision highp float;
-    uniform vec2 u_res;
-    uniform float u_time;
-    uniform vec2 u_mouse;
-    const float BH_RADIUS = 0.14;
-    const float DISK_R_IN = 0.16;
-    const float DISK_R_OUT = 0.45;
-
-    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
-    float noise(vec2 p){
-      vec2 i=floor(p), f=fract(p);
-      float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));
-      vec2 u=f*f*(3.-2.*f);
-      return mix(a,b,u.x)+ (c-a)*u.y*(1.-u.x)+ (d-b)*u.x*u.y;
-    }
-    vec3 starfield(vec2 uv){
-      float s=0.0;
-      s += noise(uv*2.0)*0.35;
-      s += noise(uv*4.0)*0.25;
-      s += noise(uv*8.0)*0.18;
-      vec3 neb = mix(vec3(0.02,0.02,0.06), vec3(0.15,0.06,0.25), s);
-      float stars = step(0.995, fract(sin(dot(floor(uv*200.0), vec2(12.9898,78.233)))*43758.5453));
-      stars += step(0.9985, fract(sin(dot(floor(uv*300.0+10.0), vec2(4.898,7.23)))*23421.631));
-      vec3 starCol = vec3(0.9,0.9,1.0)*stars;
-      return neb + starCol;
-    }
-    vec2 lensOffset(vec2 p){
-      float r = length(p);
-      float eps = 1e-4;
-      r = max(r, BH_RADIUS+eps);
-      float strength = 0.06;
-      float bend = strength / r;
-      return normalize(p) * bend;
-    }
-    float diskMask(vec2 p){
-      float r = length(p);
-      float tilt = 0.35;
-      float y = p.y + sin(p.x*8.0+u_time*0.5)*0.005;
-      float band = smoothstep(DISK_R_IN, DISK_R_IN+0.01, r) * (1.0 - smoothstep(DISK_R_OUT-0.01, DISK_R_OUT, r));
-      band *= exp(-abs(y)*40.0*(1.0-tilt));
-      return band;
-    }
-    void main(){
-      vec2 uv = (gl_FragCoord.xy / u_res);
-      vec2 p = (uv - 0.5);
-      p.x *= u_res.x/u_res.y;
-      vec2 center = vec2(0.0) + (u_mouse - 0.5)*0.15;
-      vec2 rp = p - center;
-
-      vec2 off = lensOffset(rp);
-      vec3 bg = starfield( (p + off)*1.6 + vec2(u_time*0.01, 0.0) );
-
-      float d = diskMask(rp);
-      vec3 diskCol = mix(vec3(0.2,0.0,0.35), vec3(0.4,0.1,0.9), smoothstep(0.0,1.0,d));
-      diskCol += vec3(1.0,0.6,1.2)*pow(d, 3.0);
-      diskCol *= (1.0 + 0.15*sin(u_time + rp.x*20.0));
-
-      float r = length(rp);
-      float horizon = smoothstep(BH_RADIUS, BH_RADIUS-0.002, r);
-
-      vec3 col = bg + diskCol*d*1.4;
-      col = mix(col, vec3(0.0), horizon);
-      float vig = smoothstep(0.95, 0.2, length(p));
-      col *= vig;
-      col = pow(col, vec3(0.95));
-      gl_FragColor = vec4(col, 1.0);
-    }`;
-
-    function compile(type, src){
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
-        console.error(gl.getShaderInfoLog(s));
-        throw new Error('Shader compile error');
+    // Particle system
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.atan2(y, x);
+        const radius = Math.sqrt(x*x + y*y);
+        const orbitalSpeed = Math.sqrt(G / radius) * (0.8 + Math.random() * 0.4);
+        this.vx = -Math.sin(angle) * orbitalSpeed;
+        this.vy = Math.cos(angle) * orbitalSpeed;
+        this.age = Math.random() * 100;
+        this.mass = 0.5 + Math.random() * 1.5;
+        this.cluster = 1.0;
+        this.temperature = 1.0;
+        this.trail = [];
       }
-      return s;
+
+      update(dt, center) {
+        const dx = this.x - center.x;
+        const dy = this.y - center.y;
+        const distSq = dx*dx + dy*dy;
+        const dist = Math.sqrt(distSq);
+
+        // Gravitational acceleration
+        if (dist > 0.001) {
+          const force = G / distSq;
+          const ax = -dx / dist * force;
+          const ay = -dy / dist * force;
+
+          this.vx += ax * dt;
+          this.vy += ay * dt;
+        }
+
+        // Update position
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+
+        // Age and temperature based on distance
+        this.age += dt * 0.5;
+        this.temperature = 1.0 / Math.max(0.3, dist * 2);
+
+        // Trail effect
+        this.trail.push({x: this.x, y: this.y, alpha: 0.4});
+        if (this.trail.length > 8) this.trail.shift();
+        this.trail.forEach((p, i) => p.alpha *= 0.85);
+
+        // Reset if too close to black hole or too far
+        if (dist < BH_RADIUS * 1.2 || dist > DISK_R_OUT * 1.3) {
+          this.respawn();
+        }
+      }
+
+      respawn() {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = DISK_R_IN + Math.random() * (DISK_R_OUT - DISK_R_IN);
+        this.x = Math.cos(angle) * radius;
+        this.y = Math.sin(angle) * radius * 0.3; // Flattened disk
+        const orbitalSpeed = Math.sqrt(G / radius) * (0.8 + Math.random() * 0.4);
+        this.vx = -Math.sin(angle) * orbitalSpeed;
+        this.vy = Math.cos(angle) * orbitalSpeed * 0.3;
+        this.age = 0;
+        this.mass = 0.5 + Math.random() * 1.5;
+        this.cluster = 1.0;
+        this.trail = [];
+      }
     }
-    const vs = compile(gl.VERTEX_SHADER, vert);
-    const fs = compile(gl.FRAGMENT_SHADER, frag);
-    const prog = gl.createProgram();
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-    if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(prog)); throw new Error('Program link error'); }
-    gl.useProgram(prog);
 
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'a_pos');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    // Initialize particles
+    const particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = DISK_R_IN + Math.random() * (DISK_R_OUT - DISK_R_IN);
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius * 0.3;
+      particles.push(new Particle(x, y));
+    }
 
-    const uRes = gl.getUniformLocation(prog, 'u_res');
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-    const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+    // Spatial hash for clustering detection
+    function detectClusters() {
+      const grid = new Map();
+      const cellSize = CLUSTER_DISTANCE * 2;
 
+      particles.forEach(p => {
+        const cx = Math.floor(p.x / cellSize);
+        const cy = Math.floor(p.y / cellSize);
+        const key = `${cx},${cy}`;
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(p);
+      });
+
+      particles.forEach(p => {
+        const cx = Math.floor(p.x / cellSize);
+        const cy = Math.floor(p.y / cellSize);
+        let nearby = 0;
+
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const key = `${cx+dx},${cy+dy}`;
+            const cell = grid.get(key);
+            if (cell) {
+              cell.forEach(other => {
+                if (p !== other) {
+                  const dist = Math.sqrt((p.x-other.x)**2 + (p.y-other.y)**2);
+                  if (dist < CLUSTER_DISTANCE) nearby++;
+                }
+              });
+            }
+          }
+        }
+
+        p.cluster = Math.min(5.0, 1.0 + nearby * 0.3);
+      });
+    }
+
+    // Render
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let renderScale = parseFloat(qSelect?.value || '0.75');
     let paused = false;
-    let mouse = {x:0.5, y:0.5};
+    let mouse = {x: 0.5, y: 0.5};
+    let center = {x: 0, y: 0};
 
-    function resize(){
+    function resize() {
       const rect = canvas.getBoundingClientRect();
       const w = Math.max(1, Math.floor(rect.width * dpr * renderScale));
       const h = Math.max(1, Math.floor(rect.height * dpr * renderScale));
-      if (canvas.width !== w || canvas.height !== h){
-        canvas.width = w; canvas.height = h;
-        gl.viewport(0,0,w,h);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
       }
     }
-    window.addEventListener('resize', resize, { passive:true });
-    canvas.addEventListener('mousemove', (e)=>{
+
+    function drawStarfield(t) {
+      const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0,
+                                           canvas.width/2, canvas.height/2, canvas.width*0.7);
+      grad.addColorStop(0, '#0a0520');
+      grad.addColorStop(0.5, '#050210');
+      grad.addColorStop(1, '#020108');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Distant stars
+      for (let i = 0; i < 200; i++) {
+        const x = (Math.sin(i * 12.9898) * 43758.5453) % 1 * canvas.width;
+        const y = (Math.sin(i * 78.233) * 43758.5453) % 1 * canvas.height;
+        const brightness = Math.sin(t * 0.5 + i) * 0.3 + 0.7;
+        const size = Math.random() * 1.5 + 0.5;
+        ctx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.6})`;
+        ctx.fillRect(x, y, size, size);
+      }
+    }
+
+    function worldToScreen(wx, wy) {
+      const aspect = canvas.width / canvas.height;
+      const scale = canvas.height * 0.8;
+      return {
+        x: (wx - center.x) * scale * aspect + canvas.width / 2,
+        y: (wy - center.y) * scale + canvas.height / 2
+      };
+    }
+
+    function render(t) {
+      // Background
+      drawStarfield(t);
+
+      // Gravitational lensing effect
+      const centerScreen = worldToScreen(center.x, center.y);
+      const lensGrad = ctx.createRadialGradient(centerScreen.x, centerScreen.y, 0,
+                                                centerScreen.x, centerScreen.y, canvas.height * BH_RADIUS * 2);
+      lensGrad.addColorStop(0, 'rgba(100, 50, 200, 0.15)');
+      lensGrad.addColorStop(0.5, 'rgba(150, 100, 255, 0.08)');
+      lensGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = lensGrad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw particle trails
+      ctx.globalCompositeOperation = 'lighter';
+      particles.forEach(p => {
+        p.trail.forEach((t, i) => {
+          const pos = worldToScreen(t.x, t.y);
+          const hue = 250 + p.temperature * 30;
+          const size = (p.mass * p.cluster * 0.3) * (i / p.trail.length);
+          ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${t.alpha * 0.3})`;
+          ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
+        });
+      });
+
+      // Draw particles
+      particles.forEach(p => {
+        const pos = worldToScreen(p.x, p.y);
+        const hue = 250 + p.temperature * 40;
+        const sat = 70 + p.cluster * 5;
+        const light = 50 + p.cluster * 8;
+        const size = Math.max(1, p.mass * p.cluster * 0.8);
+        const glow = p.cluster * 2;
+
+        // Glow
+        const glowGrad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, size + glow);
+        glowGrad.addColorStop(0, `hsla(${hue}, ${sat}%, ${light}%, 0.9)`);
+        glowGrad.addColorStop(0.5, `hsla(${hue}, ${sat}%, ${light}%, 0.4)`);
+        glowGrad.addColorStop(1, `hsla(${hue}, ${sat}%, ${light}%, 0)`);
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(pos.x - (size+glow), pos.y - (size+glow), (size+glow)*2, (size+glow)*2);
+
+        // Core
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${Math.min(95, light+20)}%, 1)`;
+        ctx.fillRect(pos.x - size/2, pos.y - size/2, size, size);
+      });
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Black hole event horizon
+      const horizonGrad = ctx.createRadialGradient(centerScreen.x, centerScreen.y, 0,
+                                                   centerScreen.x, centerScreen.y, canvas.height * BH_RADIUS * 0.8);
+      horizonGrad.addColorStop(0, '#000000');
+      horizonGrad.addColorStop(0.8, '#000000');
+      horizonGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = horizonGrad;
+      ctx.beginPath();
+      ctx.arc(centerScreen.x, centerScreen.y, canvas.height * BH_RADIUS * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Subtle edge glow
+      ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerScreen.x, centerScreen.y, canvas.height * BH_RADIUS * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    window.addEventListener('resize', resize, { passive: true });
+    canvas.addEventListener('mousemove', (e) => {
       const r = canvas.getBoundingClientRect();
       mouse.x = (e.clientX - r.left) / r.width;
-      mouse.y = 1.0 - (e.clientY - r.top) / r.height;
-    }, { passive:true });
-    qSelect?.addEventListener('change', ()=>{ renderScale = parseFloat(qSelect.value); resize(); });
-    pauseBtn?.addEventListener('click', ()=>{ paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; });
+      mouse.y = (e.clientY - r.top) / r.height;
+      center.x = (mouse.x - 0.5) * 0.15;
+      center.y = -(mouse.y - 0.5) * 0.15;
+    }, { passive: true });
+    qSelect?.addEventListener('change', () => {
+      renderScale = parseFloat(qSelect.value);
+      resize();
+    });
+    pauseBtn?.addEventListener('click', () => {
+      paused = !paused;
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    });
 
-    let start = performance.now();
-    function frame(){
-      if (!paused){
+    let lastTime = performance.now();
+    let clusterTimer = 0;
+
+    function frame() {
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      if (!paused) {
         resize();
-        const t = (performance.now() - start)/1000.0;
-        gl.uniform2f(uRes, canvas.width, canvas.height);
-        gl.uniform1f(uTime, t);
-        gl.uniform2f(uMouse, mouse.x, mouse.y);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        // Update particles
+        particles.forEach(p => p.update(dt, center));
+
+        // Detect clusters every few frames
+        clusterTimer += dt;
+        if (clusterTimer > 0.1) {
+          detectClusters();
+          clusterTimer = 0;
+        }
+
+        render(now / 1000);
       }
+
       requestAnimationFrame(frame);
     }
     frame();
