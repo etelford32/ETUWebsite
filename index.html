@@ -481,7 +481,7 @@
     attribute vec2 a_pos;
     void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
 
-    // Optimized fragment shader - High-performance GPU particle simulation
+    // Refined fragment shader - Crisp, scientific visualization
     const fragSrc = `
     precision mediump float;
     uniform vec2 u_res;
@@ -489,12 +489,11 @@
     uniform vec2 u_mouse;
 
     const float BH_RADIUS = 0.14;
-    const float PHOTON_SPHERE = 0.21;
     const float DISK_R_IN = 0.16;
-    const float DISK_R_OUT = 0.58;
+    const float DISK_R_OUT = 0.60;
     const float PI = 3.14159265359;
-    const int PARTICLE_COUNT = 1800; // Reduced for performance
-    const float SPEED_MULT = 4.5; // Even faster
+    const int PARTICLE_COUNT = 2400;
+    const float SPEED_MULT = 5.0;
 
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 
@@ -505,50 +504,38 @@
       return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;
     }
 
+    // Very dark starfield
     vec3 starfield(vec2 uv) {
-      float s = noise(uv*2.)*0.12 + noise(uv*5.)*0.06;
-      vec3 neb = mix(vec3(0.003,0.003,0.01), vec3(0.03,0.015,0.06), s);
-      float stars = step(0.998, hash(floor(uv*280.)));
-      return neb + vec3(0.5,0.5,0.7)*stars*0.3;
+      float s = noise(uv*3.)*0.08;
+      vec3 neb = vec3(0.001,0.001,0.003) + vec3(s*0.02);
+      float stars = step(0.999, hash(floor(uv*350.)));
+      return neb + vec3(0.4,0.4,0.5)*stars*0.2;
     }
 
-    // Optimized particle generation
-    vec4 getParticle(int id, float t, out vec2 velocity, out float cluster) {
+    // Generate particle position
+    vec3 getParticle(int id, float t) {
       float seed = float(id);
       float angle = hash(vec2(seed, 0.)) * PI * 2.0;
       float radius = DISK_R_IN + hash(vec2(seed, 1.)) * (DISK_R_OUT - DISK_R_IN);
-      float radialVar = hash(vec2(seed, 4.)) * 0.06 - 0.03;
-      radius += sin(t * 2.5 + seed) * radialVar;
 
-      float orbitalSpeed = sqrt(0.015 / radius) * (1.3 + hash(vec2(seed, 2.)) * 0.7) * SPEED_MULT;
+      float orbitalSpeed = sqrt(0.018 / radius) * (1.1 + hash(vec2(seed, 2.)) * 0.9) * SPEED_MULT;
       float phase = angle + t * orbitalSpeed;
 
-      vec2 pos = vec2(cos(phase) * radius, sin(phase) * radius * 0.26);
-      velocity = vec2(-sin(phase), cos(phase) * 0.26) * orbitalSpeed * radius;
+      vec2 pos = vec2(cos(phase) * radius, sin(phase) * radius * 0.24);
+      float brightness = hash(vec2(seed, 3.)) * 0.5 + 0.5;
 
-      float mass = 0.7 + hash(vec2(seed, 3.)) * 1.4;
-      float temp = 1.3 / max(0.3, radius * 2.0);
-
-      // Pre-calculate cluster based on radius (denser near inner edge)
-      cluster = 1.0 + smoothstep(DISK_R_OUT, DISK_R_IN, radius) * 2.5;
-
-      return vec4(pos, mass, temp);
+      return vec3(pos, brightness);
     }
 
-    // Simplified chromatic aberration
-    vec3 chromaticLens(vec2 p, vec2 center, float r) {
+    // Minimal gravitational lensing
+    vec3 getLensedBG(vec2 p, vec2 center, float r) {
       if(r < 0.001) return vec3(0.0);
 
-      float strength = 0.05 / max(r, BH_RADIUS + 0.015);
-      vec2 dir = normalize(p - center);
-      vec2 offset = dir * strength;
+      float bend = 0.03 / max(r, BH_RADIUS + 0.02);
+      vec2 offset = normalize(p - center) * bend;
+      vec2 uv = p * 1.5 + offset + vec2(u_time * 0.025, 0.0);
 
-      vec2 baseUV = p * 1.7 + vec2(u_time * 0.02, 0.0);
-      return vec3(
-        starfield(baseUV + offset).r,
-        starfield(baseUV + offset * 0.98).g,
-        starfield(baseUV + offset * 0.96).b
-      );
+      return starfield(uv);
     }
 
     void main() {
@@ -556,95 +543,58 @@
       vec2 p = (uv - 0.5);
       p.x *= u_res.x / u_res.y;
 
-      vec2 center = (u_mouse - 0.5) * 0.1;
+      vec2 center = (u_mouse - 0.5) * 0.08;
       vec2 rp = p - center;
       float r = length(rp);
 
-      // Background with chromatic aberration
-      vec3 bg = chromaticLens(p, center, r) * 0.35;
+      // Very dark background
+      vec3 col = getLensedBG(p, center, r) * 0.25;
 
-      // Subtle photon sphere
-      float photonDist = abs(r - PHOTON_SPHERE);
-      bg += vec3(0.08, 0.12, 0.25) * exp(-photonDist * 100.0) * 0.15;
-
-      // Minimal lens glow
-      bg += vec3(0.12, 0.05, 0.2) * exp(-r * 5.0) * 0.04;
-
-      // Particle accumulation with early exits
-      vec3 diskCol = vec3(0.0);
-      float maxInfluence = 0.025; // Maximum distance for particle influence
-
+      // Accumulate crisp particles
       for(int i = 0; i < PARTICLE_COUNT; i++) {
-        vec2 vel;
-        float cluster;
-        vec4 particle = getParticle(i, u_time, vel, cluster);
+        vec3 particle = getParticle(i, u_time);
         vec2 particlePos = particle.xy - center;
+        float brightness = particle.z;
 
         float dist = distance(p, particlePos);
 
-        // Early exit if too far
-        if(dist > maxInfluence) continue;
+        // Tiny, crisp particles - NO GLOW
+        float particleRadius = 0.0012;
 
-        float mass = particle.z;
-        float temp = particle.w;
-        float size = mass * cluster * 0.0028;
+        if(dist < particleRadius) {
+          // Sharp particle core
+          float core = smoothstep(particleRadius, particleRadius * 0.3, dist);
 
-        // Doppler shift
-        float dopplerShift = dot(normalize(vel), normalize(p - particlePos)) * 0.35;
+          // Temperature based on distance from black hole
+          float temp = 1.0 / (length(particlePos) * 2.5);
 
-        // Particle glow (reduced intensity)
-        if(dist < size * 3.5) {
-          float intensity = exp(-dist / (size * 0.7)) * cluster * 0.4;
-
-          vec3 baseColor = mix(
-            vec3(0.12 + temp * 0.15, 0.06 + temp * 0.1, 0.35 + temp * 0.25),
-            vec3(0.5 + temp * 0.25, 0.25 + temp * 0.15, 0.7 + temp * 0.1),
+          // Color: blue (hot) to orange (cool)
+          vec3 color = mix(
+            vec3(0.3, 0.15, 0.08), // Cooler orange
+            vec3(0.25, 0.4, 0.7),  // Hotter blue
             temp
           );
 
-          // Subtle doppler
-          baseColor.r += dopplerShift * 0.15;
-          baseColor.b -= dopplerShift * 0.1;
-
-          // Gentle pulsing
-          baseColor *= (1.0 + sin(u_time * 3.5 + float(i) * 0.12) * 0.08);
-
-          diskCol += baseColor * intensity * 0.025; // Much reduced
-        }
-
-        // Bright core (reduced)
-        if(dist < size * 0.7) {
-          float coreIntensity = 1.0 - (dist / (size * 0.7));
-          vec3 coreColor = vec3(0.7, 0.5, 0.9) + vec3(dopplerShift * 0.2, 0.0, -dopplerShift * 0.15);
-          diskCol += coreColor * pow(coreIntensity, 3.0) * cluster * 0.12; // Reduced
+          col += color * core * brightness * 0.6;
         }
       }
-
-      vec3 col = bg + diskCol;
-
-      // Subtle disk ambient glow
-      float diskDist = abs(r - (DISK_R_IN + DISK_R_OUT) * 0.5);
-      float diskWidth = (DISK_R_OUT - DISK_R_IN) * 0.5;
-      if(diskDist < diskWidth) {
-        float diskGlow = exp(-diskDist * 10.0) * exp(-abs(rp.y) * 60.0);
-        col += vec3(0.08, 0.04, 0.15) * diskGlow * 0.25; // Much reduced
-      }
-
-      // Minimal hawking radiation
-      float horizonEdge = abs(r - BH_RADIUS);
-      col += vec3(0.06, 0.08, 0.18) * exp(-horizonEdge * 180.0) * 0.08;
 
       // Event horizon
-      float horizon = smoothstep(BH_RADIUS + 0.001, BH_RADIUS - 0.003, r);
-      col = mix(col, vec3(0.0), horizon);
+      if(r < BH_RADIUS) {
+        col = vec3(0.0);
+      } else if(r < BH_RADIUS + 0.003) {
+        // Subtle edge
+        float edge = (r - BH_RADIUS) / 0.003;
+        col = mix(vec3(0.0), col, edge);
+      }
 
-      // Vignette
-      float vig = smoothstep(0.88, 0.18, length(p));
-      col *= vig * 0.75 + 0.25;
+      // Minimal vignette
+      float vig = smoothstep(0.85, 0.25, length(p));
+      col *= vig * 0.7 + 0.3;
 
-      // Tone mapping
-      col = pow(col, vec3(1.15));
-      col *= 0.8;
+      // Final adjustments
+      col = pow(col, vec3(1.2));
+      col *= 0.7;
 
       gl_FragColor = vec4(col, 1.0);
     }`;
