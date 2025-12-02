@@ -116,21 +116,19 @@
 }
 
 /* ============================================
-   HERO XMAS - Performant Animations
+   HERO XMAS - Simple & Clean
    ============================================ */
 
 /* Hero container */
 .hero-xmas {
   position: relative;
-  isolation: isolate;
 }
 
-/* Optimized background image wrapper */
+/* Background image wrapper */
 .hero-bg-wrapper {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  will-change: transform;
 }
 
 .hero-bg-image {
@@ -140,24 +138,9 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform;
 }
 
-/* Subtle parallax on scroll (optional enhancement) */
-@media (prefers-reduced-motion: no-preference) {
-  .hero-bg-image {
-    animation: heroParallax 20s ease-in-out infinite;
-  }
-
-  @keyframes heroParallax {
-    0%, 100% { transform: scale(1.05) translateY(0); }
-    50% { transform: scale(1.05) translateY(-10px); }
-  }
-}
-
-/* Gradient overlay for better text readability */
+/* Gradient overlay for text readability */
 .hero-gradient-overlay {
   position: absolute;
   inset: 0;
@@ -170,154 +153,17 @@
   pointer-events: none;
 }
 
-/* Gradient text effect for hero title */
+/* Gradient text - static, no animation */
 .hero-gradient-text {
-  background: linear-gradient(135deg, #f59e0b 0%, #fb923c 25%, #fbbf24 50%, #f59e0b 75%, #fb923c 100%);
-  background-size: 200% auto;
+  background: linear-gradient(135deg, #f59e0b 0%, #fb923c 50%, #fbbf24 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: gradientShift 8s ease infinite;
-  will-change: background-position;
 }
 
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% center; }
-  50% { background-position: 100% center; }
-}
-
-/* Hero title with text shadow for depth */
+/* Hero title with text shadow */
 .hero-title {
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5), 0 4px 40px rgba(251, 146, 60, 0.2);
-  will-change: transform, opacity;
-}
-
-/* Floating light particles */
-.hero-particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.hero-particle {
-  position: absolute;
-  width: var(--size);
-  height: var(--size);
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.8) 0%, rgba(251, 146, 60, 0.4) 50%, transparent 100%);
-  border-radius: 50%;
-  top: var(--y);
-  left: var(--x);
-  opacity: 0;
-  animation: particleFloat var(--duration) var(--delay) infinite ease-in-out;
-  will-change: transform, opacity;
-  filter: blur(1px);
-}
-
-@keyframes particleFloat {
-  0% {
-    transform: translate(0, 0) scale(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.6;
-  }
-  50% {
-    transform: translate(calc(var(--x) * 0.5), -50vh) scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(calc(var(--x) * 1), -100vh) scale(0.5);
-    opacity: 0;
-  }
-}
-
-/* Light orbs - floating ambient lights */
-.hero-light-orbs {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.light-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.3;
-  will-change: transform;
-}
-
-.orb-1 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(251, 146, 60, 0.6) 0%, transparent 70%);
-  top: 10%;
-  left: 10%;
-  animation: orbFloat1 15s ease-in-out infinite;
-}
-
-.orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, transparent 70%);
-  top: 50%;
-  right: 10%;
-  animation: orbFloat2 18s ease-in-out infinite;
-}
-
-.orb-3 {
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.4) 0%, transparent 70%);
-  bottom: 20%;
-  left: 30%;
-  animation: orbFloat3 20s ease-in-out infinite;
-}
-
-.orb-4 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(234, 88, 12, 0.3) 0%, transparent 70%);
-  top: 30%;
-  right: 30%;
-  animation: orbFloat4 22s ease-in-out infinite;
-}
-
-@keyframes orbFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -40px) scale(1.1); }
-}
-
-@keyframes orbFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-40px, 30px) scale(0.9); }
-}
-
-@keyframes orbFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(50px, 20px) scale(1.15); }
-}
-
-@keyframes orbFloat4 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-30px, -50px) scale(0.85); }
-}
-
-/* Disable animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .hero-bg-image,
-  .hero-particle,
-  .light-orb,
-  .hero-gradient-text {
-    animation: none !important;
-  }
-
-  .hero-particle {
-    display: none;
-  }
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7), 0 4px 40px rgba(251, 146, 60, 0.3);
 }
 
 /* Steam button styling */
@@ -327,7 +173,7 @@
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
-  will-change: transform, box-shadow;
+  transition: all 0.3s ease;
 }
 
 .steam-btn::before {
@@ -345,7 +191,8 @@
 
 .steam-btn:hover {
   border-color: #66c0f4;
-  box-shadow: 0 0 30px rgba(102, 192, 244, 0.4), 0 10px 50px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 30px rgba(102, 192, 244, 0.4);
+  transform: translateY(-2px);
 }
 
 /* Alternative button style */
@@ -356,7 +203,6 @@
   border: 1px solid rgba(251, 146, 60, 0.3);
   color: #fff;
   transition: all 0.3s ease;
-  will-change: transform, box-shadow;
 }
 
 .btn-warp-alt::before {
@@ -375,7 +221,7 @@
 .btn-warp-alt:hover {
   transform: translateY(-2px);
   border-color: rgba(251, 146, 60, 0.6);
-  box-shadow: 0 0 25px rgba(251, 146, 60, 0.4), 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 25px rgba(251, 146, 60, 0.4);
 }
 
 /* Minimal button style */
@@ -385,7 +231,6 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   transition: all 0.3s ease;
-  will-change: transform, border-color;
 }
 
 .btn-minimal:hover {
@@ -394,24 +239,7 @@
   transform: translateY(-2px);
 }
 
-/* Hero badge pulse animation */
+/* Hero badge - simple, no animation */
 .hero-badge {
-  animation: badgePulse 3s ease-in-out infinite;
-  will-change: transform;
-}
-
-@keyframes badgePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-/* Scroll indicator */
-.scroll-indicator {
-  will-change: opacity;
-}
-
-/* Performance optimizations */
-.hero-xmas * {
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  /* Badge styling only, no animations */
 }

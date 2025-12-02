@@ -88,7 +88,7 @@
 
   <!-- HERO with Christmas Theme -->
   <section id="home" class="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas">
-    <!-- Optimized background image with gradient overlay -->
+    <!-- Simple background image with gradient overlay -->
     <div class="hero-bg-wrapper">
       <img src="/ETU_XMAS.png"
            alt="Explore the Universe 2175 - Available December 25th"
@@ -96,17 +96,6 @@
            fetchpriority="high"
            decoding="async" />
       <div class="hero-gradient-overlay"></div>
-    </div>
-
-    <!-- Animated particles for depth -->
-    <div class="hero-particles" aria-hidden="true"></div>
-
-    <!-- Floating light orbs -->
-    <div class="hero-light-orbs" aria-hidden="true">
-      <div class="light-orb orb-1"></div>
-      <div class="light-orb orb-2"></div>
-      <div class="light-orb orb-3"></div>
-      <div class="light-orb orb-4"></div>
     </div>
 
     <div class="relative w-full z-10">
@@ -524,31 +513,6 @@
       })
     }, { threshold:0.12 });
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
-  </script>
-
-  <!-- Hero Light Particles Script (Lightweight) -->
-  <script>
-  (function(){
-    const particleContainer = document.querySelector('.hero-particles');
-    if (!particleContainer) return;
-
-    // Create optimized particles (much lighter than WebGL)
-    const particleCount = 30;
-    const fragment = document.createDocumentFragment();
-
-    for(let i = 0; i < particleCount; i++){
-      const particle = document.createElement('div');
-      particle.className = 'hero-particle';
-      particle.style.setProperty('--delay', Math.random() * 10 + 's');
-      particle.style.setProperty('--duration', (15 + Math.random() * 10) + 's');
-      particle.style.setProperty('--x', Math.random() * 100 + '%');
-      particle.style.setProperty('--y', Math.random() * 100 + '%');
-      particle.style.setProperty('--size', (2 + Math.random() * 3) + 'px');
-      fragment.appendChild(particle);
-    }
-
-    particleContainer.appendChild(fragment);
-  })();
   </script>
 
   <!-- Supabase -->
