@@ -547,8 +547,8 @@
       vec2 rp = p - center;
       float r = length(rp);
 
-      // Very dark background
-      vec3 col = getLensedBG(p, center, r) * 0.25;
+      // Dark background (visible)
+      vec3 col = getLensedBG(p, center, r) * 0.5;
 
       // Accumulate crisp particles
       for(int i = 0; i < PARTICLE_COUNT; i++) {
@@ -558,24 +558,24 @@
 
         float dist = distance(p, particlePos);
 
-        // Tiny, crisp particles - NO GLOW
-        float particleRadius = 0.0012;
+        // Crisp, visible particles
+        float particleRadius = 0.004; // Much larger so you can see them!
 
         if(dist < particleRadius) {
           // Sharp particle core
-          float core = smoothstep(particleRadius, particleRadius * 0.3, dist);
+          float core = smoothstep(particleRadius, 0.0, dist);
 
           // Temperature based on distance from black hole
           float temp = 1.0 / (length(particlePos) * 2.5);
 
-          // Color: blue (hot) to orange (cool)
+          // Color: blue (hot) to purple/orange (cool)
           vec3 color = mix(
-            vec3(0.3, 0.15, 0.08), // Cooler orange
-            vec3(0.25, 0.4, 0.7),  // Hotter blue
+            vec3(0.6, 0.3, 0.2),   // Cooler orange
+            vec3(0.4, 0.6, 1.0),   // Hotter blue-white
             temp
           );
 
-          col += color * core * brightness * 0.6;
+          col += color * core * brightness * 1.2;
         }
       }
 
@@ -590,11 +590,11 @@
 
       // Minimal vignette
       float vig = smoothstep(0.85, 0.25, length(p));
-      col *= vig * 0.7 + 0.3;
+      col *= vig * 0.8 + 0.2;
 
       // Final adjustments
-      col = pow(col, vec3(1.2));
-      col *= 0.7;
+      col = pow(col, vec3(1.1));
+      col *= 0.9;
 
       gl_FragColor = vec4(col, 1.0);
     }`;
