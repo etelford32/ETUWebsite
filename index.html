@@ -465,7 +465,7 @@
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   </script>
 
-  <!-- GPU-Accelerated Black Hole with Trails -->
+  <!-- 3D Black Hole Sphere with Photon Particles -->
   <script>
   (function(){
     const canvas = document.getElementById('bh-canvas');
@@ -486,15 +486,15 @@
     uniform float u_time;
     uniform vec2 u_mouse;
 
-    const float BH_RADIUS = 0.14;
-    const float DISK_R_IN = 0.16;
-    const float DISK_R_OUT = 0.55;
+    const float BH_RADIUS = 0.15;
+    const float ORBIT_RADIUS = 0.45;
     const float PI = 3.14159265359;
-    const int PARTICLE_COUNT = 1600;
-    const int TRAIL_LENGTH = 8;
-    const float SPEED_MULT = 4.0;
+    const int PARTICLE_COUNT = 1000;
+    const int TRAIL_LENGTH = 6;
+    const int SHOOTING_STARS = 5;
 
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+    float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
 
     float noise(vec2 p) {
       vec2 i=floor(p), f=fract(p);
@@ -503,20 +503,44 @@
       return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;
     }
 
+    // Starfield background
     vec3 starfield(vec2 uv) {
-      float s = noise(uv*2.5)*0.1;
-      vec3 neb = vec3(0.01,0.01,0.02) + vec3(s*0.03);
-      float stars = step(0.998, hash(floor(uv*300.)));
-      return neb + vec3(0.6,0.6,0.8)*stars*0.4;
+      float s = noise(uv*3.0)*0.08;
+      vec3 bg = vec3(0.005,0.008,0.015) + vec3(s*0.02);
+
+      // Stars
+      float stars = step(0.997, hash(floor(uv*400.)));
+      stars += step(0.9985, hash(floor(uv*600.+50.))) * 1.5;
+      bg += vec3(0.7,0.7,0.9)*stars*0.5;
+
+      return bg;
     }
 
-    // Get particle position at specific time
-    vec2 getParticlePos(float seed, float t) {
-      float angle = hash(vec2(seed, 0.)) * PI * 2.0;
-      float radius = DISK_R_IN + hash(vec2(seed, 1.)) * (DISK_R_OUT - DISK_R_IN);
-      float speed = sqrt(0.015 / radius) * (1.0 + hash(vec2(seed, 2.)) * 0.8) * SPEED_MULT;
-      float phase = angle + t * speed;
-      return vec2(cos(phase) * radius, sin(phase) * radius * 0.25);
+    // 3D particle position in spherical coordinates
+    vec3 getParticle3D(float seed, float t) {
+      // Spherical orbit parameters
+      float theta = hash(vec2(seed, 0.)) * PI * 2.0; // Azimuthal angle
+      float phi = hash(vec2(seed, 1.)) * PI; // Polar angle
+      float radius = ORBIT_RADIUS * (0.7 + hash(vec2(seed, 2.)) * 0.3);
+
+      // Rotation speed based on radius (inner faster)
+      float speed = 3.0 / radius;
+      float rotTheta = theta + t * speed;
+      float rotPhi = phi + t * speed * 0.3;
+
+      // Convert to 3D cartesian
+      float x = radius * sin(rotPhi) * cos(rotTheta);
+      float y = radius * sin(rotPhi) * sin(rotTheta);
+      float z = radius * cos(rotPhi);
+
+      return vec3(x, y, z);
+    }
+
+    // Project 3D to 2D with perspective
+    vec2 project3D(vec3 pos) {
+      float perspective = 2.5;
+      float scale = perspective / (perspective + pos.z);
+      return pos.xy * scale;
     }
 
     void main() {
@@ -524,73 +548,106 @@
       vec2 p = (uv - 0.5);
       p.x *= u_res.x / u_res.y;
 
-      vec2 center = (u_mouse - 0.5) * 0.1;
-      vec2 rp = p - center;
-      float r = length(rp);
+      vec2 center = (u_mouse - 0.5) * 0.08;
 
-      // Background with lensing
-      float bend = 0.04 / max(r, BH_RADIUS + 0.02);
-      vec2 offset = normalize(rp) * bend;
-      vec3 col = starfield((p + offset) * 1.6 + vec2(u_time * 0.02, 0.0)) * 0.6;
+      // Background with parallax
+      vec3 col = starfield((p - center * 0.3) * 2.0 + vec2(u_time * 0.01, 0.0)) * 0.8;
 
-      // Render particles with trails
+      // Shooting stars
+      for(int i = 0; i < SHOOTING_STARS; i++) {
+        float seed = float(i) * 12.34;
+        float starTime = mod(u_time * 0.5 + hash(vec2(seed, 0.)) * 10.0, 10.0);
+        vec2 starStart = vec2(
+          hash(vec2(seed, 1.)) * 2.0 - 1.0,
+          hash(vec2(seed, 2.)) * 2.0 - 1.0
+        );
+        vec2 starDir = normalize(vec2(
+          hash(vec2(seed, 3.)) * 2.0 - 1.0,
+          hash(vec2(seed, 4.)) * 2.0 - 1.0
+        ));
+        vec2 starPos = starStart + starDir * starTime * 0.3;
+
+        float starDist = length(p - starPos);
+        if(starDist < 0.15) {
+          float intensity = exp(-starDist * 20.0) * (1.0 - starTime / 10.0);
+          col += vec3(0.8, 0.9, 1.0) * intensity * 0.3;
+        }
+      }
+
+      // 3D Particles with photon trails
       for(int i = 0; i < PARTICLE_COUNT; i++) {
         float seed = float(i);
-        float brightness = hash(vec2(seed, 3.)) * 0.6 + 0.4;
+        float brightness = hash(vec2(seed, 5.)) * 0.5 + 0.5;
 
-        // Draw trail
+        // Draw photon trail
         for(int j = 0; j < TRAIL_LENGTH; j++) {
-          float trailTime = u_time - float(j) * 0.015;
-          vec2 trailPos = getParticlePos(seed, trailTime) - center;
-          float dist = length(p - trailPos);
+          float trailTime = u_time - float(j) * 0.02;
+          vec3 pos3D = getParticle3D(seed, trailTime);
+          vec2 pos2D = project3D(pos3D) - center;
 
-          float trailSize = 0.006 * (1.0 - float(j) / float(TRAIL_LENGTH));
-          if(dist < trailSize) {
-            float intensity = (1.0 - dist / trailSize) * (1.0 - float(j) / float(TRAIL_LENGTH));
-            float temp = 1.2 / max(0.4, length(trailPos) * 2.0);
+          float dist = length(p - pos2D);
+          float trailSize = 0.01 * (1.0 - float(j) / float(TRAIL_LENGTH));
 
+          // Only render if in front
+          if(pos3D.z > -2.0 && dist < trailSize) {
+            float depth = (pos3D.z + 2.0) / 4.0; // 0 to 1
+            float intensity = (1.0 - dist / trailSize) * (1.0 - float(j) / float(TRAIL_LENGTH)) * depth;
+
+            // Temperature based on distance from center
+            float temp = 1.0 / max(0.5, length(pos3D) * 1.5);
             vec3 color = mix(
-              vec3(0.8, 0.4, 0.2),  // Cooler - orange
-              vec3(0.5, 0.7, 1.0),  // Hotter - blue
+              vec3(0.9, 0.5, 0.3),  // Warm
+              vec3(0.6, 0.8, 1.0),  // Cool blue
               temp
             );
 
-            col += color * intensity * brightness * 0.35;
+            col += color * intensity * brightness * 0.25;
           }
         }
 
-        // Draw main particle (brighter)
-        vec2 pos = getParticlePos(seed, u_time) - center;
-        float dist = length(p - pos);
-        float particleSize = 0.008;
+        // Draw main photon particle
+        vec3 pos3D = getParticle3D(seed, u_time);
+        vec2 pos2D = project3D(pos3D) - center;
+        float dist = length(p - pos2D);
+        float particleSize = 0.012;
 
-        if(dist < particleSize) {
-          float intensity = 1.0 - (dist / particleSize);
-          float temp = 1.2 / max(0.4, length(pos) * 2.0);
+        // Only render if in front
+        if(pos3D.z > -2.0 && dist < particleSize) {
+          float depth = (pos3D.z + 2.0) / 4.0;
+          float intensity = (1.0 - dist / particleSize) * depth;
 
+          float temp = 1.0 / max(0.5, length(pos3D) * 1.5);
           vec3 color = mix(
-            vec3(1.0, 0.6, 0.3),   // Cooler
-            vec3(0.7, 0.9, 1.0),   // Hotter
+            vec3(1.0, 0.7, 0.4),   // Warm glow
+            vec3(0.7, 0.9, 1.0),   // Cool blue
             temp
           );
 
-          col += color * pow(intensity, 1.5) * brightness * 0.8;
+          // Subtle glow
+          col += color * pow(intensity, 1.2) * brightness * 0.6;
+
+          // Bright core
+          if(dist < particleSize * 0.4) {
+            col += color * pow(intensity, 0.8) * 0.4;
+          }
         }
       }
 
-      // Event horizon
+      // Black hole sphere
+      float r = length(p - center);
       if(r < BH_RADIUS) {
         col = vec3(0.0);
-      } else if(r < BH_RADIUS + 0.004) {
-        float edge = (r - BH_RADIUS) / 0.004;
-        col = mix(vec3(0.0), col, smoothstep(0.0, 1.0, edge));
+      } else if(r < BH_RADIUS + 0.008) {
+        // Subtle edge glow
+        float edge = (r - BH_RADIUS) / 0.008;
+        col = mix(vec3(0.05, 0.08, 0.15), col, smoothstep(0.0, 1.0, edge));
       }
 
       // Vignette
-      float vig = smoothstep(0.9, 0.2, length(p));
+      float vig = smoothstep(0.9, 0.25, length(p));
       col *= vig * 0.85 + 0.15;
 
-      col = pow(col, vec3(1.05));
+      col = pow(col, vec3(1.08));
       gl_FragColor = vec4(col, 1.0);
     }`;
 
