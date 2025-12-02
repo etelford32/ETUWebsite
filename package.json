@@ -1,0 +1,23 @@
+{
+  "name": "explore-the-universe-2175",
+  "version": "1.0.0",
+  "description": "Explore the Universe 2175 - Open-world space adventure game website",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/etelford32/ETUWebsite"
+  },
+  "keywords": [
+    "space",
+    "game",
+    "simulation",
+    "black-hole",
+    "astrophysics"
+  ],
+  "author": "Telford Projects",
+  "license": "UNLICENSED"
+}
