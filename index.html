@@ -465,7 +465,7 @@
     document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   </script>
 
-  <!-- GPU-Accelerated WebGL Black Hole Particles -->
+  <!-- GPU-Accelerated Black Hole with Trails -->
   <script>
   (function(){
     const canvas = document.getElementById('bh-canvas');
@@ -476,12 +476,10 @@
     const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
     if (!gl) { fallback?.classList.remove('hidden'); return; }
 
-    // Vertex shader - fullscreen quad
     const vertSrc = `
     attribute vec2 a_pos;
     void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }`;
 
-    // Refined fragment shader - Crisp, scientific visualization
     const fragSrc = `
     precision mediump float;
     uniform vec2 u_res;
@@ -490,10 +488,11 @@
 
     const float BH_RADIUS = 0.14;
     const float DISK_R_IN = 0.16;
-    const float DISK_R_OUT = 0.60;
+    const float DISK_R_OUT = 0.55;
     const float PI = 3.14159265359;
-    const int PARTICLE_COUNT = 2400;
-    const float SPEED_MULT = 5.0;
+    const int PARTICLE_COUNT = 1600;
+    const int TRAIL_LENGTH = 8;
+    const float SPEED_MULT = 4.0;
 
     float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 
@@ -504,38 +503,20 @@
       return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;
     }
 
-    // Very dark starfield
     vec3 starfield(vec2 uv) {
-      float s = noise(uv*3.)*0.08;
-      vec3 neb = vec3(0.001,0.001,0.003) + vec3(s*0.02);
-      float stars = step(0.999, hash(floor(uv*350.)));
-      return neb + vec3(0.4,0.4,0.5)*stars*0.2;
+      float s = noise(uv*2.5)*0.1;
+      vec3 neb = vec3(0.01,0.01,0.02) + vec3(s*0.03);
+      float stars = step(0.998, hash(floor(uv*300.)));
+      return neb + vec3(0.6,0.6,0.8)*stars*0.4;
     }
 
-    // Generate particle position
-    vec3 getParticle(int id, float t) {
-      float seed = float(id);
+    // Get particle position at specific time
+    vec2 getParticlePos(float seed, float t) {
       float angle = hash(vec2(seed, 0.)) * PI * 2.0;
       float radius = DISK_R_IN + hash(vec2(seed, 1.)) * (DISK_R_OUT - DISK_R_IN);
-
-      float orbitalSpeed = sqrt(0.018 / radius) * (1.1 + hash(vec2(seed, 2.)) * 0.9) * SPEED_MULT;
-      float phase = angle + t * orbitalSpeed;
-
-      vec2 pos = vec2(cos(phase) * radius, sin(phase) * radius * 0.24);
-      float brightness = hash(vec2(seed, 3.)) * 0.5 + 0.5;
-
-      return vec3(pos, brightness);
-    }
-
-    // Minimal gravitational lensing
-    vec3 getLensedBG(vec2 p, vec2 center, float r) {
-      if(r < 0.001) return vec3(0.0);
-
-      float bend = 0.03 / max(r, BH_RADIUS + 0.02);
-      vec2 offset = normalize(p - center) * bend;
-      vec2 uv = p * 1.5 + offset + vec2(u_time * 0.025, 0.0);
-
-      return starfield(uv);
+      float speed = sqrt(0.015 / radius) * (1.0 + hash(vec2(seed, 2.)) * 0.8) * SPEED_MULT;
+      float phase = angle + t * speed;
+      return vec2(cos(phase) * radius, sin(phase) * radius * 0.25);
     }
 
     void main() {
@@ -543,59 +524,73 @@
       vec2 p = (uv - 0.5);
       p.x *= u_res.x / u_res.y;
 
-      vec2 center = (u_mouse - 0.5) * 0.08;
+      vec2 center = (u_mouse - 0.5) * 0.1;
       vec2 rp = p - center;
       float r = length(rp);
 
-      // Dark background (visible)
-      vec3 col = getLensedBG(p, center, r) * 0.5;
+      // Background with lensing
+      float bend = 0.04 / max(r, BH_RADIUS + 0.02);
+      vec2 offset = normalize(rp) * bend;
+      vec3 col = starfield((p + offset) * 1.6 + vec2(u_time * 0.02, 0.0)) * 0.6;
 
-      // Accumulate crisp particles
+      // Render particles with trails
       for(int i = 0; i < PARTICLE_COUNT; i++) {
-        vec3 particle = getParticle(i, u_time);
-        vec2 particlePos = particle.xy - center;
-        float brightness = particle.z;
+        float seed = float(i);
+        float brightness = hash(vec2(seed, 3.)) * 0.6 + 0.4;
 
-        float dist = distance(p, particlePos);
+        // Draw trail
+        for(int j = 0; j < TRAIL_LENGTH; j++) {
+          float trailTime = u_time - float(j) * 0.015;
+          vec2 trailPos = getParticlePos(seed, trailTime) - center;
+          float dist = length(p - trailPos);
 
-        // Crisp, visible particles
-        float particleRadius = 0.004; // Much larger so you can see them!
+          float trailSize = 0.006 * (1.0 - float(j) / float(TRAIL_LENGTH));
+          if(dist < trailSize) {
+            float intensity = (1.0 - dist / trailSize) * (1.0 - float(j) / float(TRAIL_LENGTH));
+            float temp = 1.2 / max(0.4, length(trailPos) * 2.0);
 
-        if(dist < particleRadius) {
-          // Sharp particle core
-          float core = smoothstep(particleRadius, 0.0, dist);
+            vec3 color = mix(
+              vec3(0.8, 0.4, 0.2),  // Cooler - orange
+              vec3(0.5, 0.7, 1.0),  // Hotter - blue
+              temp
+            );
 
-          // Temperature based on distance from black hole
-          float temp = 1.0 / (length(particlePos) * 2.5);
+            col += color * intensity * brightness * 0.35;
+          }
+        }
 
-          // Color: blue (hot) to purple/orange (cool)
+        // Draw main particle (brighter)
+        vec2 pos = getParticlePos(seed, u_time) - center;
+        float dist = length(p - pos);
+        float particleSize = 0.008;
+
+        if(dist < particleSize) {
+          float intensity = 1.0 - (dist / particleSize);
+          float temp = 1.2 / max(0.4, length(pos) * 2.0);
+
           vec3 color = mix(
-            vec3(0.6, 0.3, 0.2),   // Cooler orange
-            vec3(0.4, 0.6, 1.0),   // Hotter blue-white
+            vec3(1.0, 0.6, 0.3),   // Cooler
+            vec3(0.7, 0.9, 1.0),   // Hotter
             temp
           );
 
-          col += color * core * brightness * 1.2;
+          col += color * pow(intensity, 1.5) * brightness * 0.8;
         }
       }
 
       // Event horizon
       if(r < BH_RADIUS) {
         col = vec3(0.0);
-      } else if(r < BH_RADIUS + 0.003) {
-        // Subtle edge
-        float edge = (r - BH_RADIUS) / 0.003;
-        col = mix(vec3(0.0), col, edge);
+      } else if(r < BH_RADIUS + 0.004) {
+        float edge = (r - BH_RADIUS) / 0.004;
+        col = mix(vec3(0.0), col, smoothstep(0.0, 1.0, edge));
       }
 
-      // Minimal vignette
-      float vig = smoothstep(0.85, 0.25, length(p));
-      col *= vig * 0.8 + 0.2;
+      // Vignette
+      float vig = smoothstep(0.9, 0.2, length(p));
+      col *= vig * 0.85 + 0.15;
 
-      // Final adjustments
-      col = pow(col, vec3(1.1));
-      col *= 0.9;
-
+      col = pow(col, vec3(1.05));
       gl_FragColor = vec4(col, 1.0);
     }`;
 
@@ -626,7 +621,6 @@
     }
     gl.useProgram(prog);
 
-    // Fullscreen triangle
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
