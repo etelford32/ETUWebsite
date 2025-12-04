@@ -424,12 +424,14 @@
   /* Ensure the 3D canvas is behind content but visible */
   pointer-events: none;
   will-change: transform;
+  z-index: 1;
 }
 
 #hero-star-map canvas {
   display: block;
   width: 100%;
   height: 100%;
+  opacity: 1 !important;
 }
 
 /* Blend the Christmas background with 3D stars */
