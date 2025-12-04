@@ -1,0 +1,50 @@
+{
+  "name": "Explore the Universe 2175",
+  "short_name": "ETU 2175",
+  "description": "Immersive space exploration sci-fi game - The most immersive Galaxy simulation of all time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#040614",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo3.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [
+    {
+      "src": "/ETU_XMAS.png",
+      "sizes": "2741x1833",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Steam Page",
+      "short_name": "Steam",
+      "description": "Wishlist on Steam",
+      "url": "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175",
+      "icons": [{ "src": "/logo3.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Rise of Machines",
+      "short_name": "Megabot",
+      "description": "View the campaign",
+      "url": "/pages/rise-of-machines.html",
+      "icons": [{ "src": "/logo3.png", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
