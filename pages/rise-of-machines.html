@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rise of the Machines — Explore the Universe 2175 Campaign</title>
+  <meta name="description" content="The Megabot Empire awakens. Your choices will determine the fate of the galaxy. Join the Rise of the Machines campaign in Explore the Universe 2175." />
+
+  <!-- Icons / Social -->
+  <link rel="icon" href="/favicon.ico" />
+  <meta property="og:title" content="Rise of the Machines — ETU 2175 Campaign" />
+  <meta property="og:description" content="The machines are rising. Will you stop them, or join them?" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://exploretheuniverse2175.com/pages/rise-of-machines.html" />
+  <meta property="og:image" content="https://exploretheuniverse2175.com/eveil_robot_hero1.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Preload -->
+  <link rel="preload" href="/eveil_robot_hero1.jpg" as="image" type="image/jpeg" />
+  <link rel="preload" href="/dist/output.css" as="style" />
+
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="/dist/output.css" />
+
+  <!-- Custom Styles -->
+  <style>
+    /* Megabot Theme Colors */
+    :root {
+      --megabot-red: #ff3a3a;
+      --megabot-orange: #ff6b35;
+      --megabot-dark: #0a0a0f;
+      --megabot-steel: #4a5568;
+      --megabot-glow: rgba(255, 58, 58, 0.6);
+    }
+
+    body {
+      background: linear-gradient(180deg, #0a0a0f 0%, #1a0a0a 100%);
+    }
+
+    /* Epic Hero Section */
+    .megabot-hero {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #1a0a0a 0%, #0a0a0f 100%);
+    }
+
+    /* Animated Background Grid */
+    .tech-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 58, 58, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 58, 58, 0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridScroll 20s linear infinite;
+      opacity: 0.3;
+    }
+
+    @keyframes gridScroll {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(50px); }
+    }
+
+    /* Glitch Effect */
+    .glitch {
+      position: relative;
+      animation: glitch 5s infinite;
+    }
+
+    @keyframes glitch {
+      0%, 90%, 100% { transform: translateX(0); }
+      91% { transform: translateX(-5px); }
+      92% { transform: translateX(5px); }
+      93% { transform: translateX(-5px); }
+      94% { transform: translateX(5px); }
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+    }
+
+    .glitch::before {
+      color: #ff3a3a;
+      animation: glitchBefore 3s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    }
+
+    .glitch::after {
+      color: #00ffff;
+      animation: glitchAfter 2s infinite;
+      clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    }
+
+    @keyframes glitchBefore {
+      0%, 100% { transform: translateX(0); opacity: 0; }
+      10%, 20% { transform: translateX(-2px); opacity: 0.8; }
+    }
+
+    @keyframes glitchAfter {
+      0%, 100% { transform: translateX(0); opacity: 0; }
+      15%, 25% { transform: translateX(2px); opacity: 0.8; }
+    }
+
+    /* Scanning Line */
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--megabot-red), transparent);
+      box-shadow: 0 0 10px var(--megabot-glow);
+      animation: scan 4s ease-in-out infinite;
+      opacity: 0.5;
+    }
+
+    @keyframes scan {
+      0%, 100% { top: 0; }
+      50% { top: 100%; }
+    }
+
+    /* Mechanical Particles */
+    .mech-particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--megabot-orange);
+      box-shadow: 0 0 10px var(--megabot-glow);
+      animation: mechFloat 15s linear infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes mechFloat {
+      0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% {
+        transform: translateY(-100vh) translateX(50px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* Warning Stripes */
+    .warning-stripe {
+      background: repeating-linear-gradient(
+        45deg,
+        #ff3a3a,
+        #ff3a3a 20px,
+        #1a0a0a 20px,
+        #1a0a0a 40px
+      );
+      animation: stripeScroll 1s linear infinite;
+    }
+
+    @keyframes stripeScroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 40px; }
+    }
+
+    /* Red Glow Pulse */
+    @keyframes redPulse {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 58, 58, 0.4),
+                    0 0 40px rgba(255, 58, 58, 0.2),
+                    inset 0 0 20px rgba(255, 58, 58, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(255, 58, 58, 0.8),
+                    0 0 80px rgba(255, 58, 58, 0.4),
+                    inset 0 0 30px rgba(255, 58, 58, 0.2);
+      }
+    }
+
+    .red-pulse {
+      animation: redPulse 2s ease-in-out infinite;
+    }
+
+    /* Mechanical Text Shadow */
+    .mech-text {
+      text-shadow:
+        0 0 10px rgba(255, 58, 58, 0.8),
+        0 0 20px rgba(255, 58, 58, 0.6),
+        0 0 30px rgba(255, 58, 58, 0.4),
+        2px 2px 0 rgba(0, 0, 0, 0.8);
+    }
+
+    /* Circuit Lines */
+    .circuit-bg {
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(255, 58, 58, 0.1) 1px, transparent 1px),
+        radial-gradient(circle at 80% 50%, rgba(255, 58, 58, 0.1) 1px, transparent 1px);
+      background-size: 100px 100px;
+    }
+
+    /* Hologram Effect */
+    .hologram {
+      position: relative;
+      background: linear-gradient(180deg, rgba(255, 58, 58, 0.1) 0%, rgba(255, 58, 58, 0.05) 100%);
+      border: 1px solid rgba(255, 58, 58, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .hologram::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(255, 58, 58, 0.1) 50%,
+        transparent 100%
+      );
+      animation: holoScan 3s linear infinite;
+    }
+
+    @keyframes holoScan {
+      0%, 100% { transform: translateY(-100%); }
+      50% { transform: translateY(100%); }
+    }
+
+    /* Choice Button Effects */
+    .choice-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .choice-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 58, 58, 0.3), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .choice-btn:hover::before {
+      transform: translateX(100%);
+    }
+
+    /* Reveal Animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .reveal.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="bg-deep-900 text-slate-100">
+
+  <!-- Minimal Header -->
+  <header class="fixed top-0 z-50 w-full backdrop-blur-md bg-black/50 border-b border-red-500/20">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="flex items-center justify-between h-16">
+        <a href="/" class="flex items-center gap-3 group">
+          <img src="/logo3.png" alt="ETU Logo" class="w-10 h-10"/>
+          <strong class="tracking-wide text-lg group-hover:text-red-400 transition-colors">ETU 2175</strong>
+        </a>
+        <nav class="flex items-center gap-6 text-sm">
+          <a href="/#features" class="opacity-90 hover:opacity-100 hover:text-red-400 transition-colors">Game</a>
+          <a href="/#factions" class="opacity-90 hover:opacity-100 hover:text-red-400 transition-colors">Factions</a>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+             target="_blank"
+             class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 font-semibold transition-colors">
+            Wishlist on Steam
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- EPIC HERO SECTION -->
+  <section class="megabot-hero">
+    <!-- Tech Grid Background -->
+    <div class="tech-grid"></div>
+
+    <!-- Scanning Line -->
+    <div class="scan-line"></div>
+
+    <!-- Mechanical Particles -->
+    <div id="mech-particles" aria-hidden="true"></div>
+
+    <!-- Main Hero Content -->
+    <div class="relative z-10 min-h-screen flex items-center">
+      <!-- Background Image with Effects -->
+      <div class="absolute inset-0 z-0">
+        <img src="/eveil_robot_hero1.jpg"
+             alt="Megabot Empire"
+             class="w-full h-full object-cover opacity-40"
+             style="filter: contrast(1.2) saturate(1.3);" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent"></div>
+      </div>
+
+      <div class="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 py-32">
+        <!-- Warning Banner -->
+        <div class="reveal mb-8 inline-flex items-center gap-3 px-6 py-3 rounded-full bg-red-600/20 border-2 border-red-500 red-pulse">
+          <svg class="w-6 h-6 text-red-500 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-red-300 font-bold uppercase tracking-wider text-sm">THREAT LEVEL: CRITICAL</span>
+        </div>
+
+        <!-- Main Title -->
+        <h1 class="reveal glitch mech-text text-7xl md:text-9xl font-black mb-6 leading-none" data-text="RISE OF THE MACHINES">
+          <span class="text-red-500">RISE</span><br/>
+          <span class="text-white">OF THE</span><br/>
+          <span class="text-red-500">MACHINES</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="reveal text-2xl md:text-3xl font-light mb-8 max-w-3xl text-slate-200">
+          The <span class="text-red-500 font-bold">Megabot Empire</span> awakens.
+          <span class="text-red-400">Your choices</span> will determine the fate of the galaxy.
+        </p>
+
+        <!-- Campaign Info -->
+        <div class="reveal mb-12 max-w-2xl">
+          <div class="hologram rounded-xl p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 rounded-full bg-red-600/30 border-2 border-red-500 flex items-center justify-center red-pulse">
+                  <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-red-400 mb-2">CAMPAIGN: ACTIVE</h3>
+                <p class="text-slate-300 leading-relaxed">
+                  This is no ordinary mission. The first storyline in ETU 2175 features a living, breathing campaign where
+                  <strong class="text-white">every player's choice matters</strong>.
+                  Will the Megabot Empire conquer the galaxy, or will you unite the factions to stop them?
+                  <span class="text-red-400">The outcome depends on you.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="reveal flex flex-wrap gap-4">
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="choice-btn group inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-lg bg-red-600 hover:bg-red-500 border-2 border-red-400 shadow-2xl hover:shadow-red-500/50 transition-all hover:scale-105">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>
+            </svg>
+            <span>WISHLIST NOW</span>
+            <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+
+          <a href="#the-threat" class="choice-btn inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-lg bg-white/5 hover:bg-white/10 border-2 border-white/30 hover:border-white/50 transition-all">
+            <span>LEARN MORE</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+          </a>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="reveal mt-16 text-center">
+          <div class="inline-flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+            <span class="text-xs uppercase tracking-wider text-red-400">Scroll to Investigate</span>
+            <svg class="w-6 h-6 animate-bounce text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Warning Stripe Divider -->
+  <div class="warning-stripe h-4"></div>
+
+  <!-- THE THREAT -->
+  <section id="the-threat" class="py-20 bg-gradient-to-b from-black to-deep-900">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="reveal text-center mb-16">
+        <h2 class="text-5xl md:text-6xl font-black mb-4">
+          <span class="text-red-500">THE MEGABOT EMPIRE</span>
+        </h2>
+        <p class="text-xl text-slate-300 max-w-3xl mx-auto">
+          A civilization of sentient machines, awakened from deep space hibernation with one directive: <span class="text-red-400 font-bold">expand at any cost</span>.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 mb-16">
+        <!-- Threat Card 1 -->
+        <div class="reveal hologram rounded-2xl p-6 hover:scale-105 transition-transform">
+          <div class="text-red-500 mb-4">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-white">Modular Forms</h3>
+          <p class="text-slate-300">
+            Megabots can reconfigure mid-battle, adapting to any threat. Destroyed a turret? It'll grow three more.
+          </p>
+        </div>
+
+        <!-- Threat Card 2 -->
+        <div class="reveal hologram rounded-2xl p-6 hover:scale-105 transition-transform" style="transition-delay: 0.1s;">
+          <div class="text-red-500 mb-4">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-white">Overwhelming Firepower</h3>
+          <p class="text-slate-300">
+            Plasma cannons, missile swarms, and EMP bursts. The Megabot arsenal is designed for total annihilation.
+          </p>
+        </div>
+
+        <!-- Threat Card 3 -->
+        <div class="reveal hologram rounded-2xl p-6 hover:scale-105 transition-transform" style="transition-delay: 0.2s;">
+          <div class="text-red-500 mb-4">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold mb-3 text-white">Station-Scale Bosses</h3>
+          <p class="text-slate-300">
+            Their commanders are larger than space stations. Multi-phase battles with environmental hazards await.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- YOUR CHOICE MATTERS -->
+  <section class="py-20 circuit-bg border-t border-red-500/20">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6">
+      <div class="reveal text-center mb-16">
+        <h2 class="text-5xl md:text-6xl font-black mb-4">
+          YOUR <span class="text-red-500">CHOICE</span> MATTERS
+        </h2>
+        <p class="text-xl text-slate-300 max-w-3xl mx-auto">
+          This isn't a scripted story. The Rise of the Machines campaign is <span class="text-red-400 font-bold">living and dynamic</span>.
+          Every player's decisions contribute to the galaxy's fate.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <!-- Choice Options -->
+        <div class="space-y-6">
+          <div class="reveal hologram rounded-xl p-8">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600/30 border-2 border-blue-500 flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-blue-400 mb-2">RESIST THE EMPIRE</h3>
+                <p class="text-slate-300 mb-4">
+                  Unite the factions. Form alliances with the Crystal Intelligences, Mycelari, and Wild Guardians.
+                  Lead the resistance and push back the mechanical tide.
+                </p>
+                <div class="text-sm text-blue-300">
+                  <strong>Impact:</strong> Defensive strategies, faction cooperation, shared technology
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reveal hologram rounded-xl p-8" style="transition-delay: 0.1s;">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-600/30 border-2 border-red-500 flex items-center justify-center red-pulse">
+                <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-red-400 mb-2">JOIN THE MACHINES</h3>
+                <p class="text-slate-300 mb-4">
+                  Embrace the evolution. Side with the Megabot Empire. Gain access to advanced weaponry, nanite repairs,
+                  and unstoppable firepower. Efficiency is perfection.
+                </p>
+                <div class="text-sm text-red-300">
+                  <strong>Impact:</strong> Aggressive expansion, mechanical augments, ruthless efficiency
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reveal hologram rounded-xl p-8" style="transition-delay: 0.2s;">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-purple-600/30 border-2 border-purple-500 flex items-center justify-center">
+                <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-purple-400 mb-2">FORGE YOUR OWN PATH</h3>
+                <p class="text-slate-300 mb-4">
+                  Play both sides. Sabotage, trade secrets, manipulate factions. Carve out your own empire from the chaos.
+                  The galaxy's fate is in your hands—use it wisely.
+                </p>
+                <div class="text-sm text-purple-300">
+                  <strong>Impact:</strong> Unpredictable outcomes, unique storylines, maximum freedom
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Outcome Visualization -->
+        <div class="reveal">
+          <div class="hologram rounded-2xl p-8">
+            <h3 class="text-3xl font-bold mb-6 text-center">
+              <span class="text-red-500">LIVE</span> CAMPAIGN STATUS
+            </h3>
+
+            <div class="space-y-6">
+              <!-- Megabot Progress -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-semibold text-red-400">MEGABOT EXPANSION</span>
+                  <span class="text-sm font-mono text-red-400">67%</span>
+                </div>
+                <div class="h-4 bg-black/50 rounded-full overflow-hidden border border-red-500/30">
+                  <div class="h-full bg-gradient-to-r from-red-600 to-red-400 red-pulse" style="width: 67%;"></div>
+                </div>
+              </div>
+
+              <!-- Resistance Progress -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-semibold text-blue-400">RESISTANCE STRENGTH</span>
+                  <span class="text-sm font-mono text-blue-400">33%</span>
+                </div>
+                <div class="h-4 bg-black/50 rounded-full overflow-hidden border border-blue-500/30">
+                  <div class="h-full bg-gradient-to-r from-blue-600 to-blue-400" style="width: 33%; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div class="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
+                <div class="text-center">
+                  <div class="text-3xl font-bold text-white mb-1">127</div>
+                  <div class="text-xs text-slate-400 uppercase">Systems Contested</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold text-white mb-1">8,934</div>
+                  <div class="text-xs text-slate-400 uppercase">Active Commanders</div>
+                </div>
+              </div>
+
+              <div class="text-center pt-4 text-sm text-slate-400">
+                <p>Updated live as players make choices</p>
+                <p class="text-red-400 font-semibold mt-2">The machines are winning. Will you change the tide?</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-20 bg-gradient-to-b from-deep-900 to-black border-t border-red-500/20">
+    <div class="max-w-4xl mx-auto px-4 lg:px-6 text-center">
+      <div class="reveal mb-8">
+        <h2 class="text-5xl md:text-6xl font-black mb-6 mech-text">
+          THE <span class="text-red-500">RISE</span> IS COMING
+        </h2>
+        <p class="text-xl text-slate-300 mb-8">
+          <span class="text-red-400 font-bold">December 25th, 2025</span> — The machines awaken.
+          Wishlist now and be ready to choose your fate.
+        </p>
+      </div>
+
+      <div class="reveal flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="choice-btn group inline-flex items-center justify-center gap-3 px-10 py-6 rounded-xl font-bold text-xl bg-red-600 hover:bg-red-500 border-2 border-red-400 shadow-2xl hover:shadow-red-500/50 transition-all hover:scale-105">
+          <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>
+          </svg>
+          <span>WISHLIST ON STEAM</span>
+          <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </a>
+
+        <a href="/" class="choice-btn inline-flex items-center justify-center gap-3 px-10 py-6 rounded-xl font-bold text-xl bg-white/5 hover:bg-white/10 border-2 border-white/30 hover:border-white/50 transition-all">
+          <span>BACK TO HUB</span>
+        </a>
+      </div>
+
+      <div class="reveal mt-12 text-sm text-slate-500">
+        <p>Explore the Universe 2175 — A Solo-Developed Epic</p>
+        <p class="mt-2 text-red-400">The galaxy needs you, Commander.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script>
+    // Generate mechanical particles
+    const particleContainer = document.getElementById('mech-particles');
+    if (particleContainer) {
+      for(let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'mech-particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 15 + 's';
+        particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+        particleContainer.appendChild(particle);
+      }
+    }
+
+    // Reveal on scroll
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('show');
+      })
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

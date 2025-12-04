@@ -86,8 +86,15 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/campaign/megabot",
+      "destination": "/pages/rise-of-machines.html",
+      "permanent": false
     }
   ]
 }
