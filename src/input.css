@@ -415,3 +415,51 @@
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* ============================================
+   3D STAR MAP INTEGRATION
+   ============================================ */
+
+#hero-star-map {
+  /* Ensure the 3D canvas is behind content but visible */
+  pointer-events: none;
+  will-change: transform;
+}
+
+#hero-star-map canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Blend the Christmas background with 3D stars */
+.hero-bg-wrapper {
+  mix-blend-mode: screen;
+  transition: opacity 0.5s ease;
+}
+
+/* Enhanced gradient for depth with 3D stars */
+.hero-gradient-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(4, 6, 20, 0.2) 0%,
+    rgba(4, 6, 20, 0.4) 50%,
+    rgba(4, 6, 20, 0.7) 100%
+  );
+}
+
+/* Ensure text remains highly readable over dynamic background */
+.hero-xmas .relative.z-10 {
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8),
+               0 4px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Loading state for star map */
+@keyframes starMapLoading {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+#hero-star-map {
+  animation: starMapLoading 2s ease-in forwards;
+}
