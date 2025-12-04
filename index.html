@@ -36,9 +36,13 @@
   <link rel="preload" href="/ETU_XMAS.png" as="image" type="image/png" />
   <link rel="preload" href="/dist/output.css" as="style" />
   <link rel="dns-prefetch" href="https://store.steampowered.com" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 
   <!-- Tailwind CSS (Production Build) -->
   <link rel="stylesheet" href="/dist/output.css" />
+
+  <!-- Three.js for 3D Star Map -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js" defer></script>
 </head>
 <body class="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
 
@@ -86,10 +90,13 @@
     </div>
   </header>
 
-  <!-- HERO with Christmas Theme -->
+  <!-- HERO with Christmas Theme + 3D Star Map -->
   <section id="home" class="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas">
-    <!-- Optimized background image with gradient overlay -->
-    <div class="hero-bg-wrapper">
+    <!-- 3D Interactive Star Map (WebGL) -->
+    <div id="hero-star-map" class="absolute inset-0 z-0" aria-hidden="true"></div>
+
+    <!-- Optimized background image with gradient overlay (fallback + blend) -->
+    <div class="hero-bg-wrapper" style="opacity: 0.4;">
       <img src="/ETU_XMAS.png"
            alt="Explore the Universe 2175 - Available December 25th"
            class="hero-bg-image"
@@ -98,7 +105,7 @@
       <div class="hero-gradient-overlay"></div>
     </div>
 
-    <!-- Animated particles for depth -->
+    <!-- Animated particles for depth (keeping for extra sparkle) -->
     <div class="hero-particles" aria-hidden="true"></div>
 
     <!-- Floating light orbs -->
@@ -609,6 +616,9 @@
       }
     })();
   </script>
+
+  <!-- 3D Star Map Hero Script -->
+  <script src="/js/star-map-hero.js" defer></script>
 
   <!--
   ========= NOTES =========
