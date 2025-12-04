@@ -301,25 +301,165 @@
     </div>
   </section>
 
-  <!-- Leaderboard preview -->
-  <section id="leaderboard" class="reveal py-16 border-t border-white/10 bg-deep-800/40">
+  <!-- Steam Wishlist + Leaderboard Section -->
+  <section id="leaderboard" class="reveal py-20 border-t border-white/10 bg-gradient-to-b from-deep-800/40 to-deep-900">
     <div class="max-w-7xl mx-auto px-4 lg:px-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <header>
-          <h2 class="text-3xl font-bold">Global Leaderboard</h2>
-          <p class="text-slate-300">Top discoveries, speed-runs, and faction influence—updated live.</p>
-        </header>
-        <a href="/leaderboard" class="btn-warp px-4 py-2 rounded-md">View Full Board →</a>
+
+      <!-- STEAM WISHLIST HERO -->
+      <div class="mb-16 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1b2838] via-[#2a475e] to-[#1b2838] p-8 lg:p-12 shadow-2xl">
+        <!-- Animated background glow -->
+        <div class="absolute inset-0 opacity-20">
+          <div class="absolute top-0 left-1/4 w-96 h-96 bg-[#66c0f4] rounded-full blur-[120px] animate-pulse"></div>
+          <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-[#1b2838] rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
+          <!-- Left: Compelling Copy -->
+          <div>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#66c0f4]/20 border border-[#66c0f4]/40 mb-6">
+              <svg class="w-5 h-5 text-[#66c0f4]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>
+              </svg>
+              <span class="text-sm font-semibold text-[#66c0f4]">Now on Steam</span>
+            </div>
+
+            <h2 class="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+              Join <span class="text-[#66c0f4]">Thousands</span> of Commanders
+            </h2>
+
+            <p class="text-lg text-slate-200/90 mb-6 leading-relaxed">
+              Wishlist <strong>Explore the Universe 2175</strong> on Steam to get notified on launch day, support development, and help us climb the ranks. Your wishlist matters!
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+              <!-- Primary Steam Wishlist Button -->
+              <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="steam-wishlist-btn group inline-flex items-center justify-center gap-3 px-8 py-5 rounded-xl font-bold text-lg transition-all duration-300 shadow-2xl hover:shadow-[0_0_40px_rgba(102,192,244,0.6)] hover:scale-105">
+                <svg class="w-7 h-7 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>
+                </svg>
+                <span>Wishlist on Steam</span>
+                <svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+              </a>
+
+              <!-- Secondary: View Store Page -->
+              <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-semibold text-base bg-white/10 border border-white/20 hover:bg-white/15 hover:border-white/30 transition-all">
+                <span>View Store Page</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </a>
+            </div>
+
+            <!-- Social Proof Stats -->
+            <div class="flex flex-wrap items-center gap-6 text-sm text-slate-300">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span><strong>Free Demo</strong> Available</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong>December 25th</strong> Launch</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                </svg>
+                <span><strong>Solo Dev</strong> Passion Project</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Visual Element -->
+          <div class="hidden lg:block relative">
+            <div class="relative">
+              <!-- Steam Card Mockup -->
+              <div class="bg-[#0e141b] rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                <div class="aspect-video bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center overflow-hidden">
+                  <img src="/ETU_XMAS.png" alt="ETU Game Preview" class="w-full h-full object-cover opacity-90" loading="lazy" decoding="async"/>
+                </div>
+                <div class="p-4">
+                  <h3 class="font-bold text-lg mb-1">Explore the Universe 2175</h3>
+                  <p class="text-sm text-slate-400 mb-3">Open-World Space Simulation</p>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                      <span class="text-sm font-semibold text-[#66c0f4]">Wishlist Now</span>
+                    </div>
+                    <div class="text-xs text-slate-500">Windows • macOS • Linux</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floating badges -->
+              <div class="absolute -top-4 -right-4 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg animate-bounce">
+                FREE DEMO
+              </div>
+              <div class="absolute -bottom-4 -left-4 bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg">
+                DEC 25th
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="mt-6 overflow-x-auto">
-        <table class="w-full text-left text-sm min-w-[640px]">
-          <thead class="text-slate-300/80">
-            <tr class="border-b border-white/10">
-              <th class="py-3">Rank</th><th>Commander</th><th>Mode</th><th>Score</th><th>Best Time</th><th>Last Update</th>
-            </tr>
-          </thead>
-          <tbody id="lbBody" class="divide-y divide-white/10"></tbody>
-        </table>
+
+      <!-- Global Leaderboard (Social Proof) -->
+      <div>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <header>
+            <h3 class="text-2xl md:text-3xl font-bold">Top Commanders This Week</h3>
+            <p class="text-slate-300/90 mt-1">Join them—wishlist now and compete for glory when we launch!</p>
+          </header>
+          <a href="/leaderboard" class="btn-warp px-5 py-3 rounded-lg font-semibold hover:scale-105 transition-transform">
+            View Full Leaderboard →
+          </a>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <table class="w-full text-left text-sm min-w-[640px]">
+            <thead class="text-slate-300/80 bg-white/5">
+              <tr class="border-b border-white/10">
+                <th class="py-4 px-4 font-semibold">Rank</th>
+                <th class="py-4 px-4 font-semibold">Commander</th>
+                <th class="py-4 px-4 font-semibold">Mode</th>
+                <th class="py-4 px-4 font-semibold">Score</th>
+                <th class="py-4 px-4 font-semibold">Best Time</th>
+                <th class="py-4 px-4 font-semibold">Last Update</th>
+              </tr>
+            </thead>
+            <tbody id="lbBody" class="divide-y divide-white/10"></tbody>
+          </table>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="mt-8 text-center p-6 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30">
+          <p class="text-lg mb-4">
+            Want to see <strong>your name</strong> on this leaderboard?
+            <span class="text-indigo-400">Wishlist now</span> and be ready for launch day!
+          </p>
+          <a href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+             target="_blank"
+             rel="noopener noreferrer"
+             class="inline-flex items-center gap-2 px-6 py-3 bg-[#66c0f4] hover:bg-[#5ab2e8] text-[#1b2838] font-bold rounded-lg transition-colors shadow-lg">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/>
+            </svg>
+            Wishlist on Steam - It's Free!
+          </a>
+        </div>
       </div>
     </div>
   </section>
@@ -509,15 +649,17 @@
     ];
     const tbody=document.getElementById('lbBody');
     if (tbody){
-      demoLB.forEach(row=>{
+      demoLB.forEach((row, i)=>{
         const tr=document.createElement('tr');
+        tr.className = 'hover:bg-white/5 transition-colors';
+        const rankBadge = i < 3 ? `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full ${i===0?'bg-yellow-500/20 text-yellow-400':i===1?'bg-slate-400/20 text-slate-300':'bg-orange-500/20 text-orange-400'} font-bold">${row.rank}</span>` : row.rank;
         tr.innerHTML=`
-          <td class="py-3">${row.rank}</td>
-          <td>${row.name}</td>
-          <td>${row.mode}</td>
-          <td>${row.score.toLocaleString()}</td>
-          <td>${row.time}</td>
-          <td>${row.updated}</td>`;
+          <td class="py-4 px-4">${rankBadge}</td>
+          <td class="py-4 px-4 font-semibold">${row.name}</td>
+          <td class="py-4 px-4 text-slate-300/80">${row.mode}</td>
+          <td class="py-4 px-4 font-mono text-indigo-400">${row.score.toLocaleString()}</td>
+          <td class="py-4 px-4 font-mono text-green-400">${row.time}</td>
+          <td class="py-4 px-4 text-slate-400 text-xs">${row.updated}</td>`;
         tbody.appendChild(tr);
       });
     }
