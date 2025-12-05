@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
@@ -20,11 +20,11 @@ export default function LoginPage() {
     checkUser()
 
     // Check for message from URL params
-    const msg = searchParams.get('message')
+    const msg = searchParams?.get('message')
     if (msg === 'steam_linked') {
       setMessage({ type: 'success', text: 'Steam account linked successfully!' })
     }
-  }, [])
+  }, [searchParams])
 
   async function checkUser() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -354,5 +354,17 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black flex items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
