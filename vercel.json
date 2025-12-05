@@ -3,8 +3,8 @@
   "buildCommand": "npm run build",
   "devCommand": null,
   "installCommand": "npm install",
-  "framework": null,
-  "outputDirectory": ".",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         time_seconds: time_seconds ? parseInt(time_seconds) : null,
         is_verified,
         metadata: metadata || {},
-      })
+      } as any)
       .select()
       .single()
 
