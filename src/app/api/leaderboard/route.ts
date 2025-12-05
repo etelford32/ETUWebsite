@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Add ranks
     const dataWithRanks = (data || []).map((entry, idx) => ({
-      ...entry,
+      ...entry as any,
       rank: start + idx + 1
     }))
 
