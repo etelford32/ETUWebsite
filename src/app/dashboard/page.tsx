@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Profile, LeaderboardEntry } from '@/lib/types'
+import { SteamProfileLink } from '@/components/SteamProfileLink'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -107,6 +108,11 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Steam Link Section */}
+        <div className="mb-6">
+          <SteamProfileLink currentSteamId={profile?.steam_id} />
+        </div>
+
         {/* User Profile Card */}
         <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/30">
           <div className="flex items-center gap-4">
