@@ -95,6 +95,20 @@ export default function HomePage() {
           <StarMap />
         </Suspense>
 
+        {/* Interactive hint */}
+        <div className="absolute top-24 right-6 z-20 hidden md:block">
+          <div className="relative group">
+            <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-xs text-white/80 hover:text-white hover:border-white/40 transition-all cursor-pointer animate-pulse hover:animate-none">
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+                Click the stars for shooting stars ✨
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Optimized background image with gradient overlay (fallback + blend) */}
         <div className="hero-bg-wrapper" style={{ opacity: 0.2 }}>
           <Image
@@ -275,6 +289,69 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Official Cinematic Trailer */}
+      <section
+        id="trailer"
+        className="reveal py-16 bg-gradient-to-b from-deep-800/40 to-deep-900"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="grid lg:grid-cols-3 gap-8 items-center">
+            <div className="lg:col-span-2 order-2 lg:order-1">
+              <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.3)]">
+                <video
+                  controls
+                  poster="/ETU_XMAS.png"
+                  className="w-full h-full object-cover bg-black"
+                  preload="metadata"
+                >
+                  <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+            <div className="space-y-4 order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/40 mb-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span className="text-xs font-semibold text-red-300">
+                  Official Trailer
+                </span>
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold">
+                Experience the Galaxy
+              </h3>
+              <p className="text-lg text-slate-300/90 leading-relaxed">
+                Watch deep-space traversal, intense station sieges, and faction AI in motion. See why commanders are calling it the most immersive space game ever created.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <a
+                  href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.7)] transition-all duration-300"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
+                  </svg>
+                  Wishlist on Steam
+                </a>
+                <Link
+                  href="/leaderboard"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold border border-white/20 hover:bg-white/5 transition-all"
+                >
+                  View Leaderboard
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section
         id="features"
@@ -334,45 +411,6 @@ export default function HomePage() {
                 influence.
               </p>
             </article>
-          </div>
-        </div>
-      </section>
-
-      {/* Trailer */}
-      <section
-        id="trailer"
-        className="reveal py-14 border-t border-white/10 bg-deep-800/40"
-      >
-        <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <div className="grid lg:grid-cols-3 gap-6 items-center">
-            <div className="lg:col-span-2">
-              <div className="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10">
-                <video
-                  controls
-                  poster="/media/trailer-poster.jpg"
-                  className="w-full h-full object-cover"
-                  preload="none"
-                >
-                  <source src="/ETU1.mp4#t=40" type="video/mp4" />
-                  <source src="/media/trailer.webm#t=40" type="video/webm" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-2xl font-semibold">Watch the Trailer</h3>
-              <p className="text-slate-300/90">
-                Deep-space traversal, station sieges, and faction AI in motion.
-              </p>
-              <div className="flex gap-3">
-                <a href="#download" className="btn-warp px-4 py-2 rounded-md">
-                  Join Alpha
-                </a>
-                <Link href="/leaderboard" className="btn-warp px-4 py-2 rounded-md">
-                  View Scores
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
       </section>

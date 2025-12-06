@@ -56,6 +56,7 @@ class StarMapHero {
   starField: any;
   starData: any[] = [];
   nebulaClouds: any[] = [];
+  shootingStars: any[] = [];
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -328,6 +329,71 @@ class StarMapHero {
       };
       document.addEventListener("touchmove", handleTouchMove, { passive: true });
     }
+
+    // Click to create shooting stars
+    const handleClick = (e: MouseEvent) => {
+      this.createShootingStar(e.clientX, e.clientY);
+    };
+    this.container.addEventListener("click", handleClick);
+  }
+
+  createShootingStar(clickX: number, clickY: number) {
+    const THREE = window.THREE;
+    if (!THREE) return;
+
+    // Convert screen coordinates to 3D space
+    const x = (clickX / window.innerWidth) * 2 - 1;
+    const y = -(clickY / window.innerHeight) * 2 + 1;
+
+    // Create shooting star trail
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(100 * 3); // 100 points for the trail
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
+    });
+
+    const trail = new THREE.Line(geometry, material);
+
+    // Calculate start and end positions
+    const startX = x * 800;
+    const startY = y * 800;
+    const startZ = -200;
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 1000 + Math.random() * 500;
+    const endX = startX + Math.cos(angle) * distance;
+    const endY = startY + Math.sin(angle) * distance;
+    const endZ = startZ - 800;
+
+    // Initialize trail positions
+    const posArray = geometry.attributes.position.array;
+    for (let i = 0; i < 100; i++) {
+      const t = i / 100;
+      posArray[i * 3] = startX;
+      posArray[i * 3 + 1] = startY;
+      posArray[i * 3 + 2] = startZ;
+    }
+
+    this.scene.add(trail);
+
+    // Store shooting star data
+    this.shootingStars.push({
+      trail,
+      startX,
+      startY,
+      startZ,
+      endX,
+      endY,
+      endZ,
+      progress: 0,
+      speed: 0.02 + Math.random() * 0.03,
+      lifetime: 0
+    });
   }
 
   onWindowResize() {
@@ -382,6 +448,37 @@ class StarMapHero {
         // Pulse opacity
         const pulse = Math.sin(this.time * cloud.pulseSpeed + cloud.pulseOffset);
         cloud.mesh.material.opacity = 0.05 + pulse * 0.03;
+      });
+    }
+
+    // Animate shooting stars
+    if (this.shootingStars.length > 0) {
+      this.shootingStars = this.shootingStars.filter((star) => {
+        star.progress += star.speed;
+        star.lifetime += 0.016; // Approximate frame time
+
+        if (star.progress >= 1 || star.lifetime > 2) {
+          // Remove shooting star
+          this.scene.remove(star.trail);
+          star.trail.geometry.dispose();
+          star.trail.material.dispose();
+          return false;
+        }
+
+        // Update trail positions
+        const posArray = star.trail.geometry.attributes.position.array;
+        for (let i = 0; i < 100; i++) {
+          const t = (i / 100) * star.progress;
+          posArray[i * 3] = star.startX + (star.endX - star.startX) * t;
+          posArray[i * 3 + 1] = star.startY + (star.endY - star.startY) * t;
+          posArray[i * 3 + 2] = star.startZ + (star.endZ - star.startZ) * t;
+        }
+        star.trail.geometry.attributes.position.needsUpdate = true;
+
+        // Fade out
+        star.trail.material.opacity = 0.8 * (1 - star.progress);
+
+        return true;
       });
     }
 
