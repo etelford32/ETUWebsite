@@ -10,13 +10,13 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/logo3.png",
+      "src": "/logo2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo3.png",
+      "src": "/logo2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -36,14 +36,14 @@
       "short_name": "Steam",
       "description": "Wishlist on Steam",
       "url": "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175",
-      "icons": [{ "src": "/logo3.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo2.png", "sizes": "96x96" }]
     },
     {
       "name": "Rise of Machines",
       "short_name": "Megabot",
       "description": "View the campaign",
       "url": "/pages/rise-of-machines.html",
-      "icons": [{ "src": "/logo3.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/logo2.png", "sizes": "96x96" }]
     }
   ],
   "prefer_related_applications": false

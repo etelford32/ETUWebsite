@@ -8,7 +8,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/pages/rise-of-machines.html',
   '/dist/output.css',
-  '/logo3.png',
+  '/logo2.png',
   '/js/star-map-hero.js'
 ];
 

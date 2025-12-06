@@ -13,7 +13,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <Link href="/#home" className="flex items-center gap-3 group">
             <Image
-              src="/logo3.png"
+              src="/logo2.png"
               alt="Explore the Universe 2175 logo"
               width={40}
               height={40}
@@ -45,7 +45,7 @@ export default function Header() {
             </Link>
             <Link
               href="/login"
-              className="btn-warp px-4 py-2 rounded-md shadow-glow"
+              className="relative px-6 py-2.5 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.7)] transition-all duration-300 hover:scale-105"
             >
               Sign in
             </Link>
@@ -89,7 +89,10 @@ export default function Header() {
             >
               Download
             </Link>
-            <Link href="/login" className="px-4 py-2 rounded-md bg-indigo-600">
+            <Link
+              href="/login"
+              className="px-6 py-2.5 rounded-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+            >
               Sign in
             </Link>
           </div>
