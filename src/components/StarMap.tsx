@@ -46,16 +46,16 @@ export default function StarMap() {
 class StarMapHero {
   container: HTMLDivElement;
   settings: any;
-  mouse: any;
-  autoRotate: boolean;
-  autoRotateSpeed: number;
-  time: number;
+  mouse: any = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  autoRotate: boolean = true;
+  autoRotateSpeed: number = 0.0002;
+  time: number = 0;
   scene: any;
   camera: any;
   renderer: any;
   starField: any;
-  starData: any[];
-  nebulaClouds: any[];
+  starData: any[] = [];
+  nebulaClouds: any[] = [];
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -66,14 +66,6 @@ class StarMapHero {
 
     // Performance settings based on device capability
     this.settings = this.detectCapabilities();
-
-    // State
-    this.mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
-    this.autoRotate = true;
-    this.autoRotateSpeed = 0.0002;
-    this.time = 0;
-    this.starData = [];
-    this.nebulaClouds = [];
 
     // Check WebGL support
     if (!this.isWebGLAvailable()) {
