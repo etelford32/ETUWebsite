@@ -84,12 +84,6 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/index.html"
-    }
-  ],
   "redirects": [
     {
       "source": "/campaign/megabot",
