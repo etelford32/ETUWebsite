@@ -498,14 +498,16 @@ class BlackHoleEffect {
     if (inPhotonSphere) {
       // In photon sphere - highly unstable, strong perturbations
       data.velocity.radial += (Math.random() - 0.5) * 0.5;
-      particle.material.emissive = new THREE.Color(0x4488ff);
-      particle.material.emissiveIntensity = 0.5;
-    } else if (inPlungeZone) {
-      // Inside ISCO - rapid infall
-      data.velocity.radial -= gravitationalAccel * deltaTime * 2;
+      data.inPhotonSphere = true;
     } else {
-      // Stable zone - gradual decay due to "friction"
-      data.velocity.radial -= gravitationalAccel * deltaTime * 0.1;
+      data.inPhotonSphere = false;
+      if (inPlungeZone) {
+        // Inside ISCO - rapid infall
+        data.velocity.radial -= gravitationalAccel * deltaTime * 2;
+      } else {
+        // Stable zone - gradual decay due to "friction"
+        data.velocity.radial -= gravitationalAccel * deltaTime * 0.1;
+      }
     }
 
     // Update radius based on radial velocity
@@ -540,12 +542,22 @@ class BlackHoleEffect {
     );
     const dopplerShift = velocityMagnitude * 0.02; // Scaled for visual effect
 
-    // Temperature increases as particle approaches event horizon
-    const heatFactor = 1 - Math.max(0, (data.radius - this.SCHWARZSCHILD_RADIUS) / 200);
-    const hue = 0.15 - heatFactor * 0.15 - dopplerShift; // Yellow -> Orange -> Red, with blue shift
+    // Color and opacity based on position
+    if (data.inPhotonSphere) {
+      // Photon sphere particles glow bright blue
+      particle.material.color.setHSL(0.55, 1, 0.7); // Bright cyan-blue
+      particle.material.opacity = 0.9;
+      // Make particle slightly larger in photon sphere
+      particle.scale.set(1.5, 1.5, 1.5);
+    } else {
+      // Temperature increases as particle approaches event horizon
+      const heatFactor = 1 - Math.max(0, (data.radius - this.SCHWARZSCHILD_RADIUS) / 200);
+      const hue = 0.15 - heatFactor * 0.15 - dopplerShift; // Yellow -> Orange -> Red, with blue shift
 
-    particle.material.color.setHSL(hue, 1, 0.5 + heatFactor * 0.3);
-    particle.material.opacity = 0.4 + heatFactor * 0.6;
+      particle.material.color.setHSL(hue, 1, 0.5 + heatFactor * 0.3);
+      particle.material.opacity = 0.4 + heatFactor * 0.6;
+      particle.scale.set(1, 1, 1);
+    }
 
     // Reset if particle crosses event horizon
     if (data.radius < this.SCHWARZSCHILD_RADIUS + 10) {
