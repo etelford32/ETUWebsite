@@ -97,11 +97,11 @@ class BlackHoleEffect {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (prefersReducedMotion) {
-      return { particleCount: 100, photonCount: 500, enableParallax: false, enableTrails: false };
+      return { particleCount: 50, photonCount: 300, enableParallax: false, enableTrails: false };
     } else if (isMobile) {
-      return { particleCount: 300, photonCount: 1000, enableParallax: true, enableTrails: true };
+      return { particleCount: 150, photonCount: 500, enableParallax: true, enableTrails: false };
     } else {
-      return { particleCount: 800, photonCount: 2000, enableParallax: true, enableTrails: true };
+      return { particleCount: 300, photonCount: 800, enableParallax: true, enableTrails: false };
     }
   }
 
@@ -426,7 +426,7 @@ class BlackHoleEffect {
     const particleCount = this.settings.particleCount;
 
     for (let i = 0; i < particleCount; i++) {
-      const geometry = new THREE.SphereGeometry(1.5, 6, 6); // Reduced segments for performance
+      const geometry = new THREE.SphereGeometry(1.5, 4, 4); // Minimal geometry for performance
       const material = new THREE.MeshBasicMaterial({
         color: new THREE.Color().setHSL(0.1 + Math.random() * 0.1, 1, 0.6),
         transparent: true,
@@ -435,52 +435,40 @@ class BlackHoleEffect {
 
       const particle = new THREE.Mesh(geometry, material);
 
-      // Start particles in disk-like orbits (flatter initial distribution)
-      const angle = Math.random() * Math.PI * 2;
-      const radius = this.ISCO_RADIUS + Math.random() * 120;
-      // Much flatter initial height - disk-like distribution
-      const height = (Math.random() - 0.5) * 20; // Reduced from 80 to 20
+      // PROPER 3D SPHERICAL COORDINATES for black hole physics
+      const r = this.ISCO_RADIUS + Math.random() * 120; // radial distance
+      const theta = Math.acos(2 * Math.random() - 1); // polar angle (0 to PI) - fully 3D!
+      const phi = Math.random() * Math.PI * 2; // azimuthal angle (0 to 2PI)
 
-      // Calculate orbital velocity based on radius (Kepler's laws)
-      const orbitalSpeed = Math.sqrt(this.G / radius) * 0.05;
+      // Most particles in disk, but some in inclined orbits for 3D effect
+      const diskBias = Math.random();
+      const finalTheta = diskBias < 0.7
+        ? Math.PI / 2 + (Math.random() - 0.5) * 0.3  // 70% near equatorial plane
+        : theta; // 30% in fully 3D orbits
 
+      // Convert spherical to Cartesian
       particle.position.set(
-        Math.cos(angle) * radius,
-        height,
-        Math.sin(angle) * radius
+        r * Math.sin(finalTheta) * Math.cos(phi),
+        r * Math.cos(finalTheta),
+        r * Math.sin(finalTheta) * Math.sin(phi)
       );
 
-      // Store enhanced orbital data
+      // Calculate orbital velocity for circular orbit (Kepler)
+      const orbitalSpeed = Math.sqrt(this.G / r) * 0.05;
+
+      // Store 3D spherical orbital data
       particle.userData = {
-        angle: angle,
-        radius: radius,
-        height: height,
-        velocity: {
-          tangential: orbitalSpeed,
-          radial: 0, // Initially in circular orbit
-        },
-        angularMomentum: radius * orbitalSpeed, // Conserved quantity
-        energy: 0.5 * orbitalSpeed * orbitalSpeed - this.G / radius,
-        lastPositions: [], // For trails
-        trailUpdateCounter: 0, // Optimize trail updates
+        r: r,                    // radial distance
+        theta: finalTheta,       // polar angle
+        phi: phi,                // azimuthal angle
+        vr: 0,                   // radial velocity (starts circular)
+        vtheta: 0,               // polar velocity
+        vphi: orbitalSpeed / r,  // angular velocity (circular orbit)
+        L: r * orbitalSpeed,     // angular momentum (conserved)
       };
 
       this.particles.push(particle);
       this.scene.add(particle);
-
-      // Create trail for this particle
-      if (this.settings.enableTrails) {
-        const trailGeometry = new THREE.BufferGeometry();
-        const trailMaterial = new THREE.LineBasicMaterial({
-          color: 0xffaa44,
-          transparent: true,
-          opacity: 0.4,
-          blending: THREE.AdditiveBlending,
-        });
-        const trail = new THREE.Line(trailGeometry, trailMaterial);
-        this.scene.add(trail);
-        this.particleTrails.push(trail);
-      }
     }
   }
 
@@ -488,98 +476,91 @@ class BlackHoleEffect {
     const data = particle.userData;
     const THREE = window.THREE;
 
-    // Calculate gravitational force (F = GM/r²)
-    const r = data.radius;
-    const gravitationalAccel = this.G / (r * r);
+    // PROPER 3D SPHERICAL PHYSICS FOR BLACK HOLES
+    const r = data.r;
+    const theta = data.theta;
+    const phi = data.phi;
 
-    // Check orbital stability zones
-    let inStableZone = r > this.ISCO_RADIUS;
-    let inPhotonSphere = Math.abs(r - this.PHOTON_SPHERE_RADIUS) < 15;
-    let inPlungeZone = r < this.ISCO_RADIUS;
+    // Gravitational acceleration (inverse square law)
+    const ar = -this.G / (r * r) + (data.L * data.L) / (r * r * r); // includes centrifugal term
 
+    // Check orbital zones
+    const inPhotonSphere = Math.abs(r - this.PHOTON_SPHERE_RADIUS) < 15;
+    const inPlungeZone = r < this.ISCO_RADIUS;
+
+    // Update velocities
     if (inPhotonSphere) {
-      // In photon sphere - highly unstable, strong perturbations
-      data.velocity.radial += (Math.random() - 0.5) * 0.5;
+      // Photon sphere - highly unstable
+      data.vr += ar * deltaTime * 3 + (Math.random() - 0.5) * 0.3;
       data.inPhotonSphere = true;
-    } else {
+    } else if (inPlungeZone) {
+      // Inside ISCO - rapid infall
+      data.vr += ar * deltaTime * 2;
       data.inPhotonSphere = false;
-      if (inPlungeZone) {
-        // Inside ISCO - rapid infall
-        data.velocity.radial -= gravitationalAccel * deltaTime * 2;
-      } else {
-        // Stable zone - gradual decay due to "friction"
-        data.velocity.radial -= gravitationalAccel * deltaTime * 0.1;
-      }
+    } else {
+      // Stable zone - gradual decay
+      data.vr += ar * deltaTime * 0.08;
+      data.inPhotonSphere = false;
     }
 
-    // Update radius based on radial velocity
-    data.radius += data.velocity.radial;
+    // Update positions in spherical coordinates
+    data.r += data.vr * deltaTime;
+    data.theta += data.vtheta * deltaTime;
+    data.phi += data.vphi * deltaTime;
 
-    // Conservation of angular momentum: L = r * v_tangential
-    data.velocity.tangential = data.angularMomentum / data.radius;
+    // Conservation of angular momentum: L = r² * vphi
+    data.vphi = data.L / (data.r * data.r);
 
-    // Update angle based on tangential velocity
-    data.angle += data.velocity.tangential / data.radius;
-
-    // Aggressively flatten height as particle spirals inward to form ring
-    const flatteningFactor = Math.min(1, data.radius / this.ISCO_RADIUS);
-    data.height *= 0.98; // Faster flattening
-    // Pull toward equatorial plane
-    data.height *= flatteningFactor;
-
-    // Update 3D position
-    particle.position.x = Math.cos(data.angle) * data.radius;
-    particle.position.z = Math.sin(data.angle) * data.radius;
-    particle.position.y = data.height;
-
-    // Store position for trail (optimized - update every 2 frames)
-    if (this.settings.enableTrails) {
-      data.trailUpdateCounter++;
-      if (data.trailUpdateCounter >= 2) {
-        data.trailUpdateCounter = 0;
-        data.lastPositions.push(particle.position.clone());
-        if (data.lastPositions.length > 15) { // Reduced from 30 to 15 for performance
-          data.lastPositions.shift();
-        }
-      }
+    // Gravitational precession - particles in disk tend toward equator
+    if (Math.abs(data.theta - Math.PI / 2) > 0.01) {
+      const toEquator = (Math.PI / 2 - data.theta) * 0.02;
+      data.vtheta = toEquator;
+    } else {
+      data.vtheta *= 0.95; // damping
     }
 
-    // Relativistic Doppler shift - particles moving toward us are blue-shifted
-    const velocityMagnitude = Math.sqrt(
-      data.velocity.radial * data.velocity.radial +
-      data.velocity.tangential * data.velocity.tangential
+    // Convert spherical to Cartesian for rendering
+    const sinTheta = Math.sin(data.theta);
+    const cosTheta = Math.cos(data.theta);
+    const sinPhi = Math.sin(data.phi);
+    const cosPhi = Math.cos(data.phi);
+
+    particle.position.set(
+      data.r * sinTheta * cosPhi,
+      data.r * cosTheta,
+      data.r * sinTheta * sinPhi
     );
-    const dopplerShift = velocityMagnitude * 0.02; // Scaled for visual effect
 
-    // Color and opacity based on position
+    // Color based on position and velocity
     if (data.inPhotonSphere) {
-      // Photon sphere particles glow bright blue
-      particle.material.color.setHSL(0.55, 1, 0.7); // Bright cyan-blue
+      particle.material.color.setHSL(0.55, 1, 0.7);
       particle.material.opacity = 0.9;
-      // Make particle slightly larger in photon sphere
       particle.scale.set(1.5, 1.5, 1.5);
     } else {
-      // Temperature increases as particle approaches event horizon
-      const heatFactor = 1 - Math.max(0, (data.radius - this.SCHWARZSCHILD_RADIUS) / 200);
-      const hue = 0.15 - heatFactor * 0.15 - dopplerShift; // Yellow -> Orange -> Red, with blue shift
-
-      particle.material.color.setHSL(hue, 1, 0.5 + heatFactor * 0.3);
+      const heatFactor = 1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200);
+      particle.material.color.setHSL(0.15 - heatFactor * 0.15, 1, 0.5 + heatFactor * 0.3);
       particle.material.opacity = 0.4 + heatFactor * 0.6;
       particle.scale.set(1, 1, 1);
     }
 
-    // Reset if particle crosses event horizon - recycle to outer ring
-    if (data.radius < this.SCHWARZSCHILD_RADIUS + 10) {
-      data.radius = this.ISCO_RADIUS + 50 + Math.random() * 100;
-      data.angle = Math.random() * Math.PI * 2;
-      // Keep particles in FLAT disk when recycling - this creates the ring effect!
-      data.height = (Math.random() - 0.5) * 5; // Very flat! Reduced from 80 to 5
-      data.velocity.radial = 0;
-      const orbitalSpeed = Math.sqrt(this.G / data.radius) * 0.05;
-      data.velocity.tangential = orbitalSpeed;
-      data.angularMomentum = data.radius * orbitalSpeed;
-      data.lastPositions = [];
-      data.trailUpdateCounter = 0;
+    // Recycle particles that cross event horizon
+    if (data.r < this.SCHWARZSCHILD_RADIUS + 10) {
+      data.r = this.ISCO_RADIUS + 50 + Math.random() * 100;
+      data.phi = Math.random() * Math.PI * 2;
+
+      // Mix of disk and 3D orbits
+      const diskBias = Math.random();
+      if (diskBias < 0.7) {
+        data.theta = Math.PI / 2 + (Math.random() - 0.5) * 0.3; // disk
+      } else {
+        data.theta = Math.acos(2 * Math.random() - 1); // 3D
+      }
+
+      data.vr = 0;
+      data.vtheta = 0;
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.05;
+      data.vphi = orbitalSpeed / data.r;
+      data.L = data.r * orbitalSpeed;
     }
   }
 
