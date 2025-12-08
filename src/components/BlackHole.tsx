@@ -426,7 +426,7 @@ class BlackHoleEffect {
     const particleCount = this.settings.particleCount;
 
     for (let i = 0; i < particleCount; i++) {
-      const geometry = new THREE.SphereGeometry(1.5, 8, 8);
+      const geometry = new THREE.SphereGeometry(1.5, 6, 6); // Reduced segments for performance
       const material = new THREE.MeshBasicMaterial({
         color: new THREE.Color().setHSL(0.1 + Math.random() * 0.1, 1, 0.6),
         transparent: true,
@@ -435,10 +435,11 @@ class BlackHoleEffect {
 
       const particle = new THREE.Mesh(geometry, material);
 
-      // Start particles in various orbits
+      // Start particles in disk-like orbits (flatter initial distribution)
       const angle = Math.random() * Math.PI * 2;
       const radius = this.ISCO_RADIUS + Math.random() * 120;
-      const height = (Math.random() - 0.5) * 80;
+      // Much flatter initial height - disk-like distribution
+      const height = (Math.random() - 0.5) * 20; // Reduced from 80 to 20
 
       // Calculate orbital velocity based on radius (Kepler's laws)
       const orbitalSpeed = Math.sqrt(this.G / radius) * 0.05;
@@ -461,6 +462,7 @@ class BlackHoleEffect {
         angularMomentum: radius * orbitalSpeed, // Conserved quantity
         energy: 0.5 * orbitalSpeed * orbitalSpeed - this.G / radius,
         lastPositions: [], // For trails
+        trailUpdateCounter: 0, // Optimize trail updates
       };
 
       this.particles.push(particle);
@@ -519,19 +521,26 @@ class BlackHoleEffect {
     // Update angle based on tangential velocity
     data.angle += data.velocity.tangential / data.radius;
 
-    // Flatten height as particle spirals inward
-    data.height *= 0.995;
+    // Aggressively flatten height as particle spirals inward to form ring
+    const flatteningFactor = Math.min(1, data.radius / this.ISCO_RADIUS);
+    data.height *= 0.98; // Faster flattening
+    // Pull toward equatorial plane
+    data.height *= flatteningFactor;
 
     // Update 3D position
     particle.position.x = Math.cos(data.angle) * data.radius;
     particle.position.z = Math.sin(data.angle) * data.radius;
     particle.position.y = data.height;
 
-    // Store position for trail
+    // Store position for trail (optimized - update every 2 frames)
     if (this.settings.enableTrails) {
-      data.lastPositions.push(particle.position.clone());
-      if (data.lastPositions.length > 30) {
-        data.lastPositions.shift();
+      data.trailUpdateCounter++;
+      if (data.trailUpdateCounter >= 2) {
+        data.trailUpdateCounter = 0;
+        data.lastPositions.push(particle.position.clone());
+        if (data.lastPositions.length > 15) { // Reduced from 30 to 15 for performance
+          data.lastPositions.shift();
+        }
       }
     }
 
@@ -559,16 +568,18 @@ class BlackHoleEffect {
       particle.scale.set(1, 1, 1);
     }
 
-    // Reset if particle crosses event horizon
+    // Reset if particle crosses event horizon - recycle to outer ring
     if (data.radius < this.SCHWARZSCHILD_RADIUS + 10) {
       data.radius = this.ISCO_RADIUS + 50 + Math.random() * 100;
       data.angle = Math.random() * Math.PI * 2;
-      data.height = (Math.random() - 0.5) * 80;
+      // Keep particles in FLAT disk when recycling - this creates the ring effect!
+      data.height = (Math.random() - 0.5) * 5; // Very flat! Reduced from 80 to 5
       data.velocity.radial = 0;
       const orbitalSpeed = Math.sqrt(this.G / data.radius) * 0.05;
       data.velocity.tangential = orbitalSpeed;
       data.angularMomentum = data.radius * orbitalSpeed;
       data.lastPositions = [];
+      data.trailUpdateCounter = 0;
     }
   }
 
