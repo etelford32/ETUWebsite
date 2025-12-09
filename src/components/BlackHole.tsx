@@ -59,11 +59,13 @@ class BlackHoleEffect {
   particles: any[] = [];
   particleTrails: any[] = [];
   photonSphere: any;
+  outerBoundary: any;
   settings: any;
   // Physics constants
   readonly SCHWARZSCHILD_RADIUS = 60; // Event horizon radius
   readonly PHOTON_SPHERE_RADIUS = 90; // 1.5 * Schwarzschild radius
   readonly ISCO_RADIUS = 180; // Innermost stable circular orbit (3 * Schwarzschild)
+  readonly OUTER_BOUNDARY_RADIUS = 500; // Dark matter boundary / repulsion sphere
   readonly G = 50000; // Gravitational constant (scaled for visual effect)
 
   constructor(container: HTMLDivElement) {
@@ -85,6 +87,7 @@ class BlackHoleEffect {
     this.createBlackHole();
     this.createPhotonSphere();
     this.createAccretionDisk();
+    this.createOuterBoundary();
     this.createParticles();
     this.addEventListeners();
     this.animate();
@@ -421,6 +424,61 @@ class BlackHoleEffect {
     this.scene.add(this.accretionDisk);
   }
 
+  createOuterBoundary() {
+    const THREE = window.THREE;
+
+    // Create a subtle wireframe sphere to visualize the outer boundary
+    const boundaryGeometry = new THREE.SphereGeometry(this.OUTER_BOUNDARY_RADIUS, 32, 32);
+    const boundaryMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          // Create a pulsing grid pattern
+          float gridX = sin(vPosition.x * 0.05 + time * 0.5) * 0.5 + 0.5;
+          float gridY = sin(vPosition.y * 0.05 + time * 0.5) * 0.5 + 0.5;
+          float gridZ = sin(vPosition.z * 0.05 + time * 0.5) * 0.5 + 0.5;
+
+          float grid = max(max(gridX, gridY), gridZ);
+
+          // Dark matter purple/blue color
+          vec3 boundaryColor = vec3(0.4, 0.2, 0.8);
+
+          // Fade at edges (fresnel effect)
+          vec3 viewDirection = normalize(cameraPosition - vPosition);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
+
+          // Combine grid and fresnel
+          float alpha = fresnel * 0.15 + grid * 0.05;
+
+          gl_FragColor = vec4(boundaryColor, alpha);
+        }
+      `,
+      transparent: true,
+      side: THREE.BackSide, // Render from inside
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.outerBoundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
+    this.scene.add(this.outerBoundary);
+  }
+
   createParticles() {
     const THREE = window.THREE;
     const particleCount = this.settings.particleCount;
@@ -482,11 +540,33 @@ class BlackHoleEffect {
     const phi = data.phi;
 
     // Gravitational acceleration (inverse square law)
-    const ar = -this.G / (r * r) + (data.L * data.L) / (r * r * r); // includes centrifugal term
+    let ar = -this.G / (r * r) + (data.L * data.L) / (r * r * r); // includes centrifugal term
 
     // Check orbital zones
     const inPhotonSphere = Math.abs(r - this.PHOTON_SPHERE_RADIUS) < 15;
     const inPlungeZone = r < this.ISCO_RADIUS;
+
+    // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
+    // Particles are pulled towards the ISCO radius for stable orbits
+    const distanceFromISCO = r - this.ISCO_RADIUS;
+    const iscoAttractionStrength = 8000; // Tunable strength
+    const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
+    ar += iscoAttraction;
+
+    // OUTER BOUNDARY REPULSION (Dark Matter Sphere)
+    // Keep particles from flying off into space
+    if (r > this.OUTER_BOUNDARY_RADIUS) {
+      // Strong repulsion when outside boundary
+      const overshoot = r - this.OUTER_BOUNDARY_RADIUS;
+      const repulsionStrength = 15000; // Tunable strength
+      const repulsion = -repulsionStrength * overshoot / (r * r);
+      ar += repulsion;
+    } else if (r > this.OUTER_BOUNDARY_RADIUS * 0.85) {
+      // Gentle push as approaching boundary
+      const proximityFactor = (r - this.OUTER_BOUNDARY_RADIUS * 0.85) / (this.OUTER_BOUNDARY_RADIUS * 0.15);
+      const gentleRepulsion = -5000 * proximityFactor;
+      ar += gentleRepulsion;
+    }
 
     // Update velocities
     if (inPhotonSphere) {
@@ -498,7 +578,7 @@ class BlackHoleEffect {
       data.vr += ar * deltaTime * 2;
       data.inPhotonSphere = false;
     } else {
-      // Stable zone - gradual decay
+      // Stable zone - gradual decay with new forces
       data.vr += ar * deltaTime * 0.08;
       data.inPhotonSphere = false;
     }
@@ -676,6 +756,14 @@ class BlackHoleEffect {
       this.accretionDisk.rotation.z += 0.003;
       if (this.accretionDisk.material.uniforms) {
         this.accretionDisk.material.uniforms.time.value = this.time;
+      }
+    }
+
+    // Update outer boundary shader
+    if (this.outerBoundary) {
+      this.outerBoundary.rotation.y += 0.0005; // Slow rotation
+      if (this.outerBoundary.material.uniforms) {
+        this.outerBoundary.material.uniforms.time.value = this.time;
       }
     }
 
