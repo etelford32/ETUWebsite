@@ -68,7 +68,7 @@ class BlackHoleEffect {
   readonly TORUS_MAJOR_RADIUS = 400; // Major radius of torus (distance from center to tube center)
   readonly TORUS_MINOR_RADIUS = 150; // Minor radius of torus (tube thickness)
   readonly G = 50000; // Gravitational constant (scaled for visual effect)
-  readonly FRAME_DRAGGING_STRENGTH = 0.015; // Frame dragging (Lense-Thirring effect)
+  readonly FRAME_DRAGGING_STRENGTH = 0.045; // Frame dragging (Lense-Thirring effect) - BOOSTED!
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -104,9 +104,9 @@ class BlackHoleEffect {
     if (prefersReducedMotion) {
       return { particleCount: 50, photonCount: 300, enableParallax: false, enableTrails: false };
     } else if (isMobile) {
-      return { particleCount: 150, photonCount: 500, enableParallax: true, enableTrails: false };
+      return { particleCount: 150, photonCount: 500, enableParallax: true, enableTrails: true };
     } else {
-      return { particleCount: 300, photonCount: 800, enableParallax: true, enableTrails: false };
+      return { particleCount: 300, photonCount: 800, enableParallax: true, enableTrails: true };
     }
   }
 
@@ -530,22 +530,38 @@ class BlackHoleEffect {
         r * Math.sin(finalTheta) * Math.sin(phi)
       );
 
-      // Calculate orbital velocity for circular orbit (Kepler)
-      const orbitalSpeed = Math.sqrt(this.G / r) * 0.05;
+      // Calculate orbital velocity for circular orbit (Kepler) - BOOSTED for more spin!
+      const orbitalSpeed = Math.sqrt(this.G / r) * 0.15; // 3x boost!
 
       // Store 3D spherical orbital data
       particle.userData = {
         r: r,                    // radial distance
         theta: finalTheta,       // polar angle
         phi: phi,                // azimuthal angle
-        vr: 0,                   // radial velocity (starts circular)
-        vtheta: 0,               // polar velocity
-        vphi: orbitalSpeed / r,  // angular velocity (circular orbit)
-        L: r * orbitalSpeed,     // angular momentum (conserved)
+        vr: (Math.random() - 0.5) * 0.5,  // Add some initial radial motion
+        vtheta: (Math.random() - 0.5) * 0.02, // Small polar motion
+        vphi: orbitalSpeed / r,  // angular velocity (circular orbit) - BOOSTED!
+        L: r * orbitalSpeed,     // angular momentum (conserved) - INCREASED!
+        lastPositions: [],       // For trails
       };
 
       this.particles.push(particle);
       this.scene.add(particle);
+
+      // Create particle trail if enabled
+      if (this.settings.enableTrails) {
+        const trailGeometry = new THREE.BufferGeometry();
+        const trailMaterial = new THREE.LineBasicMaterial({
+          color: 0x66ccff,
+          transparent: true,
+          opacity: 0.7,
+          blending: THREE.AdditiveBlending,
+          linewidth: 2,
+        });
+        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        this.particleTrails.push(trail);
+        this.scene.add(trail);
+      }
     }
   }
 
@@ -650,22 +666,50 @@ class BlackHoleEffect {
     const sinPhi = Math.sin(data.phi);
     const cosPhi = Math.cos(data.phi);
 
-    particle.position.set(
+    const newPos = new THREE.Vector3(
       data.r * sinTheta * cosPhi,
       data.r * cosTheta,
       data.r * sinTheta * sinPhi
     );
 
-    // Color based on position and velocity
+    particle.position.copy(newPos);
+
+    // Track positions for trails
+    if (!data.lastPositions) data.lastPositions = [];
+    data.lastPositions.push(newPos.clone());
+    if (data.lastPositions.length > 15) {
+      data.lastPositions.shift(); // Keep last 15 positions
+    }
+
+    // RELATIVISTIC COLOR EFFECTS (Lorentz-inspired)
+    // Calculate total velocity magnitude
+    const vTotal = Math.sqrt(
+      data.vr * data.vr +
+      (data.r * data.vtheta) * (data.r * data.vtheta) +
+      (data.r * sinTheta * data.vphi) * (data.r * sinTheta * data.vphi)
+    );
+
+    // Speed factor for relativistic effects (normalized)
+    const speedFactor = Math.min(vTotal / 30, 1.0); // Normalize to 0-1
+
+    // Color based on position, velocity, and relativistic effects
     if (data.inPhotonSphere) {
-      particle.material.color.setHSL(0.55, 1, 0.7);
-      particle.material.opacity = 0.9;
-      particle.scale.set(1.5, 1.5, 1.5);
+      // Photon sphere - cyan/blue shift
+      particle.material.color.setHSL(0.55, 1, 0.8);
+      particle.material.opacity = 0.95;
+      particle.scale.set(2, 2, 2);
     } else {
       const heatFactor = 1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200);
-      particle.material.color.setHSL(0.15 - heatFactor * 0.15, 1, 0.5 + heatFactor * 0.3);
-      particle.material.opacity = 0.4 + heatFactor * 0.6;
-      particle.scale.set(1, 1, 1);
+
+      // Base color: orange to blue based on heat
+      // Add blue shift for high velocity (relativistic Doppler effect)
+      const hue = 0.15 - heatFactor * 0.15 + speedFactor * 0.4; // Shifts toward cyan with speed
+      const saturation = 1.0;
+      const lightness = 0.5 + heatFactor * 0.3 + speedFactor * 0.2; // Brighter with speed
+
+      particle.material.color.setHSL(hue, saturation, lightness);
+      particle.material.opacity = 0.6 + heatFactor * 0.4;
+      particle.scale.set(1 + speedFactor, 1 + speedFactor, 1 + speedFactor);
     }
 
     // Recycle particles that cross event horizon
@@ -681,30 +725,44 @@ class BlackHoleEffect {
         data.theta = Math.acos(2 * Math.random() - 1); // 3D
       }
 
-      data.vr = 0;
-      data.vtheta = 0;
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.05;
+      data.vr = (Math.random() - 0.5) * 0.5;
+      data.vtheta = (Math.random() - 0.5) * 0.02;
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.15; // BOOSTED!
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
+      data.lastPositions = []; // Reset trail
     }
   }
 
   updateParticleTrail(particle: any, trailIndex: number) {
     const THREE = window.THREE;
     const trail = this.particleTrails[trailIndex];
-    const positions = particle.userData.lastPositions;
+    if (!trail) return;
 
-    if (positions.length < 2) return;
+    const positions = particle.userData.lastPositions;
+    if (!positions || positions.length < 2) return;
 
     const points = positions.map((pos: any) => new THREE.Vector3(pos.x, pos.y, pos.z));
     trail.geometry.setFromPoints(points);
     trail.geometry.attributes.position.needsUpdate = true;
 
-    // Fade trail based on heat
-    const heatFactor = 1 - Math.max(0, (particle.userData.radius - this.SCHWARZSCHILD_RADIUS) / 200);
-    const trailColor = new THREE.Color().setHSL(0.15 - heatFactor * 0.15, 1, 0.6);
+    // BRIGHT TRAILS with speed-based color
+    const data = particle.userData;
+    const heatFactor = 1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200);
+
+    // Calculate velocity for color
+    const vTotal = Math.sqrt(
+      data.vr * data.vr +
+      (data.r * data.vtheta) * (data.r * data.vtheta) +
+      (data.r * Math.sin(data.theta) * data.vphi) * (data.r * Math.sin(data.theta) * data.vphi)
+    );
+    const speedFactor = Math.min(vTotal / 30, 1.0);
+
+    // Bright cyan-blue trails that shift with speed
+    const hue = 0.5 + speedFactor * 0.1; // Cyan to blue
+    const trailColor = new THREE.Color().setHSL(hue, 1, 0.6 + speedFactor * 0.2);
     trail.material.color = trailColor;
-    trail.material.opacity = 0.3 + heatFactor * 0.3;
+    trail.material.opacity = 0.6 + heatFactor * 0.3 + speedFactor * 0.2; // BRIGHTER!
   }
 
   addEventListeners() {
