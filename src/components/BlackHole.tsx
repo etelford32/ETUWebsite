@@ -67,8 +67,8 @@ class BlackHoleEffect {
   readonly ISCO_RADIUS = 180; // Innermost stable circular orbit (3 * Schwarzschild)
   readonly TORUS_MAJOR_RADIUS = 400; // Major radius of torus (distance from center to tube center)
   readonly TORUS_MINOR_RADIUS = 150; // Minor radius of torus (tube thickness)
-  G_BASE = 35000; // Base gravitational constant
-  G = 35000; // Gravitational constant (adjustable)
+  G_BASE = 25000; // Base gravitational constant - reduced for stable orbits
+  G = 25000; // Gravitational constant (adjustable)
   readonly FRAME_DRAGGING_STRENGTH = 0.045; // Frame dragging (Lense-Thirring effect) - BOOSTED!
 
   constructor(container: HTMLDivElement) {
@@ -531,18 +531,18 @@ class BlackHoleEffect {
         r * Math.sin(finalTheta) * Math.sin(phi)
       );
 
-      // Calculate orbital velocity for circular orbit (Kepler) - BOOSTED for more spin!
-      const orbitalSpeed = Math.sqrt(this.G / r) * 0.25; // 5x boost for stable orbits!
+      // Calculate orbital velocity for circular orbit (Kepler) - PROPER orbital mechanics!
+      const orbitalSpeed = Math.sqrt(this.G / r) * 0.9; // 90% of perfect circular orbit for stable spin!
 
       // Store 3D spherical orbital data
       particle.userData = {
         r: r,                    // radial distance
         theta: finalTheta,       // polar angle
         phi: phi,                // azimuthal angle
-        vr: (Math.random() - 0.5) * 0.5,  // Add some initial radial motion
-        vtheta: (Math.random() - 0.5) * 0.02, // Small polar motion
-        vphi: orbitalSpeed / r,  // angular velocity (circular orbit) - BOOSTED!
-        L: r * orbitalSpeed,     // angular momentum (conserved) - INCREASED!
+        vr: (Math.random() - 0.5) * 0.1,  // Minimal radial motion for stability
+        vtheta: (Math.random() - 0.5) * 0.01, // Minimal polar motion
+        vphi: orbitalSpeed / r,  // angular velocity (circular orbit) - PROPER!
+        L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
         lastPositions: [],       // For trails
       };
 
@@ -583,9 +583,9 @@ class BlackHoleEffect {
     const inPlungeZone = r < this.ISCO_RADIUS;
 
     // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
-    // Particles are pulled towards the ISCO radius for stable orbits
+    // GENTLE attraction towards ISCO for disk formation
     const distanceFromISCO = r - this.ISCO_RADIUS;
-    const iscoAttractionStrength = 2000; // Reduced for stable orbits (was 8000)
+    const iscoAttractionStrength = 500; // Very gentle for stable orbits
     const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
     ar += iscoAttraction;
 
@@ -640,8 +640,8 @@ class BlackHoleEffect {
       data.vr += ar * deltaTime * 2;
       data.inPhotonSphere = false;
     } else {
-      // Stable zone - gradual decay with new forces
-      data.vr += ar * deltaTime * 0.08;
+      // Stable zone - VERY gradual changes for stable orbits
+      data.vr += ar * deltaTime * 0.02; // Reduced from 0.08 for stability
       data.inPhotonSphere = false;
     }
 
@@ -652,6 +652,11 @@ class BlackHoleEffect {
 
     // Conservation of angular momentum: L = r² * vphi
     data.vphi = data.L / (data.r * data.r);
+
+    // Damping for radial velocity to help settle into circular orbits
+    if (!inPhotonSphere && !inPlungeZone) {
+      data.vr *= 0.98; // Slowly damp radial velocity in stable zone
+    }
 
     // Gravitational precession - particles in disk tend toward equator
     if (Math.abs(data.theta - Math.PI / 2) > 0.01) {
@@ -726,9 +731,9 @@ class BlackHoleEffect {
         data.theta = Math.acos(2 * Math.random() - 1); // 3D
       }
 
-      data.vr = (Math.random() - 0.5) * 0.3; // Reduced radial velocity
-      data.vtheta = (Math.random() - 0.5) * 0.02;
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.25; // Match initial orbital speed!
+      data.vr = (Math.random() - 0.5) * 0.1; // Minimal radial velocity for stability
+      data.vtheta = (Math.random() - 0.5) * 0.01; // Minimal polar motion
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.9; // Match initial orbital speed!
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
       data.lastPositions = []; // Reset trail
