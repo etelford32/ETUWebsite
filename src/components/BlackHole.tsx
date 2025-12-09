@@ -65,8 +65,10 @@ class BlackHoleEffect {
   readonly SCHWARZSCHILD_RADIUS = 60; // Event horizon radius
   readonly PHOTON_SPHERE_RADIUS = 90; // 1.5 * Schwarzschild radius
   readonly ISCO_RADIUS = 180; // Innermost stable circular orbit (3 * Schwarzschild)
-  readonly OUTER_BOUNDARY_RADIUS = 500; // Dark matter boundary / repulsion sphere
+  readonly TORUS_MAJOR_RADIUS = 400; // Major radius of torus (distance from center to tube center)
+  readonly TORUS_MINOR_RADIUS = 150; // Minor radius of torus (tube thickness)
   readonly G = 50000; // Gravitational constant (scaled for visual effect)
+  readonly FRAME_DRAGGING_STRENGTH = 0.015; // Frame dragging (Lense-Thirring effect)
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -427,8 +429,14 @@ class BlackHoleEffect {
   createOuterBoundary() {
     const THREE = window.THREE;
 
-    // Create a subtle wireframe sphere to visualize the outer boundary
-    const boundaryGeometry = new THREE.SphereGeometry(this.OUTER_BOUNDARY_RADIUS, 32, 32);
+    // Create a torus boundary (donut shape) - particles orbit within this structure
+    const boundaryGeometry = new THREE.TorusGeometry(
+      this.TORUS_MAJOR_RADIUS,  // Major radius
+      this.TORUS_MINOR_RADIUS,  // Minor radius (tube thickness)
+      32,  // Radial segments
+      64   // Tubular segments
+    );
+
     const boundaryMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
@@ -436,10 +444,13 @@ class BlackHoleEffect {
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vPosition;
+        varying vec3 vWorldPosition;
 
         void main() {
           vNormal = normalize(normalMatrix * normal);
           vPosition = position;
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
@@ -447,35 +458,43 @@ class BlackHoleEffect {
         uniform float time;
         varying vec3 vNormal;
         varying vec3 vPosition;
+        varying vec3 vWorldPosition;
 
         void main() {
-          // Create a pulsing grid pattern
-          float gridX = sin(vPosition.x * 0.05 + time * 0.5) * 0.5 + 0.5;
-          float gridY = sin(vPosition.y * 0.05 + time * 0.5) * 0.5 + 0.5;
-          float gridZ = sin(vPosition.z * 0.05 + time * 0.5) * 0.5 + 0.5;
+          // Create flowing energy patterns around the torus
+          float angle = atan(vWorldPosition.z, vWorldPosition.x);
+          float flow = sin(angle * 8.0 + time * 2.0) * 0.5 + 0.5;
 
-          float grid = max(max(gridX, gridY), gridZ);
+          // Pulsing grid along the tube
+          float tubePattern = sin(vPosition.y * 0.1 + time) *
+                             cos(angle * 4.0 - time * 1.5) * 0.5 + 0.5;
 
-          // Dark matter purple/blue color
-          vec3 boundaryColor = vec3(0.4, 0.2, 0.8);
+          // Dark matter purple/blue with flowing energy
+          vec3 boundaryColor = mix(
+            vec3(0.3, 0.1, 0.7),  // Deep purple
+            vec3(0.5, 0.3, 0.9),  // Lighter purple
+            flow
+          );
 
-          // Fade at edges (fresnel effect)
-          vec3 viewDirection = normalize(cameraPosition - vPosition);
-          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
+          // Fresnel effect for ethereal glow
+          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.5);
 
-          // Combine grid and fresnel
-          float alpha = fresnel * 0.15 + grid * 0.05;
+          // Combine effects
+          float alpha = fresnel * 0.2 + tubePattern * 0.08 + flow * 0.05;
 
           gl_FragColor = vec4(boundaryColor, alpha);
         }
       `,
       transparent: true,
-      side: THREE.BackSide, // Render from inside
+      side: THREE.DoubleSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
 
     this.outerBoundary = new THREE.Mesh(boundaryGeometry, boundaryMaterial);
+    // Rotate torus to align with accretion disk
+    this.outerBoundary.rotation.x = Math.PI / 2;
     this.scene.add(this.outerBoundary);
   }
 
@@ -553,19 +572,45 @@ class BlackHoleEffect {
     const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
     ar += iscoAttraction;
 
-    // OUTER BOUNDARY REPULSION (Dark Matter Sphere)
-    // Keep particles from flying off into space
-    if (r > this.OUTER_BOUNDARY_RADIUS) {
-      // Strong repulsion when outside boundary
-      const overshoot = r - this.OUTER_BOUNDARY_RADIUS;
-      const repulsionStrength = 15000; // Tunable strength
-      const repulsion = -repulsionStrength * overshoot / (r * r);
-      ar += repulsion;
-    } else if (r > this.OUTER_BOUNDARY_RADIUS * 0.85) {
-      // Gentle push as approaching boundary
-      const proximityFactor = (r - this.OUTER_BOUNDARY_RADIUS * 0.85) / (this.OUTER_BOUNDARY_RADIUS * 0.15);
-      const gentleRepulsion = -5000 * proximityFactor;
-      ar += gentleRepulsion;
+    // FRAME DRAGGING (Lense-Thirring Effect)
+    // Black hole's rotation drags spacetime, causing differential spin
+    // Particles closer to the black hole experience stronger frame dragging
+    const frameDraggingRadius = this.SCHWARZSCHILD_RADIUS * 10;
+    if (r < frameDraggingRadius) {
+      const frameDragFactor = 1.0 - (r / frameDraggingRadius);
+      // Add angular velocity proportional to proximity to black hole
+      const frameDragAccel = this.FRAME_DRAGGING_STRENGTH * frameDragFactor / r;
+      data.vphi += frameDragAccel * deltaTime;
+    }
+
+    // TORUS BOUNDARY REPULSION
+    // Calculate distance from particle to nearest point on torus surface
+    // Torus is in XZ plane (y=0), major radius from origin, minor radius is tube thickness
+    const torusDistXZ = Math.sqrt(data.r * data.r * Math.sin(data.theta) * Math.sin(data.theta));
+    const distanceFromTorusCenter = torusDistXZ - this.TORUS_MAJOR_RADIUS;
+    const heightAbovePlane = data.r * Math.cos(data.theta);
+
+    // Distance from particle to torus surface
+    const distToTorusSurface = Math.sqrt(
+      distanceFromTorusCenter * distanceFromTorusCenter +
+      heightAbovePlane * heightAbovePlane
+    ) - this.TORUS_MINOR_RADIUS;
+
+    // Apply repulsion when approaching or outside torus boundary
+    if (distToTorusSurface > -this.TORUS_MINOR_RADIUS * 0.3) {
+      const repulsionStrength = 12000;
+      const repulsionFactor = Math.max(0, distToTorusSurface + this.TORUS_MINOR_RADIUS * 0.3);
+
+      // Push particle back toward safe zone (torus interior)
+      if (distToTorusSurface > 0) {
+        // Outside torus - strong repulsion
+        const repulsion = -repulsionStrength * repulsionFactor * 2.0 / (r * r);
+        ar += repulsion;
+      } else {
+        // Approaching boundary - gentle push
+        const gentleRepulsion = -repulsionStrength * repulsionFactor * 0.5 / (r * r);
+        ar += gentleRepulsion;
+      }
     }
 
     // Update velocities

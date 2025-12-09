@@ -188,7 +188,12 @@
 
 /* Hero title with text shadow for depth */
 .hero-title {
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5), 0 4px 40px rgba(251, 146, 60, 0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9),
+               0 4px 8px rgba(0, 0, 0, 0.8),
+               0 8px 16px rgba(0, 0, 0, 0.7),
+               0 16px 32px rgba(0, 0, 0, 0.6),
+               0 4px 40px rgba(251, 146, 60, 0.3),
+               0 8px 60px rgba(245, 158, 11, 0.2);
   will-change: transform, opacity;
 }
 
@@ -328,6 +333,9 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
   will-change: transform, box-shadow;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
+              0 8px 16px rgba(0, 0, 0, 0.3),
+              0 0 20px rgba(102, 192, 244, 0.2);
 }
 
 .steam-btn::before {
@@ -345,7 +353,9 @@
 
 .steam-btn:hover {
   border-color: #66c0f4;
-  box-shadow: 0 0 30px rgba(102, 192, 244, 0.4), 0 10px 50px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 30px rgba(102, 192, 244, 0.5),
+              0 10px 50px rgba(0, 0, 0, 0.4),
+              0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Alternative button style */
@@ -357,6 +367,9 @@
   color: #fff;
   transition: all 0.3s ease;
   will-change: transform, box-shadow;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4),
+              0 8px 16px rgba(0, 0, 0, 0.3),
+              0 0 20px rgba(251, 146, 60, 0.2);
 }
 
 .btn-warp-alt::before {
@@ -375,7 +388,9 @@
 .btn-warp-alt:hover {
   transform: translateY(-2px);
   border-color: rgba(251, 146, 60, 0.6);
-  box-shadow: 0 0 25px rgba(251, 146, 60, 0.4), 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 25px rgba(251, 146, 60, 0.5),
+              0 10px 40px rgba(0, 0, 0, 0.4),
+              0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Minimal button style */
@@ -386,12 +401,16 @@
   color: #fff;
   transition: all 0.3s ease;
   will-change: transform, border-color;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3),
+              0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-minimal:hover {
   border-color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.05);
   transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4),
+              0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 /* Hero badge pulse animation */
@@ -464,6 +483,82 @@
 
 #hero-star-map {
   animation: starMapLoading 2s ease-in forwards;
+}
+
+/* ============================================
+   RETRO PC GAME BOX
+   ============================================ */
+
+.retro-game-box {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border: 3px solid #533483;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6),
+              0 4px 32px rgba(83, 52, 131, 0.4),
+              inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  transform-style: preserve-3d;
+  transition: all 0.3s ease;
+  will-change: transform;
+}
+
+.retro-game-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.retro-game-box:hover {
+  transform: translateY(-4px) rotateX(2deg);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.7),
+              0 8px 48px rgba(83, 52, 131, 0.6),
+              inset 0 2px 4px rgba(255, 255, 255, 0.15);
+}
+
+.retro-game-box-image {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.retro-game-box-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6),
+              0 0 20px rgba(220, 38, 38, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 10;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+.retro-game-box-title {
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8),
+               0 0 10px rgba(83, 52, 131, 0.6);
+}
+
+.retro-game-box-subtitle {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ============================================

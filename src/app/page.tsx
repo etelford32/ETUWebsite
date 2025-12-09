@@ -111,6 +111,40 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Retro PC Game Box */}
+        <a
+          href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-20 right-6 z-20 hidden lg:block"
+        >
+          <div className="retro-game-box rounded-lg p-3 w-48 cursor-pointer">
+            <div className="retro-game-box-badge">
+              DEC 25
+            </div>
+            <div className="retro-game-box-image rounded overflow-hidden mb-2">
+              <Image
+                src="/ETU_XMAS.png"
+                alt="ETU 2175 PC Game"
+                width={180}
+                height={120}
+                className="w-full h-auto object-cover"
+              />
+            </div>
+            <div className="text-center">
+              <div className="retro-game-box-title text-white text-xs mb-1">
+                ETU 2175
+              </div>
+              <div className="retro-game-box-subtitle text-white/70 text-[0.65rem]">
+                FOR PC • WINDOWS/MAC/LINUX
+              </div>
+              <div className="mt-2 text-[0.6rem] text-amber-400 font-semibold">
+                ★ WISHLIST NOW ★
+              </div>
+            </div>
+          </div>
+        </a>
+
         {/* Optimized background image with gradient overlay (fallback + blend) */}
         <div className="hero-bg-wrapper" style={{ opacity: 0.2 }}>
           <Image
@@ -150,11 +184,27 @@ export default function HomePage() {
                 </span>
               </div>
 
-              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-8xl font-bold leading-tight mb-6">
+              {/* Branding */}
+              <div className="reveal mb-4">
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white tracking-wider"
+                    style={{
+                      textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 8px rgba(0,0,0,0.8), 0 8px 16px rgba(0,0,0,0.7), 0 0 20px rgba(99,102,241,0.4)'
+                    }}>
+                  EXPLORE THE UNIVERSE 2175
+                </h2>
+                <p className="text-sm sm:text-base md:text-lg text-indigo-300 mt-2 font-semibold tracking-wide"
+                   style={{
+                     textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.6)'
+                   }}>
+                  The Most Immersive Galaxy Ever Created
+                </p>
+              </div>
+
+              <h1 className="reveal hero-title text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-6">
                 <span className="hero-gradient-text">
-                  The Most Immersive
+                  Experience Realistic Physics,
                   <br />
-                  Galaxy Ever Created
+                  Adaptive AI & Infinite Discovery
                 </span>
               </h1>
 
