@@ -186,16 +186,10 @@ export default function HomePage() {
 
               {/* Branding */}
               <div className="reveal mb-4">
-                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white tracking-wider"
-                    style={{
-                      textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 8px rgba(0,0,0,0.8), 0 8px 16px rgba(0,0,0,0.7), 0 0 20px rgba(99,102,241,0.4)'
-                    }}>
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-wider metallic-text">
                   EXPLORE THE UNIVERSE 2175
                 </h2>
-                <p className="text-sm sm:text-base md:text-lg text-indigo-300 mt-2 font-semibold tracking-wide"
-                   style={{
-                     textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.6)'
-                   }}>
+                <p className="text-sm sm:text-base md:text-lg mt-2 font-semibold tracking-wide metallic-subtitle">
                   The Most Immersive Galaxy Ever Created
                 </p>
               </div>
