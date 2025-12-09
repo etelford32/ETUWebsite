@@ -67,7 +67,8 @@ class BlackHoleEffect {
   readonly ISCO_RADIUS = 180; // Innermost stable circular orbit (3 * Schwarzschild)
   readonly TORUS_MAJOR_RADIUS = 400; // Major radius of torus (distance from center to tube center)
   readonly TORUS_MINOR_RADIUS = 150; // Minor radius of torus (tube thickness)
-  readonly G = 50000; // Gravitational constant (scaled for visual effect)
+  G_BASE = 35000; // Base gravitational constant
+  G = 35000; // Gravitational constant (adjustable)
   readonly FRAME_DRAGGING_STRENGTH = 0.045; // Frame dragging (Lense-Thirring effect) - BOOSTED!
 
   constructor(container: HTMLDivElement) {
@@ -531,7 +532,7 @@ class BlackHoleEffect {
       );
 
       // Calculate orbital velocity for circular orbit (Kepler) - BOOSTED for more spin!
-      const orbitalSpeed = Math.sqrt(this.G / r) * 0.15; // 3x boost!
+      const orbitalSpeed = Math.sqrt(this.G / r) * 0.25; // 5x boost for stable orbits!
 
       // Store 3D spherical orbital data
       particle.userData = {
@@ -584,7 +585,7 @@ class BlackHoleEffect {
     // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
     // Particles are pulled towards the ISCO radius for stable orbits
     const distanceFromISCO = r - this.ISCO_RADIUS;
-    const iscoAttractionStrength = 8000; // Tunable strength
+    const iscoAttractionStrength = 2000; // Reduced for stable orbits (was 8000)
     const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
     ar += iscoAttraction;
 
@@ -725,9 +726,9 @@ class BlackHoleEffect {
         data.theta = Math.acos(2 * Math.random() - 1); // 3D
       }
 
-      data.vr = (Math.random() - 0.5) * 0.5;
+      data.vr = (Math.random() - 0.5) * 0.3; // Reduced radial velocity
       data.vtheta = (Math.random() - 0.5) * 0.02;
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.15; // BOOSTED!
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.25; // Match initial orbital speed!
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
       data.lastPositions = []; // Reset trail
@@ -890,6 +891,11 @@ class BlackHoleEffect {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  setGravity(value: number) {
+    // Value from 0-100, map to 0.2x - 2x of base gravity
+    this.G = this.G_BASE * (0.2 + (value / 100) * 1.8);
   }
 
   destroy() {
