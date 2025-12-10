@@ -85,9 +85,21 @@ class BlackHoleEffect {
   readonly BEAMING_POWER = 3.0; // Relativistic beaming exponent
   readonly GRAVITATIONAL_REDSHIFT_STRENGTH = 0.8; // Intensity of gravitational redshift
 
+  // PHASE 2: KERR METRIC (ROTATING BLACK HOLE) CONSTANTS
+  readonly SPIN_PARAMETER = 0.9; // Black hole spin (0 = Schwarzschild, 1 = extremal Kerr)
+  readonly ERGOSPHERE_RADIUS = 120; // Rs + sqrt(Rs^2 - a^2) for equatorial plane
+  readonly KERR_FRAME_DRAGGING = 0.12; // Enhanced frame dragging for rotating BH
+  readonly PROGRADE_BOOST = 1.3; // Velocity boost for prograde orbits (with rotation)
+  readonly RETROGRADE_PENALTY = 0.7; // Velocity penalty for retrograde orbits (against rotation)
+
+  // PHASE 2: GRAVITATIONAL LENSING CONSTANTS
+  readonly LENSING_STRENGTH = 0.5; // Strength of light bending effect
+  readonly EINSTEIN_RING_RADIUS = 85; // Radius where lensing creates Einstein rings
+
   // Rendering Quality Settings
   readonly MAX_TRAIL_LENGTH = 20; // Trail history length (optimized for performance)
   readonly TRAIL_FADE_RATE = 0.08; // How quickly trails fade (exponential)
+  readonly ENABLE_VOLUMETRIC_DISK = true; // Toggle 3D volumetric disk rendering
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -331,62 +343,97 @@ class BlackHoleEffect {
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-    // Enhanced star material with gravitational lensing shader
+    // ========================================================================
+    // PHASE 2: ADVANCED GRAVITATIONAL LENSING SHADER
+    // ========================================================================
     const material = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
         blackHolePos: { value: new THREE.Vector3(0, 0, 0) },
-        lensStrength: { value: 0.3 },
+        lensStrength: { value: this.LENSING_STRENGTH },
+        schwarzschildRadius: { value: this.SCHWARZSCHILD_RADIUS },
+        einsteinRingRadius: { value: this.EINSTEIN_RING_RADIUS },
       },
       vertexShader: `
         uniform float time;
         uniform vec3 blackHolePos;
         uniform float lensStrength;
+        uniform float schwarzschildRadius;
+        uniform float einsteinRingRadius;
 
         attribute vec3 color;
         varying vec3 vColor;
         varying float vLensEffect;
+        varying float vEinsteinRing;
 
         void main() {
           vColor = color;
 
-          // Calculate distance to black hole for lensing effect
+          // ===== PHASE 2: ADVANCED GRAVITATIONAL LENSING =====
+
+          // Calculate distance to black hole
           vec3 worldPos = position;
           float dist = distance(worldPos, blackHolePos);
 
-          // Gravitational lensing: bend light rays near black hole
-          vec3 toBH = blackHolePos - worldPos;
-          float lensing = lensStrength * (1000.0 / (dist + 100.0));
-          vec3 bentPos = worldPos + toBH * lensing * 0.01;
+          // Schwarzschild deflection angle: θ ≈ 4GM/rc² ≈ 2Rs/r
+          // Stronger near event horizon, creates Einstein rings
+          float deflectionFactor = schwarzschildRadius / max(dist, schwarzschildRadius * 1.5);
 
-          // Brightness varies with lensing (Einstein ring effect)
-          vLensEffect = 1.0 + lensing * 0.5;
+          // Direction from black hole to star
+          vec3 toBH = normalize(blackHolePos - worldPos);
 
+          // Apply gravitational lensing (light bending)
+          // Stars directly behind BH get bent into rings
+          float lensingAmount = lensStrength * deflectionFactor * 1500.0;
+          vec3 bentPos = worldPos + toBH * lensingAmount;
+
+          // Einstein ring detection (stars at specific radius get MUCH brighter)
+          float distFromEinsteinRing = abs(dist - einsteinRingRadius);
+          float einsteinRingEffect = exp(-distFromEinsteinRing * distFromEinsteinRing * 0.002);
+          vEinsteinRing = einsteinRingEffect;
+
+          // Magnification from lensing (brighter when strongly bent)
+          // μ = (u² + 2)/(u√(u² + 4)) where u = impact parameter
+          float magnification = 1.0 + deflectionFactor * 3.0 + einsteinRingEffect * 4.0;
+          vLensEffect = magnification;
+
+          // Transform to screen space
           vec4 mvPosition = modelViewMatrix * vec4(bentPos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
-          // Twinkle effect
-          float twinkle = sin(time * 2.0 + position.x * 0.1) * 0.5 + 1.0;
-          gl_PointSize = 2.0 * twinkle * (1.0 + lensing * 0.2);
+          // Twinkle effect (subtle)
+          float twinkle = sin(time * 2.0 + position.x * 0.1) * 0.3 + 0.7;
+
+          // Size increases with lensing (stars appear bigger when magnified)
+          gl_PointSize = 2.0 * twinkle * (1.0 + deflectionFactor * 2.0 + einsteinRingEffect * 3.0);
         }
       `,
       fragmentShader: `
         varying vec3 vColor;
         varying float vLensEffect;
+        varying float vEinsteinRing;
 
         void main() {
-          // Circular point
+          // Circular point with soft edges
           vec2 center = gl_PointCoord - vec2(0.5);
           float dist = length(center);
           if (dist > 0.5) discard;
 
-          // Soft glow
-          float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
+          // Gaussian falloff for soft glow
+          float alpha = exp(-dist * dist * 4.0);
 
-          // Enhanced brightness from gravitational lensing
+          // Base color with lensing magnification
           vec3 color = vColor * vLensEffect;
 
-          gl_FragColor = vec4(color, alpha * 0.8);
+          // Einstein ring stars are BRILLIANT blue-white (gravitational focusing)
+          if (vEinsteinRing > 0.1) {
+            color = mix(color, vec3(1.0, 1.0, 1.2), vEinsteinRing * 0.8);
+          }
+
+          // Enhanced opacity for Einstein ring
+          float finalAlpha = alpha * (0.6 + vEinsteinRing * 0.4);
+
+          gl_FragColor = vec4(color, finalAlpha);
         }
       `,
       transparent: true,
@@ -929,16 +976,61 @@ class BlackHoleEffect {
     const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
     ar += iscoAttraction;
 
-    // FRAME DRAGGING (Lense-Thirring Effect)
-    // Black hole's rotation drags spacetime, causing differential spin
-    // Particles closer to the black hole experience stronger frame dragging
-    const frameDraggingRadius = this.SCHWARZSCHILD_RADIUS * 10;
+    // ========================================================================
+    // PHASE 2: KERR METRIC - ROTATING BLACK HOLE PHYSICS
+    // ========================================================================
+
+    // Detect if particle is in ergosphere (region where spacetime itself rotates)
+    const inErgosphere = r < this.ERGOSPHERE_RADIUS;
+
+    // Determine if orbit is prograde (with rotation) or retrograde (against rotation)
+    // BH rotates counterclockwise (positive phi direction), so positive vphi = prograde
+    const isPrograde = data.vphi > 0;
+
+    // ENHANCED FRAME DRAGGING for Kerr black holes
+    // Frame dragging is MUCH stronger in Kerr metric, especially in ergosphere
+    const frameDraggingRadius = this.ERGOSPHERE_RADIUS * 1.5;
     if (r < frameDraggingRadius) {
       const frameDragFactor = 1.0 - (r / frameDraggingRadius);
-      // Add angular velocity proportional to proximity to black hole
-      const frameDragAccel = this.FRAME_DRAGGING_STRENGTH * frameDragFactor / r;
-      data.vphi += frameDragAccel * deltaTime;
+
+      // Kerr frame dragging is stronger than Schwarzschild
+      const kerrFrameDragAccel = this.KERR_FRAME_DRAGGING * frameDragFactor / (r * 0.5);
+
+      // Inside ergosphere, ALL particles must co-rotate (cannot stand still!)
+      if (inErgosphere) {
+        // Force co-rotation - particles MUST move with the black hole
+        const minimumRotation = 0.02 * (1.0 - r / this.ERGOSPHERE_RADIUS);
+        if (data.vphi < minimumRotation) {
+          data.vphi = minimumRotation; // Can't move slower than spacetime itself!
+        }
+        // Extra strong frame dragging in ergosphere
+        data.vphi += kerrFrameDragAccel * deltaTime * 2.0;
+      } else {
+        // Normal frame dragging outside ergosphere
+        data.vphi += kerrFrameDragAccel * deltaTime;
+      }
     }
+
+    // PROGRADE VS RETROGRADE ORBITAL DYNAMICS
+    // Prograde orbits (with rotation) are faster and more stable (Penrose process)
+    // Retrograde orbits (against rotation) are slower and less stable
+    if (isPrograde) {
+      // Prograde boost: orbital velocity increases slightly
+      data.vphi *= this.PROGRADE_BOOST * (1.0 + frameDragFactor * 0.1);
+
+      // Prograde particles can orbit closer (inner edge moves inward)
+      // This simulates the prograde ISCO being at 1 Rs vs 9 Rs for retrograde
+    } else {
+      // Retrograde penalty: orbital velocity decreases
+      data.vphi *= this.RETROGRADE_PENALTY;
+
+      // Retrograde orbits are less stable - add wobble
+      data.vr += (Math.random() - 0.5) * 0.05 * frameDragFactor;
+    }
+
+    // Store orbital type for rendering
+    data.isPrograde = isPrograde;
+    data.inErgosphere = inErgosphere;
 
     // TORUS BOUNDARY REPULSION
     // Calculate distance from particle to nearest point on torus surface
@@ -1059,24 +1151,49 @@ class BlackHoleEffect {
         data.r
       );
 
-      // Apply HSL color with Doppler shift + gravitational redshift
+      // ===== PHASE 2: KERR METRIC VISUAL EFFECTS =====
+      let finalHue = relativisticColor.hue;
+      let finalLightness = relativisticColor.lightness;
+      let finalBrightness = relativisticColor.brightness;
+
+      // ERGOSPHERE PARTICLES - Distinctive purple/magenta glow
+      if (data.inErgosphere) {
+        // Ergosphere particles have purple tint (spacetime is being dragged!)
+        finalHue = 0.8 + (finalHue - 0.8) * 0.3; // Shift toward magenta
+        finalLightness = Math.min(0.9, finalLightness * 1.2); // Brighter
+        finalBrightness *= 1.5; // Extra bright in ergosphere
+      }
+
+      // PROGRADE VS RETROGRADE COLOR DISTINCTION
+      if (data.isPrograde) {
+        // Prograde orbits: shift slightly bluer (efficient energy extraction)
+        finalHue += 0.05;
+      } else {
+        // Retrograde orbits: shift slightly redder (less efficient)
+        finalHue -= 0.05;
+      }
+
+      // Apply HSL color with all effects
       particle.material.color.setHSL(
-        relativisticColor.hue,
+        finalHue,
         relativisticColor.saturation,
-        relativisticColor.lightness
+        finalLightness
       );
 
       // Apply relativistic beaming to opacity (brighter when moving toward us)
       const baseOpacity = 0.5 + (1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200)) * 0.4;
-      particle.material.opacity = Math.min(1.0, baseOpacity * relativisticColor.brightness);
+      particle.material.opacity = Math.min(1.0, baseOpacity * finalBrightness);
 
-      // Scale based on velocity and beaming
-      const scaleMultiplier = 1.0 + speedFactor * 0.5 + (relativisticColor.brightness - 1.0) * 0.3;
+      // Scale based on velocity, beaming, and ergosphere
+      let scaleMultiplier = 1.0 + speedFactor * 0.5 + (finalBrightness - 1.0) * 0.3;
+      if (data.inErgosphere) {
+        scaleMultiplier *= 1.3; // Ergosphere particles appear larger
+      }
       particle.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
 
       // Store velocity for trail rendering
       data.velocity = velocityCartesian.clone();
-      data.relativisticBrightness = relativisticColor.brightness;
+      data.relativisticBrightness = finalBrightness;
     }
 
     // Recycle particles that cross event horizon
