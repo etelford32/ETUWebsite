@@ -14,25 +14,37 @@ export default function BlackHole() {
 
   useEffect(() => {
     // Load Three.js dynamically
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
-    script.async = true;
-    script.onload = () => {
-      if (containerRef.current && window.THREE) {
-        blackHoleRef.current = new BlackHoleEffect(containerRef.current);
-      }
+    const threeScript = document.createElement("script");
+    threeScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
+    threeScript.async = true;
+
+    threeScript.onload = () => {
+      // Load OrbitControls after Three.js
+      const controlsScript = document.createElement("script");
+      controlsScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js";
+      controlsScript.async = true;
+
+      controlsScript.onload = () => {
+        if (containerRef.current && window.THREE) {
+          blackHoleRef.current = new BlackHoleEffect(containerRef.current);
+        }
+      };
+
+      document.head.appendChild(controlsScript);
     };
-    document.head.appendChild(script);
+
+    document.head.appendChild(threeScript);
 
     return () => {
       if (blackHoleRef.current && blackHoleRef.current.destroy) {
         blackHoleRef.current.destroy();
       }
-      // Clean up script
-      const existingScript = document.querySelector(`script[src="${script.src}"]`);
-      if (existingScript) {
-        document.head.removeChild(existingScript);
-      }
+      // Clean up scripts
+      const existingThree = document.querySelector(`script[src="${threeScript.src}"]`);
+      if (existingThree) document.head.removeChild(existingThree);
+
+      const existingControls = document.querySelector(`script[src*="OrbitControls"]`);
+      if (existingControls) document.head.removeChild(existingControls);
     };
   }, []);
 
@@ -61,7 +73,13 @@ class BlackHoleEffect {
   photonSphere: any;
   outerBoundary: any;
   photonRing: any; // NEW: Separate photon ring visualization
+  controls: any; // OrbitControls for interactive camera
+  raycaster: any; // For click detection
   settings: any;
+
+  // Interactive mode settings
+  interactiveMode: boolean = true;
+  enableParticleSpawning: boolean = true;
 
   // ============================================================================
   // PHASE 1: ADVANCED PHYSICS CONSTANTS
@@ -123,6 +141,7 @@ class BlackHoleEffect {
     this.createAccretionDisk();
     this.createOuterBoundary();
     this.createParticles();
+    this.setupInteractiveControls();
     this.addEventListeners();
     this.animate();
   }
@@ -314,6 +333,9 @@ class BlackHoleEffect {
     this.renderer.domElement.style.height = "100%";
     this.renderer.domElement.style.zIndex = "1";
     this.container.appendChild(this.renderer.domElement);
+
+    // Setup raycaster for click detection
+    this.raycaster = new THREE.Raycaster();
   }
 
   createStarField() {
@@ -1561,26 +1583,230 @@ class BlackHoleEffect {
     }
   }
 
-  addEventListeners() {
-    if (this.settings.enableParallax) {
-      const handleMouseMove = (e: MouseEvent) => {
-        this.mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
-        this.mouse.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
-      };
-      document.addEventListener("mousemove", handleMouseMove);
+  // ============================================================================
+  // INTERACTIVE CONTROLS SETUP
+  // ============================================================================
+  setupInteractiveControls() {
+    const THREE = window.THREE;
+
+    // Setup OrbitControls for full 3D exploration
+    if (window.THREE.OrbitControls) {
+      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+
+      // Configure controls for smooth black hole exploration
+      this.controls.enableDamping = true; // Smooth damping
+      this.controls.dampingFactor = 0.05;
+      this.controls.rotateSpeed = 0.5;
+      this.controls.zoomSpeed = 0.8;
+      this.controls.panSpeed = 0.5;
+
+      // Set limits to keep user in interesting zone
+      this.controls.minDistance = 100; // Don't get too close to event horizon
+      this.controls.maxDistance = 1500; // Don't go too far
+      this.controls.maxPolarAngle = Math.PI; // Allow full vertical rotation
+
+      // Enable all interaction types
+      this.controls.enableZoom = true;
+      this.controls.enableRotate = true;
+      this.controls.enablePan = true;
+
+      console.log("✨ Interactive controls enabled! Drag to rotate, scroll to zoom, right-click to pan");
+    }
+  }
+
+  // ============================================================================
+  // PARTICLE SPAWNING ON DOUBLE-CLICK
+  // ============================================================================
+  spawnParticleAtPosition(x: number, y: number, z: number) {
+    const THREE = window.THREE;
+
+    // Create new particle with glow shader
+    const geometry = new THREE.SphereGeometry(2, 8, 8); // Slightly larger for spawned particles
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new THREE.Color().setHSL(Math.random(), 1, 0.7) }, // Random bright color
+        opacity: { value: 0.9 },
+        glowStrength: { value: 3.0 }, // Extra bright spawn!
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float opacity;
+        uniform float glowStrength;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        void main() {
+          vec3 viewDirection = normalize(cameraPosition - vPosition);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
+          float core = 1.0 - fresnel * 0.5;
+          vec3 finalColor = glowColor * glowStrength * (core + fresnel * 2.0);
+          float alpha = opacity * (core + fresnel * 0.5);
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+
+    const particle = new THREE.Mesh(geometry, material);
+    particle.position.set(x, y, z);
+
+    // Calculate spherical coordinates from Cartesian
+    const r = Math.sqrt(x * x + y * y + z * z);
+    const theta = Math.acos(y / r);
+    const phi = Math.atan2(z, x);
+
+    // Calculate orbital velocity for this position
+    const orbitalSpeed = Math.sqrt(this.G / r) * 0.98;
+
+    // Initialize full particle data
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+    const sinPhi = Math.sin(phi);
+    const cosPhi = Math.cos(phi);
+
+    const vr = (Math.random() - 0.5) * 0.02;
+    const vtheta = (Math.random() - 0.5) * 0.002;
+    const vphi = orbitalSpeed / r;
+
+    particle.userData = {
+      r, theta, phi, vr, vtheta, vphi,
+      x, y, z,
+      vx: vr * sinTheta * cosPhi - r * vtheta * cosTheta * cosPhi - r * sinTheta * vphi * sinPhi,
+      vy: vr * cosTheta + r * vtheta * sinTheta,
+      vz: vr * sinTheta * sinPhi - r * vtheta * cosTheta * sinPhi + r * sinTheta * vphi * cosPhi,
+      ax: 0, ay: 0, az: 0, ar: 0,
+      dx: 0, dy: 0, dz: 0,
+      L: r * orbitalSpeed,
+      speed: orbitalSpeed,
+      speedSq: orbitalSpeed * orbitalSpeed,
+      lastPositions: [],
+      color: { h: Math.random(), s: 1, l: 0.7 },
+      age: 0,
+      lifetime: 15 + Math.random() * 10,
+      birthTime: this.time,
+      fadeInDuration: 1.0,
+      fadeOutDuration: 2.0,
+      inPhotonSphere: false,
+      inErgosphere: false,
+      isPrograde: true,
+      collidedWithBoundary: false,
+    };
+
+    this.particles.push(particle);
+    this.scene.add(particle);
+
+    // Add trail for spawned particle
+    if (this.settings.enableTrails) {
+      const trailGeometry = new THREE.BufferGeometry();
+      const trailMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          trailColor: { value: new THREE.Color(0x66ccff) },
+          opacity: { value: 1.0 },
+          brightness: { value: 1.0 },
+        },
+        vertexShader: `
+          attribute float trailAge;
+          varying float vAge;
+          varying vec3 vPosition;
+
+          void main() {
+            vAge = trailAge;
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 trailColor;
+          uniform float opacity;
+          uniform float brightness;
+          varying float vAge;
+          varying vec3 vPosition;
+
+          void main() {
+            float ageFade = exp(-vAge * 5.0);
+            vec3 finalColor = trailColor * brightness;
+            float finalOpacity = opacity * ageFade;
+            gl_FragColor = vec4(finalColor, finalOpacity);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        linewidth: 2,
+      });
+
+      const trail = new THREE.Line(trailGeometry, trailMaterial);
+      this.particleTrails.push(trail);
+      this.scene.add(trail);
     }
 
+    console.log(`✨ Spawned particle at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
+  }
+
+  addEventListeners() {
+    // Mouse tracking for raycasting
+    const handleMouseMove = (e: MouseEvent) => {
+      this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+
+    // Double-click to spawn particles
+    const handleDoubleClick = (e: MouseEvent) => {
+      if (!this.enableParticleSpawning) return;
+
+      const THREE = window.THREE;
+
+      // Update raycaster with mouse position
+      this.raycaster.setFromCamera(
+        new THREE.Vector2(this.mouse.x, this.mouse.y),
+        this.camera
+      );
+
+      // Spawn particle at a distance in front of camera
+      const spawnDistance = 300; // Distance from camera
+      const spawnPoint = new THREE.Vector3();
+      this.raycaster.ray.at(spawnDistance, spawnPoint);
+
+      this.spawnParticleAtPosition(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+    };
+    this.renderer.domElement.addEventListener("dblclick", handleDoubleClick);
+
+    // Window resize
     const handleResize = () => this.onWindowResize();
     window.addEventListener("resize", handleResize, false);
 
+    // Touch support for mobile
     if ("ontouchstart" in window) {
-      const handleTouchMove = (e: TouchEvent) => {
-        if (e.touches.length > 0) {
-          this.mouse.targetX = (e.touches[0].clientX / window.innerWidth - 0.5) * 2;
-          this.mouse.targetY = (e.touches[0].clientY / window.innerHeight - 0.5) * 2;
+      let lastTap = 0;
+      const handleTouch = (e: TouchEvent) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          // Double tap detected
+          const touch = e.touches[0];
+          this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+          this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+          handleDoubleClick(e as any);
         }
+        lastTap = currentTime;
       };
-      document.addEventListener("touchmove", handleTouchMove, { passive: true });
+      this.renderer.domElement.addEventListener("touchend", handleTouch);
     }
   }
 
