@@ -646,7 +646,7 @@ class BlackHoleEffect {
     const diskMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        cameraPosition: { value: new THREE.Vector3() },
+        // cameraPosition is built-in to Three.js - don't redefine it!
         rotationSpeed: { value: 0.02 }, // Disk rotation for Doppler calculation
         schwarzschildRadius: { value: this.SCHWARZSCHILD_RADIUS },
       },
@@ -668,7 +668,7 @@ class BlackHoleEffect {
       `,
       fragmentShader: `
         uniform float time;
-        uniform vec3 cameraPosition;
+        // cameraPosition is built-in to Three.js shaders
         uniform float rotationSpeed;
         uniform float schwarzschildRadius;
 
@@ -918,30 +918,83 @@ class BlackHoleEffect {
       const orbitalSpeed = Math.sqrt(this.G / r) * 0.98; // 98% of circular orbit for ultra-stable spin!
 
       // ========================================================================
-      // ENHANCED: PARTICLE LIFETIME & ORBITAL DATA
+      // ENHANCED: FULL PARTICLE PHYSICS DATA TRACKING
       // ========================================================================
       // Calculate stable circular orbit lifetime (particles gradually spiral in)
       const minLifetime = 8.0;  // seconds
       const maxLifetime = 20.0; // seconds
       const lifetime = minLifetime + Math.random() * (maxLifetime - minLifetime);
 
-      // Store 3D spherical orbital data with lifetime management
+      // Cartesian coordinates from spherical
+      const x = particle.position.x;
+      const y = particle.position.y;
+      const z = particle.position.z;
+
+      // Calculate initial Cartesian velocities from spherical
+      const sinTheta = Math.sin(finalTheta);
+      const cosTheta = Math.cos(finalTheta);
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+
+      const vr_init = (Math.random() - 0.5) * 0.02;  // MINIMAL radial velocity
+      const vtheta_init = (Math.random() - 0.5) * 0.002; // MINIMAL polar velocity
+      const vphi_init = orbitalSpeed / r;
+
+      // Convert to Cartesian velocities
+      const vx = vr_init * sinTheta * cosPhi - r * vtheta_init * cosTheta * cosPhi - r * sinTheta * vphi_init * sinPhi;
+      const vy = vr_init * cosTheta + r * vtheta_init * sinTheta;
+      const vz = vr_init * sinTheta * sinPhi - r * vtheta_init * cosTheta * sinPhi + r * sinTheta * vphi_init * cosPhi;
+
+      // Store COMPREHENSIVE particle physics data
       particle.userData = {
+        // ===== SPHERICAL COORDINATES =====
         r: r,                    // radial distance
         theta: finalTheta,       // polar angle
         phi: phi,                // azimuthal angle
-        vr: (Math.random() - 0.5) * 0.05,  // REDUCED radial motion for more stable orbits
-        vtheta: (Math.random() - 0.5) * 0.005, // REDUCED polar motion for stability
-        vphi: orbitalSpeed / r,  // angular velocity (circular orbit) - PROPER!
-        L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
-        lastPositions: [],       // For trails
+        vr: vr_init,            // radial velocity
+        vtheta: vtheta_init,    // polar velocity
+        vphi: vphi_init,        // azimuthal angular velocity
 
-        // LIFETIME SYSTEM
+        // ===== CARTESIAN COORDINATES =====
+        x: x,                    // x position
+        y: y,                    // y position
+        z: z,                    // z position
+        vx: vx,                  // x velocity
+        vy: vy,                  // y velocity
+        vz: vz,                  // z velocity
+
+        // ===== ACCELERATION (updated each frame) =====
+        ax: 0,                   // x acceleration
+        ay: 0,                   // y acceleration
+        az: 0,                   // z acceleration
+        ar: 0,                   // radial acceleration
+
+        // ===== DIFFERENTIAL (delta per frame) =====
+        dx: 0,                   // change in x (last frame)
+        dy: 0,                   // change in y (last frame)
+        dz: 0,                   // change in z (last frame)
+
+        // ===== PHYSICS PROPERTIES =====
+        L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
+        speed: Math.sqrt(vx * vx + vy * vy + vz * vz), // total speed
+        speedSq: vx * vx + vy * vy + vz * vz, // speed squared (optimization)
+
+        // ===== RENDERING & TRAILS =====
+        lastPositions: [],       // For trails
+        color: { h: 0.1, s: 1, l: 0.6 }, // Current HSL color
+
+        // ===== LIFETIME SYSTEM =====
         age: 0,                  // Current age in seconds
         lifetime: lifetime,      // Total lifetime in seconds
         birthTime: 0,            // Time particle was born/recycled
         fadeInDuration: 1.0,     // Fade in over 1 second
         fadeOutDuration: 2.0,    // Fade out over 2 seconds
+
+        // ===== STATE FLAGS =====
+        inPhotonSphere: false,
+        inErgosphere: false,
+        isPrograde: true,
+        collidedWithBoundary: false,
       };
 
       this.particles.push(particle);
@@ -1016,6 +1069,13 @@ class BlackHoleEffect {
   updateParticlePhysics(particle: any, deltaTime: number) {
     const data = particle.userData;
     const THREE = window.THREE;
+
+    // ========================================================================
+    // SAVE PREVIOUS POSITION for dx, dy, dz
+    // ========================================================================
+    const prevX = data.x;
+    const prevY = data.y;
+    const prevZ = data.z;
 
     // ========================================================================
     // UPDATE PARTICLE LIFETIME
@@ -1119,7 +1179,9 @@ class BlackHoleEffect {
     data.isPrograde = isPrograde;
     data.inErgosphere = inErgosphere;
 
-    // TORUS BOUNDARY REPULSION
+    // ========================================================================
+    // ENHANCED TORUS BOUNDARY: Repulsion & MASSIVE Collision Acceleration
+    // ========================================================================
     // Calculate distance from particle to nearest point on torus surface
     // Torus is in XZ plane (y=0), major radius from origin, minor radius is tube thickness
     const torusDistXZ = Math.sqrt(data.r * data.r * Math.sin(data.theta) * Math.sin(data.theta));
@@ -1132,21 +1194,45 @@ class BlackHoleEffect {
       heightAbovePlane * heightAbovePlane
     ) - this.TORUS_MINOR_RADIUS;
 
-    // Apply repulsion when approaching or outside torus boundary
-    if (distToTorusSurface > -this.TORUS_MINOR_RADIUS * 0.3) {
-      const repulsionStrength = 12000;
-      const repulsionFactor = Math.max(0, distToTorusSurface + this.TORUS_MINOR_RADIUS * 0.3);
+    const collisionThreshold = 5; // Particles within 5 units of boundary = collision!
+    const boundaryZone = this.TORUS_MINOR_RADIUS * 0.5; // Warning zone
 
-      // Push particle back toward safe zone (torus interior)
-      if (distToTorusSurface > 0) {
-        // Outside torus - strong repulsion
-        const repulsion = -repulsionStrength * repulsionFactor * 2.0 / (r * r);
-        ar += repulsion;
-      } else {
-        // Approaching boundary - gentle push
-        const gentleRepulsion = -repulsionStrength * repulsionFactor * 0.5 / (r * r);
-        ar += gentleRepulsion;
-      }
+    // COLLISION WITH BOUNDARY - MASSIVE ACCELERATION!
+    if (distToTorusSurface > 0 && distToTorusSurface < collisionThreshold) {
+      // MASSIVE INWARD ACCELERATION on collision!
+      const collisionForce = 80000; // HUGE force!
+      const collisionAccel = -collisionForce / (r * r);
+      ar += collisionAccel;
+
+      // Add tangential acceleration (spin up the particle!)
+      data.vphi += 0.05 * deltaTime; // Collision spins particle faster
+
+      // Mark collision for visual effect
+      data.collidedWithBoundary = true;
+
+      // Flash bright color on collision
+      data.color.h = 0.05; // Orange-red
+      data.color.l = 0.9;  // Very bright!
+    }
+    // STRONG REPULSION when outside boundary
+    else if (distToTorusSurface > collisionThreshold) {
+      const repulsionStrength = 25000; // STRONGER than before
+      const repulsionFactor = Math.max(0, distToTorusSurface - collisionThreshold);
+      const repulsion = -repulsionStrength * repulsionFactor * 3.0 / (r * r);
+      ar += repulsion;
+
+      data.collidedWithBoundary = false;
+    }
+    // APPROACHING boundary - warning zone
+    else if (distToTorusSurface > -boundaryZone) {
+      const repulsionStrength = 8000;
+      const repulsionFactor = Math.max(0, distToTorusSurface + boundaryZone);
+      const gentleRepulsion = -repulsionStrength * repulsionFactor * 1.0 / (r * r);
+      ar += gentleRepulsion;
+
+      data.collidedWithBoundary = false;
+    } else {
+      data.collidedWithBoundary = false;
     }
 
     // Update velocities
@@ -1208,6 +1294,30 @@ class BlackHoleEffect {
 
     particle.position.copy(newPos);
 
+    // ========================================================================
+    // UPDATE ALL CARTESIAN COORDINATES & DELTAS
+    // ========================================================================
+    data.x = newPos.x;
+    data.y = newPos.y;
+    data.z = newPos.z;
+
+    // Calculate deltas (change since last frame)
+    data.dx = data.x - prevX;
+    data.dy = data.y - prevY;
+    data.dz = data.z - prevZ;
+
+    // Update Cartesian velocities from spherical
+    data.vx = data.vr * sinTheta * cosPhi - data.r * data.vtheta * cosTheta * cosPhi - data.r * sinTheta * data.vphi * sinPhi;
+    data.vy = data.vr * cosTheta + data.r * data.vtheta * sinTheta;
+    data.vz = data.vr * sinTheta * sinPhi - data.r * data.vtheta * cosTheta * sinPhi + data.r * sinTheta * data.vphi * cosPhi;
+
+    // Update speed metrics (for rendering & color)
+    data.speedSq = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz;
+    data.speed = Math.sqrt(data.speedSq);
+
+    // Store acceleration for next frame
+    data.ar = ar;
+
     // Track positions for trails
     if (!data.lastPositions) data.lastPositions = [];
     data.lastPositions.push(newPos.clone());
@@ -1250,11 +1360,26 @@ class BlackHoleEffect {
         data.r
       );
 
-      // ===== PHASE 2: KERR METRIC VISUAL EFFECTS =====
-      let finalHue = relativisticColor.hue;
+      // ===== VELOCITY-BASED COLOR INTERPOLATION =====
+      // Map speed to color: slow = red-orange, fast = blue-white
+      const speedNormalized = Math.min(data.speed / this.SPEED_OF_LIGHT, 1.0);
+
+      // Base hue from speed (0.0 = red, 0.15 = orange, 0.55 = cyan-blue)
+      const speedHue = 0.02 + speedNormalized * 0.50; // Fast particles are bluer
+
+      // Blend speed-based color with relativistic effects
+      let finalHue = relativisticColor.hue * 0.5 + speedHue * 0.5;
       let finalLightness = relativisticColor.lightness;
       let finalBrightness = relativisticColor.brightness;
 
+      // COLLISION OVERRIDE - bright flash!
+      if (data.collidedWithBoundary) {
+        finalHue = data.color.h; // Use stored collision color
+        finalLightness = data.color.l;
+        finalBrightness *= 2.0; // Extra bright on collision!
+      }
+
+      // ===== PHASE 2: KERR METRIC VISUAL EFFECTS =====
       // ERGOSPHERE PARTICLES - Distinctive purple/magenta glow
       if (data.inErgosphere) {
         // Ergosphere particles have purple tint (spacetime is being dragged!)
@@ -1271,6 +1396,11 @@ class BlackHoleEffect {
         // Retrograde orbits: shift slightly redder (less efficient)
         finalHue -= 0.05;
       }
+
+      // Store final color for next frame
+      data.color.h = finalHue;
+      data.color.s = relativisticColor.saturation;
+      data.color.l = finalLightness;
 
       // Apply HSL color with all effects to shader uniforms
       if (particle.material.uniforms) {
@@ -1328,6 +1458,46 @@ class BlackHoleEffect {
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
       data.lastPositions = []; // Reset trail
+
+      // Update Cartesian coordinates
+      const recycleTheta = data.theta;
+      const recyclePhi = data.phi;
+      const recycleR = data.r;
+      const sinT = Math.sin(recycleTheta);
+      const cosT = Math.cos(recycleTheta);
+      const sinP = Math.sin(recyclePhi);
+      const cosP = Math.cos(recyclePhi);
+
+      data.x = recycleR * sinT * cosP;
+      data.y = recycleR * cosT;
+      data.z = recycleR * sinT * sinP;
+
+      // Update Cartesian velocities
+      data.vx = data.vr * sinT * cosP - recycleR * data.vtheta * cosT * cosP - recycleR * sinT * data.vphi * sinP;
+      data.vy = data.vr * cosT + recycleR * data.vtheta * sinT;
+      data.vz = data.vr * sinT * sinP - recycleR * data.vtheta * cosT * sinP + recycleR * sinT * data.vphi * cosP;
+
+      data.speedSq = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz;
+      data.speed = Math.sqrt(data.speedSq);
+
+      // Reset acceleration
+      data.ax = 0;
+      data.ay = 0;
+      data.az = 0;
+      data.ar = 0;
+
+      // Reset deltas
+      data.dx = 0;
+      data.dy = 0;
+      data.dz = 0;
+
+      // Reset color
+      data.color.h = 0.1;
+      data.color.s = 1.0;
+      data.color.l = 0.6;
+
+      // Reset flags
+      data.collidedWithBoundary = false;
 
       // RESET LIFETIME
       const minLifetime = 8.0;
@@ -1493,8 +1663,7 @@ class BlackHoleEffect {
       this.accretionDisk.rotation.z += 0.003;
       if (this.accretionDisk.material.uniforms) {
         this.accretionDisk.material.uniforms.time.value = this.time;
-        // PHASE 1: Update camera position for Doppler shift calculation
-        this.accretionDisk.material.uniforms.cameraPosition.value.copy(this.camera.position);
+        // cameraPosition is automatically updated by Three.js
       }
     }
 
