@@ -842,11 +842,56 @@ class BlackHoleEffect {
     const particleCount = this.settings.particleCount;
 
     for (let i = 0; i < particleCount; i++) {
-      const geometry = new THREE.SphereGeometry(1.5, 4, 4); // Minimal geometry for performance
-      const material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color().setHSL(0.1 + Math.random() * 0.1, 1, 0.6),
+      // ========================================================================
+      // ENHANCED PARTICLE GLOW SHADER
+      // ========================================================================
+      const geometry = new THREE.SphereGeometry(1.5, 8, 8); // Slightly higher quality for better glow
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          glowColor: { value: new THREE.Color().setHSL(0.1 + Math.random() * 0.1, 1, 0.6) },
+          opacity: { value: 0.8 },
+          glowStrength: { value: 2.5 },
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 glowColor;
+          uniform float opacity;
+          uniform float glowStrength;
+
+          varying vec3 vNormal;
+          varying vec3 vPosition;
+
+          void main() {
+            // Fresnel-like edge glow
+            vec3 viewDirection = normalize(cameraPosition - vPosition);
+            float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
+
+            // Soft core with bright edges
+            float core = 1.0 - fresnel * 0.5;
+
+            // Combine glow effects
+            vec3 finalColor = glowColor * glowStrength * (core + fresnel * 2.0);
+
+            // Soft falloff for volume-like appearance
+            float alpha = opacity * (core + fresnel * 0.5);
+
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
         transparent: true,
-        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       });
 
       const particle = new THREE.Mesh(geometry, material);
@@ -870,18 +915,33 @@ class BlackHoleEffect {
       );
 
       // Calculate orbital velocity for circular orbit (Kepler) - PROPER orbital mechanics!
-      const orbitalSpeed = Math.sqrt(this.G / r) * 0.9; // 90% of perfect circular orbit for stable spin!
+      const orbitalSpeed = Math.sqrt(this.G / r) * 0.98; // 98% of circular orbit for ultra-stable spin!
 
-      // Store 3D spherical orbital data
+      // ========================================================================
+      // ENHANCED: PARTICLE LIFETIME & ORBITAL DATA
+      // ========================================================================
+      // Calculate stable circular orbit lifetime (particles gradually spiral in)
+      const minLifetime = 8.0;  // seconds
+      const maxLifetime = 20.0; // seconds
+      const lifetime = minLifetime + Math.random() * (maxLifetime - minLifetime);
+
+      // Store 3D spherical orbital data with lifetime management
       particle.userData = {
         r: r,                    // radial distance
         theta: finalTheta,       // polar angle
         phi: phi,                // azimuthal angle
-        vr: (Math.random() - 0.5) * 0.1,  // Minimal radial motion for stability
-        vtheta: (Math.random() - 0.5) * 0.01, // Minimal polar motion
+        vr: (Math.random() - 0.5) * 0.05,  // REDUCED radial motion for more stable orbits
+        vtheta: (Math.random() - 0.5) * 0.005, // REDUCED polar motion for stability
         vphi: orbitalSpeed / r,  // angular velocity (circular orbit) - PROPER!
         L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
         lastPositions: [],       // For trails
+
+        // LIFETIME SYSTEM
+        age: 0,                  // Current age in seconds
+        lifetime: lifetime,      // Total lifetime in seconds
+        birthTime: 0,            // Time particle was born/recycled
+        fadeInDuration: 1.0,     // Fade in over 1 second
+        fadeOutDuration: 2.0,    // Fade out over 2 seconds
       };
 
       this.particles.push(particle);
@@ -957,6 +1017,31 @@ class BlackHoleEffect {
     const data = particle.userData;
     const THREE = window.THREE;
 
+    // ========================================================================
+    // UPDATE PARTICLE LIFETIME
+    // ========================================================================
+    data.age += deltaTime;
+
+    // Calculate alpha based on lifetime (fade in/out)
+    let alphaMultiplier = 1.0;
+
+    // Fade in at birth
+    if (data.age < data.fadeInDuration) {
+      alphaMultiplier = data.age / data.fadeInDuration;
+      // Smooth ease-in using cubic easing
+      alphaMultiplier = alphaMultiplier * alphaMultiplier * (3.0 - 2.0 * alphaMultiplier);
+    }
+    // Fade out before death
+    else if (data.age > data.lifetime - data.fadeOutDuration) {
+      const timeUntilDeath = data.lifetime - data.age;
+      alphaMultiplier = timeUntilDeath / data.fadeOutDuration;
+      // Smooth ease-out using cubic easing
+      alphaMultiplier = alphaMultiplier * alphaMultiplier * (3.0 - 2.0 * alphaMultiplier);
+    }
+
+    // Store alpha for rendering
+    data.alphaMultiplier = Math.max(0, Math.min(1, alphaMultiplier));
+
     // PROPER 3D SPHERICAL PHYSICS FOR BLACK HOLES
     const r = data.r;
     const theta = data.theta;
@@ -970,9 +1055,9 @@ class BlackHoleEffect {
     const inPlungeZone = r < this.ISCO_RADIUS;
 
     // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
-    // GENTLE attraction towards ISCO for disk formation
+    // GENTLE attraction towards ISCO for disk formation - creates stable "sweet spot"
     const distanceFromISCO = r - this.ISCO_RADIUS;
-    const iscoAttractionStrength = 500; // Very gentle for stable orbits
+    const iscoAttractionStrength = 300; // REDUCED for even more stable orbits
     const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
     ar += iscoAttraction;
 
@@ -990,8 +1075,10 @@ class BlackHoleEffect {
     // ENHANCED FRAME DRAGGING for Kerr black holes
     // Frame dragging is MUCH stronger in Kerr metric, especially in ergosphere
     const frameDraggingRadius = this.ERGOSPHERE_RADIUS * 1.5;
+    let frameDragFactor = 0; // Default to 0 outside frame dragging zone
+
     if (r < frameDraggingRadius) {
-      const frameDragFactor = 1.0 - (r / frameDraggingRadius);
+      frameDragFactor = 1.0 - (r / frameDraggingRadius);
 
       // Kerr frame dragging is stronger than Schwarzschild
       const kerrFrameDragAccel = this.KERR_FRAME_DRAGGING * frameDragFactor / (r * 0.5);
@@ -1085,17 +1172,26 @@ class BlackHoleEffect {
     // Conservation of angular momentum: L = r² * vphi
     data.vphi = data.L / (data.r * data.r);
 
-    // Damping for radial velocity to help settle into circular orbits
+    // ========================================================================
+    // ENHANCED DAMPING for stable circular orbits
+    // ========================================================================
     if (!inPhotonSphere && !inPlungeZone) {
-      data.vr *= 0.98; // Slowly damp radial velocity in stable zone
+      // Stronger damping for radial and polar velocities to maintain circular orbits
+      data.vr *= 0.985; // Damp radial oscillations
+      data.vtheta *= 0.99; // Damp polar oscillations
+
+      // Add slight attraction to equatorial plane for disk formation
+      const distanceFromEquator = Math.abs(data.theta - Math.PI / 2);
+      if (distanceFromEquator > 0.01) {
+        const equatorAttraction = -0.001 * (data.theta - Math.PI / 2);
+        data.vtheta += equatorAttraction;
+      }
     }
 
-    // Gravitational precession - particles in disk tend toward equator
-    if (Math.abs(data.theta - Math.PI / 2) > 0.01) {
-      const toEquator = (Math.PI / 2 - data.theta) * 0.02;
-      data.vtheta = toEquator;
-    } else {
-      data.vtheta *= 0.95; // damping
+    // Gravitational precession - particles in disk tend toward equator (gentler)
+    if (Math.abs(data.theta - Math.PI / 2) > 0.05) {
+      const toEquator = (Math.PI / 2 - data.theta) * 0.015; // REDUCED for smoother motion
+      data.vtheta += toEquator;
     }
 
     // Convert spherical to Cartesian for rendering
@@ -1138,8 +1234,11 @@ class BlackHoleEffect {
     if (data.inPhotonSphere) {
       // ===== PHOTON SPHERE - SPECIAL CASE =====
       // Photons orbit at exactly c - intense blueshift and brightness
-      particle.material.color.setHSL(0.55, 1.0, 0.85);
-      particle.material.opacity = 0.98;
+      if (particle.material.uniforms) {
+        particle.material.uniforms.glowColor.value.setHSL(0.55, 1.0, 0.85);
+        particle.material.uniforms.opacity.value = 0.98 * data.alphaMultiplier;
+        particle.material.uniforms.glowStrength.value = 3.5; // Extra bright!
+      }
       particle.scale.set(2.5, 2.5, 2.5);
     } else {
       // ===== NORMAL PARTICLES - FULL RELATIVISTIC TREATMENT =====
@@ -1173,16 +1272,24 @@ class BlackHoleEffect {
         finalHue -= 0.05;
       }
 
-      // Apply HSL color with all effects
-      particle.material.color.setHSL(
-        finalHue,
-        relativisticColor.saturation,
-        finalLightness
-      );
+      // Apply HSL color with all effects to shader uniforms
+      if (particle.material.uniforms) {
+        particle.material.uniforms.glowColor.value.setHSL(
+          finalHue,
+          relativisticColor.saturation,
+          finalLightness
+        );
 
-      // Apply relativistic beaming to opacity (brighter when moving toward us)
-      const baseOpacity = 0.5 + (1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200)) * 0.4;
-      particle.material.opacity = Math.min(1.0, baseOpacity * finalBrightness);
+        // Apply relativistic beaming to opacity (brighter when moving toward us)
+        const baseOpacity = 0.5 + (1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200)) * 0.4;
+
+        // APPLY LIFETIME ALPHA FADE
+        const finalOpacity = baseOpacity * finalBrightness * data.alphaMultiplier;
+        particle.material.uniforms.opacity.value = Math.min(1.0, finalOpacity);
+
+        // Adjust glow strength based on brightness
+        particle.material.uniforms.glowStrength.value = 2.0 + finalBrightness * 0.8;
+      }
 
       // Scale based on velocity, beaming, and ergosphere
       let scaleMultiplier = 1.0 + speedFactor * 0.5 + (finalBrightness - 1.0) * 0.3;
@@ -1196,12 +1303,17 @@ class BlackHoleEffect {
       data.relativisticBrightness = finalBrightness;
     }
 
-    // Recycle particles that cross event horizon
-    if (data.r < this.SCHWARZSCHILD_RADIUS + 10) {
+    // ========================================================================
+    // RECYCLE PARTICLES: Event horizon crossing OR lifetime expired
+    // ========================================================================
+    const shouldRecycle = (data.r < this.SCHWARZSCHILD_RADIUS + 10) || (data.age >= data.lifetime);
+
+    if (shouldRecycle) {
+      // Reset to outer accretion disk with new random position
       data.r = this.ISCO_RADIUS + 50 + Math.random() * 100;
       data.phi = Math.random() * Math.PI * 2;
 
-      // Mix of disk and 3D orbits
+      // Mix of disk and 3D orbits (70% disk, 30% inclined)
       const diskBias = Math.random();
       if (diskBias < 0.7) {
         data.theta = Math.PI / 2 + (Math.random() - 0.5) * 0.3; // disk
@@ -1209,12 +1321,20 @@ class BlackHoleEffect {
         data.theta = Math.acos(2 * Math.random() - 1); // 3D
       }
 
-      data.vr = (Math.random() - 0.5) * 0.1; // Minimal radial velocity for stability
-      data.vtheta = (Math.random() - 0.5) * 0.01; // Minimal polar motion
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.9; // Match initial orbital speed!
+      // STABLE ORBITAL INITIAL CONDITIONS - Nearly perfect circular orbits!
+      data.vr = (Math.random() - 0.5) * 0.02; // MINIMAL radial velocity for ultra-stable orbits
+      data.vtheta = (Math.random() - 0.5) * 0.002; // MINIMAL polar velocity
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.98; // 98% of circular orbit for near-perfect stability
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
       data.lastPositions = []; // Reset trail
+
+      // RESET LIFETIME
+      const minLifetime = 8.0;
+      const maxLifetime = 20.0;
+      data.lifetime = minLifetime + Math.random() * (maxLifetime - minLifetime);
+      data.age = 0;
+      data.birthTime = this.time;
     }
   }
 
