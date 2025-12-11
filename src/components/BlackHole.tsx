@@ -939,7 +939,7 @@ class BlackHoleEffect {
       );
 
       // Calculate orbital velocity for circular orbit (Kepler) - PROPER orbital mechanics!
-      const orbitalSpeed = Math.sqrt(this.G / r) * 0.98; // 98% of circular orbit for ultra-stable spin!
+      const orbitalSpeed = Math.sqrt(this.G / r) * 1.0; // 100% of circular orbit for TRUE stable orbits!
 
       // ========================================================================
       // ENHANCED: FULL PARTICLE PHYSICS DATA TRACKING
@@ -960,8 +960,8 @@ class BlackHoleEffect {
       const sinPhi = Math.sin(phi);
       const cosPhi = Math.cos(phi);
 
-      const vr_init = (Math.random() - 0.5) * 0.02;  // MINIMAL radial velocity
-      const vtheta_init = (Math.random() - 0.5) * 0.002; // MINIMAL polar velocity
+      const vr_init = (Math.random() - 0.5) * 0.005;  // ULTRA-MINIMAL radial velocity
+      const vtheta_init = (Math.random() - 0.5) * 0.0005; // ULTRA-MINIMAL polar velocity
       const vphi_init = orbitalSpeed / r;
 
       // Convert to Cartesian velocities
@@ -1139,10 +1139,13 @@ class BlackHoleEffect {
     const inPlungeZone = r < this.ISCO_RADIUS;
 
     // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
-    // GENTLE attraction towards ISCO for disk formation - creates stable "sweet spot"
+    // VERY GENTLE attraction towards ISCO - only affects particles near ISCO
+    // This creates a stable "sweet spot" without disrupting outer orbits
     const distanceFromISCO = r - this.ISCO_RADIUS;
-    const iscoAttractionStrength = 300; // REDUCED for even more stable orbits
-    const iscoAttraction = -iscoAttractionStrength * distanceFromISCO / (r * r);
+    const iscoAttractionStrength = 5; // DRASTICALLY REDUCED - only gentle nudge toward disk
+    // Only apply ISCO attraction if particle is within 50 units of ISCO
+    const iscoProximity = Math.max(0, 50 - Math.abs(distanceFromISCO)) / 50;
+    const iscoAttraction = -iscoAttractionStrength * distanceFromISCO * iscoProximity / (r * r);
     ar += iscoAttraction;
 
     // ========================================================================
@@ -1158,45 +1161,49 @@ class BlackHoleEffect {
 
     // ENHANCED FRAME DRAGGING for Kerr black holes
     // Frame dragging is MUCH stronger in Kerr metric, especially in ergosphere
+    // NOTE: We apply frame dragging by modifying L (angular momentum) rather than vphi directly
+    // This ensures consistency with angular momentum conservation (line 1283)
     const frameDraggingRadius = this.ERGOSPHERE_RADIUS * 1.5;
     let frameDragFactor = 0; // Default to 0 outside frame dragging zone
 
     if (r < frameDraggingRadius) {
       frameDragFactor = 1.0 - (r / frameDraggingRadius);
 
-      // Kerr frame dragging is stronger than Schwarzschild
-      const kerrFrameDragAccel = this.KERR_FRAME_DRAGGING * frameDragFactor / (r * 0.5);
+      // Kerr frame dragging adds angular momentum over time (like a torque)
+      const kerrFrameDragTorque = this.KERR_FRAME_DRAGGING * frameDragFactor * 0.5;
 
-      // Inside ergosphere, ALL particles must co-rotate (cannot stand still!)
+      // Inside ergosphere, spacetime itself is rotating - stronger effect
       if (inErgosphere) {
-        // Force co-rotation - particles MUST move with the black hole
-        const minimumRotation = 0.02 * (1.0 - r / this.ERGOSPHERE_RADIUS);
-        if (data.vphi < minimumRotation) {
-          data.vphi = minimumRotation; // Can't move slower than spacetime itself!
+        // Force minimum co-rotation - particles cannot stand still in ergosphere!
+        const minimumL = this.ERGOSPHERE_RADIUS * 0.01 * (1.0 - r / this.ERGOSPHERE_RADIUS);
+        if (data.L < minimumL) {
+          data.L = minimumL; // Can't have less angular momentum than spacetime itself!
         }
-        // Extra strong frame dragging in ergosphere
-        data.vphi += kerrFrameDragAccel * deltaTime * 2.0;
+        // Extra strong torque in ergosphere
+        data.L += kerrFrameDragTorque * deltaTime * 20.0;
       } else {
-        // Normal frame dragging outside ergosphere
-        data.vphi += kerrFrameDragAccel * deltaTime;
+        // Normal frame dragging torque outside ergosphere
+        data.L += kerrFrameDragTorque * deltaTime * 10.0;
       }
     }
 
     // PROGRADE VS RETROGRADE ORBITAL DYNAMICS
-    // Prograde orbits (with rotation) are faster and more stable (Penrose process)
-    // Retrograde orbits (against rotation) are slower and less stable
+    // NOTE: Instead of multiplying vphi (which gets overwritten by L conservation),
+    // we slightly modify the orbital dynamics through L
     if (isPrograde) {
-      // Prograde boost: orbital velocity increases slightly
-      data.vphi *= this.PROGRADE_BOOST * (1.0 + frameDragFactor * 0.1);
-
-      // Prograde particles can orbit closer (inner edge moves inward)
-      // This simulates the prograde ISCO being at 1 Rs vs 9 Rs for retrograde
+      // Prograde orbits extract energy from black hole rotation (Penrose process)
+      // Slightly increase L over time for prograde orbits in frame dragging zone
+      if (frameDragFactor > 0) {
+        data.L += frameDragFactor * 0.3 * deltaTime;
+      }
     } else {
-      // Retrograde penalty: orbital velocity decreases
-      data.vphi *= this.RETROGRADE_PENALTY;
-
-      // Retrograde orbits are less stable - add wobble
-      data.vr += (Math.random() - 0.5) * 0.05 * frameDragFactor;
+      // Retrograde orbits work against rotation - less stable, lose energy
+      // Slightly decrease L and add instability
+      if (frameDragFactor > 0) {
+        data.L -= frameDragFactor * 0.2 * deltaTime;
+        // Retrograde orbits are less stable - add wobble
+        data.vr += (Math.random() - 0.5) * 0.01 * frameDragFactor;
+      }
     }
 
     // Store orbital type for rendering
@@ -1475,10 +1482,10 @@ class BlackHoleEffect {
         data.theta = Math.acos(2 * Math.random() - 1); // 3D
       }
 
-      // STABLE ORBITAL INITIAL CONDITIONS - Nearly perfect circular orbits!
-      data.vr = (Math.random() - 0.5) * 0.02; // MINIMAL radial velocity for ultra-stable orbits
-      data.vtheta = (Math.random() - 0.5) * 0.002; // MINIMAL polar velocity
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 0.98; // 98% of circular orbit for near-perfect stability
+      // STABLE ORBITAL INITIAL CONDITIONS - Perfect circular orbits!
+      data.vr = (Math.random() - 0.5) * 0.005; // ULTRA-MINIMAL radial velocity
+      data.vtheta = (Math.random() - 0.5) * 0.0005; // ULTRA-MINIMAL polar velocity
+      const orbitalSpeed = Math.sqrt(this.G / data.r) * 1.0; // 100% of circular orbit for perfect stability!
       data.vphi = orbitalSpeed / data.r;
       data.L = data.r * orbitalSpeed;
       data.lastPositions = []; // Reset trail
@@ -1671,7 +1678,7 @@ class BlackHoleEffect {
     const phi = Math.atan2(z, x);
 
     // Calculate orbital velocity for this position
-    const orbitalSpeed = Math.sqrt(this.G / r) * 0.98;
+    const orbitalSpeed = Math.sqrt(this.G / r) * 1.0;
 
     // Initialize full particle data
     const sinTheta = Math.sin(theta);
@@ -1679,8 +1686,8 @@ class BlackHoleEffect {
     const sinPhi = Math.sin(phi);
     const cosPhi = Math.cos(phi);
 
-    const vr = (Math.random() - 0.5) * 0.02;
-    const vtheta = (Math.random() - 0.5) * 0.002;
+    const vr = (Math.random() - 0.5) * 0.005;
+    const vtheta = (Math.random() - 0.5) * 0.0005;
     const vphi = orbitalSpeed / r;
 
     particle.userData = {
