@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     siteName: 'Explore the Universe 2175',
     images: [
       {
-        url: 'https://exploretheuniverse2175.com/ETU_XMAS.png',
+        url: 'https://exploretheuniverse2175.com/etu_epic7.png',
         width: 1200,
         height: 630,
       },
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Explore the Universe 2175',
     description: 'Open-world space adventure with realistic astrophysics and dynamic factions.',
-    images: ['https://exploretheuniverse2175.com/ETU_XMAS.png'],
+    images: ['https://exploretheuniverse2175.com/etu_epic7.png'],
   },
 }
 
