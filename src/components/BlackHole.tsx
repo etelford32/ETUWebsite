@@ -19,18 +19,9 @@ export default function BlackHole() {
     threeScript.async = true;
 
     threeScript.onload = () => {
-      // Load OrbitControls after Three.js
-      const controlsScript = document.createElement("script");
-      controlsScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js";
-      controlsScript.async = true;
-
-      controlsScript.onload = () => {
-        if (containerRef.current && window.THREE) {
-          blackHoleRef.current = new BlackHoleEffect(containerRef.current);
-        }
-      };
-
-      document.head.appendChild(controlsScript);
+      if (containerRef.current && window.THREE) {
+        blackHoleRef.current = new BlackHoleEffect(containerRef.current);
+      }
     };
 
     document.head.appendChild(threeScript);
@@ -39,12 +30,9 @@ export default function BlackHole() {
       if (blackHoleRef.current && blackHoleRef.current.destroy) {
         blackHoleRef.current.destroy();
       }
-      // Clean up scripts
+      // Clean up script
       const existingThree = document.querySelector(`script[src="${threeScript.src}"]`);
       if (existingThree) document.head.removeChild(existingThree);
-
-      const existingControls = document.querySelector(`script[src*="OrbitControls"]`);
-      if (existingControls) document.head.removeChild(existingControls);
     };
   }, []);
 
@@ -73,13 +61,27 @@ class BlackHoleEffect {
   photonSphere: any;
   outerBoundary: any;
   photonRing: any; // NEW: Separate photon ring visualization
-  controls: any; // OrbitControls for interactive camera
+  controls: any; // Custom camera controls
   raycaster: any; // For click detection
   settings: any;
 
   // Interactive mode settings
   interactiveMode: boolean = true;
   enableParticleSpawning: boolean = true;
+
+  // Camera control state
+  cameraState: any = {
+    isDragging: false,
+    isRightDragging: false,
+    lastMouseX: 0,
+    lastMouseY: 0,
+    azimuth: 0, // Horizontal rotation
+    elevation: Math.PI / 4, // Vertical angle
+    distance: 600, // Distance from center
+    targetAzimuth: 0,
+    targetElevation: Math.PI / 4,
+    targetDistance: 600,
+  };
 
   // ============================================================================
   // PHASE 1: ADVANCED PHYSICS CONSTANTS
@@ -1584,34 +1586,33 @@ class BlackHoleEffect {
   }
 
   // ============================================================================
-  // INTERACTIVE CONTROLS SETUP
+  // CUSTOM INTERACTIVE CAMERA CONTROLS
   // ============================================================================
   setupInteractiveControls() {
-    const THREE = window.THREE;
+    console.log("✨ Interactive controls enabled! Drag to rotate, scroll to zoom, right-click to pan, double-click to spawn particles");
+  }
 
-    // Setup OrbitControls for full 3D exploration
-    if (window.THREE.OrbitControls) {
-      this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+  updateCameraFromState() {
+    const state = this.cameraState;
 
-      // Configure controls for smooth black hole exploration
-      this.controls.enableDamping = true; // Smooth damping
-      this.controls.dampingFactor = 0.05;
-      this.controls.rotateSpeed = 0.5;
-      this.controls.zoomSpeed = 0.8;
-      this.controls.panSpeed = 0.5;
+    // Smooth interpolation towards target
+    state.azimuth += (state.targetAzimuth - state.azimuth) * 0.1;
+    state.elevation += (state.targetElevation - state.elevation) * 0.1;
+    state.distance += (state.targetDistance - state.distance) * 0.1;
 
-      // Set limits to keep user in interesting zone
-      this.controls.minDistance = 100; // Don't get too close to event horizon
-      this.controls.maxDistance = 1500; // Don't go too far
-      this.controls.maxPolarAngle = Math.PI; // Allow full vertical rotation
+    // Clamp elevation to prevent flipping
+    state.elevation = Math.max(0.1, Math.min(Math.PI - 0.1, state.elevation));
 
-      // Enable all interaction types
-      this.controls.enableZoom = true;
-      this.controls.enableRotate = true;
-      this.controls.enablePan = true;
+    // Clamp distance
+    state.distance = Math.max(100, Math.min(1500, state.distance));
 
-      console.log("✨ Interactive controls enabled! Drag to rotate, scroll to zoom, right-click to pan");
-    }
+    // Convert spherical to Cartesian coordinates
+    const x = state.distance * Math.sin(state.elevation) * Math.cos(state.azimuth);
+    const z = state.distance * Math.sin(state.elevation) * Math.sin(state.azimuth);
+    const y = state.distance * Math.cos(state.elevation);
+
+    this.camera.position.set(x, y, z);
+    this.camera.lookAt(0, 0, 0);
   }
 
   // ============================================================================
@@ -1763,8 +1764,47 @@ class BlackHoleEffect {
     const handleMouseMove = (e: MouseEvent) => {
       this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      // Handle camera rotation during drag
+      if (this.cameraState.isDragging) {
+        const deltaX = e.clientX - this.cameraState.lastMouseX;
+        const deltaY = e.clientY - this.cameraState.lastMouseY;
+
+        this.cameraState.targetAzimuth -= deltaX * 0.005;
+        this.cameraState.targetElevation += deltaY * 0.005;
+
+        this.cameraState.lastMouseX = e.clientX;
+        this.cameraState.lastMouseY = e.clientY;
+      }
     };
     document.addEventListener("mousemove", handleMouseMove);
+
+    // Mouse down - start dragging
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) { // Left click
+        this.cameraState.isDragging = true;
+        this.cameraState.lastMouseX = e.clientX;
+        this.cameraState.lastMouseY = e.clientY;
+        this.renderer.domElement.style.cursor = 'grabbing';
+      }
+    };
+    this.renderer.domElement.addEventListener("mousedown", handleMouseDown);
+
+    // Mouse up - stop dragging
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        this.cameraState.isDragging = false;
+        this.renderer.domElement.style.cursor = 'grab';
+      }
+    };
+    document.addEventListener("mouseup", handleMouseUp);
+
+    // Mouse wheel - zoom
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      this.cameraState.targetDistance += e.deltaY * 0.5;
+    };
+    this.renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
 
     // Double-click to spawn particles
     const handleDoubleClick = (e: MouseEvent) => {
@@ -1787,6 +1827,9 @@ class BlackHoleEffect {
     };
     this.renderer.domElement.addEventListener("dblclick", handleDoubleClick);
 
+    // Set cursor style
+    this.renderer.domElement.style.cursor = 'grab';
+
     // Window resize
     const handleResize = () => this.onWindowResize();
     window.addEventListener("resize", handleResize, false);
@@ -1794,19 +1837,49 @@ class BlackHoleEffect {
     // Touch support for mobile
     if ("ontouchstart" in window) {
       let lastTap = 0;
-      const handleTouch = (e: TouchEvent) => {
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      const handleTouchStart = (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          this.cameraState.lastMouseX = touchStartX;
+          this.cameraState.lastMouseY = touchStartY;
+          this.cameraState.isDragging = true;
+        }
+      };
+      this.renderer.domElement.addEventListener("touchstart", handleTouchStart);
+
+      const handleTouchMove = (e: TouchEvent) => {
+        if (e.touches.length === 1 && this.cameraState.isDragging) {
+          const deltaX = e.touches[0].clientX - this.cameraState.lastMouseX;
+          const deltaY = e.touches[0].clientY - this.cameraState.lastMouseY;
+
+          this.cameraState.targetAzimuth -= deltaX * 0.005;
+          this.cameraState.targetElevation += deltaY * 0.005;
+
+          this.cameraState.lastMouseX = e.touches[0].clientX;
+          this.cameraState.lastMouseY = e.touches[0].clientY;
+        }
+      };
+      this.renderer.domElement.addEventListener("touchmove", handleTouchMove);
+
+      const handleTouchEnd = (e: TouchEvent) => {
+        this.cameraState.isDragging = false;
+
+        // Double tap detection
         const currentTime = new Date().getTime();
         const tapLength = currentTime - lastTap;
         if (tapLength < 300 && tapLength > 0) {
-          // Double tap detected
-          const touch = e.touches[0];
+          const touch = e.changedTouches[0];
           this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
           this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
           handleDoubleClick(e as any);
         }
         lastTap = currentTime;
       };
-      this.renderer.domElement.addEventListener("touchend", handleTouch);
+      this.renderer.domElement.addEventListener("touchend", handleTouchEnd);
     }
   }
 
@@ -1824,16 +1897,8 @@ class BlackHoleEffect {
     const deltaTime = 0.016;
     this.time += deltaTime;
 
-    // Smooth mouse interpolation
-    this.mouse.x += (this.mouse.targetX - this.mouse.x) * 0.05;
-    this.mouse.y += (this.mouse.targetY - this.mouse.y) * 0.05;
-
-    // Camera parallax
-    if (this.settings.enableParallax) {
-      this.camera.position.x += (this.mouse.x * 100 - this.camera.position.x) * 0.05;
-      this.camera.position.y += (-this.mouse.y * 100 + 200 - this.camera.position.y) * 0.05;
-      this.camera.lookAt(0, 0, 0);
-    }
+    // Update interactive camera controls
+    this.updateCameraFromState();
 
     // Rotate black hole slowly (frame dragging effect)
     if (this.blackHole) {
