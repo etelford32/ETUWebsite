@@ -121,6 +121,16 @@ class BlackHoleEffect {
   readonly TRAIL_FADE_RATE = 0.08; // How quickly trails fade (exponential)
   readonly ENABLE_VOLUMETRIC_DISK = true; // Toggle 3D volumetric disk rendering
 
+  // ENHANCED PHYSICS CONSTANTS
+  readonly PARTICLE_COUNT = 10000; // Dense accretion disk
+  readonly COAGULATION_RADIUS = 8.0; // Distance at which particles begin to clump
+  readonly COAGULATION_STRENGTH = 0.15; // How strongly particles attract each other
+  readonly TURBULENCE_SCALE = 0.3; // Amplitude of turbulent eddies
+  readonly TURBULENCE_FREQUENCY = 0.5; // Frequency of turbulent variations
+  readonly VISCOSITY = 0.98; // Momentum dissipation (0.98 = 2% loss per frame)
+  readonly MIN_SAFE_RADIUS = 65; // Minimum safe distance (1.08 * Rs) - avoids singularity
+  readonly MAX_GRAVITATIONAL_FORCE = 500; // Clamp maximum force to avoid infinities
+
   constructor(container: HTMLDivElement) {
     this.container = container;
     if (!this.container) {
@@ -561,8 +571,6 @@ class BlackHoleEffect {
         }
       `,
       fragmentShader: `
-        uniform float time;
-
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying float vSpeed;
@@ -954,745 +962,383 @@ class BlackHoleEffect {
 
   createParticles() {
     const THREE = window.THREE;
-    const particleCount = this.settings.particleCount;
+    const particleCount = this.PARTICLE_COUNT; // 10,000 particles!
 
+    // ========================================================================
+    // EFFICIENT BUFFER GEOMETRY FOR 10,000 1PX PARTICLES
+    // ========================================================================
+    const geometry = new THREE.BufferGeometry();
+
+    // Typed arrays for particle attributes (much faster than objects)
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    const alphas = new Float32Array(particleCount);
+
+    // Particle physics data (stored separately for fast updates)
+    const particleData = {
+      // Spherical coordinates
+      r: new Float32Array(particleCount),
+      theta: new Float32Array(particleCount),
+      phi: new Float32Array(particleCount),
+      vr: new Float32Array(particleCount),
+      vtheta: new Float32Array(particleCount),
+      vphi: new Float32Array(particleCount),
+
+      // Cartesian coordinates
+      x: new Float32Array(particleCount),
+      y: new Float32Array(particleCount),
+      z: new Float32Array(particleCount),
+      vx: new Float32Array(particleCount),
+      vy: new Float32Array(particleCount),
+      vz: new Float32Array(particleCount),
+
+      // Physics properties
+      L: new Float32Array(particleCount), // Angular momentum
+      mass: new Float32Array(particleCount), // Particle mass (for coagulation)
+      temperature: new Float32Array(particleCount), // Temperature (affects color)
+      age: new Float32Array(particleCount), // Lifetime tracking
+      lifetime: new Float32Array(particleCount),
+
+      // Orbital classification
+      orbitType: new Uint8Array(particleCount), // 0=equatorial, 1=inclined, 2=polar
+    };
+
+    // Initialize all particles
     for (let i = 0; i < particleCount; i++) {
       // ========================================================================
-      // ENHANCED PARTICLE GLOW SHADER
+      // INITIAL POSITION: Primarily in accretion disk
       // ========================================================================
-      const geometry = new THREE.SphereGeometry(1.5, 8, 8); // Slightly higher quality for better glow
+      const r = this.ISCO_RADIUS + Math.random() * 100;
 
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          glowColor: { value: new THREE.Color().setHSL(0.1 + Math.random() * 0.1, 1, 0.6) },
-          opacity: { value: 0.8 },
-          glowStrength: { value: 2.5 },
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vPosition = position;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 glowColor;
-          uniform float opacity;
-          uniform float glowStrength;
-
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-
-          void main() {
-            // Fresnel-like edge glow
-            vec3 viewDirection = normalize(cameraPosition - vPosition);
-            float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
-
-            // Soft core with bright edges
-            float core = 1.0 - fresnel * 0.5;
-
-            // Combine glow effects
-            vec3 finalColor = glowColor * glowStrength * (core + fresnel * 2.0);
-
-            // Soft falloff for volume-like appearance
-            float alpha = opacity * (core + fresnel * 0.5);
-
-            gl_FragColor = vec4(finalColor, alpha);
-          }
-        `,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-
-      const particle = new THREE.Mesh(geometry, material);
-
-      // ENHANCED 3D SPHERICAL COORDINATES with orbital diversity
-      const r = this.ISCO_RADIUS + Math.random() * 120; // radial distance
-      const phi = Math.random() * Math.PI * 2; // azimuthal angle (0 to 2PI)
-
-      // Enhanced orbital inclination system for better 3D distribution
+      // 90% in disk, 10% in inclined orbits for 3D effect
       const orbitType = Math.random();
-      let finalTheta;
-      let orbitClassification; // Track orbit type for physics
-
-      if (orbitType < 0.50) {
-        // 50% equatorial disk orbits (classic accretion disk)
-        finalTheta = Math.PI / 2 + (Math.random() - 0.5) * 0.2;
-        orbitClassification = 'equatorial';
-      } else if (orbitType < 0.75) {
-        // 25% inclined orbits (15-45 degrees from equator)
-        const inclination = (Math.random() * 0.5 + 0.25) * Math.PI / 2;
-        finalTheta = Math.random() < 0.5 ?
-          Math.PI / 2 - inclination : // Northern hemisphere
-          Math.PI / 2 + inclination;  // Southern hemisphere
-        orbitClassification = 'inclined';
-      } else if (orbitType < 0.90) {
-        // 15% highly inclined orbits (45-75 degrees)
-        const inclination = (Math.random() * 0.5 + 0.5) * Math.PI / 2;
-        finalTheta = Math.random() < 0.5 ?
-          Math.PI / 2 - inclination :
-          Math.PI / 2 + inclination;
-        orbitClassification = 'highly_inclined';
+      let theta;
+      if (orbitType < 0.9) {
+        // Thin disk
+        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.15;
+        particleData.orbitType[i] = 0; // equatorial
       } else {
-        // 10% polar orbits (near 90 degree inclination)
-        finalTheta = Math.random() < 0.5 ?
-          Math.random() * 0.3 :  // Near north pole
-          Math.PI - Math.random() * 0.3; // Near south pole
-        orbitClassification = 'polar';
+        // Inclined orbits
+        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+        particleData.orbitType[i] = 1; // inclined
       }
 
-      // Convert spherical to Cartesian
-      particle.position.set(
-        r * Math.sin(finalTheta) * Math.cos(phi),
-        r * Math.cos(finalTheta),
-        r * Math.sin(finalTheta) * Math.sin(phi)
-      );
+      const phi = Math.random() * Math.PI * 2;
 
-      // Calculate orbital velocity for circular orbit (Kepler) - PROPER orbital mechanics!
-      const orbitalSpeed = Math.sqrt(this.G / r) * 1.0; // 100% of circular orbit for TRUE stable orbits!
-
-      // ========================================================================
-      // ENHANCED: FULL PARTICLE PHYSICS DATA TRACKING
-      // ========================================================================
-      // Calculate stable circular orbit lifetime (particles gradually spiral in)
-      const minLifetime = 8.0;  // seconds
-      const maxLifetime = 20.0; // seconds
-      const lifetime = minLifetime + Math.random() * (maxLifetime - minLifetime);
-
-      // Cartesian coordinates from spherical
-      const x = particle.position.x;
-      const y = particle.position.y;
-      const z = particle.position.z;
-
-      // Calculate initial Cartesian velocities from spherical
-      const sinTheta = Math.sin(finalTheta);
-      const cosTheta = Math.cos(finalTheta);
+      // Cartesian position
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
       const sinPhi = Math.sin(phi);
       const cosPhi = Math.cos(phi);
 
-      const vr_init = (Math.random() - 0.5) * 0.005;  // ULTRA-MINIMAL radial velocity
-      const vtheta_init = (Math.random() - 0.5) * 0.0005; // ULTRA-MINIMAL polar velocity
-      const vphi_init = orbitalSpeed / r;
-
-      // Convert to Cartesian velocities
-      const vx = vr_init * sinTheta * cosPhi - r * vtheta_init * cosTheta * cosPhi - r * sinTheta * vphi_init * sinPhi;
-      const vy = vr_init * cosTheta + r * vtheta_init * sinTheta;
-      const vz = vr_init * sinTheta * sinPhi - r * vtheta_init * cosTheta * sinPhi + r * sinTheta * vphi_init * cosPhi;
-
-      // Store COMPREHENSIVE particle physics data
-      particle.userData = {
-        // ===== SPHERICAL COORDINATES =====
-        r: r,                    // radial distance
-        theta: finalTheta,       // polar angle
-        phi: phi,                // azimuthal angle
-        vr: vr_init,            // radial velocity
-        vtheta: vtheta_init,    // polar velocity
-        vphi: vphi_init,        // azimuthal angular velocity
-
-        // ===== CARTESIAN COORDINATES =====
-        x: x,                    // x position
-        y: y,                    // y position
-        z: z,                    // z position
-        vx: vx,                  // x velocity
-        vy: vy,                  // y velocity
-        vz: vz,                  // z velocity
-
-        // ===== ACCELERATION (updated each frame) =====
-        ax: 0,                   // x acceleration
-        ay: 0,                   // y acceleration
-        az: 0,                   // z acceleration
-        ar: 0,                   // radial acceleration
-
-        // ===== DIFFERENTIAL (delta per frame) =====
-        dx: 0,                   // change in x (last frame)
-        dy: 0,                   // change in y (last frame)
-        dz: 0,                   // change in z (last frame)
-
-        // ===== PHYSICS PROPERTIES =====
-        L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
-        speed: Math.sqrt(vx * vx + vy * vy + vz * vz), // total speed
-        speedSq: vx * vx + vy * vy + vz * vz, // speed squared (optimization)
-
-        // ===== ORBITAL ELEMENTS (Enhanced 3D) =====
-        orbitType: orbitClassification, // 'equatorial', 'inclined', 'highly_inclined', 'polar'
-        inclination: Math.abs(finalTheta - Math.PI / 2), // Inclination from equatorial plane
-        longitudeOfNode: phi,    // Longitude of ascending node (where orbit crosses equator)
-        precessionRate: (Math.random() - 0.5) * 0.0002, // Orbital precession rate (GR effect)
-        nodePrecessionRate: (Math.random() - 0.5) * 0.0001, // Nodal precession
-
-        // ===== RENDERING & TRAILS =====
-        lastPositions: [],       // For trails
-        color: { h: 0.1, s: 1, l: 0.6 }, // Current HSL color
-
-        // ===== LIFETIME SYSTEM =====
-        age: 0,                  // Current age in seconds
-        lifetime: lifetime,      // Total lifetime in seconds
-        birthTime: 0,            // Time particle was born/recycled
-        fadeInDuration: 1.0,     // Fade in over 1 second
-        fadeOutDuration: 2.0,    // Fade out over 2 seconds
-
-        // ===== STATE FLAGS =====
-        inPhotonSphere: false,
-        inErgosphere: false,
-        isPrograde: true,
-        collidedWithBoundary: false,
-      };
-
-      this.particles.push(particle);
-      this.scene.add(particle);
+      const x = r * sinTheta * cosPhi;
+      const y = r * cosTheta;
+      const z = r * sinTheta * sinPhi;
 
       // ========================================================================
-      // PHASE 1: GPU-ACCELERATED TRAIL SYSTEM
+      // INITIAL VELOCITY: Keplerian orbits with small perturbations
       // ========================================================================
-      if (this.settings.enableTrails) {
-        const trailGeometry = new THREE.BufferGeometry();
+      const orbitalSpeed = Math.sqrt(this.G / r);
+      const vr = (Math.random() - 0.5) * 0.002; // Minimal radial motion
+      const vtheta = (Math.random() - 0.5) * 0.0002; // Minimal polar motion
+      const vphi = orbitalSpeed / r;
 
-        // Custom shader material for advanced trail effects
-        const trailMaterial = new THREE.ShaderMaterial({
-          uniforms: {
-            time: { value: 0 },
-            trailColor: { value: new THREE.Color(0x66ccff) },
-            opacity: { value: 1.0 },
-            brightness: { value: 1.0 }, // Relativistic beaming
-          },
-          vertexShader: `
-            // Trail vertex shader with motion blur
-            attribute float trailAge; // Age of each trail segment (0 = newest, 1 = oldest)
+      // Cartesian velocity
+      const vx = vr * sinTheta * cosPhi - r * vtheta * cosTheta * cosPhi - r * sinTheta * vphi * sinPhi;
+      const vy = vr * cosTheta + r * vtheta * sinTheta;
+      const vz = vr * sinTheta * sinPhi - r * vtheta * cosTheta * sinPhi + r * sinTheta * vphi * cosPhi;
 
-            varying float vAge;
-            varying vec3 vPosition;
+      // Store in typed arrays
+      particleData.r[i] = r;
+      particleData.theta[i] = theta;
+      particleData.phi[i] = phi;
+      particleData.vr[i] = vr;
+      particleData.vtheta[i] = vtheta;
+      particleData.vphi[i] = vphi;
 
-            void main() {
-              vAge = trailAge;
-              vPosition = position;
+      particleData.x[i] = x;
+      particleData.y[i] = y;
+      particleData.z[i] = z;
+      particleData.vx[i] = vx;
+      particleData.vy[i] = vy;
+      particleData.vz[i] = vz;
 
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `,
-          fragmentShader: `
-            // Trail fragment shader with exponential fade and glow
-            uniform vec3 trailColor;
-            uniform float opacity;
-            uniform float brightness;
+      particleData.L[i] = r * orbitalSpeed; // Angular momentum
+      particleData.mass[i] = 1.0 + Math.random() * 0.5; // Slight mass variation
+      particleData.age[i] = 0;
+      particleData.lifetime[i] = 10 + Math.random() * 15; // 10-25 seconds
 
-            varying float vAge;
-            varying vec3 vPosition;
+      // Temperature based on distance (inner = hotter)
+      particleData.temperature[i] = 1.0 - (r - this.ISCO_RADIUS) / 150;
 
-            void main() {
-              // Exponential fade with age (newer segments brighter)
-              float ageFade = exp(-vAge * 5.0); // Faster fade for dramatic effect
+      // Set buffer positions
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
 
-              // Apply brightness from relativistic beaming
-              vec3 finalColor = trailColor * brightness;
+      // Color based on temperature (hot = blue-white, cool = red-orange)
+      const temp = particleData.temperature[i];
+      colors[i * 3] = 0.8 + temp * 0.2;     // R
+      colors[i * 3 + 1] = 0.6 + temp * 0.4; // G
+      colors[i * 3 + 2] = 0.3 + temp * 0.7; // B
 
-              // Soft glow effect (volumetric appearance)
-              float glowIntensity = ageFade * 0.8;
+      // Size (1px base with slight variation)
+      sizes[i] = 1.0 + Math.random() * 0.5;
 
-              // Final opacity with fade
-              float finalOpacity = opacity * ageFade;
-
-              gl_FragColor = vec4(finalColor, finalOpacity);
-            }
-          `,
-          transparent: true,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          linewidth: 2,
-        });
-
-        const trail = new THREE.Line(trailGeometry, trailMaterial);
-        this.particleTrails.push(trail);
-        this.scene.add(trail);
-      }
-    }
-  }
-
-  updateParticlePhysics(particle: any, deltaTime: number) {
-    const data = particle.userData;
-    const THREE = window.THREE;
-
-    // ========================================================================
-    // SAVE PREVIOUS POSITION for dx, dy, dz
-    // ========================================================================
-    const prevX = data.x;
-    const prevY = data.y;
-    const prevZ = data.z;
-
-    // ========================================================================
-    // UPDATE PARTICLE LIFETIME
-    // ========================================================================
-    data.age += deltaTime;
-
-    // Calculate alpha based on lifetime (fade in/out)
-    let alphaMultiplier = 1.0;
-
-    // Fade in at birth
-    if (data.age < data.fadeInDuration) {
-      alphaMultiplier = data.age / data.fadeInDuration;
-      // Smooth ease-in using cubic easing
-      alphaMultiplier = alphaMultiplier * alphaMultiplier * (3.0 - 2.0 * alphaMultiplier);
-    }
-    // Fade out before death
-    else if (data.age > data.lifetime - data.fadeOutDuration) {
-      const timeUntilDeath = data.lifetime - data.age;
-      alphaMultiplier = timeUntilDeath / data.fadeOutDuration;
-      // Smooth ease-out using cubic easing
-      alphaMultiplier = alphaMultiplier * alphaMultiplier * (3.0 - 2.0 * alphaMultiplier);
+      // Alpha
+      alphas[i] = 0.6 + Math.random() * 0.4;
     }
 
-    // Store alpha for rendering
-    data.alphaMultiplier = Math.max(0, Math.min(1, alphaMultiplier));
-
-    // PROPER 3D SPHERICAL PHYSICS FOR BLACK HOLES
-    const r = data.r;
-    const theta = data.theta;
-    const phi = data.phi;
-
-    // Gravitational acceleration (inverse square law)
-    let ar = -this.G / (r * r) + (data.L * data.L) / (r * r * r); // includes centrifugal term
-
-    // Check orbital zones
-    const inPhotonSphere = Math.abs(r - this.PHOTON_SPHERE_RADIUS) < 15;
-    const inPlungeZone = r < this.ISCO_RADIUS;
-
-    // 3D ATTRACTION TO ISCO BOUNDARY (Inner Accretion Disk)
-    // VERY GENTLE attraction towards ISCO - only affects particles near ISCO
-    // This creates a stable "sweet spot" without disrupting outer orbits
-    const distanceFromISCO = r - this.ISCO_RADIUS;
-    const iscoAttractionStrength = 5; // DRASTICALLY REDUCED - only gentle nudge toward disk
-    // Only apply ISCO attraction if particle is within 50 units of ISCO
-    const iscoProximity = Math.max(0, 50 - Math.abs(distanceFromISCO)) / 50;
-    const iscoAttraction = -iscoAttractionStrength * distanceFromISCO * iscoProximity / (r * r);
-    ar += iscoAttraction;
+    // Set buffer attributes
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
 
     // ========================================================================
-    // PHASE 2: KERR METRIC - ROTATING BLACK HOLE PHYSICS
+    // CUSTOM SHADER FOR 1PX PARTICLES WITH GLOW
     // ========================================================================
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+      },
+      vertexShader: `
+        attribute float size;
+        attribute float alpha;
+        attribute vec3 color;
 
-    // Detect if particle is in ergosphere (region where spacetime itself rotates)
-    const inErgosphere = r < this.ERGOSPHERE_RADIUS;
+        varying vec3 vColor;
+        varying float vAlpha;
 
-    // Determine if orbit is prograde (with rotation) or retrograde (against rotation)
-    // BH rotates counterclockwise (positive phi direction), so positive vphi = prograde
-    const isPrograde = data.vphi > 0;
+        void main() {
+          vColor = color;
+          vAlpha = alpha;
 
-    // ENHANCED FRAME DRAGGING for Kerr black holes
-    // Frame dragging is MUCH stronger in Kerr metric, especially in ergosphere
-    // NOTE: We apply frame dragging by modifying L (angular momentum) rather than vphi directly
-    // This ensures consistency with angular momentum conservation (line 1283)
-    const frameDraggingRadius = this.ERGOSPHERE_RADIUS * 1.5;
-    let frameDragFactor = 0; // Default to 0 outside frame dragging zone
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
 
-    if (r < frameDraggingRadius) {
-      frameDragFactor = 1.0 - (r / frameDraggingRadius);
-
-      // Kerr frame dragging adds angular momentum over time (like a torque)
-      const kerrFrameDragTorque = this.KERR_FRAME_DRAGGING * frameDragFactor * 0.5;
-
-      // Inside ergosphere, spacetime itself is rotating - stronger effect
-      if (inErgosphere) {
-        // Force minimum co-rotation - particles cannot stand still in ergosphere!
-        const minimumL = this.ERGOSPHERE_RADIUS * 0.01 * (1.0 - r / this.ERGOSPHERE_RADIUS);
-        if (data.L < minimumL) {
-          data.L = minimumL; // Can't have less angular momentum than spacetime itself!
+          // Size attenuation with distance
+          gl_PointSize = size * (300.0 / -mvPosition.z);
         }
-        // Extra strong torque in ergosphere
-        data.L += kerrFrameDragTorque * deltaTime * 20.0;
-      } else {
-        // Normal frame dragging torque outside ergosphere
-        data.L += kerrFrameDragTorque * deltaTime * 10.0;
-      }
-    }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vAlpha;
 
-    // PROGRADE VS RETROGRADE ORBITAL DYNAMICS
-    // NOTE: Instead of multiplying vphi (which gets overwritten by L conservation),
-    // we slightly modify the orbital dynamics through L
-    if (isPrograde) {
-      // Prograde orbits extract energy from black hole rotation (Penrose process)
-      // Slightly increase L over time for prograde orbits in frame dragging zone
-      if (frameDragFactor > 0) {
-        data.L += frameDragFactor * 0.3 * deltaTime;
-      }
-    } else {
-      // Retrograde orbits work against rotation - less stable, lose energy
-      // Slightly decrease L and add instability
-      if (frameDragFactor > 0) {
-        data.L -= frameDragFactor * 0.2 * deltaTime;
-        // Retrograde orbits are less stable - add wobble
-        data.vr += (Math.random() - 0.5) * 0.01 * frameDragFactor;
-      }
-    }
+        void main() {
+          // Circular particle with soft edge
+          vec2 center = gl_PointCoord - vec2(0.5);
+          float dist = length(center);
+          if (dist > 0.5) discard;
 
-    // Store orbital type for rendering
-    data.isPrograde = isPrograde;
-    data.inErgosphere = inErgosphere;
+          // Soft glow
+          float glow = 1.0 - (dist * 2.0);
+          glow = pow(glow, 1.5);
 
-    // ========================================================================
-    // ENHANCED TORUS BOUNDARY: Repulsion & MASSIVE Collision Acceleration
-    // ========================================================================
-    // Calculate distance from particle to nearest point on torus surface
-    // Torus is in XZ plane (y=0), major radius from origin, minor radius is tube thickness
-    const torusDistXZ = Math.sqrt(data.r * data.r * Math.sin(data.theta) * Math.sin(data.theta));
-    const distanceFromTorusCenter = torusDistXZ - this.TORUS_MAJOR_RADIUS;
-    const heightAbovePlane = data.r * Math.cos(data.theta);
+          gl_FragColor = vec4(vColor, vAlpha * glow);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
 
-    // Distance from particle to torus surface
-    const distToTorusSurface = Math.sqrt(
-      distanceFromTorusCenter * distanceFromTorusCenter +
-      heightAbovePlane * heightAbovePlane
-    ) - this.TORUS_MINOR_RADIUS;
+    // Create Points mesh
+    const particleSystem = new THREE.Points(geometry, material);
+    this.scene.add(particleSystem);
 
-    const collisionThreshold = 5; // Particles within 5 units of boundary = collision!
-    const boundaryZone = this.TORUS_MINOR_RADIUS * 0.5; // Warning zone
-
-    // COLLISION WITH BOUNDARY - MASSIVE ACCELERATION!
-    if (distToTorusSurface > 0 && distToTorusSurface < collisionThreshold) {
-      // MASSIVE INWARD ACCELERATION on collision!
-      const collisionForce = 80000; // HUGE force!
-      const collisionAccel = -collisionForce / (r * r);
-      ar += collisionAccel;
-
-      // Add tangential acceleration (spin up the particle!)
-      data.vphi += 0.05 * deltaTime; // Collision spins particle faster
-
-      // Mark collision for visual effect
-      data.collidedWithBoundary = true;
-
-      // Flash bright color on collision
-      data.color.h = 0.05; // Orange-red
-      data.color.l = 0.9;  // Very bright!
-    }
-    // STRONG REPULSION when outside boundary
-    else if (distToTorusSurface > collisionThreshold) {
-      const repulsionStrength = 25000; // STRONGER than before
-      const repulsionFactor = Math.max(0, distToTorusSurface - collisionThreshold);
-      const repulsion = -repulsionStrength * repulsionFactor * 3.0 / (r * r);
-      ar += repulsion;
-
-      data.collidedWithBoundary = false;
-    }
-    // APPROACHING boundary - warning zone
-    else if (distToTorusSurface > -boundaryZone) {
-      const repulsionStrength = 8000;
-      const repulsionFactor = Math.max(0, distToTorusSurface + boundaryZone);
-      const gentleRepulsion = -repulsionStrength * repulsionFactor * 1.0 / (r * r);
-      ar += gentleRepulsion;
-
-      data.collidedWithBoundary = false;
-    } else {
-      data.collidedWithBoundary = false;
-    }
-
-    // Update velocities
-    if (inPhotonSphere) {
-      // Photon sphere - highly unstable
-      data.vr += ar * deltaTime * 3 + (Math.random() - 0.5) * 0.3;
-      data.inPhotonSphere = true;
-    } else if (inPlungeZone) {
-      // Inside ISCO - rapid infall
-      data.vr += ar * deltaTime * 2;
-      data.inPhotonSphere = false;
-    } else {
-      // Stable zone - VERY gradual changes for stable orbits
-      data.vr += ar * deltaTime * 0.02; // Reduced from 0.08 for stability
-      data.inPhotonSphere = false;
-    }
-
-    // Update positions in spherical coordinates
-    data.r += data.vr * deltaTime;
-    data.theta += data.vtheta * deltaTime;
-    data.phi += data.vphi * deltaTime;
-
-    // Conservation of angular momentum: L = r² * vphi
-    data.vphi = data.L / (data.r * data.r);
-
-    // ========================================================================
-    // ENHANCED DAMPING for stable circular orbits
-    // ========================================================================
-    if (!inPhotonSphere && !inPlungeZone) {
-      // Stronger damping for radial and polar velocities to maintain circular orbits
-      data.vr *= 0.985; // Damp radial oscillations
-      data.vtheta *= 0.99; // Damp polar oscillations
-
-      // Add slight attraction to equatorial plane for disk formation
-      const distanceFromEquator = Math.abs(data.theta - Math.PI / 2);
-      if (distanceFromEquator > 0.01) {
-        const equatorAttraction = -0.001 * (data.theta - Math.PI / 2);
-        data.vtheta += equatorAttraction;
-      }
-    }
-
-    // ========================================================================
-    // ENHANCED 3D ORBITAL MECHANICS: Precession & Inclination Effects
-    // ========================================================================
-
-    // Apply orbital precession (General Relativity effect - orbits rotate slowly)
-    if (data.precessionRate) {
-      // Precession causes the orbit to rotate in its plane
-      data.longitudeOfNode += data.precessionRate * deltaTime;
-    }
-
-    // Nodal precession (orbit plane itself rotates)
-    if (data.nodePrecessionRate && data.orbitType !== 'equatorial') {
-      // For inclined orbits, the orbital plane precesses
-      // This creates beautiful 3D flower-petal patterns
-      const precessionForce = data.nodePrecessionRate * deltaTime;
-      data.vtheta += precessionForce * Math.sin(data.phi);
-    }
-
-    // Differential orbital mechanics based on orbit type
-    if (data.orbitType === 'equatorial') {
-      // Equatorial orbits: gentle attraction to equatorial plane (disk formation)
-      if (Math.abs(data.theta - Math.PI / 2) > 0.05) {
-        const toEquator = (Math.PI / 2 - data.theta) * 0.015;
-        data.vtheta += toEquator;
-      }
-    } else if (data.orbitType === 'polar') {
-      // Polar orbits: maintain high inclination, resist equatorial drift
-      // Polar orbits are more stable in 3D (like satellite orbits)
-      const polarStabilization = (Math.abs(data.theta - Math.PI / 2) - Math.PI / 3) * 0.002;
-      data.vtheta += polarStabilization;
-    } else {
-      // Inclined & highly inclined orbits: very gentle drift toward equator
-      // But much weaker than equatorial orbits
-      if (Math.abs(data.theta - Math.PI / 2) > 0.1) {
-        const gentleDrift = (Math.PI / 2 - data.theta) * 0.003; // Much gentler
-        data.vtheta += gentleDrift;
-      }
-    }
-
-    // Convert spherical to Cartesian for rendering
-    const sinTheta = Math.sin(data.theta);
-    const cosTheta = Math.cos(data.theta);
-    const sinPhi = Math.sin(data.phi);
-    const cosPhi = Math.cos(data.phi);
-
-    const newPos = new THREE.Vector3(
-      data.r * sinTheta * cosPhi,
-      data.r * cosTheta,
-      data.r * sinTheta * sinPhi
-    );
-
-    particle.position.copy(newPos);
-
-    // ========================================================================
-    // UPDATE ALL CARTESIAN COORDINATES & DELTAS
-    // ========================================================================
-    data.x = newPos.x;
-    data.y = newPos.y;
-    data.z = newPos.z;
-
-    // Calculate deltas (change since last frame)
-    data.dx = data.x - prevX;
-    data.dy = data.y - prevY;
-    data.dz = data.z - prevZ;
-
-    // Update Cartesian velocities from spherical
-    data.vx = data.vr * sinTheta * cosPhi - data.r * data.vtheta * cosTheta * cosPhi - data.r * sinTheta * data.vphi * sinPhi;
-    data.vy = data.vr * cosTheta + data.r * data.vtheta * sinTheta;
-    data.vz = data.vr * sinTheta * sinPhi - data.r * data.vtheta * cosTheta * sinPhi + data.r * sinTheta * data.vphi * cosPhi;
-
-    // Update speed metrics (for rendering & color)
-    data.speedSq = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz;
-    data.speed = Math.sqrt(data.speedSq);
-
-    // Store acceleration for next frame
-    data.ar = ar;
-
-    // Track positions for trails
-    if (!data.lastPositions) data.lastPositions = [];
-    data.lastPositions.push(newPos.clone());
-    if (data.lastPositions.length > this.MAX_TRAIL_LENGTH) {
-      data.lastPositions.shift(); // Keep last N positions for performance
-    }
-
-    // ========================================================================
-    // PHASE 1: ADVANCED RELATIVISTIC COLOR & BRIGHTNESS EFFECTS
-    // ========================================================================
-
-    // Calculate velocity vector in Cartesian coordinates
-    const velocityCartesian = new THREE.Vector3(
-      data.vr * sinTheta * cosPhi - data.r * data.vtheta * cosTheta * cosPhi - data.r * sinTheta * data.vphi * sinPhi,
-      data.vr * cosTheta + data.r * data.vtheta * sinTheta,
-      data.vr * sinTheta * sinPhi - data.r * data.vtheta * cosTheta * sinPhi + data.r * sinTheta * data.vphi * cosPhi
-    );
-
-    // Calculate total velocity magnitude for reference
-    const vTotal = velocityCartesian.length();
-    const speedFactor = Math.min(vTotal / this.SPEED_OF_LIGHT, 1.0);
-
-    // Check orbital zones
-    if (data.inPhotonSphere) {
-      // ===== PHOTON SPHERE - SPECIAL CASE =====
-      // Photons orbit at exactly c - intense blueshift and brightness
-      if (particle.material.uniforms) {
-        particle.material.uniforms.glowColor.value.setHSL(0.55, 1.0, 0.85);
-        particle.material.uniforms.opacity.value = 0.98 * data.alphaMultiplier;
-        particle.material.uniforms.glowStrength.value = 3.5; // Extra bright!
-      }
-      particle.scale.set(2.5, 2.5, 2.5);
-    } else {
-      // ===== NORMAL PARTICLES - FULL RELATIVISTIC TREATMENT =====
-
-      // Calculate all relativistic effects
-      const relativisticColor = this.calculateRelativisticColor(
-        velocityCartesian,
-        newPos,
-        data.r
-      );
-
-      // ===== VELOCITY-BASED COLOR INTERPOLATION =====
-      // Map speed to color: slow = red-orange, fast = blue-white
-      const speedNormalized = Math.min(data.speed / this.SPEED_OF_LIGHT, 1.0);
-
-      // Base hue from speed (0.0 = red, 0.15 = orange, 0.55 = cyan-blue)
-      const speedHue = 0.02 + speedNormalized * 0.50; // Fast particles are bluer
-
-      // Blend speed-based color with relativistic effects
-      let finalHue = relativisticColor.hue * 0.5 + speedHue * 0.5;
-      let finalLightness = relativisticColor.lightness;
-      let finalBrightness = relativisticColor.brightness;
-
-      // COLLISION OVERRIDE - bright flash!
-      if (data.collidedWithBoundary) {
-        finalHue = data.color.h; // Use stored collision color
-        finalLightness = data.color.l;
-        finalBrightness *= 2.0; // Extra bright on collision!
-      }
-
-      // ===== PHASE 2: KERR METRIC VISUAL EFFECTS =====
-      // ERGOSPHERE PARTICLES - Distinctive purple/magenta glow
-      if (data.inErgosphere) {
-        // Ergosphere particles have purple tint (spacetime is being dragged!)
-        finalHue = 0.8 + (finalHue - 0.8) * 0.3; // Shift toward magenta
-        finalLightness = Math.min(0.9, finalLightness * 1.2); // Brighter
-        finalBrightness *= 1.5; // Extra bright in ergosphere
-      }
-
-      // PROGRADE VS RETROGRADE COLOR DISTINCTION
-      if (data.isPrograde) {
-        // Prograde orbits: shift slightly bluer (efficient energy extraction)
-        finalHue += 0.05;
-      } else {
-        // Retrograde orbits: shift slightly redder (less efficient)
-        finalHue -= 0.05;
-      }
-
-      // Store final color for next frame
-      data.color.h = finalHue;
-      data.color.s = relativisticColor.saturation;
-      data.color.l = finalLightness;
-
-      // Apply HSL color with all effects to shader uniforms
-      if (particle.material.uniforms) {
-        particle.material.uniforms.glowColor.value.setHSL(
-          finalHue,
-          relativisticColor.saturation,
-          finalLightness
-        );
-
-        // Apply relativistic beaming to opacity (brighter when moving toward us)
-        const baseOpacity = 0.5 + (1 - Math.max(0, (data.r - this.SCHWARZSCHILD_RADIUS) / 200)) * 0.4;
-
-        // APPLY LIFETIME ALPHA FADE
-        const finalOpacity = baseOpacity * finalBrightness * data.alphaMultiplier;
-        particle.material.uniforms.opacity.value = Math.min(1.0, finalOpacity);
-
-        // Adjust glow strength based on brightness
-        particle.material.uniforms.glowStrength.value = 2.0 + finalBrightness * 0.8;
-      }
-
-      // Scale based on velocity, beaming, and ergosphere
-      let scaleMultiplier = 1.0 + speedFactor * 0.5 + (finalBrightness - 1.0) * 0.3;
-      if (data.inErgosphere) {
-        scaleMultiplier *= 1.3; // Ergosphere particles appear larger
-      }
-      particle.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
-
-      // Store velocity for trail rendering
-      data.velocity = velocityCartesian.clone();
-      data.relativisticBrightness = finalBrightness;
-    }
-
-    // ========================================================================
-    // RECYCLE PARTICLES: Event horizon crossing OR lifetime expired
-    // ========================================================================
-    const shouldRecycle = (data.r < this.SCHWARZSCHILD_RADIUS + 10) || (data.age >= data.lifetime);
-
-    if (shouldRecycle) {
-      // Reset to outer accretion disk with new random position
-      data.r = this.ISCO_RADIUS + 50 + Math.random() * 100;
-      data.phi = Math.random() * Math.PI * 2;
-
-      // Mix of disk and 3D orbits (70% disk, 30% inclined)
-      const diskBias = Math.random();
-      if (diskBias < 0.7) {
-        data.theta = Math.PI / 2 + (Math.random() - 0.5) * 0.3; // disk
-      } else {
-        data.theta = Math.acos(2 * Math.random() - 1); // 3D
-      }
-
-      // STABLE ORBITAL INITIAL CONDITIONS - Perfect circular orbits!
-      data.vr = (Math.random() - 0.5) * 0.005; // ULTRA-MINIMAL radial velocity
-      data.vtheta = (Math.random() - 0.5) * 0.0005; // ULTRA-MINIMAL polar velocity
-      const orbitalSpeed = Math.sqrt(this.G / data.r) * 1.0; // 100% of circular orbit for perfect stability!
-      data.vphi = orbitalSpeed / data.r;
-      data.L = data.r * orbitalSpeed;
-      data.lastPositions = []; // Reset trail
-
-      // Update Cartesian coordinates
-      const recycleTheta = data.theta;
-      const recyclePhi = data.phi;
-      const recycleR = data.r;
-      const sinT = Math.sin(recycleTheta);
-      const cosT = Math.cos(recycleTheta);
-      const sinP = Math.sin(recyclePhi);
-      const cosP = Math.cos(recyclePhi);
-
-      data.x = recycleR * sinT * cosP;
-      data.y = recycleR * cosT;
-      data.z = recycleR * sinT * sinP;
-
-      // Update Cartesian velocities
-      data.vx = data.vr * sinT * cosP - recycleR * data.vtheta * cosT * cosP - recycleR * sinT * data.vphi * sinP;
-      data.vy = data.vr * cosT + recycleR * data.vtheta * sinT;
-      data.vz = data.vr * sinT * sinP - recycleR * data.vtheta * cosT * sinP + recycleR * sinT * data.vphi * cosP;
-
-      data.speedSq = data.vx * data.vx + data.vy * data.vy + data.vz * data.vz;
-      data.speed = Math.sqrt(data.speedSq);
-
-      // Reset acceleration
-      data.ax = 0;
-      data.ay = 0;
-      data.az = 0;
-      data.ar = 0;
-
-      // Reset deltas
-      data.dx = 0;
-      data.dy = 0;
-      data.dz = 0;
-
-      // Reset color
-      data.color.h = 0.1;
-      data.color.s = 1.0;
-      data.color.l = 0.6;
-
-      // Reset flags
-      data.collidedWithBoundary = false;
-
-      // RESET LIFETIME
-      const minLifetime = 8.0;
-      const maxLifetime = 20.0;
-      data.lifetime = minLifetime + Math.random() * (maxLifetime - minLifetime);
-      data.age = 0;
-      data.birthTime = this.time;
-    }
+    // Store reference for updates
+    this.particles = [{
+      system: particleSystem,
+      data: particleData,
+      geometry: geometry,
+      material: material,
+    }];
   }
+
+  // ============================================================================
+  // ENHANCED PARTICLE PHYSICS UPDATE WITH COAGULATION & TURBULENCE
+  // ============================================================================
+  updateAllParticlesPhysics(deltaTime: number) {
+    if (!this.particles[0]) return;
+
+    const { data, geometry } = this.particles[0];
+    const positions = geometry.attributes.position.array as Float32Array;
+    const colors = geometry.attributes.color.array as Float32Array;
+    const alphas = geometry.attributes.alpha.array as Float32Array;
+    const particleCount = data.r.length;
+
+    // Update each particle with physics
+    for (let i = 0; i < particleCount; i++) {
+      // ========================================================================
+      // SAFETY: CLAMP RADIUS TO AVOID SINGULARITIES
+      // ========================================================================
+      const r = Math.max(data.r[i], this.MIN_SAFE_RADIUS);
+      data.r[i] = r;
+
+      const theta = data.theta[i];
+      const phi = data.phi[i];
+
+      // ========================================================================
+      // GRAVITATIONAL FORCE WITH CLAMPING
+      // ========================================================================
+      const rSq = r * r;
+      const rCubed = rSq * r;
+
+      // Radial acceleration: gravity + centrifugal
+      // CLAMPED to avoid infinities
+      let ar = -this.G / rSq + (data.L[i] * data.L[i]) / rCubed;
+      ar = Math.max(-this.MAX_GRAVITATIONAL_FORCE, Math.min(this.MAX_GRAVITATIONAL_FORCE, ar));
+
+      // ========================================================================
+      // TURBULENCE: Chaotic eddies in the accretion disk
+      // ========================================================================
+      const turbulenceX = Math.sin(phi * 3.0 + this.time * this.TURBULENCE_FREQUENCY) * this.TURBULENCE_SCALE;
+      const turbulenceY = Math.cos(theta * 5.0 + this.time * this.TURBULENCE_FREQUENCY * 1.3) * this.TURBULENCE_SCALE;
+      const turbulenceZ = Math.sin(phi * 7.0 - this.time * this.TURBULENCE_FREQUENCY * 0.7) * this.TURBULENCE_SCALE;
+
+      // Add turbulence to velocities
+      data.vx[i] += turbulenceX * deltaTime;
+      data.vy[i] += turbulenceY * deltaTime;
+      data.vz[i] += turbulenceZ * deltaTime;
+
+      // ========================================================================
+      // COAGULATION: Particles attract nearby particles
+      // ========================================================================
+      let coagulationForceX = 0;
+      let coagulationForceY = 0;
+      let coagulationForceZ = 0;
+
+      // Check nearby particles (spatial hash would be better for 10k particles, but simple loop for now)
+      // Only check every 10th particle to keep it performant
+      for (let j = 0; j < particleCount; j += 10) {
+        if (i === j) continue;
+
+        const dx = data.x[j] - data.x[i];
+        const dy = data.y[j] - data.y[i];
+        const dz = data.z[j] - data.z[i];
+        const distSq = dx * dx + dy * dy + dz * dz;
+        const dist = Math.sqrt(distSq);
+
+        // Coagulation occurs within COAGULATION_RADIUS
+        if (dist > 0 && dist < this.COAGULATION_RADIUS) {
+          const coagForce = this.COAGULATION_STRENGTH * (1.0 - dist / this.COAGULATION_RADIUS) * data.mass[j];
+          coagulationForceX += (dx / dist) * coagForce;
+          coagulationForceY += (dy / dist) * coagForce;
+          coagulationForceZ += (dz / dist) * coagForce;
+        }
+      }
+
+      // Apply coagulation forces
+      data.vx[i] += coagulationForceX * deltaTime;
+      data.vy[i] += coagulationForceY * deltaTime;
+      data.vz[i] += coagulationForceZ * deltaTime;
+
+      // ========================================================================
+      // VISCOSITY: Momentum dissipation
+      // ========================================================================
+      data.vr[i] *= this.VISCOSITY;
+      data.vtheta[i] *= this.VISCOSITY;
+      data.vx[i] *= this.VISCOSITY;
+      data.vy[i] *= this.VISCOSITY;
+      data.vz[i] *= this.VISCOSITY;
+
+      // ========================================================================
+      // UPDATE VELOCITIES AND POSITIONS
+      // ========================================================================
+      data.vr[i] += ar * deltaTime * 0.05; // Slower accretion for stable disk
+      data.phi[i] += data.vphi[i] * deltaTime;
+      data.theta[i] += data.vtheta[i] * deltaTime;
+      data.r[i] += data.vr[i] * deltaTime;
+
+      // Conservation of angular momentum
+      data.vphi[i] = data.L[i] / (data.r[i] * data.r[i]);
+
+      // Gentle drift toward equator (disk formation)
+      if (data.orbitType[i] === 0) { // equatorial
+        const distFromEquator = Math.abs(data.theta[i] - Math.PI / 2);
+        if (distFromEquator > 0.01) {
+          data.vtheta[i] += (Math.PI / 2 - data.theta[i]) * 0.01 * deltaTime;
+        }
+      }
+
+      // ========================================================================
+      // CONVERT TO CARTESIAN FOR RENDERING
+      // ========================================================================
+      const sinTheta = Math.sin(data.theta[i]);
+      const cosTheta = Math.cos(data.theta[i]);
+      const sinPhi = Math.sin(data.phi[i]);
+      const cosPhi = Math.cos(data.phi[i]);
+
+      data.x[i] = data.r[i] * sinTheta * cosPhi;
+      data.y[i] = data.r[i] * cosTheta;
+      data.z[i] = data.r[i] * sinTheta * sinPhi;
+
+      // Update buffer positions
+      positions[i * 3] = data.x[i];
+      positions[i * 3 + 1] = data.y[i];
+      positions[i * 3 + 2] = data.z[i];
+
+      // ========================================================================
+      // UPDATE TEMPERATURE AND COLOR
+      // ========================================================================
+      data.temperature[i] = Math.max(0, Math.min(1, 1.0 - (data.r[i] - this.ISCO_RADIUS) / 150));
+
+      const temp = data.temperature[i];
+      colors[i * 3] = 0.8 + temp * 0.2;     // R
+      colors[i * 3 + 1] = 0.6 + temp * 0.4; // G
+      colors[i * 3 + 2] = 0.3 + temp * 0.7; // B
+
+      // ========================================================================
+      // LIFETIME AND RECYCLING
+      // ========================================================================
+      data.age[i] += deltaTime;
+
+      // Fade in/out based on age
+      let alpha = 1.0;
+      if (data.age[i] < 1.0) {
+        alpha = data.age[i]; // Fade in
+      } else if (data.age[i] > data.lifetime[i] - 2.0) {
+        alpha = (data.lifetime[i] - data.age[i]) / 2.0; // Fade out
+      }
+      alphas[i] = Math.max(0, Math.min(1, alpha * 0.7));
+
+      // Recycle particle if too old or fell into black hole
+      if (data.age[i] >= data.lifetime[i] || data.r[i] < this.SCHWARZSCHILD_RADIUS + 15) {
+        // Respawn at outer edge
+        const newR = this.ISCO_RADIUS + 30 + Math.random() * 80;
+        const newTheta = Math.PI / 2 + (Math.random() - 0.5) * 0.15;
+        const newPhi = Math.random() * Math.PI * 2;
+
+        data.r[i] = newR;
+        data.theta[i] = newTheta;
+        data.phi[i] = newPhi;
+
+        const orbitalSpeed = Math.sqrt(this.G / newR);
+        data.vr[i] = (Math.random() - 0.5) * 0.002;
+        data.vtheta[i] = (Math.random() - 0.5) * 0.0002;
+        data.vphi[i] = orbitalSpeed / newR;
+        data.L[i] = newR * orbitalSpeed;
+
+        data.age[i] = 0;
+        data.lifetime[i] = 10 + Math.random() * 15;
+      }
+    }
+
+    // Mark buffers as needing update
+    geometry.attributes.position.needsUpdate = true;
+    geometry.attributes.color.needsUpdate = true;
+    geometry.attributes.alpha.needsUpdate = true;
+  }
+
+  // OLD SYSTEM COMPAT: Keep old function signature but redirect to new system
+  updateParticlePhysics(particle: any, deltaTime: number) {
+    // Legacy function - now handled by updateAllParticlesPhysics
+    // Keeping for compatibility with old code that might call this
+    return;
+  }
+
 
   // ============================================================================
   // PHASE 1: ENHANCED TRAIL RENDERING WITH MOTION BLUR & RELATIVISTIC EFFECTS
@@ -2158,14 +1804,8 @@ class BlackHoleEffect {
       this.starField.material.uniforms.time.value = this.time;
     }
 
-    // Animate particles with realistic physics
-    this.particles.forEach((particle, index) => {
-      this.updateParticlePhysics(particle, deltaTime);
-
-      if (this.settings.enableTrails && this.particleTrails[index]) {
-        this.updateParticleTrail(particle, index);
-      }
-    });
+    // Animate particles with enhanced physics (coagulation + turbulence)
+    this.updateAllParticlesPhysics(deltaTime);
 
     // Gentle star field rotation
     if (this.starField) {
