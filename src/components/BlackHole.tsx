@@ -76,11 +76,11 @@ class BlackHoleEffect {
     lastMouseX: 0,
     lastMouseY: 0,
     azimuth: 0, // Horizontal rotation
-    elevation: Math.PI / 4, // Vertical angle
-    distance: 600, // Distance from center
+    elevation: Math.PI / 3, // Vertical angle (60 degrees for better initial view)
+    distance: 500, // Distance from center (closer for detail)
     targetAzimuth: 0,
-    targetElevation: Math.PI / 4,
-    targetDistance: 600,
+    targetElevation: Math.PI / 3,
+    targetDistance: 500,
   };
 
   // ============================================================================
@@ -1392,22 +1392,34 @@ class BlackHoleEffect {
   // CUSTOM INTERACTIVE CAMERA CONTROLS
   // ============================================================================
   setupInteractiveControls() {
-    console.log("✨ Interactive controls enabled! Drag to rotate, scroll to zoom, right-click to pan, double-click to spawn particles");
+    console.log("✨ Interactive controls enabled!");
+    console.log("   🖱️  Left click + drag: Rotate camera around black hole");
+    console.log("   🔍 Mouse wheel: Zoom in/out");
+    console.log("   📍 Double-click: Spawn particle at cursor");
+    console.log("   📱 Touch: Same controls work on mobile!");
+    console.log("");
+    console.log("🎥 Camera Controls:");
+    console.log(`   - Initial position: ${Math.round(this.cameraState.distance)} units from center`);
+    console.log(`   - Zoom range: 80 (close-up) to 2000 (wide view) units`);
+    console.log(`   - Current angle: ${Math.round(this.cameraState.elevation * 180 / Math.PI)}° elevation`);
   }
 
   updateCameraFromState() {
     const state = this.cameraState;
 
-    // Smooth interpolation towards target
-    state.azimuth += (state.targetAzimuth - state.azimuth) * 0.1;
-    state.elevation += (state.targetElevation - state.elevation) * 0.1;
-    state.distance += (state.targetDistance - state.distance) * 0.1;
+    // Smooth interpolation towards target (buttery smooth!)
+    const smoothness = 0.15; // Higher = more responsive
+    state.azimuth += (state.targetAzimuth - state.azimuth) * smoothness;
+    state.elevation += (state.targetElevation - state.elevation) * smoothness;
+    state.distance += (state.targetDistance - state.distance) * smoothness;
 
-    // Clamp elevation to prevent flipping
-    state.elevation = Math.max(0.1, Math.min(Math.PI - 0.1, state.elevation));
+    // Clamp elevation to prevent flipping (keep camera above/below horizon)
+    state.elevation = Math.max(0.05, Math.min(Math.PI - 0.05, state.elevation));
+    state.targetElevation = Math.max(0.05, Math.min(Math.PI - 0.05, state.targetElevation));
 
-    // Clamp distance
-    state.distance = Math.max(100, Math.min(1500, state.distance));
+    // Clamp distance (can zoom in close to particles, or far out to see whole system)
+    state.distance = Math.max(80, Math.min(2000, state.distance));
+    state.targetDistance = Math.max(80, Math.min(2000, state.targetDistance));
 
     // Convert spherical to Cartesian coordinates
     const x = state.distance * Math.sin(state.elevation) * Math.cos(state.azimuth);
@@ -1573,8 +1585,10 @@ class BlackHoleEffect {
         const deltaX = e.clientX - this.cameraState.lastMouseX;
         const deltaY = e.clientY - this.cameraState.lastMouseY;
 
-        this.cameraState.targetAzimuth -= deltaX * 0.005;
-        this.cameraState.targetElevation += deltaY * 0.005;
+        // Increased sensitivity for smoother, more responsive controls
+        const sensitivity = 0.008;
+        this.cameraState.targetAzimuth -= deltaX * sensitivity;
+        this.cameraState.targetElevation += deltaY * sensitivity;
 
         this.cameraState.lastMouseX = e.clientX;
         this.cameraState.lastMouseY = e.clientY;
@@ -1602,10 +1616,16 @@ class BlackHoleEffect {
     };
     document.addEventListener("mouseup", handleMouseUp);
 
-    // Mouse wheel - zoom
+    // Mouse wheel - zoom (with adaptive speed based on distance)
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      this.cameraState.targetDistance += e.deltaY * 0.5;
+
+      // Zoom speed scales with distance (faster when far, slower when close)
+      const zoomSpeed = Math.max(0.3, this.cameraState.targetDistance * 0.001);
+      this.cameraState.targetDistance += e.deltaY * zoomSpeed;
+
+      // Immediate feedback
+      console.log(`🔭 Zoom: ${Math.round(this.cameraState.targetDistance)} units from center`);
     };
     this.renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
 
@@ -1659,8 +1679,10 @@ class BlackHoleEffect {
           const deltaX = e.touches[0].clientX - this.cameraState.lastMouseX;
           const deltaY = e.touches[0].clientY - this.cameraState.lastMouseY;
 
-          this.cameraState.targetAzimuth -= deltaX * 0.005;
-          this.cameraState.targetElevation += deltaY * 0.005;
+          // Match improved mouse sensitivity
+          const sensitivity = 0.008;
+          this.cameraState.targetAzimuth -= deltaX * sensitivity;
+          this.cameraState.targetElevation += deltaY * sensitivity;
 
           this.cameraState.lastMouseX = e.touches[0].clientX;
           this.cameraState.lastMouseY = e.touches[0].clientY;
