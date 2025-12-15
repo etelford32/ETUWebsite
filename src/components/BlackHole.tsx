@@ -522,16 +522,90 @@ class BlackHoleEffect {
     const THREE = window.THREE;
     const photonCount = this.settings.photonCount;
 
-    // Create instanced mesh for thousands of photons
-    const photonGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+    // Create instanced mesh for thousands of photons with ENHANCED SHADER
+    const photonGeometry = new THREE.SphereGeometry(0.8, 12, 12); // Slightly larger, higher quality
+
+    // Custom shader material for photons with realistic light behavior
+    const photonMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        photonSphereRadius: { value: this.PHOTON_SPHERE_RADIUS },
+      },
+      vertexShader: `
+        uniform float time;
+        uniform float photonSphereRadius;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying float vSpeed; // Orbital speed affects color
+        varying float vGlow;  // Glow intensity
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+
+          // Calculate position in world space to determine orbital speed
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          float distFromCenter = length(worldPos.xyz);
+
+          // Photons at photon sphere orbit at speed of light (c)
+          // Slight variations create interesting visual effects
+          float orbitalPhase = atan(worldPos.z, worldPos.x) + time * 0.5;
+          vSpeed = 0.5 + sin(orbitalPhase * 10.0) * 0.5; // 0 to 1
+
+          // Glow varies with position in orbit (simulates brightness variation)
+          float heightFactor = abs(worldPos.y) / photonSphereRadius;
+          vGlow = 1.0 + sin(orbitalPhase * 5.0 + time * 2.0) * 0.3 + heightFactor * 0.2;
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying float vSpeed;
+        varying float vGlow;
+
+        void main() {
+          // View direction for Fresnel glow
+          vec3 viewDirection = normalize(cameraPosition - vPosition);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.5);
+
+          // Color shift based on speed (Doppler-like effect)
+          // Fast = blue, slow = cyan-white
+          vec3 baseColor = mix(
+            vec3(0.4, 0.8, 1.0),  // Cyan (slower)
+            vec3(0.6, 0.9, 1.0),  // Bright cyan-white (faster)
+            vSpeed
+          );
+
+          // Add intense glow at edges (photons are pure light!)
+          vec3 glowColor = baseColor * (1.0 + fresnel * 3.0);
+
+          // Apply glow variation from orbit position
+          glowColor *= vGlow;
+
+          // Core brightness with edge glow
+          float coreBrightness = 0.6 + fresnel * 0.4;
+          vec3 finalColor = glowColor * (coreBrightness + vSpeed * 0.3);
+
+          // Opacity: bright core with glowing edges
+          float alpha = 0.7 + fresnel * 0.3;
+
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+
     const photonMesh = new THREE.InstancedMesh(
       photonGeometry,
-      new THREE.MeshBasicMaterial({
-        color: 0x88ccff,
-        transparent: true,
-        opacity: 0.6,
-        blending: THREE.AdditiveBlending,
-      }),
+      photonMaterial,
       photonCount
     );
 
@@ -540,31 +614,54 @@ class BlackHoleEffect {
     const dummy = new THREE.Object3D();
 
     for (let i = 0; i < photonCount; i++) {
-      // Distribute photons in multiple orbital rings at different inclinations
-      const orbitIndex = Math.floor(Math.random() * 5); // 5 different orbital planes
-      const inclination = (orbitIndex * Math.PI) / 5;
+      // ENHANCED: Create multiple "families" of photon orbits
+      // Each family has its own orbital plane, creating beautiful 3D structure
+      const familyCount = 8; // 8 distinct orbital families
+      const familyId = i % familyCount;
+
+      // Base inclination for this family
+      const familyInclination = (familyId * Math.PI) / familyCount;
+
+      // Add variation within family for more natural look
+      const inclinationVariation = (Math.random() - 0.5) * 0.2;
+      const inclination = familyInclination + inclinationVariation;
+
+      // Angle around the orbit
       const angle = Math.random() * Math.PI * 2;
 
-      // Vary radius slightly around photon sphere
-      const radiusVariation = this.PHOTON_SPHERE_RADIUS + (Math.random() - 0.5) * 10;
+      // Vary radius slightly around photon sphere (unstable orbits have small variations)
+      const radiusVariation = this.PHOTON_SPHERE_RADIUS + (Math.random() - 0.5) * 5;
 
-      // Calculate 3D position with inclination
-      const x = radiusVariation * Math.cos(angle) * Math.cos(inclination);
-      const y = radiusVariation * Math.sin(inclination);
-      const z = radiusVariation * Math.sin(angle) * Math.cos(inclination);
+      // Calculate 3D position using spherical coordinates
+      // This creates proper 3D orbital rings
+      const theta = Math.PI / 2 + Math.sin(inclination) * (Math.PI / 3); // Polar angle
+      const phi = angle; // Azimuthal angle
+
+      const x = radiusVariation * Math.sin(theta) * Math.cos(phi);
+      const y = radiusVariation * Math.cos(theta);
+      const z = radiusVariation * Math.sin(theta) * Math.sin(phi);
 
       dummy.position.set(x, y, z);
-      dummy.scale.set(1, 1, 1);
+
+      // Scale varies slightly for visual interest
+      const scaleVariation = 0.8 + Math.random() * 0.4;
+      dummy.scale.set(scaleVariation, scaleVariation, scaleVariation);
+
       dummy.updateMatrix();
       photonMesh.setMatrixAt(i, dummy.matrix);
 
-      // Store orbital parameters
+      // Store orbital parameters with enhanced data
       photonData.push({
         angle: angle,
+        theta: theta,
+        phi: phi,
         inclination: inclination,
+        familyId: familyId,
         radius: radiusVariation,
-        speed: 0.02 + Math.random() * 0.02, // Orbital speed
+        speed: 0.015 + Math.random() * 0.025, // Orbital speed (near speed of light!)
         phase: Math.random() * Math.PI * 2, // For pulsing effect
+        shimmerPhase: Math.random() * Math.PI * 2, // Independent shimmer
+        wobbleAmplitude: 1.0 + Math.random() * 2.0, // How much wobble
       });
     }
 
@@ -604,12 +701,10 @@ class BlackHoleEffect {
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vPosition;
-        varying vec3 vNormal;
 
         void main() {
           vUv = uv;
           vPosition = position;
-          vNormal = normalize(normalMatrix * normal);
 
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
@@ -621,7 +716,6 @@ class BlackHoleEffect {
 
         varying vec2 vUv;
         varying vec3 vPosition;
-        varying vec3 vNormal;
 
         void main() {
           // Distance from center of ring (0 = inner edge, 1 = outer edge)
@@ -806,12 +900,10 @@ class BlackHoleEffect {
       },
       vertexShader: `
         varying vec3 vNormal;
-        varying vec3 vPosition;
         varying vec3 vWorldPosition;
 
         void main() {
           vNormal = normalize(normalMatrix * normal);
-          vPosition = position;
           vec4 worldPos = modelMatrix * vec4(position, 1.0);
           vWorldPosition = worldPos.xyz;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -820,7 +912,6 @@ class BlackHoleEffect {
       fragmentShader: `
         uniform float time;
         varying vec3 vNormal;
-        varying vec3 vPosition;
         varying vec3 vWorldPosition;
 
         void main() {
@@ -828,8 +919,8 @@ class BlackHoleEffect {
           float angle = atan(vWorldPosition.z, vWorldPosition.x);
           float flow = sin(angle * 8.0 + time * 2.0) * 0.5 + 0.5;
 
-          // Pulsing grid along the tube
-          float tubePattern = sin(vPosition.y * 0.1 + time) *
+          // Pulsing grid along the tube (using world position y-component)
+          float tubePattern = sin(vWorldPosition.y * 0.1 + time) *
                              cos(angle * 4.0 - time * 1.5) * 0.5 + 0.5;
 
           // Dark matter purple/blue with flowing energy
@@ -920,16 +1011,40 @@ class BlackHoleEffect {
 
       const particle = new THREE.Mesh(geometry, material);
 
-      // PROPER 3D SPHERICAL COORDINATES for black hole physics
+      // ENHANCED 3D SPHERICAL COORDINATES with orbital diversity
       const r = this.ISCO_RADIUS + Math.random() * 120; // radial distance
-      const theta = Math.acos(2 * Math.random() - 1); // polar angle (0 to PI) - fully 3D!
       const phi = Math.random() * Math.PI * 2; // azimuthal angle (0 to 2PI)
 
-      // Most particles in disk, but some in inclined orbits for 3D effect
-      const diskBias = Math.random();
-      const finalTheta = diskBias < 0.7
-        ? Math.PI / 2 + (Math.random() - 0.5) * 0.3  // 70% near equatorial plane
-        : theta; // 30% in fully 3D orbits
+      // Enhanced orbital inclination system for better 3D distribution
+      const orbitType = Math.random();
+      let finalTheta;
+      let orbitClassification; // Track orbit type for physics
+
+      if (orbitType < 0.50) {
+        // 50% equatorial disk orbits (classic accretion disk)
+        finalTheta = Math.PI / 2 + (Math.random() - 0.5) * 0.2;
+        orbitClassification = 'equatorial';
+      } else if (orbitType < 0.75) {
+        // 25% inclined orbits (15-45 degrees from equator)
+        const inclination = (Math.random() * 0.5 + 0.25) * Math.PI / 2;
+        finalTheta = Math.random() < 0.5 ?
+          Math.PI / 2 - inclination : // Northern hemisphere
+          Math.PI / 2 + inclination;  // Southern hemisphere
+        orbitClassification = 'inclined';
+      } else if (orbitType < 0.90) {
+        // 15% highly inclined orbits (45-75 degrees)
+        const inclination = (Math.random() * 0.5 + 0.5) * Math.PI / 2;
+        finalTheta = Math.random() < 0.5 ?
+          Math.PI / 2 - inclination :
+          Math.PI / 2 + inclination;
+        orbitClassification = 'highly_inclined';
+      } else {
+        // 10% polar orbits (near 90 degree inclination)
+        finalTheta = Math.random() < 0.5 ?
+          Math.random() * 0.3 :  // Near north pole
+          Math.PI - Math.random() * 0.3; // Near south pole
+        orbitClassification = 'polar';
+      }
 
       // Convert spherical to Cartesian
       particle.position.set(
@@ -1002,6 +1117,13 @@ class BlackHoleEffect {
         L: r * orbitalSpeed,     // angular momentum (conserved) - STABLE!
         speed: Math.sqrt(vx * vx + vy * vy + vz * vz), // total speed
         speedSq: vx * vx + vy * vy + vz * vz, // speed squared (optimization)
+
+        // ===== ORBITAL ELEMENTS (Enhanced 3D) =====
+        orbitType: orbitClassification, // 'equatorial', 'inclined', 'highly_inclined', 'polar'
+        inclination: Math.abs(finalTheta - Math.PI / 2), // Inclination from equatorial plane
+        longitudeOfNode: phi,    // Longitude of ascending node (where orbit crosses equator)
+        precessionRate: (Math.random() - 0.5) * 0.0002, // Orbital precession rate (GR effect)
+        nodePrecessionRate: (Math.random() - 0.5) * 0.0001, // Nodal precession
 
         // ===== RENDERING & TRAILS =====
         lastPositions: [],       // For trails
@@ -1305,10 +1427,43 @@ class BlackHoleEffect {
       }
     }
 
-    // Gravitational precession - particles in disk tend toward equator (gentler)
-    if (Math.abs(data.theta - Math.PI / 2) > 0.05) {
-      const toEquator = (Math.PI / 2 - data.theta) * 0.015; // REDUCED for smoother motion
-      data.vtheta += toEquator;
+    // ========================================================================
+    // ENHANCED 3D ORBITAL MECHANICS: Precession & Inclination Effects
+    // ========================================================================
+
+    // Apply orbital precession (General Relativity effect - orbits rotate slowly)
+    if (data.precessionRate) {
+      // Precession causes the orbit to rotate in its plane
+      data.longitudeOfNode += data.precessionRate * deltaTime;
+    }
+
+    // Nodal precession (orbit plane itself rotates)
+    if (data.nodePrecessionRate && data.orbitType !== 'equatorial') {
+      // For inclined orbits, the orbital plane precesses
+      // This creates beautiful 3D flower-petal patterns
+      const precessionForce = data.nodePrecessionRate * deltaTime;
+      data.vtheta += precessionForce * Math.sin(data.phi);
+    }
+
+    // Differential orbital mechanics based on orbit type
+    if (data.orbitType === 'equatorial') {
+      // Equatorial orbits: gentle attraction to equatorial plane (disk formation)
+      if (Math.abs(data.theta - Math.PI / 2) > 0.05) {
+        const toEquator = (Math.PI / 2 - data.theta) * 0.015;
+        data.vtheta += toEquator;
+      }
+    } else if (data.orbitType === 'polar') {
+      // Polar orbits: maintain high inclination, resist equatorial drift
+      // Polar orbits are more stable in 3D (like satellite orbits)
+      const polarStabilization = (Math.abs(data.theta - Math.PI / 2) - Math.PI / 3) * 0.002;
+      data.vtheta += polarStabilization;
+    } else {
+      // Inclined & highly inclined orbits: very gentle drift toward equator
+      // But much weaker than equatorial orbits
+      if (Math.abs(data.theta - Math.PI / 2) > 0.1) {
+        const gentleDrift = (Math.PI / 2 - data.theta) * 0.003; // Much gentler
+        data.vtheta += gentleDrift;
+      }
     }
 
     // Convert spherical to Cartesian for rendering
@@ -1917,29 +2072,54 @@ class BlackHoleEffect {
       }
     }
 
-    // Animate photon sphere
+    // Animate photon sphere with ENHANCED 3D orbital mechanics
     if (this.photonSphere) {
       const { mesh, data, dummy } = this.photonSphere;
       const THREE = window.THREE;
 
+      // Update shader uniforms for time-based effects
+      if (mesh.material.uniforms) {
+        mesh.material.uniforms.time.value = this.time;
+      }
+
       for (let i = 0; i < data.length; i++) {
         const photon = data[i];
 
-        // Update orbital position
-        photon.angle += photon.speed;
+        // Update orbital position (photons orbit at near-light speed!)
+        photon.phi += photon.speed * deltaTime;
         photon.phase += 0.05;
+        photon.shimmerPhase += 0.08;
 
-        // Calculate 3D position with slight wobble
-        const wobble = Math.sin(photon.phase) * 2;
-        const x = (photon.radius + wobble) * Math.cos(photon.angle) * Math.cos(photon.inclination);
-        const y = (photon.radius + wobble) * Math.sin(photon.inclination);
-        const z = (photon.radius + wobble) * Math.sin(photon.angle) * Math.cos(photon.inclination);
+        // ENHANCED: 3D orbital motion with proper spherical coordinates
+        // Wobble simulates the instability of photon sphere orbits
+        const wobble = Math.sin(photon.phase) * photon.wobbleAmplitude;
+        const radialWobble = photon.radius + wobble;
+
+        // Calculate position in 3D using spherical coordinates
+        // This maintains the orbital plane while allowing precession
+        const x = radialWobble * Math.sin(photon.theta) * Math.cos(photon.phi);
+        const y = radialWobble * Math.cos(photon.theta);
+        const z = radialWobble * Math.sin(photon.theta) * Math.sin(photon.phi);
 
         dummy.position.set(x, y, z);
 
-        // Pulsing scale effect
-        const pulse = 0.8 + Math.sin(photon.phase) * 0.4;
-        dummy.scale.set(pulse, pulse, pulse);
+        // ENHANCED: Dynamic scale with multiple effects
+        // 1. Base pulsing from orbital phase
+        const basePulse = 0.7 + Math.sin(photon.phase) * 0.3;
+        // 2. Shimmer effect (faster variation)
+        const shimmer = 1.0 + Math.sin(photon.shimmerPhase) * 0.2;
+        // 3. Family-based variation (photons in same family pulse together)
+        const familyPulse = 1.0 + Math.sin(this.time * 2.0 + photon.familyId * 0.5) * 0.15;
+
+        const finalScale = basePulse * shimmer * familyPulse;
+        dummy.scale.set(finalScale, finalScale, finalScale);
+
+        // Optional: Add slight rotation for more dynamic feel
+        dummy.rotation.set(
+          photon.phase * 0.1,
+          photon.shimmerPhase * 0.15,
+          photon.phi * 0.05
+        );
 
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
