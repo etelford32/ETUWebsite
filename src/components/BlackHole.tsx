@@ -1181,85 +1181,63 @@ class BlackHoleEffect {
       const phi = data.phi[i];
 
       // ========================================================================
-      // GRAVITATIONAL FORCE WITH CLAMPING
+      // GRAVITATIONAL FORCE WITH CLAMPING - PROPER CIRCULAR ORBIT BALANCE
       // ========================================================================
       const rSq = r * r;
       const rCubed = rSq * r;
 
-      // Radial acceleration: gravity + centrifugal
-      // CLAMPED to avoid infinities
+      // For stable circular orbits: centrifugal = gravity
+      // L²/r³ = G/r² → L² = G*r
+      // So if L is conserved correctly, ar should be ≈ 0
       let ar = -this.G / rSq + (data.L[i] * data.L[i]) / rCubed;
       ar = Math.max(-this.MAX_GRAVITATIONAL_FORCE, Math.min(this.MAX_GRAVITATIONAL_FORCE, ar));
 
       // ========================================================================
-      // TURBULENCE: Chaotic eddies in the accretion disk
+      // TURBULENCE: Apply ONLY to radial motion (don't disrupt tangential orbit!)
       // ========================================================================
-      const turbulenceX = Math.sin(phi * 3.0 + this.time * this.TURBULENCE_FREQUENCY) * this.TURBULENCE_SCALE;
-      const turbulenceY = Math.cos(theta * 5.0 + this.time * this.TURBULENCE_FREQUENCY * 1.3) * this.TURBULENCE_SCALE;
-      const turbulenceZ = Math.sin(phi * 7.0 - this.time * this.TURBULENCE_FREQUENCY * 0.7) * this.TURBULENCE_SCALE;
+      const turbulenceR = Math.sin(phi * 3.0 + this.time * this.TURBULENCE_FREQUENCY) * this.TURBULENCE_SCALE * 0.1;
+      const turbulenceTheta = Math.cos(theta * 5.0 + this.time * this.TURBULENCE_FREQUENCY * 1.3) * this.TURBULENCE_SCALE * 0.05;
 
-      // Add turbulence to velocities
-      data.vx[i] += turbulenceX * deltaTime;
-      data.vy[i] += turbulenceY * deltaTime;
-      data.vz[i] += turbulenceZ * deltaTime;
+      // Apply turbulence only to non-orbital components
+      data.vr[i] += turbulenceR * deltaTime;
+      data.vtheta[i] += turbulenceTheta * deltaTime;
 
       // ========================================================================
-      // COAGULATION: Particles attract nearby particles
+      // COAGULATION: DISABLED - Was disrupting orbits
+      // In a real accretion disk, coagulation happens over much longer timescales
       // ========================================================================
-      let coagulationForceX = 0;
-      let coagulationForceY = 0;
-      let coagulationForceZ = 0;
-
-      // Check nearby particles (spatial hash would be better for 10k particles, but simple loop for now)
-      // Only check every 10th particle to keep it performant
-      for (let j = 0; j < particleCount; j += 10) {
-        if (i === j) continue;
-
-        const dx = data.x[j] - data.x[i];
-        const dy = data.y[j] - data.y[i];
-        const dz = data.z[j] - data.z[i];
-        const distSq = dx * dx + dy * dy + dz * dz;
-        const dist = Math.sqrt(distSq);
-
-        // Coagulation occurs within COAGULATION_RADIUS
-        if (dist > 0 && dist < this.COAGULATION_RADIUS) {
-          const coagForce = this.COAGULATION_STRENGTH * (1.0 - dist / this.COAGULATION_RADIUS) * data.mass[j];
-          coagulationForceX += (dx / dist) * coagForce;
-          coagulationForceY += (dy / dist) * coagForce;
-          coagulationForceZ += (dz / dist) * coagForce;
-        }
-      }
-
-      // Apply coagulation forces
-      data.vx[i] += coagulationForceX * deltaTime;
-      data.vy[i] += coagulationForceY * deltaTime;
-      data.vz[i] += coagulationForceZ * deltaTime;
+      // (Commented out for stable orbits)
 
       // ========================================================================
-      // VISCOSITY: Momentum dissipation
+      // VISCOSITY: Only damp radial and polar velocities (not tangential!)
+      // This allows particles to settle into circular orbits
       // ========================================================================
-      data.vr[i] *= this.VISCOSITY;
-      data.vtheta[i] *= this.VISCOSITY;
-      data.vx[i] *= this.VISCOSITY;
-      data.vy[i] *= this.VISCOSITY;
-      data.vz[i] *= this.VISCOSITY;
+      data.vr[i] *= 0.95; // Damp radial oscillations
+      data.vtheta[i] *= 0.98; // Damp polar oscillations
+      // DON'T touch vphi or L - they must stay conserved for stable orbits!
 
       // ========================================================================
       // UPDATE VELOCITIES AND POSITIONS
       // ========================================================================
-      data.vr[i] += ar * deltaTime * 0.05; // Slower accretion for stable disk
-      data.phi[i] += data.vphi[i] * deltaTime;
-      data.theta[i] += data.vtheta[i] * deltaTime;
-      data.r[i] += data.vr[i] * deltaTime;
+      // Update radial velocity from acceleration (very gentle to avoid spiral-in)
+      data.vr[i] += ar * deltaTime * 0.01; // Reduced from 0.05 to 0.01
 
-      // Conservation of angular momentum
+      // Update positions
+      data.r[i] += data.vr[i] * deltaTime;
+      data.theta[i] += data.vtheta[i] * deltaTime;
+      data.phi[i] += data.vphi[i] * deltaTime;
+
+      // ========================================================================
+      // ANGULAR MOMENTUM CONSERVATION - THE KEY TO STABLE ORBITS!
+      // ========================================================================
+      // Recalculate angular velocity from conserved angular momentum
       data.vphi[i] = data.L[i] / (data.r[i] * data.r[i]);
 
       // Gentle drift toward equator (disk formation)
       if (data.orbitType[i] === 0) { // equatorial
         const distFromEquator = Math.abs(data.theta[i] - Math.PI / 2);
         if (distFromEquator > 0.01) {
-          data.vtheta[i] += (Math.PI / 2 - data.theta[i]) * 0.01 * deltaTime;
+          data.vtheta[i] += (Math.PI / 2 - data.theta[i]) * 0.005 * deltaTime;
         }
       }
 
@@ -1274,6 +1252,15 @@ class BlackHoleEffect {
       data.x[i] = data.r[i] * sinTheta * cosPhi;
       data.y[i] = data.r[i] * cosTheta;
       data.z[i] = data.r[i] * sinTheta * sinPhi;
+
+      // Update Cartesian velocities for consistency (not used in physics, just for reference)
+      data.vx[i] = data.vr[i] * sinTheta * cosPhi
+                   - data.r[i] * data.vtheta[i] * cosTheta * cosPhi
+                   - data.r[i] * sinTheta * data.vphi[i] * sinPhi;
+      data.vy[i] = data.vr[i] * cosTheta + data.r[i] * data.vtheta[i] * sinTheta;
+      data.vz[i] = data.vr[i] * sinTheta * sinPhi
+                   - data.r[i] * data.vtheta[i] * cosTheta * sinPhi
+                   + data.r[i] * sinTheta * data.vphi[i] * cosPhi;
 
       // Update buffer positions
       positions[i * 3] = data.x[i];
@@ -1306,7 +1293,7 @@ class BlackHoleEffect {
 
       // Recycle particle if too old or fell into black hole
       if (data.age[i] >= data.lifetime[i] || data.r[i] < this.SCHWARZSCHILD_RADIUS + 15) {
-        // Respawn at outer edge
+        // Respawn at outer edge with PROPER circular orbit conditions
         const newR = this.ISCO_RADIUS + 30 + Math.random() * 80;
         const newTheta = Math.PI / 2 + (Math.random() - 0.5) * 0.15;
         const newPhi = Math.random() * Math.PI * 2;
@@ -1315,11 +1302,12 @@ class BlackHoleEffect {
         data.theta[i] = newTheta;
         data.phi[i] = newPhi;
 
+        // CRITICAL: Set proper circular orbit velocity
         const orbitalSpeed = Math.sqrt(this.G / newR);
-        data.vr[i] = (Math.random() - 0.5) * 0.002;
-        data.vtheta[i] = (Math.random() - 0.5) * 0.0002;
-        data.vphi[i] = orbitalSpeed / newR;
-        data.L[i] = newR * orbitalSpeed;
+        data.vr[i] = 0; // NO radial velocity for circular orbit
+        data.vtheta[i] = 0; // NO polar velocity for circular orbit
+        data.vphi[i] = orbitalSpeed / newR; // Angular velocity
+        data.L[i] = newR * orbitalSpeed; // Angular momentum L = r*v
 
         data.age[i] = 0;
         data.lifetime[i] = 10 + Math.random() * 15;
