@@ -964,6 +964,8 @@ class BlackHoleEffect {
     const THREE = window.THREE;
     const particleCount = this.PARTICLE_COUNT; // 10,000 particles!
 
+    console.log(`🌌 Creating ${particleCount} particles for accretion disk...`);
+
     // ========================================================================
     // EFFICIENT BUFFER GEOMETRY FOR 10,000 1PX PARTICLES
     // ========================================================================
@@ -1083,11 +1085,11 @@ class BlackHoleEffect {
       colors[i * 3 + 1] = 0.6 + temp * 0.4; // G
       colors[i * 3 + 2] = 0.3 + temp * 0.7; // B
 
-      // Size (1px base with slight variation)
-      sizes[i] = 1.0 + Math.random() * 0.5;
+      // Size (2-4px for visibility)
+      sizes[i] = 2.0 + Math.random() * 2.0;
 
-      // Alpha
-      alphas[i] = 0.6 + Math.random() * 0.4;
+      // Alpha (brighter for visibility)
+      alphas[i] = 0.8 + Math.random() * 0.2;
     }
 
     // Set buffer attributes
@@ -1101,7 +1103,7 @@ class BlackHoleEffect {
     // ========================================================================
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        time: { value: 0 },
+        // No uniforms needed for static particles
       },
       vertexShader: `
         attribute float size;
@@ -1118,8 +1120,8 @@ class BlackHoleEffect {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
-          // Size attenuation with distance
-          gl_PointSize = size * (300.0 / -mvPosition.z);
+          // Size attenuation with distance (increased for visibility)
+          gl_PointSize = size * (800.0 / max(-mvPosition.z, 1.0));
         }
       `,
       fragmentShader: `
@@ -1147,6 +1149,11 @@ class BlackHoleEffect {
     // Create Points mesh
     const particleSystem = new THREE.Points(geometry, material);
     this.scene.add(particleSystem);
+
+    console.log(`✅ Particle system created and added to scene!`);
+    console.log(`   - Particle count: ${particleCount}`);
+    console.log(`   - Position buffer size: ${positions.length}`);
+    console.log(`   - First particle at: (${positions[0].toFixed(1)}, ${positions[1].toFixed(1)}, ${positions[2].toFixed(1)})`);
 
     // Store reference for updates
     this.particles = [{
@@ -1289,7 +1296,7 @@ class BlackHoleEffect {
       } else if (data.age[i] > data.lifetime[i] - 2.0) {
         alpha = (data.lifetime[i] - data.age[i]) / 2.0; // Fade out
       }
-      alphas[i] = Math.max(0, Math.min(1, alpha * 0.7));
+      alphas[i] = Math.max(0, Math.min(1, alpha * 0.9)); // Increased from 0.7 to 0.9 for brightness
 
       // Recycle particle if too old or fell into black hole
       if (data.age[i] >= data.lifetime[i] || data.r[i] < this.SCHWARZSCHILD_RADIUS + 15) {
