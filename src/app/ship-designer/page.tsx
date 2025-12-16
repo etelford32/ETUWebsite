@@ -14,6 +14,11 @@ export default function ShipDesigner() {
       accent: '#7dd3fc',
       glow: '#0ea5e9'
     },
+    weaponColors: {
+      laser: '#ef4444',
+      missile: '#f97316',
+      mine: '#a855f7'
+    },
     defense: {
       hull: 100,
       armor: 50,
@@ -29,9 +34,9 @@ export default function ShipDesigner() {
         type: 'triangle',
         size: 40,
         points: [
-          { x: 0, y: -40 },  // Nose
-          { x: -25, y: 30 },  // Left wing
-          { x: 25, y: 30 }    // Right wing
+          { x: 0, y: -40 },
+          { x: -25, y: 30 },
+          { x: 25, y: 30 }
         ]
       },
       engine: {
@@ -61,26 +66,24 @@ export default function ShipDesigner() {
   };
 
   return (
-    <div className="min-h-screen bg-deep-900 text-white">
+    <div className="min-h-screen bg-deep-900 text-white flex flex-col">
       {/* Compact Header */}
       <div className="border-b border-white/10 bg-deep-900/95 backdrop-blur-md sticky top-16 z-40">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Ship Designer
-              </h1>
-            </div>
-            <div className="flex gap-2">
+            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              Ship Designer
+            </h1>
+            <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={handleCopyJSON}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-semibold transition-all duration-200"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-white/5 hover:bg-white/10 border border-white/10 rounded font-semibold transition-all"
               >
-                Copy JSON
+                Copy
               </button>
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg"
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded font-semibold transition-all"
               >
                 Download
               </button>
@@ -89,26 +92,35 @@ export default function ShipDesigner() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-          {/* Left Panel - Ship Config & Colors */}
-          <div className="xl:col-span-1 space-y-4">
-            {/* Ship Info */}
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-sm font-bold text-blue-300 mb-3">Configuration</h3>
-              <div className="space-y-3">
-                <div>
-                  <input
-                    type="text"
-                    value={shipData.name}
-                    onChange={(e) => setShipData({ ...shipData, name: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
-                    placeholder="Ship Name"
-                  />
-                </div>
+      {/* Ship Canvas - Front and Center */}
+      <div className="flex-1 flex flex-col">
+        <div className="bg-deep-800/30 border-b border-white/5">
+          <ShipCanvas shipData={shipData} />
+        </div>
 
-                <div>
-                  <label className="text-xs text-gray-400">Scale: {shipData.scale.toFixed(1)}</label>
+        {/* Compact Controls at Bottom */}
+        <div className="bg-deep-800/50 border-t border-white/10 backdrop-blur-sm">
+          <div className="container mx-auto px-2 py-2 max-w-6xl">
+            {/* Ship Name */}
+            <div className="mb-2">
+              <input
+                type="text"
+                value={shipData.name}
+                onChange={(e) => setShipData({ ...shipData, name: e.target.value })}
+                className="w-full px-2 py-1 text-sm bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+                placeholder="Ship Name"
+              />
+            </div>
+
+            {/* Grid Layout for All Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+
+              {/* Column 1: Ship Config */}
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-blue-300 mb-1">Configuration</div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-400 w-16">Scale</label>
                   <input
                     type="range"
                     min="0.5"
@@ -116,12 +128,13 @@ export default function ShipDesigner() {
                     step="0.1"
                     value={shipData.scale}
                     onChange={(e) => setShipData({ ...shipData, scale: parseFloat(e.target.value) })}
-                    className="w-full h-1"
+                    className="flex-1 h-1"
                   />
+                  <span className="text-xs text-gray-300 w-8">{shipData.scale.toFixed(1)}</span>
                 </div>
 
-                <div>
-                  <label className="text-xs text-gray-400">Rotation: {shipData.rotation}°</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-400 w-16">Rotation</label>
                   <input
                     type="range"
                     min="0"
@@ -129,12 +142,13 @@ export default function ShipDesigner() {
                     step="15"
                     value={shipData.rotation}
                     onChange={(e) => setShipData({ ...shipData, rotation: parseInt(e.target.value) })}
-                    className="w-full h-1"
+                    className="flex-1 h-1"
                   />
+                  <span className="text-xs text-gray-300 w-8">{shipData.rotation}°</span>
                 </div>
 
-                <div>
-                  <label className="text-xs text-gray-400">Size: {shipData.components.hull.size}</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-400 w-16">Size</label>
                   <input
                     type="range"
                     min="20"
@@ -159,12 +173,13 @@ export default function ShipDesigner() {
                         }
                       });
                     }}
-                    className="w-full h-1"
+                    className="flex-1 h-1"
                   />
+                  <span className="text-xs text-gray-300 w-8">{shipData.components.hull.size}</span>
                 </div>
 
-                <div>
-                  <label className="text-xs text-gray-400">Engine Glow: {shipData.components.engine.glowIntensity.toFixed(1)}</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-400 w-16">Glow</label>
                   <input
                     type="range"
                     min="0"
@@ -178,59 +193,64 @@ export default function ShipDesigner() {
                         engine: { ...shipData.components.engine, glowIntensity: parseFloat(e.target.value) }
                       }
                     })}
-                    className="w-full h-1"
+                    className="flex-1 h-1"
                   />
+                  <span className="text-xs text-gray-300 w-8">{shipData.components.engine.glowIntensity.toFixed(1)}</span>
+                </div>
+
+                {/* Hull Colors */}
+                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Hull Colors</div>
+                <div className="grid grid-cols-4 gap-1">
+                  {Object.entries(shipData.color).map(([key, value]) => (
+                    <div key={key}>
+                      <label className="text-[10px] text-gray-400 capitalize block">{key}</label>
+                      <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => setShipData({
+                          ...shipData,
+                          color: { ...shipData.color, [key]: e.target.value }
+                        })}
+                        className="w-full h-6 rounded border border-white/10 cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Weapon Colors */}
+                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Weapon Colors</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {Object.entries(shipData.weaponColors).map(([key, value]) => (
+                    <div key={key}>
+                      <label className="text-[10px] text-gray-400 capitalize block">{key}</label>
+                      <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => setShipData({
+                          ...shipData,
+                          weaponColors: { ...shipData.weaponColors, [key]: e.target.value }
+                        })}
+                        className="w-full h-6 rounded border border-white/10 cursor-pointer"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Colors */}
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-sm font-bold text-blue-300 mb-3">Colors</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(shipData.color).map(([key, value]) => (
-                  <div key={key}>
-                    <label className="text-xs text-gray-400 capitalize block mb-1">{key}</label>
-                    <input
-                      type="color"
-                      value={value}
-                      onChange={(e) => setShipData({
-                        ...shipData,
-                        color: { ...shipData.color, [key]: e.target.value }
-                      })}
-                      className="w-full h-8 rounded border border-white/10 cursor-pointer"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+              {/* Column 2: Defense Systems */}
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-blue-300 mb-1">Defense Systems</div>
 
-          {/* Center - Canvas */}
-          <div className="xl:col-span-2">
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm h-full">
-              <div className="bg-black/50 rounded-lg border border-white/5 overflow-hidden">
-                <ShipCanvas shipData={shipData} />
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel - Weapons & Defense */}
-          <div className="xl:col-span-1 space-y-4">
-            {/* Defense Stats */}
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-sm font-bold text-blue-300 mb-3">Defense Systems</h3>
-              <div className="space-y-3">
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Hull Integrity</label>
-                    <span className="text-xs font-bold text-green-400">{shipData.defense.hull}</span>
-                  </div>
-                  <div className="relative h-2 bg-black/30 rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-600 to-green-400 transition-all duration-300"
-                      style={{ width: `${shipData.defense.hull}%` }}
-                    />
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Hull</label>
+                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all"
+                        style={{ width: `${(shipData.defense.hull / 200) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-green-400 font-bold w-8">{shipData.defense.hull}</span>
                   </div>
                   <input
                     type="range"
@@ -242,20 +262,20 @@ export default function ShipDesigner() {
                       ...shipData,
                       defense: { ...shipData.defense, hull: parseInt(e.target.value) }
                     })}
-                    className="w-full h-1 mt-1"
+                    className="w-full h-1"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Armor Plating</label>
-                    <span className="text-xs font-bold text-yellow-400">{shipData.defense.armor}</span>
-                  </div>
-                  <div className="relative h-2 bg-black/30 rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all duration-300"
-                      style={{ width: `${(shipData.defense.armor / 150) * 100}%` }}
-                    />
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Armor</label>
+                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all"
+                        style={{ width: `${(shipData.defense.armor / 150) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-yellow-400 font-bold w-8">{shipData.defense.armor}</span>
                   </div>
                   <input
                     type="range"
@@ -267,20 +287,20 @@ export default function ShipDesigner() {
                       ...shipData,
                       defense: { ...shipData.defense, armor: parseInt(e.target.value) }
                     })}
-                    className="w-full h-1 mt-1"
+                    className="w-full h-1"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Shield Strength</label>
-                    <span className="text-xs font-bold text-blue-400">{shipData.defense.shield}</span>
-                  </div>
-                  <div className="relative h-2 bg-black/30 rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-300"
-                      style={{ width: `${shipData.defense.shield}%` }}
-                    />
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Shield</label>
+                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all"
+                        style={{ width: `${shipData.defense.shield}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-blue-400 font-bold w-8">{shipData.defense.shield}</span>
                   </div>
                   <input
                     type="range"
@@ -292,20 +312,51 @@ export default function ShipDesigner() {
                       ...shipData,
                       defense: { ...shipData.defense, shield: parseInt(e.target.value) }
                     })}
-                    className="w-full h-1 mt-1"
+                    className="w-full h-1"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Weapons */}
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-sm font-bold text-blue-300 mb-3">Weapon Systems</h3>
-              <div className="space-y-3">
+                {/* Stats Summary */}
+                <div className="bg-black/20 rounded p-2 mt-2">
+                  <div className="text-xs font-bold text-blue-300 mb-1">Combat Rating</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Defense:</span>
+                      <span className="text-green-400 font-bold">{shipData.defense.hull + shipData.defense.armor + shipData.defense.shield}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Weapons:</span>
+                      <span className="text-red-400 font-bold">{shipData.weapons.lasers + shipData.weapons.missiles + shipData.weapons.mines}</span>
+                    </div>
+                    <div className="flex justify-between col-span-2">
+                      <span className="text-gray-400">Power:</span>
+                      <span className="text-indigo-400 font-bold">
+                        {Math.round((shipData.defense.hull + shipData.defense.armor + shipData.defense.shield) * 0.4 +
+                         (shipData.weapons.lasers * 15 + shipData.weapons.missiles * 10 + shipData.weapons.mines * 8))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Weapon Systems */}
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-blue-300 mb-1">Weapon Systems</div>
+
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Laser Cannons</label>
-                    <span className="text-xs font-bold text-red-400">{shipData.weapons.lasers}</span>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Lasers</label>
+                    <div className="flex-1 flex gap-0.5">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-1.5 rounded-full transition-all ${
+                            i < shipData.weapons.lasers ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]' : 'bg-white/10'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-red-400 font-bold w-8">{shipData.weapons.lasers}</span>
                   </div>
                   <input
                     type="range"
@@ -319,22 +370,22 @@ export default function ShipDesigner() {
                     })}
                     className="w-full h-1"
                   />
-                  <div className="flex gap-1 mt-2">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 h-1.5 rounded-full transition-all ${
-                          i < shipData.weapons.lasers ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-white/10'
-                        }`}
-                      />
-                    ))}
-                  </div>
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Missile Launchers</label>
-                    <span className="text-xs font-bold text-orange-400">{shipData.weapons.missiles}</span>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Missiles</label>
+                    <div className="flex-1 flex gap-0.5">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-1.5 rounded-full transition-all ${
+                            i < shipData.weapons.missiles ? 'bg-orange-500 shadow-[0_0_4px_rgba(249,115,22,0.8)]' : 'bg-white/10'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-orange-400 font-bold w-8">{shipData.weapons.missiles}</span>
                   </div>
                   <input
                     type="range"
@@ -348,22 +399,22 @@ export default function ShipDesigner() {
                     })}
                     className="w-full h-1"
                   />
-                  <div className="flex gap-1 mt-2">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 h-1.5 rounded-full transition-all ${
-                          i < shipData.weapons.missiles ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]' : 'bg-white/10'
-                        }`}
-                      />
-                    ))}
-                  </div>
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs text-gray-400">Space Mines</label>
-                    <span className="text-xs font-bold text-purple-400">{shipData.weapons.mines}</span>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <label className="text-xs text-gray-400 w-16">Mines</label>
+                    <div className="flex-1 flex gap-0.5">
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-1.5 rounded-full transition-all ${
+                            i < shipData.weapons.mines ? 'bg-purple-500 shadow-[0_0_4px_rgba(168,85,247,0.8)]' : 'bg-white/10'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-purple-400 font-bold w-8">{shipData.weapons.mines}</span>
                   </div>
                   <input
                     type="range"
@@ -377,38 +428,6 @@ export default function ShipDesigner() {
                     })}
                     className="w-full h-1"
                   />
-                  <div className="flex gap-1 mt-2">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 h-1.5 rounded-full transition-all ${
-                          i < shipData.weapons.mines ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-white/10'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats Summary */}
-            <div className="bg-deep-800/50 border border-white/10 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-sm font-bold text-blue-300 mb-3">Combat Rating</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total Defense:</span>
-                  <span className="font-bold text-green-400">{shipData.defense.hull + shipData.defense.armor + shipData.defense.shield}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total Weapons:</span>
-                  <span className="font-bold text-red-400">{shipData.weapons.lasers + shipData.weapons.missiles + shipData.weapons.mines}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Combat Power:</span>
-                  <span className="font-bold text-indigo-400">
-                    {Math.round((shipData.defense.hull + shipData.defense.armor + shipData.defense.shield) * 0.4 +
-                     (shipData.weapons.lasers * 15 + shipData.weapons.missiles * 10 + shipData.weapons.mines * 8))}
-                  </span>
                 </div>
               </div>
             </div>
