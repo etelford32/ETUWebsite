@@ -171,6 +171,9 @@ function LoginForm() {
             <p className="text-slate-400 mt-2">
               {mode === 'login' ? 'Welcome back, Commander' : 'Begin your journey'}
             </p>
+            <p className="text-slate-500 text-sm mt-1">
+              One account for PC, Mac, Linux, Steam Deck & Web
+            </p>
           </motion.div>
         </div>
 
