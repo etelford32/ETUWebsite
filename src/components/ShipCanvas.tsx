@@ -12,6 +12,16 @@ interface ShipData {
     accent: string;
     glow: string;
   };
+  defense: {
+    hull: number;
+    armor: number;
+    shield: number;
+  };
+  weapons: {
+    lasers: number;
+    missiles: number;
+    mines: number;
+  };
   components: {
     hull: {
       type: string;
@@ -97,6 +107,11 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     ctx.rotate((data.rotation * Math.PI) / 180);
     ctx.scale(data.scale, data.scale);
 
+    // Draw shield (outermost layer)
+    if (data.defense.shield > 0) {
+      drawShield(ctx, data, time);
+    }
+
     // Draw engine glow (behind ship)
     if (data.components.engine.enabled) {
       drawEngineGlow(ctx, data, time);
@@ -105,14 +120,23 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     // Draw ship hull with pearly effect
     drawPearlyHull(ctx, data, time);
 
+    // Draw armor plating
+    if (data.defense.armor > 0) {
+      drawArmor(ctx, data);
+    }
+
+    // Draw weapons
+    drawWeapons(ctx, data, time);
+
     // Draw ship outline
     drawShipOutline(ctx, data);
 
     // Restore context
     ctx.restore();
 
-    // Draw crosshair
+    // Draw UI overlays
     drawCrosshair(ctx, centerX, centerY);
+    drawStatsOverlay(ctx, data, width, height);
   };
 
   const drawStarfield = (
@@ -155,6 +179,50 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
+    }
+  };
+
+  const drawShield = (
+    ctx: CanvasRenderingContext2D,
+    data: ShipData,
+    time: number
+  ) => {
+    const points = data.components.hull.points;
+    const size = data.components.hull.size;
+    const shieldRadius = size * 1.3;
+    const shieldStrength = data.defense.shield / 100;
+    const pulse = Math.sin(time * 2) * 0.1 + 0.9;
+
+    // Shield bubble
+    const gradient = ctx.createRadialGradient(0, 0, shieldRadius * 0.7, 0, 0, shieldRadius);
+    gradient.addColorStop(0, `rgba(59, 130, 246, 0)`);
+    gradient.addColorStop(0.8, `rgba(59, 130, 246, ${shieldStrength * pulse * 0.3})`);
+    gradient.addColorStop(1, `rgba(14, 165, 233, ${shieldStrength * pulse * 0.5})`);
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, shieldRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shield hexagon pattern
+    ctx.strokeStyle = `rgba(59, 130, 246, ${shieldStrength * pulse * 0.4})`;
+    ctx.lineWidth = 1.5;
+    const hexCount = 6;
+    for (let i = 0; i < hexCount; i++) {
+      const angle = (i / hexCount) * Math.PI * 2 + time;
+      const hexRadius = shieldRadius * 0.3;
+      const hexX = Math.cos(angle) * shieldRadius * 0.7;
+      const hexY = Math.sin(angle) * shieldRadius * 0.7;
+
+      ctx.beginPath();
+      for (let j = 0; j <= 6; j++) {
+        const hexAngle = (j / 6) * Math.PI * 2;
+        const x = hexX + Math.cos(hexAngle) * hexRadius;
+        const y = hexY + Math.sin(hexAngle) * hexRadius;
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
   };
 
@@ -261,6 +329,120 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     ctx.shadowBlur = 0;
   };
 
+  const drawArmor = (
+    ctx: CanvasRenderingContext2D,
+    data: ShipData
+  ) => {
+    const points = data.components.hull.points;
+    const armorStrength = data.defense.armor / 150;
+
+    // Armor plating on edges
+    ctx.strokeStyle = `rgba(251, 191, 36, ${armorStrength * 0.6})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Armor segments
+    for (let i = 0; i < points.length; i++) {
+      const nextI = (i + 1) % points.length;
+      const midX = (points[i].x + points[nextI].x) / 2;
+      const midY = (points[i].y + points[nextI].y) / 2;
+
+      ctx.fillStyle = `rgba(234, 179, 8, ${armorStrength * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(midX, midY, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const drawWeapons = (
+    ctx: CanvasRenderingContext2D,
+    data: ShipData,
+    time: number
+  ) => {
+    const points = data.components.hull.points;
+    const nose = points[0];
+    const leftWing = points[1];
+    const rightWing = points[2];
+
+    // Draw laser cannons on wings
+    for (let i = 0; i < data.weapons.lasers; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const wingPoint = side === 1 ? rightWing : leftWing;
+      const offsetY = Math.floor(i / 2) * 8;
+      const laserX = wingPoint.x * 0.7;
+      const laserY = wingPoint.y - offsetY;
+
+      // Laser cannon body
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(laserX - 2, laserY - 4, 4, 8);
+
+      // Laser glow
+      const pulse = Math.sin(time * 10 + i) * 0.3 + 0.7;
+      ctx.fillStyle = `rgba(239, 68, 68, ${pulse * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(laserX, laserY, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw missile launchers
+    for (let i = 0; i < Math.min(data.weapons.missiles, 4); i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const wingPoint = side === 1 ? rightWing : leftWing;
+      const offsetX = side * (10 + Math.floor(i / 2) * 10);
+      const missileX = offsetX;
+      const missileY = wingPoint.y - 5;
+
+      // Missile rack
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(missileX - 3, missileY - 2, 6, 4);
+
+      // Missile tip
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.moveTo(missileX, missileY - 5);
+      ctx.lineTo(missileX - 2, missileY - 2);
+      ctx.lineTo(missileX + 2, missileY - 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Draw mine indicators (small icons near the back)
+    if (data.weapons.mines > 0) {
+      const mineY = (leftWing.y + rightWing.y) / 2;
+      for (let i = 0; i < Math.min(data.weapons.mines, 3); i++) {
+        const mineX = (i - 1) * 10;
+        const mineSize = 3;
+
+        // Mine body
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(mineX, mineY, mineSize, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Mine spikes
+        for (let j = 0; j < 4; j++) {
+          const angle = (j / 4) * Math.PI * 2;
+          const x1 = mineX + Math.cos(angle) * mineSize;
+          const y1 = mineY + Math.sin(angle) * mineSize;
+          const x2 = mineX + Math.cos(angle) * (mineSize + 3);
+          const y2 = mineY + Math.sin(angle) * (mineSize + 3);
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      }
+    }
+  };
+
   const drawShipOutline = (
     ctx: CanvasRenderingContext2D,
     data: ShipData
@@ -318,10 +500,38 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     ctx.fill();
   };
 
+  const drawStatsOverlay = (
+    ctx: CanvasRenderingContext2D,
+    data: ShipData,
+    width: number,
+    height: number
+  ) => {
+    // Ship name at top
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(data.name, width / 2, 20);
+
+    // Quick stats in corner
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    const stats = [
+      `H:${data.defense.hull} A:${data.defense.armor} S:${data.defense.shield}`,
+      `L:${data.weapons.lasers} M:${data.weapons.missiles} X:${data.weapons.mines}`
+    ];
+
+    stats.forEach((stat, i) => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(8, height - 40 + (i * 15), 120, 12);
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
+      ctx.fillText(stat, 10, height - 32 + (i * 15));
+    });
+  };
+
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-[600px] rounded-lg"
+      className="w-full h-[500px] rounded-lg"
       style={{ imageRendering: 'crisp-edges' }}
     />
   );
