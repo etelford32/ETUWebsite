@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Profile, LeaderboardEntry } from '@/lib/types'
 import { SteamProfileLink } from '@/components/SteamProfileLink'
+import Header from '@/components/Header'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -86,28 +87,22 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black">
-      {/* Header */}
-      <header className="sticky top-0 z-30 backdrop-blur bg-slate-950/70 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-slate-400 text-sm">Explore the Universe 2175</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/" className="text-sm text-slate-400 hover:text-white">
-              Back to Site
-            </a>
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Page Header with Sign Out */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-slate-400 mt-1">Manage your profile and view your stats</p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
         {/* Steam Link Section */}
         <div className="mb-6">
           <SteamProfileLink currentSteamId={profile?.steam_id} />

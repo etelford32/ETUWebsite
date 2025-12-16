@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LeaderboardEntry } from '@/lib/types'
 import { supabase } from '@/lib/supabaseClient'
+import Header from '@/components/Header'
 
 type TimeWindow = 'today' | '7d' | '30d' | '90d' | 'all'
 type SortField = 'score' | 'level' | 'submitted_at'
@@ -123,46 +124,18 @@ export default function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-slate-100">
-      {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-lg bg-slate-950/80 border-b border-indigo-500/20 shadow-lg shadow-indigo-500/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                🏆 Global Leaderboards
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">
-                Explore the Universe 2175 — {total.toLocaleString()} commanders competing
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <a
-                href="/"
-                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition text-sm"
-              >
-                ← Back to Home
-              </a>
-              {currentUser ? (
-                <a
-                  href="/dashboard"
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition text-sm font-medium"
-                >
-                  Dashboard
-                </a>
-              ) : (
-                <a
-                  href="/join"
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition text-sm font-medium"
-                >
-                  Sign In
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            🏆 Global Leaderboards
+          </h1>
+          <p className="text-slate-400 text-lg mt-2">
+            {total.toLocaleString()} commanders competing across the galaxy
+          </p>
+        </div>
         {/* User Rank Banner */}
         {userEntry && (
           <motion.div
