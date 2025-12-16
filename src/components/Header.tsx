@@ -35,6 +35,9 @@ export default function Header() {
             <Link href="/ship-designer" className="opacity-90 hover:opacity-100">
               Ship Designer
             </Link>
+            <Link href="/backlog" className="opacity-90 hover:opacity-100">
+              Backlog
+            </Link>
             <Link href="/#roadmap" className="opacity-90 hover:opacity-100">
               Roadmap
             </Link>
@@ -81,6 +84,9 @@ export default function Header() {
           </Link>
           <Link href="/ship-designer" className="block">
             Ship Designer
+          </Link>
+          <Link href="/backlog" className="block">
+            Backlog
           </Link>
           <Link href="/#roadmap" className="block">
             Roadmap
