@@ -76,6 +76,32 @@ export interface Database {
           metadata?: Json | null
         }
       }
+      ship_designs: {
+        Row: {
+          id: string
+          user_id: string
+          ship_name: string
+          ship_data: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          ship_name: string
+          ship_data: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          ship_name?: string
+          ship_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -91,6 +117,7 @@ export interface Database {
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type PlayerScore = Database['public']['Tables']['player_scores']['Row']
+export type ShipDesign = Database['public']['Tables']['ship_designs']['Row']
 
 export interface LeaderboardEntry extends PlayerScore {
   profile: Profile

@@ -1,9 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import ShipCanvas from '@/components/ShipCanvas';
 
 export default function ShipDesigner() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
   const [shipData, setShipData] = useState({
     name: 'Custom Ship',
     scale: 1.0,
@@ -47,6 +55,65 @@ export default function ShipDesigner() {
     }
   });
 
+  useEffect(() => {
+    // Check auth state
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUser(session?.user || null);
+  }
+
+  async function handleSaveShip() {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch('/api/save-ship', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          ship_data: shipData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save ship');
+      }
+
+      setSaveMessage({
+        type: 'success',
+        text: `"${shipData.name}" saved successfully!`,
+      });
+
+      // Clear message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error: any) {
+      setSaveMessage({
+        type: 'error',
+        text: error.message || 'Failed to save ship',
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const handleExport = () => {
     const jsonString = JSON.stringify(shipData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -76,6 +143,13 @@ export default function ShipDesigner() {
             </h1>
             <div className="flex gap-1 sm:gap-2">
               <button
+                onClick={handleSaveShip}
+                disabled={saving}
+                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              <button
                 onClick={handleCopyJSON}
                 className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-white/5 hover:bg-white/10 border border-white/10 rounded font-semibold transition-all"
               >
@@ -91,6 +165,48 @@ export default function ShipDesigner() {
           </div>
         </div>
       </div>
+
+      {/* Auth Prompt Modal */}
+      {showAuthPrompt && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-deep-800 border border-white/10 rounded-lg p-6 max-w-md w-full shadow-2xl">
+            <h2 className="text-xl font-bold text-blue-300 mb-3">Sign In Required</h2>
+            <p className="text-gray-300 mb-4">
+              Create a free account to save your ship designs and sync them across all platforms!
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg font-semibold transition-all shadow-lg"
+              >
+                Sign In / Create Account
+              </button>
+              <button
+                onClick={() => setShowAuthPrompt(false)}
+                className="w-full px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg font-semibold transition-all"
+              >
+                Maybe Later
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-4 text-center">
+              Your designs will be available in-game on PC, Mac, Linux, and Steam Deck
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Save Message */}
+      {saveMessage && (
+        <div className="fixed top-20 right-4 z-40 animate-in slide-in-from-right">
+          <div className={`px-4 py-3 rounded-lg shadow-lg border ${
+            saveMessage.type === 'success'
+              ? 'bg-green-900/90 border-green-500/30 text-green-100'
+              : 'bg-red-900/90 border-red-500/30 text-red-100'
+          }`}>
+            {saveMessage.text}
+          </div>
+        </div>
+      )}
 
       {/* Ship Canvas - Front and Center */}
       <div className="flex-1 flex flex-col">
