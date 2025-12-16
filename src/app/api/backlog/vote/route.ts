@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      votes: data.map(v => v.backlog_item_id)
+      votes: (data || []).map((v: any) => v.backlog_item_id)
     })
   } catch (error: any) {
     console.error('API error:', error)
