@@ -12,6 +12,11 @@ interface ShipData {
     accent: string;
     glow: string;
   };
+  weaponColors: {
+    laser: string;
+    missile: string;
+    mine: string;
+  };
   defense: {
     hull: number;
     armor: number;
@@ -379,12 +384,16 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       const laserY = wingPoint.y - offsetY;
 
       // Laser cannon body
-      ctx.fillStyle = '#ef4444';
+      ctx.fillStyle = data.weaponColors.laser;
       ctx.fillRect(laserX - 2, laserY - 4, 4, 8);
 
       // Laser glow
       const pulse = Math.sin(time * 10 + i) * 0.3 + 0.7;
-      ctx.fillStyle = `rgba(239, 68, 68, ${pulse * 0.6})`;
+      // Convert hex to rgba for transparency
+      const r = parseInt(data.weaponColors.laser.slice(1, 3), 16);
+      const g = parseInt(data.weaponColors.laser.slice(3, 5), 16);
+      const b = parseInt(data.weaponColors.laser.slice(5, 7), 16);
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${pulse * 0.6})`;
       ctx.beginPath();
       ctx.arc(laserX, laserY, 4, 0, Math.PI * 2);
       ctx.fill();
@@ -399,11 +408,14 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       const missileY = wingPoint.y - 5;
 
       // Missile rack
-      ctx.fillStyle = '#f97316';
+      ctx.fillStyle = data.weaponColors.missile;
       ctx.fillRect(missileX - 3, missileY - 2, 6, 4);
 
-      // Missile tip
-      ctx.fillStyle = '#ea580c';
+      // Missile tip (darker shade)
+      const r = parseInt(data.weaponColors.missile.slice(1, 3), 16);
+      const g = parseInt(data.weaponColors.missile.slice(3, 5), 16);
+      const b = parseInt(data.weaponColors.missile.slice(5, 7), 16);
+      ctx.fillStyle = `rgb(${Math.floor(r * 0.8)}, ${Math.floor(g * 0.8)}, ${Math.floor(b * 0.8)})`;
       ctx.beginPath();
       ctx.moveTo(missileX, missileY - 5);
       ctx.lineTo(missileX - 2, missileY - 2);
@@ -420,7 +432,7 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
         const mineSize = 3;
 
         // Mine body
-        ctx.strokeStyle = '#a855f7';
+        ctx.strokeStyle = data.weaponColors.mine;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(mineX, mineY, mineSize, 0, Math.PI * 2);
@@ -531,7 +543,7 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-[500px] rounded-lg"
+      className="w-full h-[50vh] min-h-[400px] max-h-[600px]"
       style={{ imageRendering: 'crisp-edges' }}
     />
   );
