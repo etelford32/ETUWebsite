@@ -349,7 +349,6 @@ export default function BacklogPage() {
               ))}
             </div>
           </div>
-        </div>
         {/* Loading State */}
         {loading && (
           <div className="text-center py-12">
