@@ -32,6 +32,9 @@ export default function Header() {
             <Link href="/leaderboard" className="opacity-90 hover:opacity-100">
               Leaderboard
             </Link>
+            <Link href="/ship-designer" className="opacity-90 hover:opacity-100">
+              Ship Designer
+            </Link>
             <Link href="/#roadmap" className="opacity-90 hover:opacity-100">
               Roadmap
             </Link>
@@ -75,6 +78,9 @@ export default function Header() {
           </Link>
           <Link href="/leaderboard" className="block">
             Leaderboard
+          </Link>
+          <Link href="/ship-designer" className="block">
+            Ship Designer
           </Link>
           <Link href="/#roadmap" className="block">
             Roadmap
