@@ -115,10 +115,146 @@ SELECT
 FROM generate_series(1, 10)
 ON CONFLICT (id) DO NOTHING;
 
+-- Ship designs table (for ship designer feature)
+CREATE TABLE IF NOT EXISTS public.ship_designs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  ship_name TEXT NOT NULL,
+  ship_data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ship_designs_user_id ON public.ship_designs(user_id);
+
+ALTER TABLE public.ship_designs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Ship designs are viewable by everyone"
+  ON public.ship_designs FOR SELECT
+  USING (true);
+
+CREATE POLICY "Users can insert own ship designs"
+  ON public.ship_designs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own ship designs"
+  ON public.ship_designs FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own ship designs"
+  ON public.ship_designs FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Trigger to update updated_at on ship_designs
+DROP TRIGGER IF EXISTS on_ship_design_updated ON public.ship_designs;
+CREATE TRIGGER on_ship_design_updated
+  BEFORE UPDATE ON public.ship_designs
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- Backlog items table (for feature requests and bug reports)
+CREATE TABLE IF NOT EXISTS public.backlog_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('feature', 'bug')),
+  title TEXT NOT NULL CHECK (char_length(title) >= 3 AND char_length(title) <= 200),
+  description TEXT NOT NULL CHECK (char_length(description) >= 10),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'completed', 'wont_fix', 'duplicate')),
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+  tags TEXT[] DEFAULT '{}',
+  vote_count INTEGER DEFAULT 0 NOT NULL,
+  source TEXT DEFAULT 'web' CHECK (source IN ('web', 'game')),
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Backlog votes table (for tracking user votes on backlog items)
+CREATE TABLE IF NOT EXISTS public.backlog_votes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  backlog_item_id UUID REFERENCES public.backlog_items(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(backlog_item_id, user_id)
+);
+
+-- Indexes for backlog performance
+CREATE INDEX IF NOT EXISTS idx_backlog_items_user_id ON public.backlog_items(user_id);
+CREATE INDEX IF NOT EXISTS idx_backlog_items_type ON public.backlog_items(type);
+CREATE INDEX IF NOT EXISTS idx_backlog_items_status ON public.backlog_items(status);
+CREATE INDEX IF NOT EXISTS idx_backlog_items_priority ON public.backlog_items(priority);
+CREATE INDEX IF NOT EXISTS idx_backlog_items_vote_count ON public.backlog_items(vote_count DESC);
+CREATE INDEX IF NOT EXISTS idx_backlog_items_created_at ON public.backlog_items(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_backlog_votes_item_id ON public.backlog_votes(backlog_item_id);
+CREATE INDEX IF NOT EXISTS idx_backlog_votes_user_id ON public.backlog_votes(user_id);
+
+-- Enable Row Level Security for backlog
+ALTER TABLE public.backlog_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backlog_votes ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for backlog_items
+CREATE POLICY "Backlog items are viewable by everyone"
+  ON public.backlog_items FOR SELECT
+  USING (true);
+
+CREATE POLICY "Authenticated users can insert backlog items"
+  ON public.backlog_items FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Users can update own backlog items"
+  ON public.backlog_items FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- RLS Policies for backlog_votes
+CREATE POLICY "Backlog votes are viewable by everyone"
+  ON public.backlog_votes FOR SELECT
+  USING (true);
+
+CREATE POLICY "Authenticated users can insert backlog votes"
+  ON public.backlog_votes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own backlog votes"
+  ON public.backlog_votes FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Function to update vote count on backlog items
+CREATE OR REPLACE FUNCTION public.update_backlog_vote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (TG_OP = 'INSERT') THEN
+    UPDATE public.backlog_items
+    SET vote_count = vote_count + 1
+    WHERE id = NEW.backlog_item_id;
+    RETURN NEW;
+  ELSIF (TG_OP = 'DELETE') THEN
+    UPDATE public.backlog_items
+    SET vote_count = GREATEST(vote_count - 1, 0)
+    WHERE id = OLD.backlog_item_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to update vote count
+DROP TRIGGER IF EXISTS on_backlog_vote_changed ON public.backlog_votes;
+CREATE TRIGGER on_backlog_vote_changed
+  AFTER INSERT OR DELETE ON public.backlog_votes
+  FOR EACH ROW EXECUTE FUNCTION public.update_backlog_vote_count();
+
+-- Trigger to update updated_at on backlog_items
+DROP TRIGGER IF EXISTS on_backlog_item_updated ON public.backlog_items;
+CREATE TRIGGER on_backlog_item_updated
+  BEFORE UPDATE ON public.backlog_items
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 -- Grant permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.profiles TO anon, authenticated;
 GRANT ALL ON public.player_scores TO anon, authenticated;
+GRANT ALL ON public.ship_designs TO anon, authenticated;
+GRANT ALL ON public.backlog_items TO anon, authenticated;
+GRANT ALL ON public.backlog_votes TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Success message

@@ -102,6 +102,73 @@ export interface Database {
           updated_at?: string
         }
       }
+      backlog_items: {
+        Row: {
+          id: string
+          user_id: string | null
+          type: 'feature' | 'bug'
+          title: string
+          description: string
+          status: 'open' | 'in_progress' | 'completed' | 'wont_fix' | 'duplicate'
+          priority: 'low' | 'medium' | 'high' | 'critical'
+          tags: string[]
+          vote_count: number
+          source: 'web' | 'game'
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          type: 'feature' | 'bug'
+          title: string
+          description: string
+          status?: 'open' | 'in_progress' | 'completed' | 'wont_fix' | 'duplicate'
+          priority?: 'low' | 'medium' | 'high' | 'critical'
+          tags?: string[]
+          vote_count?: number
+          source?: 'web' | 'game'
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          type?: 'feature' | 'bug'
+          title?: string
+          description?: string
+          status?: 'open' | 'in_progress' | 'completed' | 'wont_fix' | 'duplicate'
+          priority?: 'low' | 'medium' | 'high' | 'critical'
+          tags?: string[]
+          vote_count?: number
+          source?: 'web' | 'game'
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      backlog_votes: {
+        Row: {
+          id: string
+          backlog_item_id: string
+          user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          backlog_item_id: string
+          user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          backlog_item_id?: string
+          user_id?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -118,8 +185,14 @@ export interface Database {
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type PlayerScore = Database['public']['Tables']['player_scores']['Row']
 export type ShipDesign = Database['public']['Tables']['ship_designs']['Row']
+export type BacklogItem = Database['public']['Tables']['backlog_items']['Row']
+export type BacklogVote = Database['public']['Tables']['backlog_votes']['Row']
 
 export interface LeaderboardEntry extends PlayerScore {
   profile: Profile
   rank?: number
+}
+
+export interface BacklogItemWithProfile extends BacklogItem {
+  profiles: Profile | null
 }
