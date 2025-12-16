@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { BacklogItemWithProfile } from '@/lib/types'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Header from '@/components/Header'
 
 type BacklogType = 'all' | 'feature' | 'bug'
 type BacklogStatus = 'all' | 'open' | 'in_progress' | 'completed' | 'wont_fix' | 'duplicate'
@@ -254,45 +255,46 @@ export default function BacklogPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white">
-      {/* Header */}
-      <div className="border-b border-slate-800/50 backdrop-blur-md bg-slate-900/30 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Feature & Bug Backlog
-              </h1>
-              <p className="text-slate-400 mt-2">
-                Submit and vote on features and bug reports
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  router.push('/login')
-                } else {
-                  setShowSubmitModal(true)
-                }
-              }}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 font-semibold shadow-lg hover:shadow-purple-500/50"
-            >
-              + Submit Item
-            </button>
-          </div>
+      <Header />
 
-          {/* Search */}
-          <div className="mb-4">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search backlog items..."
-              className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500"
-            />
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              Feature & Bug Backlog
+            </h1>
+            <p className="text-slate-400 mt-2">
+              Submit and vote on features and bug reports
+            </p>
           </div>
+          <button
+            onClick={() => {
+              if (!currentUser) {
+                router.push('/login')
+              } else {
+                setShowSubmitModal(true)
+              }
+            }}
+            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 font-semibold shadow-lg hover:shadow-purple-500/50"
+          >
+            + Submit Item
+          </button>
+        </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4">
+        {/* Search */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search backlog items..."
+            className="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-8">
             {/* Type Filter */}
             <div className="flex gap-2">
               {TYPE_OPTIONS.map((option) => (
@@ -348,10 +350,6 @@ export default function BacklogPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Loading State */}
         {loading && (
           <div className="text-center py-12">
@@ -487,10 +485,9 @@ export default function BacklogPage() {
             )}
           </>
         )}
-      </div>
 
-      {/* Submit Modal */}
-      {showSubmitModal && (
+        {/* Submit Modal */}
+        {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -607,7 +604,8 @@ export default function BacklogPage() {
             </form>
           </motion.div>
         </div>
-      )}
+        )}
+      </main>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import ShipCanvas from '@/components/ShipCanvas';
+import Header from '@/components/Header';
 
 export default function ShipDesigner() {
   const router = useRouter();
@@ -134,8 +135,10 @@ export default function ShipDesigner() {
 
   return (
     <div className="min-h-screen bg-deep-900 text-white flex flex-col">
-      {/* Compact Header */}
-      <div className="border-b border-white/10 bg-deep-900/95 backdrop-blur-md sticky top-16 z-40">
+      <Header />
+
+      {/* Page Header with Actions */}
+      <div className="border-b border-white/10 bg-deep-900/95 backdrop-blur-md sticky top-16 z-30">
         <div className="container mx-auto px-2 sm:px-4 py-2">
           <div className="flex items-center justify-between">
             <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
