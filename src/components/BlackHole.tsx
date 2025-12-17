@@ -2,13 +2,19 @@
 
 import { useEffect, useRef } from "react";
 
+export type QualityLevel = "low" | "medium" | "high";
+
 declare global {
   interface Window {
     THREE: any;
   }
 }
 
-export default function BlackHole() {
+interface BlackHoleProps {
+  quality?: QualityLevel;
+}
+
+export default function BlackHole({ quality = "medium" }: BlackHoleProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const blackHoleRef = useRef<any>(null);
 
@@ -20,7 +26,7 @@ export default function BlackHole() {
 
     threeScript.onload = () => {
       if (containerRef.current && window.THREE) {
-        blackHoleRef.current = new BlackHoleEffect(containerRef.current);
+        blackHoleRef.current = new BlackHoleEffect(containerRef.current, quality);
       }
     };
 
@@ -35,6 +41,13 @@ export default function BlackHole() {
       if (existingThree) document.head.removeChild(existingThree);
     };
   }, []);
+
+  // Update quality when it changes
+  useEffect(() => {
+    if (blackHoleRef.current && blackHoleRef.current.updateQuality) {
+      blackHoleRef.current.updateQuality(quality);
+    }
+  }, [quality]);
 
   return (
     <div
@@ -131,14 +144,14 @@ class BlackHoleEffect {
   readonly MIN_SAFE_RADIUS = 65; // Minimum safe distance (1.08 * Rs) - avoids singularity
   readonly MAX_GRAVITATIONAL_FORCE = 500; // Clamp maximum force to avoid infinities
 
-  constructor(container: HTMLDivElement) {
+  constructor(container: HTMLDivElement, quality: QualityLevel = "medium") {
     this.container = container;
     if (!this.container) {
       console.warn("Container not found");
       return;
     }
 
-    this.settings = this.detectCapabilities();
+    this.settings = this.detectCapabilities(quality);
 
     if (!this.isWebGLAvailable()) {
       this.showFallback();
@@ -158,19 +171,62 @@ class BlackHoleEffect {
     this.animate();
   }
 
-  detectCapabilities() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
+  detectCapabilities(quality: QualityLevel = "medium") {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // If user prefers reduced motion, override to minimal settings
     if (prefersReducedMotion) {
-      return { particleCount: 50, photonCount: 300, enableParallax: false, enableTrails: false };
-    } else if (isMobile) {
-      return { particleCount: 150, photonCount: 500, enableParallax: true, enableTrails: true };
-    } else {
-      return { particleCount: 300, photonCount: 800, enableParallax: true, enableTrails: true };
+      return { particleCount: 50, photonCount: 300, enableParallax: false, enableTrails: false, starCount: 1000 };
     }
+
+    // Quality-based settings
+    switch (quality) {
+      case "low":
+        return {
+          particleCount: 150,
+          photonCount: 400,
+          enableParallax: true,
+          enableTrails: false,
+          starCount: 2000
+        };
+      case "medium":
+        return {
+          particleCount: 300,
+          photonCount: 800,
+          enableParallax: true,
+          enableTrails: true,
+          starCount: 5000
+        };
+      case "high":
+        return {
+          particleCount: 10000,
+          photonCount: 1200,
+          enableParallax: true,
+          enableTrails: true,
+          starCount: 8000
+        };
+      default:
+        return {
+          particleCount: 300,
+          photonCount: 800,
+          enableParallax: true,
+          enableTrails: true,
+          starCount: 5000
+        };
+    }
+  }
+
+  updateQuality(quality: QualityLevel) {
+    // Update settings based on new quality
+    const newSettings = this.detectCapabilities(quality);
+
+    // Note: We could reload the entire scene here, but for performance
+    // we'll just update the settings. Full reload would require destroying
+    // and recreating the entire scene.
+    this.settings = newSettings;
+
+    console.log(`🎨 Quality updated to: ${quality}`, newSettings);
+    console.log("⚠️ Note: To see full quality changes, please refresh the page.");
   }
 
   isWebGLAvailable() {
@@ -352,7 +408,7 @@ class BlackHoleEffect {
 
   createStarField() {
     const THREE = window.THREE;
-    const starCount = 5000;
+    const starCount = this.settings.starCount || 5000;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
     const colors = new Float32Array(starCount * 3);

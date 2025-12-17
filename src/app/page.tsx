@@ -6,15 +6,31 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
+import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
 // Dynamically import BlackHole to avoid SSR issues
 const BlackHole = dynamic(() => import("@/components/BlackHole"), { ssr: false });
 
 export default function HomePage() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [animationQuality, setAnimationQuality] = useState<QualityLevel>("medium");
   const blackHoleRef = useRef<any>(null);
 
   useEffect(() => {
+    // Initialize performance optimizations
+    initPerformanceOptimizations();
+
+    // Detect connection quality and set appropriate animation quality
+    const savedQuality = typeof window !== "undefined"
+      ? localStorage.getItem("etu-animation-quality") as QualityLevel | null
+      : null;
+
+    if (!savedQuality) {
+      const suggestedQuality = detectConnectionQuality();
+      setAnimationQuality(suggestedQuality);
+    }
+
     // Section reveal animation
     const io = new IntersectionObserver(
       (entries) => {
@@ -93,8 +109,14 @@ export default function HomePage() {
       >
         {/* 3D Black Hole Effect (WebGL) */}
         <Suspense fallback={<div />}>
-          <BlackHole />
+          <BlackHole quality={animationQuality} />
         </Suspense>
+
+        {/* Quality Settings Control */}
+        <QualitySettings
+          onChange={(quality) => setAnimationQuality(quality)}
+          defaultQuality={animationQuality}
+        />
 
         {/* Interactive hint */}
         <div className="absolute top-24 right-6 z-20 hidden md:block">
