@@ -77,6 +77,7 @@ class BlackHoleEffect {
   controls: any; // Custom camera controls
   raycaster: any; // For click detection
   settings: any;
+  animationFrameId: number | null = null; // Track animation frame for cleanup
 
   // Interactive mode settings
   interactiveMode: boolean = true;
@@ -1646,6 +1647,9 @@ class BlackHoleEffect {
   }
 
   updateCameraFromState() {
+    // Guard against null camera (can happen during destroy/cleanup)
+    if (!this.camera) return;
+
     const state = this.cameraState;
 
     // Smooth interpolation towards target (buttery smooth!)
@@ -1958,7 +1962,10 @@ class BlackHoleEffect {
   }
 
   animate() {
-    requestAnimationFrame(() => this.animate());
+    // Guard against destroyed scene
+    if (!this.renderer || !this.scene || !this.camera) return;
+
+    this.animationFrameId = requestAnimationFrame(() => this.animate());
 
     const deltaTime = 0.016;
     this.time += deltaTime;
@@ -2079,6 +2086,12 @@ class BlackHoleEffect {
   }
 
   destroy() {
+    // Cancel animation frame to stop the animation loop
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     // Clean up renderer
     if (this.renderer) {
       this.renderer.dispose();
