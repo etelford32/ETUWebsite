@@ -722,14 +722,10 @@ export default function HomePage() {
           </header>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link href="/factions/crystal-intelligences" className="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition hover:scale-105 duration-300">
-              <Image
-                src="/Crystal_Race.jpg"
-                alt="Crystal AI"
-                className="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"
-                width={300}
-                height={169}
-                loading="lazy"
-              />
+              <div className="relative rounded-xl mb-3 aspect-[16/9] bg-gradient-to-br from-cyan-900/20 to-indigo-900/20 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-indigo-500/10"></div>
+                <span className="text-6xl opacity-50">💎</span>
+              </div>
               <h3 className="font-semibold">CYL • Crystal Intelligences</h3>
               <p className="text-sm text-slate-300/90">
                 Light-bending defenses and precision strikes.
@@ -739,14 +735,10 @@ export default function HomePage() {
               </div>
             </Link>
             <Link href="/factions/mycelari" className="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition hover:scale-105 duration-300">
-              <Image
-                src="/Mycelari_Hero2.jpg"
-                alt="Mycelari swarm"
-                className="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"
-                width={300}
-                height={169}
-                loading="lazy"
-              />
+              <div className="relative rounded-xl mb-3 aspect-[16/9] bg-gradient-to-br from-green-900/20 to-emerald-900/20 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-emerald-500/10"></div>
+                <span className="text-6xl opacity-50">🍄</span>
+              </div>
               <h3 className="font-semibold">Mycelari • Fungal Swarm</h3>
               <p className="text-sm text-slate-300/90">
                 Spore-based expansion and biomass economy.
@@ -756,14 +748,10 @@ export default function HomePage() {
               </div>
             </Link>
             <Link href="/factions/megabot" className="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition hover:scale-105 duration-300">
-              <Image
-                src="/eveil_robot_hero1.jpg"
-                alt="Megabot empire"
-                className="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"
-                width={300}
-                height={169}
-                loading="lazy"
-              />
+              <div className="relative rounded-xl mb-3 aspect-[16/9] bg-gradient-to-br from-red-900/20 to-orange-900/20 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-orange-500/10"></div>
+                <span className="text-6xl opacity-50">🤖</span>
+              </div>
               <h3 className="font-semibold">Megabot • Machine Empire</h3>
               <p className="text-sm text-slate-300/90">
                 Modular forms, overwhelming firepower, station-scale bosses.
@@ -773,14 +761,10 @@ export default function HomePage() {
               </div>
             </Link>
             <Link href="/factions/wild" className="reveal group p-5 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-indigo-400/40 transition hover:scale-105 duration-300">
-              <Image
-                src="/Wild_Race.jpg"
-                alt="Wild Guardians"
-                className="rounded-xl mb-3 aspect-[16/9] object-cover group-hover:opacity-95"
-                width={300}
-                height={169}
-                loading="lazy"
-              />
+              <div className="relative rounded-xl mb-3 aspect-[16/9] bg-gradient-to-br from-amber-900/20 to-green-900/20 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-green-500/10"></div>
+                <span className="text-6xl opacity-50">🌲</span>
+              </div>
               <h3 className="font-semibold">Wild • Ent-born Guardians</h3>
               <p className="text-sm text-slate-300/90">
                 Pollen-based growth and terrain control.
@@ -1246,14 +1230,10 @@ export default function HomePage() {
           </div>
           <div className="mt-8 grid md:grid-cols-3 gap-6">
             <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <Image
-                src="/ai_systems.jpg"
-                alt="AI systems"
-                className="w-full aspect-[16/9] object-cover"
-                width={400}
-                height={225}
-                loading="lazy"
-              />
+              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-purple-900/30 to-indigo-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-indigo-500/10"></div>
+                <span className="text-7xl opacity-40">🤖</span>
+              </div>
               <div className="p-5">
                 <h3 className="font-semibold">Adaptive Faction AI</h3>
                 <p className="text-sm text-slate-300/90 mt-2">
@@ -1262,14 +1242,10 @@ export default function HomePage() {
               </div>
             </article>
             <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <Image
-                src="/physics.jpg"
-                alt="Physics"
-                className="w-full aspect-[16/9] object-cover"
-                width={400}
-                height={225}
-                loading="lazy"
-              />
+              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-cyan-900/30 to-blue-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-500/10"></div>
+                <span className="text-7xl opacity-40">🚀</span>
+              </div>
               <div className="p-5">
                 <h3 className="font-semibold">Flight & Orbital Mechanics</h3>
                 <p className="text-sm text-slate-300/90 mt-2">
@@ -1278,14 +1254,10 @@ export default function HomePage() {
               </div>
             </article>
             <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <Image
-                src="/upgrade.jpg"
-                alt="Boss"
-                className="w-full aspect-[16/9] object-cover"
-                width={400}
-                height={225}
-                loading="lazy"
-              />
+              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-red-900/30 to-orange-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-orange-500/10"></div>
+                <span className="text-7xl opacity-40">⚔️</span>
+              </div>
               <div className="p-5">
                 <h3 className="font-semibold">Designing Station Bosses</h3>
                 <p className="text-sm text-slate-300/90 mt-2">
