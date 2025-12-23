@@ -8,8 +8,24 @@ import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
-interface PlayerProfile extends Profile {
-  username: string // Override to make non-nullable for display
+interface PlayerProfile {
+  id: string
+  username: string
+  steam_id: string | null
+  avatar_url: string | null
+  faction_choice: string | null
+  ship_class: string | null
+  created_at: string
+  updated_at: string
+  // Stats - always populated (from DB or defaults)
+  level: number
+  xp: number
+  total_kills: number
+  total_deaths: number
+  total_wins: number
+  total_losses: number
+  total_playtime: number
+  highest_score: number
 }
 
 interface Achievement {
