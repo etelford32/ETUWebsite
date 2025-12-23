@@ -7,6 +7,10 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
+import CountdownTimer from "@/components/CountdownTimer";
+import WishlistStats from "@/components/WishlistStats";
+import ExitIntentPopup from "@/components/ExitIntentPopup";
+import StickyHeaderCTA from "@/components/StickyHeaderCTA";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
 // Dynamically import BlackHole to avoid SSR issues
@@ -92,6 +96,10 @@ export default function HomePage() {
 
   return (
     <>
+      {/* Conversion Optimization Components */}
+      <StickyHeaderCTA />
+      <ExitIntentPopup />
+
       {/* Top Announcement */}
       <div className="w-full bg-indigo-600/10 border-b border-indigo-500/20 text-center text-sm py-2">
         <span className="mr-3">🚀 Playtest Sign-ups are open</span>
@@ -213,21 +221,19 @@ export default function HomePage() {
                   EXPLORE THE UNIVERSE 2175
                 </h2>
                 <p className="text-sm sm:text-base md:text-lg mt-2 font-semibold tracking-wide metallic-subtitle">
-                  The Most Immersive Galaxy Ever Created
+                  The First Space RPG Where Your Enemy Learns From You
                 </p>
               </div>
 
               <h1 className="reveal hero-title text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-6">
                 <span className="hero-gradient-text">
-                  Experience Realistic Physics,
-                  <br />
-                  Adaptive AI & Infinite Discovery
+                  Battle an Evolving AI Boss That Adapts to Your Tactics
                 </span>
               </h1>
 
               <p className="reveal mt-6 text-lg md:text-xl text-slate-100/90 max-w-2xl mx-auto leading-relaxed">
-                A living galaxy awaits. Navigate real orbital mechanics, outsmart evolving AI civilizations, and forge your destiny across thousands of procedural star systems.
-                <span className="block mt-3 text-amber-300 font-semibold">Wishlist now to secure launch-day access!</span>
+                Master realistic physics. Level your ship. Survive a galaxy that remembers your choices.
+                <span className="block mt-3 text-amber-300 font-semibold">✨ FREE DEMO Dec 25 | Early Access Feb 2</span>
               </p>
 
               {/* CTA Buttons with Steam */}
@@ -246,24 +252,30 @@ export default function HomePage() {
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span>Add to Wishlist - FREE</span>
+                  <span>🎮 WISHLIST FREE DEMO</span>
                 </a>
 
-                {/* Download Button */}
-                <a
-                  href="#download"
-                  className="btn-warp-alt px-6 py-4 rounded-xl font-semibold text-base"
-                >
-                  Try Alpha Build
-                </a>
-
-                {/* Leaderboard Button */}
+                {/* Leaderboard Button (Secondary) */}
                 <Link
                   href="/leaderboard"
+                  className="btn-warp-alt px-6 py-4 rounded-xl font-semibold text-base"
+                >
+                  📊 See Live Leaderboard
+                </Link>
+
+                {/* Trailer Button (Tertiary) */}
+                <a
+                  href="#trailer"
                   className="btn-minimal px-6 py-4 rounded-xl font-medium text-base"
                 >
-                  Global Rankings
-                </Link>
+                  ▶️ Watch Gameplay Trailer
+                </a>
+              </div>
+
+              {/* Countdown Timer & Wishlist Stats */}
+              <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <CountdownTimer targetDate="2025-12-25T00:00:00" />
+                <WishlistStats baseCount={1247} growthRate={89} />
               </div>
 
               {/* Platform info */}
@@ -439,47 +451,256 @@ export default function HomePage() {
 
           <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Realistic Spaceflight</h3>
+              <h3 className="font-semibold text-lg text-cyan-300">Master True Orbital Combat</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                Inertial navigation, orbital mechanics, and fuel-aware
-                trajectories—accessible with helpful assists.
+                Plan gravity assists to ambush enemies. Manage delta-v for escape burns. Dogfights with Newtonian physics that reward tactical thinking.
               </p>
             </article>
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Dynamic Factions</h3>
+              <h3 className="font-semibold text-lg text-amber-300">Your Choices Reshape The Galaxy</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                AI civilizations expand, trade, and wage war. Your choices shift
-                the balance.
+                Ally with Crystals? Mycelari expand unchecked. Destroy a faction&apos;s home station? They become nomadic raiders. Every decision has consequences.
               </p>
             </article>
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Evolving Economy</h3>
+              <h3 className="font-semibold text-lg text-purple-300">Battle MEGABOT: The Boss That Learns</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                Simulated markets, smuggling routes, mining, crafting, and
-                research trees.
+                Multi-phase station-scale encounters. Adaptive tactics. Evolving weaknesses. No two players fight the same MEGABOT.
               </p>
             </article>
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Boss Encounters</h3>
+              <h3 className="font-semibold text-lg text-emerald-300">Build Your Economic Empire</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                Multi-phase entities and station-scale fights with environmental
-                hazards.
+                Dominate trade routes, smuggle contraband, establish mining operations, and unlock powerful research trees that shape your playstyle.
               </p>
             </article>
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Procedural Galaxies</h3>
+              <h3 className="font-semibold text-lg text-indigo-300">Explore Infinite Possibilities</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                Seeded star maps with handcrafted points of interest and story
-                arcs.
+                Every galaxy is procedurally generated with unique star systems, hidden secrets, and handcrafted story moments waiting to be discovered.
               </p>
             </article>
             <article className="reveal p-6 rounded-2xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <h3 className="font-semibold text-lg">Online Scoreboard</h3>
+              <h3 className="font-semibold text-lg text-rose-300">Compete on the Global Stage</h3>
               <p className="mt-2 text-sm text-slate-300/90">
-                Challenge the community in time trials, discoveries, and faction
-                influence.
+                Prove your mastery in speedruns, faction influence rankings, and discovery leaderboards. See how you stack up against commanders worldwide.
               </p>
             </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Why ETU Changes Everything */}
+      <section
+        id="why-etu"
+        className="py-20 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900 border-y border-cyan-500/20"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              Why ETU 2175 Changes Everything
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Three revolutionary systems that set this space RPG apart
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Living AI Opponent */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent ring-2 ring-cyan-500/20 hover:ring-cyan-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl ring-2 ring-cyan-400/30 group-hover:scale-110 transition-transform">
+                  🤖
+                </div>
+                <h3 className="text-2xl font-bold text-cyan-300">Living AI Opponent</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">MEGABOT doesn&apos;t follow a script</span>—it studies your tactics and evolves. Beat it with missiles? Next encounter, it deploys countermeasures. Every player faces a unique boss.
+              </p>
+              <div className="mt-4 pt-4 border-t border-cyan-500/20">
+                <span className="text-sm text-cyan-400 font-medium">
+                  ✓ Adaptive behavior patterns • ✓ Memory system • ✓ Tactical evolution
+                </span>
+              </div>
+            </article>
+
+            {/* Real Physics */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent ring-2 ring-amber-500/20 hover:ring-amber-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl ring-2 ring-amber-400/30 group-hover:scale-110 transition-transform">
+                  🚀
+                </div>
+                <h3 className="text-2xl font-bold text-amber-300">Real Physics, Real Consequences</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">Built in Rust with NASA-grade orbital mechanics.</span> Your fuel matters. Your velocity vector matters. Gravity assists, orbital transfers—this isn&apos;t arcade space.
+              </p>
+              <div className="mt-4 pt-4 border-t border-amber-500/20">
+                <span className="text-sm text-amber-400 font-medium">
+                  ✓ True Newtonian physics • ✓ Orbital mechanics • ✓ Resource management
+                </span>
+              </div>
+            </article>
+
+            {/* Deep RPG Progression */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-transparent ring-2 ring-purple-500/20 hover:ring-purple-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl ring-2 ring-purple-400/30 group-hover:scale-110 transition-transform">
+                  ⚔️
+                </div>
+                <h3 className="text-2xl font-bold text-purple-300">Deep RPG Progression</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">Full character leveling • Weapon ability trees • Modular ship upgrades</span> • Permanent choices that shape your playthrough. This is a true RPG in space.
+              </p>
+              <div className="mt-4 pt-4 border-t border-purple-500/20">
+                <span className="text-sm text-purple-400 font-medium">
+                  ✓ Character progression • ✓ Skill trees • ✓ Meaningful choices
+                </span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Progression That Matters */}
+      <section
+        id="progression"
+        className="py-20 bg-gradient-to-b from-deep-900 via-deep-800 to-deep-900"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold">
+              Progression That Matters
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Your journey from rookie to legend—every choice shapes your playstyle
+            </p>
+          </header>
+
+          <div className="grid lg:grid-cols-2 gap-8 mb-12">
+            {/* Journey Visual */}
+            <div className="reveal space-y-6">
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 ring-2 ring-green-500/30 border-l-4 border-green-400">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🔰</span>
+                  <h3 className="text-xl font-bold text-green-300">Early Game</h3>
+                </div>
+                <p className="text-slate-200">
+                  Scavenge resources. Master flight controls. Survive your first faction encounters. Learn the basics of orbital combat.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/5 ring-2 ring-blue-500/30 border-l-4 border-blue-400">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">⚡</span>
+                  <h3 className="text-xl font-bold text-blue-300">Mid Game</h3>
+                </div>
+                <p className="text-slate-200">
+                  Unlock weapon abilities. Choose faction allegiances. Hunt legendary loot. Upgrade your ship with modular components.
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/5 ring-2 ring-purple-500/30 border-l-4 border-purple-400">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">👑</span>
+                  <h3 className="text-xl font-bold text-purple-300">End Game</h3>
+                </div>
+                <p className="text-slate-200">
+                  Face evolved MEGABOT. Master all ship classes. Dominate leaderboards. Shape the fate of entire civilizations.
+                </p>
+              </div>
+            </div>
+
+            {/* Progression Systems */}
+            <div className="reveal space-y-4">
+              <h3 className="text-2xl font-bold mb-6 text-center lg:text-left">
+                Deep RPG Systems
+              </h3>
+
+              <div className="p-5 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">📊</span>
+                  <div>
+                    <h4 className="font-semibold text-lg text-cyan-300">Character XP & Skill Trees</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      Level up your pilot across combat, engineering, and exploration specializations. Unlock permanent bonuses and abilities.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">⚔️</span>
+                  <div>
+                    <h4 className="font-semibold text-lg text-amber-300">Weapon Mastery Progression</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      Each weapon type has its own progression tree. Master missiles, lasers, railguns, and experimental tech.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">🚀</span>
+                  <div>
+                    <h4 className="font-semibold text-lg text-purple-300">Ship Module Research</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      Research advanced engines, shields, sensors, and special systems. Customize your ship for your playstyle.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">💾</span>
+                  <div>
+                    <h4 className="font-semibold text-lg text-emerald-300">Permanent Save System</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      Your choices persist across playthroughs. Multiple difficulty modes reward different strategies.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">🎯</span>
+                  <div>
+                    <h4 className="font-semibold text-lg text-rose-300">Meaningful Choices</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      Ally with a faction and gain unique ships. Betray them and face consequences. Every decision reshapes your galaxy.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="reveal text-center">
+            <p className="text-lg text-slate-300 mb-4">
+              Ready to start your journey?
+            </p>
+            <a
+              href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="steam-btn group inline-flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-lg"
+            >
+              <span>Wishlist on Steam - It&apos;s FREE</span>
+              <svg
+                className="w-5 h-5 transition-transform group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
           </div>
         </div>
       </section>
@@ -858,6 +1079,109 @@ export default function HomePage() {
                 Wishlist on Steam - It&apos;s Free!
               </a>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Christmas Demo Event */}
+      <section
+        id="christmas-demo"
+        className="py-20 bg-gradient-to-b from-deep-900 via-red-950/20 to-deep-900 border-y border-amber-500/30 relative overflow-hidden"
+      >
+        {/* Animated background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-amber-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 relative z-10">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-red-500/20 to-green-500/20 border border-amber-400/40 backdrop-blur-sm mb-6">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <span className="text-sm font-bold text-amber-100 uppercase tracking-wider">
+                Limited Time Event
+              </span>
+            </div>
+
+            <h2 className="text-4xl md:text-6xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-red-400 via-amber-400 to-green-400 bg-clip-text text-transparent">
+                🎄 CHRISTMAS DEMO EVENT
+              </span>
+            </h2>
+
+            <p className="text-2xl md:text-3xl font-bold text-white mb-2">
+              December 25-31
+            </p>
+
+            <div className="flex justify-center mb-8">
+              <CountdownTimer targetDate="2025-12-25T00:00:00" label="EVENT STARTS IN" />
+            </div>
+          </div>
+
+          {/* Special Offers */}
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 ring-2 ring-amber-500/30 hover:ring-amber-400/50 transition-all text-center">
+              <div className="text-5xl mb-4">🎁</div>
+              <h3 className="text-xl font-bold text-amber-300 mb-3">
+                Exclusive &quot;Founder&quot; Ship Skin
+              </h3>
+              <p className="text-slate-200 text-sm">
+                First 500 demo players get a unique cosmetic ship skin when Early Access launches in February!
+              </p>
+            </div>
+
+            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/5 ring-2 ring-purple-500/30 hover:ring-purple-400/50 transition-all text-center">
+              <div className="text-5xl mb-4">📜</div>
+              <h3 className="text-xl font-bold text-purple-300 mb-3">
+                Your Name in the Credits
+              </h3>
+              <p className="text-slate-200 text-sm">
+                All Christmas demo players will be immortalized in the game credits as founding commanders!
+              </p>
+            </div>
+
+            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 ring-2 ring-cyan-500/30 hover:ring-cyan-400/50 transition-all text-center">
+              <div className="text-5xl mb-4">🚀</div>
+              <h3 className="text-xl font-bold text-cyan-300 mb-3">
+                Early Access Beta Priority
+              </h3>
+              <p className="text-slate-200 text-sm">
+                Get priority invites to closed beta testing sessions before the February launch!
+              </p>
+            </div>
+          </div>
+
+          {/* Main CTA */}
+          <div className="reveal text-center p-8 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-cyan-600/20 ring-2 ring-indigo-500/40 backdrop-blur-sm">
+            <p className="text-xl text-slate-100 mb-6">
+              <strong className="text-2xl text-amber-300">Don&apos;t miss out!</strong><br />
+              Wishlist now to get notified the instant the demo drops on December 25th
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="steam-btn group inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-xl shadow-2xl hover:shadow-3xl hover:scale-105 transition-all"
+              >
+                <svg
+                  className="w-7 h-7 transition-transform group-hover:scale-110"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
+                </svg>
+                <span>⚡ WISHLIST TO GET NOTIFIED</span>
+              </a>
+            </div>
+
+            <p className="mt-6 text-sm text-slate-400">
+              Join <span className="font-bold text-cyan-400">1,200+</span> commanders who won&apos;t miss launch
+            </p>
           </div>
         </div>
       </section>
