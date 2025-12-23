@@ -226,8 +226,8 @@ export default function HomePage() {
               </div>
 
               <h1 className="reveal hero-title text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-6">
-                <span className="hero-gradient-text">
-                  Battle an Evolving AI Boss That Adapts to Your Tactics
+                <span className="neon-blue-title">
+                  Battle the Ultimate Evolving AI Boss
                 </span>
               </h1>
 
