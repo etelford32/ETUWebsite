@@ -211,14 +211,12 @@ export default function ProfilePage() {
     if (!profile) return
 
     try {
-      const updateData: Partial<Profile> = {
-        username: editedUsername,
-        faction_choice: editedFaction
-      }
-
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({
+          username: editedUsername,
+          faction_choice: editedFaction
+        } as any)
         .eq('id', profile.id)
 
       if (error) throw error
