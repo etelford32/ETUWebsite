@@ -332,6 +332,79 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Why ETU Changes Everything - Above the Fold */}
+      <section
+        id="why-etu"
+        className="py-20 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900 border-y border-cyan-500/20"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              Why ETU 2175 Changes Everything
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Three revolutionary systems that set this space RPG apart
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Living AI Opponent */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent ring-2 ring-cyan-500/20 hover:ring-cyan-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl ring-2 ring-cyan-400/30 group-hover:scale-110 transition-transform">
+                  🤖
+                </div>
+                <h3 className="text-2xl font-bold text-cyan-300">Living AI Opponent</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">MEGABOT doesn&apos;t follow a script</span>—it studies your tactics and evolves. Beat it with missiles? Next encounter, it deploys countermeasures. Every player faces a unique boss.
+              </p>
+              <div className="mt-4 pt-4 border-t border-cyan-500/20">
+                <span className="text-sm text-cyan-400 font-medium">
+                  ✓ Adaptive behavior patterns • ✓ Memory system • ✓ Tactical evolution
+                </span>
+              </div>
+            </article>
+
+            {/* Real Physics */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent ring-2 ring-amber-500/20 hover:ring-amber-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl ring-2 ring-amber-400/30 group-hover:scale-110 transition-transform">
+                  🚀
+                </div>
+                <h3 className="text-2xl font-bold text-amber-300">Real Physics, Real Consequences</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">Built in Rust with NASA-grade orbital mechanics.</span> Your fuel matters. Your velocity vector matters. Gravity assists, orbital transfers—this isn&apos;t arcade space.
+              </p>
+              <div className="mt-4 pt-4 border-t border-amber-500/20">
+                <span className="text-sm text-amber-400 font-medium">
+                  ✓ True Newtonian physics • ✓ Orbital mechanics • ✓ Resource management
+                </span>
+              </div>
+            </article>
+
+            {/* Deep RPG Progression */}
+            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-transparent ring-2 ring-purple-500/20 hover:ring-purple-400/40 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl ring-2 ring-purple-400/30 group-hover:scale-110 transition-transform">
+                  ⚔️
+                </div>
+                <h3 className="text-2xl font-bold text-purple-300">Deep RPG Progression</h3>
+              </div>
+              <p className="text-base text-slate-200 leading-relaxed">
+                <span className="font-semibold text-white">Full character leveling • Weapon ability trees • Modular ship upgrades</span> • Permanent choices that shape your playthrough. This is a true RPG in space.
+              </p>
+              <div className="mt-4 pt-4 border-t border-purple-500/20">
+                <span className="text-sm text-purple-400 font-medium">
+                  ✓ Character progression • ✓ Skill trees • ✓ Meaningful choices
+                </span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       {/* Badges */}
       <section className="reveal border-t border-white/10 bg-deep-800/40">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-slate-300/80 text-sm">
@@ -485,79 +558,6 @@ export default function HomePage() {
               <p className="mt-2 text-sm text-slate-300/90">
                 Prove your mastery in speedruns, faction influence rankings, and discovery leaderboards. See how you stack up against commanders worldwide.
               </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      {/* Why ETU Changes Everything */}
-      <section
-        id="why-etu"
-        className="py-20 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900 border-y border-cyan-500/20"
-      >
-        <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <header className="reveal text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              Why ETU 2175 Changes Everything
-            </h2>
-            <p className="mt-4 text-xl text-slate-300">
-              Three revolutionary systems that set this space RPG apart
-            </p>
-          </header>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Living AI Opponent */}
-            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent ring-2 ring-cyan-500/20 hover:ring-cyan-400/40 transition-all group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl ring-2 ring-cyan-400/30 group-hover:scale-110 transition-transform">
-                  🤖
-                </div>
-                <h3 className="text-2xl font-bold text-cyan-300">Living AI Opponent</h3>
-              </div>
-              <p className="text-base text-slate-200 leading-relaxed">
-                <span className="font-semibold text-white">MEGABOT doesn&apos;t follow a script</span>—it studies your tactics and evolves. Beat it with missiles? Next encounter, it deploys countermeasures. Every player faces a unique boss.
-              </p>
-              <div className="mt-4 pt-4 border-t border-cyan-500/20">
-                <span className="text-sm text-cyan-400 font-medium">
-                  ✓ Adaptive behavior patterns • ✓ Memory system • ✓ Tactical evolution
-                </span>
-              </div>
-            </article>
-
-            {/* Real Physics */}
-            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent ring-2 ring-amber-500/20 hover:ring-amber-400/40 transition-all group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl ring-2 ring-amber-400/30 group-hover:scale-110 transition-transform">
-                  🚀
-                </div>
-                <h3 className="text-2xl font-bold text-amber-300">Real Physics, Real Consequences</h3>
-              </div>
-              <p className="text-base text-slate-200 leading-relaxed">
-                <span className="font-semibold text-white">Built in Rust with NASA-grade orbital mechanics.</span> Your fuel matters. Your velocity vector matters. Gravity assists, orbital transfers—this isn&apos;t arcade space.
-              </p>
-              <div className="mt-4 pt-4 border-t border-amber-500/20">
-                <span className="text-sm text-amber-400 font-medium">
-                  ✓ True Newtonian physics • ✓ Orbital mechanics • ✓ Resource management
-                </span>
-              </div>
-            </article>
-
-            {/* Deep RPG Progression */}
-            <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-transparent ring-2 ring-purple-500/20 hover:ring-purple-400/40 transition-all group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-2xl ring-2 ring-purple-400/30 group-hover:scale-110 transition-transform">
-                  ⚔️
-                </div>
-                <h3 className="text-2xl font-bold text-purple-300">Deep RPG Progression</h3>
-              </div>
-              <p className="text-base text-slate-200 leading-relaxed">
-                <span className="font-semibold text-white">Full character leveling • Weapon ability trees • Modular ship upgrades</span> • Permanent choices that shape your playthrough. This is a true RPG in space.
-              </p>
-              <div className="mt-4 pt-4 border-t border-purple-500/20">
-                <span className="text-sm text-purple-400 font-medium">
-                  ✓ Character progression • ✓ Skill trees • ✓ Meaningful choices
-                </span>
-              </div>
             </article>
           </div>
         </div>

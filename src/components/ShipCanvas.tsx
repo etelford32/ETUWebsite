@@ -2,6 +2,45 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+// Camera class for zoom and pan controls
+class Camera {
+  x: number = 0;
+  y: number = 0;
+  zoom: number = 1;
+  minZoom: number = 0.5;
+  maxZoom: number = 3;
+
+  // Pan the camera
+  pan(dx: number, dy: number) {
+    this.x += dx;
+    this.y += dy;
+  }
+
+  // Zoom the camera
+  zoomBy(delta: number, focusX: number, focusY: number) {
+    const oldZoom = this.zoom;
+    this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom + delta));
+
+    // Adjust position to zoom toward mouse position
+    const zoomChange = this.zoom / oldZoom;
+    this.x = focusX - (focusX - this.x) * zoomChange;
+    this.y = focusY - (focusY - this.y) * zoomChange;
+  }
+
+  // Reset camera to default
+  reset() {
+    this.x = 0;
+    this.y = 0;
+    this.zoom = 1;
+  }
+
+  // Apply camera transform to canvas context
+  applyTransform(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    ctx.translate(width / 2 + this.x, height / 2 + this.y);
+    ctx.scale(this.zoom, this.zoom);
+  }
+}
+
 interface ShipData {
   name: string;
   scale: number;
@@ -78,6 +117,12 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
   const animationFrameRef = useRef<number>();
   const [time, setTime] = useState(0);
 
+  // Camera state
+  const cameraRef = useRef<Camera>(new Camera());
+  const [cameraState, setCameraState] = useState({ zoom: 1 }); // For UI updates
+  const isDragging = useRef(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
   // Weapon firing state
   const [missiles, setMissiles] = useState<Missile[]>([]);
   const [laserBeams, setLaserBeams] = useState<LaserBeam[]>([]);
@@ -99,29 +144,21 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     if (now - lastLaserFire.current < LASER_COOLDOWN) return;
     lastLaserFire.current = now;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    // Create laser beam from ship front to edge of screen
+    // Use world coordinates (0,0 is at ship center)
     const angle = (shipData.rotation - 90) * (Math.PI / 180); // Ship points up initially
-    const range = 500;
+    const range = 400;
     const startOffset = shipData.components.hull.size * shipData.scale;
 
-    const x1 = centerX + Math.cos(angle) * startOffset;
-    const y1 = centerY + Math.sin(angle) * startOffset;
-    const x2 = centerX + Math.cos(angle) * range;
-    const y2 = centerY + Math.sin(angle) * range;
+    const x1 = Math.cos(angle) * startOffset;
+    const y1 = Math.sin(angle) * startOffset;
+    const x2 = Math.cos(angle) * range;
+    const y2 = Math.sin(angle) * range;
 
     // Create impact particles
     const particles = [];
     for (let i = 0; i < 10; i++) {
       const spreadAngle = angle + (Math.random() - 0.5) * 0.5;
-      const speed = Math.random() * 3 + 2;
+      const speed = Math.random() * 1.5 + 1; // Slower particles
       particles.push({
         x: x2,
         y: y2,
@@ -153,23 +190,15 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     if (now - lastMissileFire.current < MISSILE_COOLDOWN) return;
     lastMissileFire.current = now;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const width = canvas.width / window.devicePixelRatio;
-    const height = canvas.height / window.devicePixelRatio;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    // Fire from ship front with current rotation
+    // Use world coordinates (0,0 is at ship center)
     const angle = (shipData.rotation - 90) * (Math.PI / 180);
     const startOffset = shipData.components.hull.size * shipData.scale;
-    const speed = 8;
+    const speed = 3; // Slower missiles (was 8)
 
     const newMissile: Missile = {
       id: missileIdRef.current++,
-      x: centerX + Math.cos(angle) * startOffset,
-      y: centerY + Math.sin(angle) * startOffset,
+      x: Math.cos(angle) * startOffset,
+      y: Math.sin(angle) * startOffset,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       trail: [],
@@ -191,6 +220,10 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       } else if (e.code === 'KeyM') {
         e.preventDefault();
         fireMissile();
+      } else if (e.code === 'KeyR') {
+        // Reset camera
+        cameraRef.current.reset();
+        setCameraState({ zoom: 1 });
       }
     };
 
@@ -198,24 +231,79 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       keysPressed.current.delete(e.code);
     };
 
-    // Mouse click for lasers
-    const handleClick = () => {
-      fireLaser();
-    };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.addEventListener('click', handleClick);
-    }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      if (canvas) {
-        canvas.removeEventListener('click', handleClick);
+    };
+  }, [shipData]);
+
+  // Camera mouse controls
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Zoom toward mouse position
+      const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+      cameraRef.current.zoomBy(zoomDelta, mouseX - rect.width / 2, mouseY - rect.height / 2);
+      setCameraState({ zoom: cameraRef.current.zoom });
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Right click or middle click for panning
+      if (e.button === 1 || e.button === 2) {
+        e.preventDefault();
+        isDragging.current = true;
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
+      } else if (e.button === 0) {
+        // Left click for laser (only if not dragging)
+        fireLaser();
       }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging.current) {
+        const dx = e.clientX - lastMousePos.current.x;
+        const dy = e.clientY - lastMousePos.current.y;
+        cameraRef.current.pan(dx, dy);
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 1 || e.button === 2) {
+        isDragging.current = false;
+        canvas.style.cursor = 'default';
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // Prevent context menu on right click
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('mouseup', handleMouseUp); // Catch mouseup outside canvas
+
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [shipData]);
 
@@ -267,11 +355,10 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
           };
         })
         .filter(m => {
-          const width = canvas.width / window.devicePixelRatio;
-          const height = canvas.height / window.devicePixelRatio;
-          return m.x > -50 && m.x < width + 50 &&
-                 m.y > -50 && m.y < height + 50 &&
-                 m.age < 5000;
+          // Use world coordinates - missiles centered at 0,0 (ship position)
+          // Remove missiles that are too far from ship or too old
+          const distanceFromShip = Math.sqrt(m.x * m.x + m.y * m.y);
+          return distanceFromShip < 1000 && m.age < 10000;
         });
 
       // Update laser beams
@@ -328,20 +415,22 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
   ) => {
     const width = canvas.width / window.devicePixelRatio;
     const height = canvas.height / window.devicePixelRatio;
-    const centerX = width / 2;
-    const centerY = height / 2;
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw starfield background
+    // Draw starfield background (not affected by camera)
     drawStarfield(ctx, width, height, time);
 
-    // Save context
+    // Save context for camera transform
     ctx.save();
 
-    // Translate to center
-    ctx.translate(centerX, centerY);
+    // Apply camera transform (translates to center and applies zoom/pan)
+    cameraRef.current.applyTransform(ctx, width, height);
+
+    // Now (0,0) is at the center of the canvas in world space
+    // Save context for ship rotation/scale
+    ctx.save();
     ctx.rotate((data.rotation * Math.PI) / 180);
     ctx.scale(data.scale, data.scale);
 
@@ -374,17 +463,21 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     // Draw ship outline
     drawShipOutline(ctx, data);
 
-    // Restore context
+    // Restore context from ship rotation/scale
     ctx.restore();
 
-    // Draw missiles and lasers (in world space, after ship)
+    // Draw missiles and lasers (in world space, affected by camera)
     drawMissiles(ctx, currentMissiles);
     drawLasers(ctx, currentLasers);
 
-    // Draw UI overlays
-    drawCrosshair(ctx, centerX, centerY);
+    // Restore context from camera transform
+    ctx.restore();
+
+    // Draw UI overlays (not affected by camera)
+    drawCrosshair(ctx, width / 2, height / 2);
     drawStatsOverlay(ctx, data, width, height);
     drawWeaponControls(ctx, width, height);
+    drawCameraControls(ctx, width, height, cameraRef.current.zoom);
   };
 
   const drawMissiles = (ctx: CanvasRenderingContext2D, missilesToDraw: Missile[]) => {
@@ -518,6 +611,45 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
       ctx.fillText(`${control.key}: ${control.action}`, width - 10, y);
     });
+  };
+
+  const drawCameraControls = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    zoom: number
+  ) => {
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+
+    const controls = [
+      { key: 'WHEEL', action: 'Zoom' },
+      { key: 'RIGHT DRAG', action: 'Pan' },
+      { key: 'R', action: 'Reset Camera' }
+    ];
+
+    controls.forEach((control, i) => {
+      const y = 15 + i * 15;
+
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(5, y - 10, 140, 12);
+
+      // Key indicator
+      ctx.fillStyle = 'rgba(100, 200, 255, 0.8)';
+      ctx.fillRect(10, y - 8, 8, 8);
+
+      // Text
+      ctx.fillStyle = 'rgba(100, 200, 255, 0.9)';
+      ctx.fillText(`${control.key}: ${control.action}`, 25, y);
+    });
+
+    // Zoom level display
+    const zoomY = 15 + controls.length * 15;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(5, zoomY - 10, 140, 12);
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.9)';
+    ctx.fillText(`Zoom: ${(zoom * 100).toFixed(0)}%`, 10, zoomY);
   };
 
   const drawStarfield = (
