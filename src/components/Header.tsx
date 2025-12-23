@@ -39,6 +39,7 @@ export default function Header() {
             <NavLink href="/#features">Features</NavLink>
             <NavLink href="/#factions">Factions</NavLink>
             <NavLink href="/leaderboard">Leaderboard</NavLink>
+            <NavLink href="/profile">Profile</NavLink>
             <NavLink href="/ship-designer">Ship Designer</NavLink>
             <NavLink href="/backlog">Backlog</NavLink>
             <NavLink href="/#roadmap">Roadmap</NavLink>
@@ -103,6 +104,7 @@ export default function Header() {
           <MobileNavLink href="/#features">Features</MobileNavLink>
           <MobileNavLink href="/#factions">Factions</MobileNavLink>
           <MobileNavLink href="/leaderboard">Leaderboard</MobileNavLink>
+          <MobileNavLink href="/profile">Profile</MobileNavLink>
           <MobileNavLink href="/ship-designer">Ship Designer</MobileNavLink>
           <MobileNavLink href="/backlog">Backlog</MobileNavLink>
           <MobileNavLink href="/#roadmap">Roadmap</MobileNavLink>
