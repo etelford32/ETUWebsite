@@ -155,25 +155,28 @@ export default function ProfilePage() {
         console.error('Error fetching profile:', error)
       }
 
+      // Type assertion for profileData (safe because we're providing defaults)
+      const dbProfile = profileData as Profile | null
+
       // Use database data if available, otherwise use defaults
       const profile: PlayerProfile = {
         id: session.user.id,
-        username: profileData?.username || session.user.email?.split('@')[0] || 'Commander',
-        steam_id: profileData?.steam_id || null,
-        avatar_url: profileData?.avatar_url || null,
-        faction_choice: profileData?.faction_choice || null,
-        ship_class: profileData?.ship_class || null,
-        created_at: profileData?.created_at || new Date().toISOString(),
-        updated_at: profileData?.updated_at || new Date().toISOString(),
-        // Stats - use DB values or defaults
-        level: profileData?.level || 1,
-        xp: profileData?.xp || 0,
-        total_kills: profileData?.total_kills || 0,
-        total_deaths: profileData?.total_deaths || 0,
-        total_wins: profileData?.total_wins || 0,
-        total_losses: profileData?.total_losses || 0,
-        total_playtime: profileData?.total_playtime || 0,
-        highest_score: profileData?.highest_score || 0
+        username: dbProfile?.username || session.user.email?.split('@')[0] || 'Commander',
+        steam_id: dbProfile?.steam_id || null,
+        avatar_url: dbProfile?.avatar_url || null,
+        faction_choice: dbProfile?.faction_choice || null,
+        ship_class: dbProfile?.ship_class || null,
+        created_at: dbProfile?.created_at || new Date().toISOString(),
+        updated_at: dbProfile?.updated_at || new Date().toISOString(),
+        // Stats - use DB values or defaults (handles case where columns don't exist yet)
+        level: dbProfile?.level ?? 1,
+        xp: dbProfile?.xp ?? 0,
+        total_kills: dbProfile?.total_kills ?? 0,
+        total_deaths: dbProfile?.total_deaths ?? 0,
+        total_wins: dbProfile?.total_wins ?? 0,
+        total_losses: dbProfile?.total_losses ?? 0,
+        total_playtime: dbProfile?.total_playtime ?? 0,
+        highest_score: dbProfile?.highest_score ?? 0
       }
 
       setProfile(profile)
