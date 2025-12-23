@@ -18,16 +18,16 @@ export interface Database {
           faction_choice: string | null
           created_at: string
           updated_at: string
-          // Player Stats
-          level: number
-          xp: number
-          total_kills: number
-          total_deaths: number
-          total_wins: number
-          total_losses: number
-          total_playtime: number
-          highest_score: number
-          ship_class: string | null
+          // Player Stats (optional until migration is run)
+          level?: number
+          xp?: number
+          total_kills?: number
+          total_deaths?: number
+          total_wins?: number
+          total_losses?: number
+          total_playtime?: number
+          highest_score?: number
+          ship_class?: string | null
         }
         Insert: {
           id: string
