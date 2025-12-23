@@ -51,7 +51,12 @@ export default function ShipDesigner() {
       engine: {
         enabled: true,
         thrust: 1.0,
-        glowIntensity: 0.8
+        glowIntensity: 0.8,
+        style: 'dual' as 'dual' | 'single' | 'quad' | 'ring' | 'plasma'
+      },
+      cockpit: {
+        enabled: true,
+        style: 'bubble' as 'bubble' | 'angular' | 'sleek' | 'armored' | 'windowed' | 'minimal'
       }
     }
   });
@@ -354,6 +359,47 @@ export default function ShipDesigner() {
                     </div>
                   ))}
                 </div>
+
+                {/* Thruster Style */}
+                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Thruster Style</div>
+                <select
+                  value={shipData.components.engine.style}
+                  onChange={(e) => setShipData({
+                    ...shipData,
+                    components: {
+                      ...shipData.components,
+                      engine: { ...shipData.components.engine, style: e.target.value as 'dual' | 'single' | 'quad' | 'ring' | 'plasma' }
+                    }
+                  })}
+                  className="w-full px-2 py-1 text-xs bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="dual">Dual Thrusters</option>
+                  <option value="single">Single Center</option>
+                  <option value="quad">Quad Array</option>
+                  <option value="ring">Ring Thruster</option>
+                  <option value="plasma">Plasma Drive</option>
+                </select>
+
+                {/* Cockpit Style */}
+                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Cockpit Style</div>
+                <select
+                  value={shipData.components.cockpit.style}
+                  onChange={(e) => setShipData({
+                    ...shipData,
+                    components: {
+                      ...shipData.components,
+                      cockpit: { ...shipData.components.cockpit, style: e.target.value as 'bubble' | 'angular' | 'sleek' | 'armored' | 'windowed' | 'minimal' }
+                    }
+                  })}
+                  className="w-full px-2 py-1 text-xs bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="bubble">Bubble Canopy</option>
+                  <option value="angular">Angular Cockpit</option>
+                  <option value="sleek">Sleek Design</option>
+                  <option value="armored">Armored</option>
+                  <option value="windowed">Windowed</option>
+                  <option value="minimal">Minimal</option>
+                </select>
               </div>
 
               {/* Column 2: Defense Systems */}

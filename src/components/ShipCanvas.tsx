@@ -37,6 +37,11 @@ interface ShipData {
       enabled: boolean;
       thrust: number;
       glowIntensity: number;
+      style: 'dual' | 'single' | 'quad' | 'ring' | 'plasma';
+    };
+    cockpit: {
+      enabled: boolean;
+      style: 'bubble' | 'angular' | 'sleek' | 'armored' | 'windowed' | 'minimal';
     };
   };
 }
@@ -218,7 +223,7 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Performance: disable alpha
     if (!ctx) return;
 
     // Set canvas size
@@ -232,69 +237,69 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     updateSize();
     window.addEventListener('resize', updateSize);
 
+    // Use refs for mutable state to avoid re-renders
+    const missilesRef = useRef<Missile[]>(missiles);
+    const lasersRef = useRef<LaserBeam[]>(laserBeams);
+
     // Animation loop
     let animTime = 0;
-    const animate = () => {
-      const deltaTime = 16; // ~60fps
-      animTime += 0.016;
-      setTime(animTime);
+    let lastTime = performance.now();
 
-      // Update missiles
-      setMissiles(prev => {
-        return prev
-          .map(m => {
-            // Update trail
-            const newTrail = [{ x: m.x, y: m.y, alpha: 1 }, ...m.trail]
-              .slice(0, 20)
-              .map((t, i) => ({ ...t, alpha: 1 - i / 20 }));
+    const animate = (currentTime: number) => {
+      const deltaTime = Math.min(currentTime - lastTime, 32); // Cap at 32ms for stability
+      lastTime = currentTime;
+      animTime += deltaTime / 1000;
 
-            return {
-              ...m,
-              x: m.x + m.vx,
-              y: m.y + m.vy,
-              trail: newTrail,
-              age: m.age + deltaTime
-            };
-          })
-          .filter(m => {
-            // Remove missiles that are off screen or too old
-            const width = canvas.width / window.devicePixelRatio;
-            const height = canvas.height / window.devicePixelRatio;
-            return m.x > -50 && m.x < width + 50 &&
-                   m.y > -50 && m.y < height + 50 &&
-                   m.age < 5000;
-          });
-      });
+      // Update missiles (using ref for performance)
+      missilesRef.current = missilesRef.current
+        .map(m => {
+          // Update trail (only keep last 15 for performance)
+          const newTrail = [{ x: m.x, y: m.y, alpha: 1 }, ...m.trail]
+            .slice(0, 15)
+            .map((t, i) => ({ ...t, alpha: 1 - i / 15 }));
+
+          return {
+            ...m,
+            x: m.x + m.vx,
+            y: m.y + m.vy,
+            trail: newTrail,
+            age: m.age + deltaTime
+          };
+        })
+        .filter(m => {
+          const width = canvas.width / window.devicePixelRatio;
+          const height = canvas.height / window.devicePixelRatio;
+          return m.x > -50 && m.x < width + 50 &&
+                 m.y > -50 && m.y < height + 50 &&
+                 m.age < 5000;
+        });
 
       // Update laser beams
-      setLaserBeams(prev => {
-        return prev
-          .map(l => {
-            // Update particles
-            const newParticles = l.particles
-              .map(p => ({
-                x: p.x + p.vx,
-                y: p.y + p.vy,
-                vx: p.vx * 0.98, // Friction
-                vy: p.vy * 0.98,
-                alpha: p.alpha - 0.02
-              }))
-              .filter(p => p.alpha > 0);
+      lasersRef.current = lasersRef.current
+        .map(l => {
+          const newParticles = l.particles
+            .map(p => ({
+              x: p.x + p.vx,
+              y: p.y + p.vy,
+              vx: p.vx * 0.95, // Faster decay for performance
+              vy: p.vy * 0.95,
+              alpha: p.alpha - 0.03
+            }))
+            .filter(p => p.alpha > 0);
 
-            return {
-              ...l,
-              age: l.age + deltaTime,
-              particles: newParticles
-            };
-          })
-          .filter(l => l.age < l.maxAge);
-      });
+          return {
+            ...l,
+            age: l.age + deltaTime,
+            particles: newParticles
+          };
+        })
+        .filter(l => l.age < l.maxAge);
 
-      drawShip(ctx, canvas, shipData, animTime);
+      drawShip(ctx, canvas, shipData, animTime, missilesRef.current, lasersRef.current);
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', updateSize);
@@ -302,13 +307,24 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [shipData, missiles, laserBeams]);
+  }, [shipData]);
+
+  // Sync React state with refs when new missiles/lasers are fired
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const missilesRef = { current: missiles };
+      const lasersRef = { current: laserBeams };
+    }
+  }, [missiles, laserBeams]);
 
   const drawShip = (
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     data: ShipData,
-    time: number
+    time: number,
+    currentMissiles: Missile[],
+    currentLasers: LaserBeam[]
   ) => {
     const width = canvas.width / window.devicePixelRatio;
     const height = canvas.height / window.devicePixelRatio;
@@ -336,11 +352,16 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
 
     // Draw engine glow (behind ship)
     if (data.components.engine.enabled) {
-      drawEngineGlow(ctx, data, time);
+      drawThruster(ctx, data, time);
     }
 
     // Draw ship hull with pearly effect
     drawPearlyHull(ctx, data, time);
+
+    // Draw cockpit (on top of hull)
+    if (data.components.cockpit.enabled) {
+      drawCockpit(ctx, data);
+    }
 
     // Draw armor plating
     if (data.defense.armor > 0) {
@@ -357,8 +378,8 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     ctx.restore();
 
     // Draw missiles and lasers (in world space, after ship)
-    drawMissiles(ctx);
-    drawLasers(ctx);
+    drawMissiles(ctx, currentMissiles);
+    drawLasers(ctx, currentLasers);
 
     // Draw UI overlays
     drawCrosshair(ctx, centerX, centerY);
@@ -366,8 +387,8 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     drawWeaponControls(ctx, width, height);
   };
 
-  const drawMissiles = (ctx: CanvasRenderingContext2D) => {
-    missiles.forEach(missile => {
+  const drawMissiles = (ctx: CanvasRenderingContext2D, missilesToDraw: Missile[]) => {
+    missilesToDraw.forEach(missile => {
       // Draw trail
       missile.trail.forEach((point, i) => {
         const r = parseInt(missile.color.slice(1, 3), 16);
@@ -414,8 +435,8 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     });
   };
 
-  const drawLasers = (ctx: CanvasRenderingContext2D) => {
-    laserBeams.forEach(laser => {
+  const drawLasers = (ctx: CanvasRenderingContext2D, lasersToDraw: LaserBeam[]) => {
+    lasersToDraw.forEach(laser => {
       const lifeRatio = laser.age / laser.maxAge;
       const alpha = 1 - lifeRatio;
 
@@ -586,7 +607,7 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     }
   };
 
-  const drawEngineGlow = (
+  const drawThruster = (
     ctx: CanvasRenderingContext2D,
     data: ShipData,
     time: number
@@ -600,36 +621,187 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     const glowIntensity = data.components.engine.glowIntensity;
     const pulse = Math.sin(time * 8) * 0.2 + 0.8;
 
-    // Main engine glow
-    const gradient = ctx.createRadialGradient(
-      backCenterX,
-      backCenterY,
-      0,
-      backCenterX,
-      backCenterY,
-      30
-    );
+    switch (data.components.engine.style) {
+      case 'dual':
+        // Two side thrusters
+        drawThrusterGlow(ctx, backLeft.x + 5, backLeft.y, data.color.glow, glowIntensity * pulse, time);
+        drawThrusterGlow(ctx, backRight.x - 5, backRight.y, data.color.glow, glowIntensity * pulse, time);
+        break;
 
-    gradient.addColorStop(0, `${data.color.glow}${Math.floor(glowIntensity * pulse * 180).toString(16).padStart(2, '0')}`);
-    gradient.addColorStop(0.5, `${data.color.glow}${Math.floor(glowIntensity * pulse * 100).toString(16).padStart(2, '0')}`);
-    gradient.addColorStop(1, `${data.color.glow}00`);
+      case 'single':
+        // Single center thruster
+        drawThrusterGlow(ctx, backCenterX, backCenterY, data.color.glow, glowIntensity * pulse * 1.5, time);
+        break;
+
+      case 'quad':
+        // Four thrusters in a square pattern
+        const offset = 8;
+        drawThrusterGlow(ctx, backLeft.x + 5, backLeft.y - 5, data.color.glow, glowIntensity * pulse * 0.7, time);
+        drawThrusterGlow(ctx, backLeft.x + 5, backLeft.y + 5, data.color.glow, glowIntensity * pulse * 0.7, time);
+        drawThrusterGlow(ctx, backRight.x - 5, backRight.y - 5, data.color.glow, glowIntensity * pulse * 0.7, time);
+        drawThrusterGlow(ctx, backRight.x - 5, backRight.y + 5, data.color.glow, glowIntensity * pulse * 0.7, time);
+        break;
+
+      case 'ring':
+        // Ring thruster effect
+        ctx.strokeStyle = `${data.color.glow}${Math.floor(glowIntensity * pulse * 150).toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(backCenterX, backCenterY, 15, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner glow
+        const ringGradient = ctx.createRadialGradient(backCenterX, backCenterY, 10, backCenterX, backCenterY, 20);
+        ringGradient.addColorStop(0, `${data.color.glow}00`);
+        ringGradient.addColorStop(0.5, `${data.color.glow}${Math.floor(glowIntensity * pulse * 100).toString(16).padStart(2, '0')}`);
+        ringGradient.addColorStop(1, `${data.color.glow}00`);
+        ctx.fillStyle = ringGradient;
+        ctx.beginPath();
+        ctx.arc(backCenterX, backCenterY, 20, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'plasma':
+        // Plasma drive with unstable energy
+        for (let i = 0; i < 5; i++) {
+          const angle = (time * 4 + i * (Math.PI * 2 / 5)) % (Math.PI * 2);
+          const radius = 12 + Math.sin(time * 10 + i) * 3;
+          const px = backCenterX + Math.cos(angle) * radius;
+          const py = backCenterY + Math.sin(angle) * radius;
+
+          const plasmaGradient = ctx.createRadialGradient(px, py, 0, px, py, 8);
+          plasmaGradient.addColorStop(0, `${data.color.glow}${Math.floor(glowIntensity * 200).toString(16).padStart(2, '0')}`);
+          plasmaGradient.addColorStop(1, `${data.color.glow}00`);
+          ctx.fillStyle = plasmaGradient;
+          ctx.beginPath();
+          ctx.arc(px, py, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+    }
+  };
+
+  const drawThrusterGlow = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    color: string,
+    intensity: number,
+    time: number
+  ) => {
+    // Main glow
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, 25);
+    gradient.addColorStop(0, `${color}${Math.floor(intensity * 180).toString(16).padStart(2, '0')}`);
+    gradient.addColorStop(0.5, `${color}${Math.floor(intensity * 100).toString(16).padStart(2, '0')}`);
+    gradient.addColorStop(1, `${color}00`);
 
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(backCenterX, backCenterY, 30, 0, Math.PI * 2);
+    ctx.arc(x, y, 25, 0, Math.PI * 2);
     ctx.fill();
 
-    // Engine particles
-    for (let i = 0; i < 3; i++) {
-      const particleOffset = (time * 60 + i * 10) % 40;
-      const particleX = backCenterX;
-      const particleY = backCenterY + particleOffset;
-      const particleAlpha = (1 - particleOffset / 40) * glowIntensity * pulse;
+    // Particles
+    for (let i = 0; i < 2; i++) {
+      const particleOffset = (time * 60 + i * 15) % 35;
+      const particleX = x;
+      const particleY = y + particleOffset;
+      const particleAlpha = (1 - particleOffset / 35) * intensity;
 
-      ctx.fillStyle = `${data.color.glow}${Math.floor(particleAlpha * 150).toString(16).padStart(2, '0')}`;
+      ctx.fillStyle = `${color}${Math.floor(particleAlpha * 150).toString(16).padStart(2, '0')}`;
       ctx.beginPath();
       ctx.arc(particleX, particleY, 2, 0, Math.PI * 2);
       ctx.fill();
+    }
+  };
+
+  const drawCockpit = (
+    ctx: CanvasRenderingContext2D,
+    data: ShipData
+  ) => {
+    const points = data.components.hull.points;
+    const nose = points[0];
+    const size = data.components.hull.size;
+
+    // Calculate cockpit position (near the front)
+    const cockpitY = nose.y + size * 0.3;
+
+    switch (data.components.cockpit.style) {
+      case 'bubble':
+        // Bubble canopy
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, cockpitY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath();
+        ctx.arc(-2, cockpitY - 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case 'angular':
+        // Angular cockpit
+        ctx.fillStyle = 'rgba(80, 180, 255, 0.3)';
+        ctx.strokeStyle = 'rgba(80, 180, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, cockpitY - 8);
+        ctx.lineTo(-6, cockpitY + 4);
+        ctx.lineTo(6, cockpitY + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        break;
+
+      case 'sleek':
+        // Sleek low-profile
+        ctx.fillStyle = 'rgba(60, 160, 240, 0.25)';
+        ctx.strokeStyle = 'rgba(60, 160, 240, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, cockpitY, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        break;
+
+      case 'armored':
+        // Armored with viewports
+        ctx.fillStyle = 'rgba(150, 150, 150, 0.4)';
+        ctx.strokeStyle = 'rgba(200, 200, 200, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-8, cockpitY - 6, 16, 12);
+        ctx.strokeRect(-8, cockpitY - 6, 16, 12);
+
+        // Viewport
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
+        ctx.fillRect(-5, cockpitY - 3, 10, 6);
+        break;
+
+      case 'windowed':
+        // Multiple windows
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+        for (let i = -1; i <= 1; i++) {
+          ctx.fillStyle = 'rgba(100, 200, 255, 0.25)';
+          ctx.beginPath();
+          ctx.arc(i * 5, cockpitY, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        break;
+
+      case 'minimal':
+        // Minimal single viewport
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.2)';
+        ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.fillRect(-4, cockpitY - 2, 8, 4);
+        ctx.strokeRect(-4, cockpitY - 2, 8, 4);
+        break;
     }
   };
 
