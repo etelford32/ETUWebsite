@@ -130,6 +130,10 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
   const laserIdRef = useRef(0);
   const keysPressed = useRef<Set<string>>(new Set());
 
+  // Refs for animation loop (to avoid re-renders)
+  const missilesRef = useRef<Missile[]>([]);
+  const lasersRef = useRef<LaserBeam[]>([]);
+
   // Cooldowns
   const lastMissileFire = useRef(0);
   const lastLaserFire = useRef(0);
@@ -325,10 +329,6 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     updateSize();
     window.addEventListener('resize', updateSize);
 
-    // Use refs for mutable state to avoid re-renders
-    const missilesRef = useRef<Missile[]>(missiles);
-    const lasersRef = useRef<LaserBeam[]>(laserBeams);
-
     // Animation loop
     let animTime = 0;
     let lastTime = performance.now();
@@ -398,11 +398,8 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
 
   // Sync React state with refs when new missiles/lasers are fired
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const missilesRef = { current: missiles };
-      const lasersRef = { current: laserBeams };
-    }
+    missilesRef.current = missiles;
+    lasersRef.current = laserBeams;
   }, [missiles, laserBeams]);
 
   const drawShip = (
