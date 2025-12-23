@@ -217,16 +217,39 @@ class BlackHoleEffect {
   }
 
   updateQuality(quality: QualityLevel) {
-    // Update settings based on new quality
-    const newSettings = this.detectCapabilities(quality);
+    console.log(`🎨 Quality change requested: ${quality}`);
 
-    // Note: We could reload the entire scene here, but for performance
-    // we'll just update the settings. Full reload would require destroying
-    // and recreating the entire scene.
-    this.settings = newSettings;
+    // Destroy current scene
+    this.destroy();
 
-    console.log(`🎨 Quality updated to: ${quality}`, newSettings);
-    console.log("⚠️ Note: To see full quality changes, please refresh the page.");
+    // Update settings
+    this.settings = this.detectCapabilities(quality);
+
+    // Check if WebGL is available
+    if (!this.isWebGLAvailable()) {
+      this.showFallback();
+      return;
+    }
+
+    // Recreate entire scene with new quality settings
+    try {
+      this.init();
+      this.createStarField();
+      this.createBlackHole();
+      this.createPhotonSphere();
+      this.createPhotonRing();
+      this.createAccretionDisk();
+      this.createOuterBoundary();
+      this.createParticles();
+      this.setupInteractiveControls();
+      this.addEventListeners();
+      this.animate();
+
+      console.log(`✅ Scene recreated with ${quality} quality:`, this.settings);
+    } catch (error) {
+      console.error("❌ Error recreating scene:", error);
+      this.showFallback();
+    }
   }
 
   isWebGLAvailable() {
@@ -242,9 +265,124 @@ class BlackHoleEffect {
   }
 
   showFallback() {
-    console.log("WebGL not available, using fallback background");
-    this.container.style.background =
-      "radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a14 100%)";
+    console.log("WebGL not available, using CSS fallback for older browsers (IE compatible)");
+
+    // Clear container
+    this.container.innerHTML = "";
+
+    // Create IE-compatible animated starfield using CSS only
+    const fallbackHTML = `
+      <div class="ie-fallback-container" style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a14 100%);
+        overflow: hidden;
+      ">
+        <!-- Animated star layers (CSS only, IE9+ compatible) -->
+        <div class="star-layer-1" style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background-image:
+            radial-gradient(2px 2px at 20% 30%, white, transparent),
+            radial-gradient(2px 2px at 60% 70%, white, transparent),
+            radial-gradient(1px 1px at 50% 50%, white, transparent),
+            radial-gradient(1px 1px at 80% 10%, white, transparent),
+            radial-gradient(2px 2px at 90% 60%, white, transparent),
+            radial-gradient(1px 1px at 33% 90%, white, transparent),
+            radial-gradient(2px 2px at 15% 75%, white, transparent),
+            radial-gradient(1px 1px at 70% 25%, white, transparent);
+          background-size: 200% 200%;
+          background-position: 0% 0%;
+          opacity: 0.7;
+          animation: twinkle 8s ease-in-out infinite alternate;
+        "></div>
+
+        <div class="star-layer-2" style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background-image:
+            radial-gradient(1px 1px at 40% 20%, white, transparent),
+            radial-gradient(2px 2px at 75% 45%, white, transparent),
+            radial-gradient(1px 1px at 25% 85%, white, transparent),
+            radial-gradient(2px 2px at 55% 65%, white, transparent),
+            radial-gradient(1px 1px at 10% 40%, white, transparent);
+          background-size: 250% 250%;
+          background-position: 0% 0%;
+          opacity: 0.5;
+          animation: twinkle 10s ease-in-out infinite alternate-reverse;
+        "></div>
+
+        <!-- Central black hole glow (CSS only) -->
+        <div class="blackhole-glow" style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 200px;
+          height: 200px;
+          border-radius: 50%;
+          background: radial-gradient(circle,
+            rgba(100, 60, 200, 0.4) 0%,
+            rgba(60, 30, 150, 0.2) 30%,
+            transparent 70%
+          );
+          box-shadow:
+            0 0 50px rgba(100, 60, 200, 0.6),
+            0 0 100px rgba(60, 30, 150, 0.4),
+            inset 0 0 50px rgba(30, 10, 80, 0.8);
+          animation: pulse 4s ease-in-out infinite;
+        "></div>
+
+        <!-- Fallback message for users -->
+        <div style="
+          position: absolute;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          color: rgba(255, 255, 255, 0.3);
+          font-size: 11px;
+          text-align: center;
+          font-family: sans-serif;
+        ">
+          WebGL not supported. Using simplified visualization.
+        </div>
+      </div>
+
+      <style>
+        /* IE9+ compatible animations */
+        @keyframes twinkle {
+          0% { opacity: 0.3; background-position: 0% 0%; }
+          100% { opacity: 0.7; background-position: 100% 100%; }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.4;
+          }
+          50% {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 0.6;
+          }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+          .star-layer-1,
+          .star-layer-2,
+          .blackhole-glow {
+            animation: none !important;
+          }
+        }
+      </style>
+    `;
+
+    this.container.innerHTML = fallbackHTML;
   }
 
   // ============================================================================
@@ -1062,24 +1200,43 @@ class BlackHoleEffect {
       orbitType: new Uint8Array(particleCount), // 0=equatorial, 1=inclined, 2=polar
     };
 
-    // Initialize all particles
+    // Initialize all particles with ENHANCED DIVERSITY
     for (let i = 0; i < particleCount; i++) {
       // ========================================================================
-      // INITIAL POSITION: Primarily in accretion disk
+      // INITIAL POSITION: Multiple orbital families with varied radii
       // ========================================================================
-      const r = this.ISCO_RADIUS + Math.random() * 100;
+      // Create 5 distinct orbital families at different radii
+      const familyId = i % 5;
+      const baseRadii = [
+        this.ISCO_RADIUS + 20,      // Inner ring (fast, hot)
+        this.ISCO_RADIUS + 50,      // Mid-inner ring
+        this.ISCO_RADIUS + 80,      // Mid ring
+        this.ISCO_RADIUS + 120,     // Mid-outer ring
+        this.ISCO_RADIUS + 160      // Outer ring (slow, cool)
+      ];
 
-      // 90% in disk, 10% in inclined orbits for 3D effect
+      const r = baseRadii[familyId] + (Math.random() - 0.5) * 30; // Add variation within family
+
+      // 85% in disk, 10% moderately inclined, 5% highly inclined for dynamic 3D structure
       const orbitType = Math.random();
       let theta;
-      if (orbitType < 0.9) {
-        // Thin disk
-        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.15;
+      let inclinationFactor = 0;
+
+      if (orbitType < 0.85) {
+        // Thin disk (most particles)
+        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.12;
         particleData.orbitType[i] = 0; // equatorial
-      } else {
-        // Inclined orbits
-        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
+        inclinationFactor = 0.0;
+      } else if (orbitType < 0.95) {
+        // Moderately inclined orbits (adds 3D depth)
+        theta = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
         particleData.orbitType[i] = 1; // inclined
+        inclinationFactor = 0.3;
+      } else {
+        // Highly inclined/polar orbits (dramatic effect)
+        theta = Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+        particleData.orbitType[i] = 2; // polar
+        inclinationFactor = 0.8;
       }
 
       const phi = Math.random() * Math.PI * 2;
@@ -1095,12 +1252,35 @@ class BlackHoleEffect {
       const z = r * sinTheta * sinPhi;
 
       // ========================================================================
-      // INITIAL VELOCITY: Keplerian orbits with small perturbations
+      // INITIAL VELOCITY: VARIED angular momentum and speeds
       // ========================================================================
-      const orbitalSpeed = Math.sqrt(this.G / r);
-      const vr = (Math.random() - 0.5) * 0.002; // Minimal radial motion
-      const vtheta = (Math.random() - 0.5) * 0.0002; // Minimal polar motion
-      const vphi = orbitalSpeed / r;
+      // Base Keplerian orbital speed
+      const baseOrbitalSpeed = Math.sqrt(this.G / r);
+
+      // VARIATION 1: Eccentricity (some particles have elliptical orbits)
+      const eccentricity = Math.random() * 0.15; // 0-15% eccentricity
+      const speedVariation = 1.0 + (Math.random() - 0.5) * eccentricity * 2;
+
+      // VARIATION 2: Retrograde orbits (5% of particles orbit backwards!)
+      const isRetrograde = Math.random() < 0.05;
+      const directionMultiplier = isRetrograde ? -1 : 1;
+
+      // VARIATION 3: Inclination affects effective speed
+      const inclinationSpeedBoost = 1.0 + inclinationFactor * 0.2;
+
+      // Final orbital speed with all variations
+      const orbitalSpeed = baseOrbitalSpeed * speedVariation * inclinationSpeedBoost;
+
+      // VARIATION 4: Radial oscillation (particles moving in/out)
+      const radialOscillationAmplitude = Math.random() * 0.01; // Small radial motion
+      const vr = (Math.random() - 0.5) * radialOscillationAmplitude;
+
+      // VARIATION 5: Polar oscillation (bob up and down)
+      const polarOscillationAmplitude = 0.0002 * (1 + inclinationFactor);
+      const vtheta = (Math.random() - 0.5) * polarOscillationAmplitude;
+
+      // Angular velocity with direction
+      const vphi = (orbitalSpeed / r) * directionMultiplier;
 
       // Cartesian velocity
       const vx = vr * sinTheta * cosPhi - r * vtheta * cosTheta * cosPhi - r * sinTheta * vphi * sinPhi;
@@ -1122,13 +1302,18 @@ class BlackHoleEffect {
       particleData.vy[i] = vy;
       particleData.vz[i] = vz;
 
-      particleData.L[i] = r * orbitalSpeed; // Angular momentum
-      particleData.mass[i] = 1.0 + Math.random() * 0.5; // Slight mass variation
-      particleData.age[i] = 0;
-      particleData.lifetime[i] = 10 + Math.random() * 15; // 10-25 seconds
+      // VARIED Angular momentum (each particle has unique L)
+      // Retrograde particles have negative L
+      particleData.L[i] = r * orbitalSpeed * directionMultiplier;
 
-      // Temperature based on distance (inner = hotter)
-      particleData.temperature[i] = 1.0 - (r - this.ISCO_RADIUS) / 150;
+      particleData.mass[i] = 1.0 + Math.random() * 0.8; // More mass variation (1.0 - 1.8x)
+      particleData.age[i] = Math.random() * 5; // Stagger initial ages for smoother animation
+      particleData.lifetime[i] = 8 + Math.random() * 20; // 8-28 seconds (wider range)
+
+      // Temperature based on distance (inner = hotter) + speed (faster = hotter)
+      const distanceFactor = 1.0 - (r - this.ISCO_RADIUS) / 180;
+      const speedFactor = Math.min(orbitalSpeed / baseOrbitalSpeed, 1.5) - 1.0;
+      particleData.temperature[i] = Math.max(0, Math.min(1, distanceFactor + speedFactor * 0.2));
 
       // Set buffer positions
       positions[i * 3] = x;
@@ -1894,11 +2079,50 @@ class BlackHoleEffect {
   }
 
   destroy() {
+    // Clean up renderer
     if (this.renderer) {
       this.renderer.dispose();
-      if (this.container && this.renderer.domElement) {
+      if (this.container && this.renderer.domElement && this.container.contains(this.renderer.domElement)) {
         this.container.removeChild(this.renderer.domElement);
       }
     }
+
+    // Clean up geometries and materials to prevent memory leaks
+    if (this.scene) {
+      this.scene.traverse((object: any) => {
+        if (object.geometry) {
+          object.geometry.dispose();
+        }
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach((material: any) => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+    }
+
+    // Clear scene
+    if (this.scene) {
+      while (this.scene.children.length > 0) {
+        this.scene.remove(this.scene.children[0]);
+      }
+    }
+
+    // Reset references
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.blackHole = null;
+    this.accretionDisk = null;
+    this.starField = null;
+    this.particles = [];
+    this.particleTrails = [];
+    this.photonSphere = null;
+    this.outerBoundary = null;
+    this.photonRing = null;
+
+    console.log("✅ BlackHole scene destroyed and cleaned up");
   }
 }
