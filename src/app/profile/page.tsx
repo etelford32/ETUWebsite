@@ -216,7 +216,7 @@ export default function ProfilePage() {
         .update({
           username: editedUsername,
           faction_choice: editedFaction
-        })
+        } as any)
         .eq('id', profile.id)
 
       if (error) throw error
