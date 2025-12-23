@@ -3,25 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { Profile } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
-interface PlayerProfile {
-  id: string
-  username: string
-  avatar_url?: string
-  level: number
-  xp: number
-  total_kills: number
-  total_deaths: number
-  total_wins: number
-  total_losses: number
-  total_playtime: number
-  faction_choice?: string
-  ship_class?: string
-  highest_score: number
-  created_at: string
+interface PlayerProfile extends Profile {
+  username: string // Override to make non-nullable for display
 }
 
 interface Achievement {
@@ -167,28 +155,31 @@ export default function ProfilePage() {
         console.error('Error fetching profile:', error)
       }
 
-      // Create mock profile data with database data
-      const mockProfile: PlayerProfile = {
+      // Use database data if available, otherwise use defaults
+      const profile: PlayerProfile = {
         id: session.user.id,
         username: profileData?.username || session.user.email?.split('@')[0] || 'Commander',
-        avatar_url: profileData?.avatar_url,
-        level: 42,
-        xp: 85340,
-        total_kills: 1247,
-        total_deaths: 156,
-        total_wins: 89,
-        total_losses: 23,
-        total_playtime: 127800, // in seconds
-        faction_choice: profileData?.faction_choice || 'neutral',
-        ship_class: 'Interceptor',
-        highest_score: 287650,
-        created_at: profileData?.created_at || new Date().toISOString()
+        steam_id: profileData?.steam_id || null,
+        avatar_url: profileData?.avatar_url || null,
+        faction_choice: profileData?.faction_choice || null,
+        ship_class: profileData?.ship_class || null,
+        created_at: profileData?.created_at || new Date().toISOString(),
+        updated_at: profileData?.updated_at || new Date().toISOString(),
+        // Stats - use DB values or defaults
+        level: profileData?.level || 1,
+        xp: profileData?.xp || 0,
+        total_kills: profileData?.total_kills || 0,
+        total_deaths: profileData?.total_deaths || 0,
+        total_wins: profileData?.total_wins || 0,
+        total_losses: profileData?.total_losses || 0,
+        total_playtime: profileData?.total_playtime || 0,
+        highest_score: profileData?.highest_score || 0
       }
 
-      setProfile(mockProfile)
-      setEditedUsername(mockProfile.username)
-      setEditedFaction(mockProfile.faction_choice || '')
-      setEditedShipClass(mockProfile.ship_class || '')
+      setProfile(profile)
+      setEditedUsername(profile.username)
+      setEditedFaction(profile.faction_choice || '')
+      setEditedShipClass(profile.ship_class || '')
     } catch (error) {
       console.error('Error loading profile:', error)
       router.push('/login')
