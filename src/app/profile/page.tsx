@@ -211,12 +211,13 @@ export default function ProfilePage() {
     if (!profile) return
 
     try {
+      // @ts-ignore - Supabase type inference issue with optional fields
       const { error } = await supabase
         .from('profiles')
         .update({
           username: editedUsername,
           faction_choice: editedFaction
-        } as any)
+        })
         .eq('id', profile.id)
 
       if (error) throw error
