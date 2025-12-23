@@ -205,7 +205,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 grid md:grid-cols-3 gap-4">
+        <div className="mt-8 grid md:grid-cols-4 gap-4">
+          <a
+            href="/profile"
+            className="p-4 rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 hover:border-indigo-400/50 transition"
+          >
+            <h4 className="font-semibold">Player Profile</h4>
+            <p className="text-sm text-slate-400 mt-1">View stats & achievements</p>
+          </a>
           <a
             href="/"
             className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
