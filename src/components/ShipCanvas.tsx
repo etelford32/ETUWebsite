@@ -45,10 +45,174 @@ interface ShipCanvasProps {
   shipData: ShipData;
 }
 
+interface Missile {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  trail: Array<{ x: number; y: number; alpha: number }>;
+  age: number;
+  color: string;
+}
+
+interface LaserBeam {
+  id: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  age: number;
+  maxAge: number;
+  color: string;
+  particles: Array<{ x: number; y: number; vx: number; vy: number; alpha: number }>;
+}
+
 export default function ShipCanvas({ shipData }: ShipCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
   const [time, setTime] = useState(0);
+
+  // Weapon firing state
+  const [missiles, setMissiles] = useState<Missile[]>([]);
+  const [laserBeams, setLaserBeams] = useState<LaserBeam[]>([]);
+  const missileIdRef = useRef(0);
+  const laserIdRef = useRef(0);
+  const keysPressed = useRef<Set<string>>(new Set());
+
+  // Cooldowns
+  const lastMissileFire = useRef(0);
+  const lastLaserFire = useRef(0);
+  const MISSILE_COOLDOWN = 500; // ms
+  const LASER_COOLDOWN = 200; // ms
+
+  // Weapon firing functions
+  const fireLaser = () => {
+    if (shipData.weapons.lasers === 0) return;
+
+    const now = Date.now();
+    if (now - lastLaserFire.current < LASER_COOLDOWN) return;
+    lastLaserFire.current = now;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const width = canvas.width / window.devicePixelRatio;
+    const height = canvas.height / window.devicePixelRatio;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Create laser beam from ship front to edge of screen
+    const angle = (shipData.rotation - 90) * (Math.PI / 180); // Ship points up initially
+    const range = 500;
+    const startOffset = shipData.components.hull.size * shipData.scale;
+
+    const x1 = centerX + Math.cos(angle) * startOffset;
+    const y1 = centerY + Math.sin(angle) * startOffset;
+    const x2 = centerX + Math.cos(angle) * range;
+    const y2 = centerY + Math.sin(angle) * range;
+
+    // Create impact particles
+    const particles = [];
+    for (let i = 0; i < 10; i++) {
+      const spreadAngle = angle + (Math.random() - 0.5) * 0.5;
+      const speed = Math.random() * 3 + 2;
+      particles.push({
+        x: x2,
+        y: y2,
+        vx: Math.cos(spreadAngle) * speed,
+        vy: Math.sin(spreadAngle) * speed,
+        alpha: 1
+      });
+    }
+
+    const newBeam: LaserBeam = {
+      id: laserIdRef.current++,
+      x1,
+      y1,
+      x2,
+      y2,
+      age: 0,
+      maxAge: 150, // ms
+      color: shipData.weaponColors.laser,
+      particles
+    };
+
+    setLaserBeams(prev => [...prev, newBeam]);
+  };
+
+  const fireMissile = () => {
+    if (shipData.weapons.missiles === 0) return;
+
+    const now = Date.now();
+    if (now - lastMissileFire.current < MISSILE_COOLDOWN) return;
+    lastMissileFire.current = now;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const width = canvas.width / window.devicePixelRatio;
+    const height = canvas.height / window.devicePixelRatio;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Fire from ship front with current rotation
+    const angle = (shipData.rotation - 90) * (Math.PI / 180);
+    const startOffset = shipData.components.hull.size * shipData.scale;
+    const speed = 8;
+
+    const newMissile: Missile = {
+      id: missileIdRef.current++,
+      x: centerX + Math.cos(angle) * startOffset,
+      y: centerY + Math.sin(angle) * startOffset,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      trail: [],
+      age: 0,
+      color: shipData.weaponColors.missile
+    };
+
+    setMissiles(prev => [...prev, newMissile]);
+  };
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keysPressed.current.add(e.code);
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        fireLaser();
+      } else if (e.code === 'KeyM') {
+        e.preventDefault();
+        fireMissile();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keysPressed.current.delete(e.code);
+    };
+
+    // Mouse click for lasers
+    const handleClick = () => {
+      fireLaser();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('click', handleClick);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener('click', handleClick);
+      }
+    };
+  }, [shipData]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -71,8 +235,61 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     // Animation loop
     let animTime = 0;
     const animate = () => {
-      animTime += 0.016; // ~60fps
+      const deltaTime = 16; // ~60fps
+      animTime += 0.016;
       setTime(animTime);
+
+      // Update missiles
+      setMissiles(prev => {
+        return prev
+          .map(m => {
+            // Update trail
+            const newTrail = [{ x: m.x, y: m.y, alpha: 1 }, ...m.trail]
+              .slice(0, 20)
+              .map((t, i) => ({ ...t, alpha: 1 - i / 20 }));
+
+            return {
+              ...m,
+              x: m.x + m.vx,
+              y: m.y + m.vy,
+              trail: newTrail,
+              age: m.age + deltaTime
+            };
+          })
+          .filter(m => {
+            // Remove missiles that are off screen or too old
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            return m.x > -50 && m.x < width + 50 &&
+                   m.y > -50 && m.y < height + 50 &&
+                   m.age < 5000;
+          });
+      });
+
+      // Update laser beams
+      setLaserBeams(prev => {
+        return prev
+          .map(l => {
+            // Update particles
+            const newParticles = l.particles
+              .map(p => ({
+                x: p.x + p.vx,
+                y: p.y + p.vy,
+                vx: p.vx * 0.98, // Friction
+                vy: p.vy * 0.98,
+                alpha: p.alpha - 0.02
+              }))
+              .filter(p => p.alpha > 0);
+
+            return {
+              ...l,
+              age: l.age + deltaTime,
+              particles: newParticles
+            };
+          })
+          .filter(l => l.age < l.maxAge);
+      });
+
       drawShip(ctx, canvas, shipData, animTime);
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -85,7 +302,7 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [shipData]);
+  }, [shipData, missiles, laserBeams]);
 
   const drawShip = (
     ctx: CanvasRenderingContext2D,
@@ -139,9 +356,147 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     // Restore context
     ctx.restore();
 
+    // Draw missiles and lasers (in world space, after ship)
+    drawMissiles(ctx);
+    drawLasers(ctx);
+
     // Draw UI overlays
     drawCrosshair(ctx, centerX, centerY);
     drawStatsOverlay(ctx, data, width, height);
+    drawWeaponControls(ctx, width, height);
+  };
+
+  const drawMissiles = (ctx: CanvasRenderingContext2D) => {
+    missiles.forEach(missile => {
+      // Draw trail
+      missile.trail.forEach((point, i) => {
+        const r = parseInt(missile.color.slice(1, 3), 16);
+        const g = parseInt(missile.color.slice(3, 5), 16);
+        const b = parseInt(missile.color.slice(5, 7), 16);
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${point.alpha * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 3 * (1 - i / missile.trail.length), 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw missile body
+      ctx.fillStyle = missile.color;
+      ctx.save();
+      ctx.translate(missile.x, missile.y);
+      const angle = Math.atan2(missile.vy, missile.vx);
+      ctx.rotate(angle);
+
+      // Missile shape
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-4, -3);
+      ctx.lineTo(-4, 3);
+      ctx.closePath();
+      ctx.fill();
+
+      // Missile glow
+      const r = parseInt(missile.color.slice(1, 3), 16);
+      const g = parseInt(missile.color.slice(3, 5), 16);
+      const b = parseInt(missile.color.slice(5, 7), 16);
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.4)`;
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Engine glow at back
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath();
+      ctx.arc(-4, 0, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    });
+  };
+
+  const drawLasers = (ctx: CanvasRenderingContext2D) => {
+    laserBeams.forEach(laser => {
+      const lifeRatio = laser.age / laser.maxAge;
+      const alpha = 1 - lifeRatio;
+
+      // Parse hex color
+      const r = parseInt(laser.color.slice(1, 3), 16);
+      const g = parseInt(laser.color.slice(3, 5), 16);
+      const b = parseInt(laser.color.slice(5, 7), 16);
+
+      // Draw outer glow
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.3})`;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(laser.x1, laser.y1);
+      ctx.lineTo(laser.x2, laser.y2);
+      ctx.stroke();
+
+      // Draw middle beam
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.7})`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(laser.x1, laser.y1);
+      ctx.lineTo(laser.x2, laser.y2);
+      ctx.stroke();
+
+      // Draw core
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(laser.x1, laser.y1);
+      ctx.lineTo(laser.x2, laser.y2);
+      ctx.stroke();
+
+      // Draw impact particles
+      laser.particles.forEach(particle => {
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${particle.alpha})`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Particle glow
+        ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 1, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    });
+  };
+
+  const drawWeaponControls = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) => {
+    const controls = [
+      { key: 'SPACE / CLICK', action: 'Fire Lasers', color: shipData.weaponColors.laser, enabled: shipData.weapons.lasers > 0 },
+      { key: 'M', action: 'Fire Missiles', color: shipData.weaponColors.missile, enabled: shipData.weapons.missiles > 0 }
+    ];
+
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+
+    controls.forEach((control, i) => {
+      if (!control.enabled) return;
+
+      const y = height - 10 - (controls.length - 1 - i) * 15;
+
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(width - 180, y - 10, 175, 12);
+
+      // Key indicator
+      const r = parseInt(control.color.slice(1, 3), 16);
+      const g = parseInt(control.color.slice(3, 5), 16);
+      const b = parseInt(control.color.slice(5, 7), 16);
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+      ctx.fillRect(width - 175, y - 8, 8, 8);
+
+      // Text
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
+      ctx.fillText(`${control.key}: ${control.action}`, width - 10, y);
+    });
   };
 
   const drawStarfield = (
