@@ -217,7 +217,6 @@ export default function ProfilePage() {
           username: editedUsername,
           faction_choice: editedFaction
         })
-        .update(updateData)
         .eq('id', profile.id)
 
       if (error) throw error
