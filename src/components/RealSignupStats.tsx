@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function RealSignupStats() {
   const [signupCount, setSignupCount] = useState<number>(0);
   const [recentSignups, setRecentSignups] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     // Fetch total signup count
@@ -70,7 +69,7 @@ export default function RealSignupStats() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, []);
 
   if (loading) {
     return (
