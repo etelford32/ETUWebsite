@@ -13,7 +13,7 @@ interface PlayerProfile {
   username: string
   steam_id: string | null
   avatar_url: string | null
-  faction_choice: string | null
+  faction_choice: string // Always has default 'neutral'
   ship_class: string | null
   created_at: string
   updated_at: string
@@ -180,7 +180,7 @@ export default function ProfilePage() {
         username: dbProfile?.username || session.user.email?.split('@')[0] || 'Commander',
         steam_id: dbProfile?.steam_id || null,
         avatar_url: dbProfile?.avatar_url || null,
-        faction_choice: dbProfile?.faction_choice || null,
+        faction_choice: dbProfile?.faction_choice || 'neutral',
         ship_class: dbProfile?.ship_class || null,
         created_at: dbProfile?.created_at || new Date().toISOString(),
         updated_at: dbProfile?.updated_at || new Date().toISOString(),
@@ -197,7 +197,7 @@ export default function ProfilePage() {
 
       setProfile(profile)
       setEditedUsername(profile.username)
-      setEditedFaction(profile.faction_choice || '')
+      setEditedFaction(profile.faction_choice)
       setEditedShipClass(profile.ship_class || '')
     } catch (error) {
       console.error('Error loading profile:', error)
@@ -217,6 +217,7 @@ export default function ProfilePage() {
           username: editedUsername,
           faction_choice: editedFaction
         })
+        .update(updateData)
         .eq('id', profile.id)
 
       if (error) throw error
@@ -351,7 +352,7 @@ export default function ProfilePage() {
                       <span className="text-slate-600">•</span>
                       <span className="flex items-center gap-2 capitalize">
                         <span className="text-purple-400">🏴</span>
-                        {profile.faction_choice || 'No Faction'}
+                        {profile.faction_choice}
                       </span>
                     </div>
                   </>
@@ -391,7 +392,7 @@ export default function ProfilePage() {
                       onClick={() => {
                         setIsEditing(false)
                         setEditedUsername(profile.username)
-                        setEditedFaction(profile.faction_choice || '')
+                        setEditedFaction(profile.faction_choice)
                       }}
                       className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg font-semibold transition-all"
                     >
