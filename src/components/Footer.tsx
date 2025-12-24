@@ -54,7 +54,7 @@ export default function Footer() {
           </nav>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Company</h4>
-            <Link className="block" href="/#press">
+            <Link className="block" href="/press-kit">
               Press Kit
             </Link>
             <Link className="block" href="/privacy">
