@@ -15,24 +15,37 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link
-            href="/#home"
-            className="flex items-center gap-3 group relative"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
-              <Image
-                src="/logo2.png"
-                alt="Explore the Universe 2175 logo"
-                width={40}
-                height={40}
-                className="relative z-10 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] group-hover:drop-shadow-[0_0_16px_rgba(34,211,238,0.8)] transition-all duration-300"
-              />
-            </div>
-            <strong className="tracking-wide text-lg bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent group-hover:from-cyan-300 group-hover:via-blue-300 group-hover:to-indigo-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
-              Explore the Universe 2175
-            </strong>
-          </Link>
+          <div className="flex flex-col gap-0.5">
+            <Link
+              href="/#home"
+              className="flex items-center gap-3 group relative"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
+                <Image
+                  src="/logo2.png"
+                  alt="Explore the Universe 2175 logo"
+                  width={40}
+                  height={40}
+                  className="relative z-10 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] group-hover:drop-shadow-[0_0_16px_rgba(34,211,238,0.8)] transition-all duration-300"
+                />
+              </div>
+              <strong className="tracking-wide text-lg bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent group-hover:from-cyan-300 group-hover:via-blue-300 group-hover:to-indigo-300 transition-all duration-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
+                Explore the Universe 2175
+              </strong>
+            </Link>
+            <a
+              href="https://elliottelford.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-slate-400 hover:text-cyan-400 transition-colors duration-200 ml-14 flex items-center gap-1 group"
+            >
+              <span>by Elliott Telford</span>
+              <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 text-sm">

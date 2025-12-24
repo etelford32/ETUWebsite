@@ -8,7 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
 import CountdownTimer from "@/components/CountdownTimer";
-import WishlistStats from "@/components/WishlistStats";
+import RealSignupStats from "@/components/RealSignupStats";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
@@ -216,24 +216,24 @@ export default function HomePage() {
               </div>
 
               {/* Branding */}
-              <div className="reveal mb-4">
-                <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-wider metallic-text">
+              <div className="reveal mb-6">
+                <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-wider metallic-text drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
                   EXPLORE THE UNIVERSE 2175
                 </h2>
-                <p className="text-sm sm:text-base md:text-lg mt-2 font-semibold tracking-wide metallic-subtitle">
+                <p className="text-base sm:text-lg md:text-2xl mt-3 font-bold tracking-wide metallic-subtitle drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
                   The First Space RPG Where Your Enemy Learns From You
                 </p>
               </div>
 
-              <h1 className="reveal hero-title text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-6">
-                <span className="neon-blue-title">
+              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8">
+                <span className="neon-blue-title drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
                   Battle the Ultimate Evolving AI Boss
                 </span>
               </h1>
 
-              <p className="reveal mt-6 text-lg md:text-xl text-slate-100/90 max-w-2xl mx-auto leading-relaxed">
+              <p className="reveal mt-8 text-xl md:text-2xl lg:text-3xl text-white font-semibold max-w-3xl mx-auto leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] bg-black/30 backdrop-blur-sm px-6 py-4 rounded-2xl border border-white/10">
                 Master realistic physics. Level your ship. Survive a galaxy that remembers your choices.
-                <span className="block mt-3 text-amber-300 font-semibold">✨ FREE DEMO Dec 25 | Early Access Feb 2</span>
+                <span className="block mt-4 text-2xl md:text-3xl text-amber-300 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">✨ FREE DEMO Dec 25 | Early Access Feb 2</span>
               </p>
 
               {/* CTA Buttons with Steam */}
@@ -272,10 +272,10 @@ export default function HomePage() {
                 </a>
               </div>
 
-              {/* Countdown Timer & Wishlist Stats */}
+              {/* Countdown Timer & Real Signup Stats */}
               <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <CountdownTimer targetDate="2025-12-25T00:00:00" />
-                <WishlistStats baseCount={1247} growthRate={89} />
+                <RealSignupStats />
               </div>
 
               {/* Platform info */}
@@ -436,7 +436,7 @@ export default function HomePage() {
             />
           </div>
           <div>
-            <a href="#press" className="underline decoration-dotted">
+            <a href="/press-kit" className="underline decoration-dotted hover:text-white transition-colors">
               Press Kit
             </a>
           </div>

@@ -211,12 +211,21 @@ export default function ProfilePage() {
     if (!profile) return
 
     try {
+      const updateData: {
+        username?: string | null
+        faction_choice?: string | null
+      } = {}
+
+      if (editedUsername !== profile.username) {
+        updateData.username = editedUsername
+      }
+      if (editedFaction !== profile.faction_choice) {
+        updateData.faction_choice = editedFaction
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          username: editedUsername,
-          faction_choice: editedFaction
-        } as any)
+        .update(updateData)
         .eq('id', profile.id)
 
       if (error) throw error
