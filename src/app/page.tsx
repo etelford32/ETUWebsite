@@ -101,10 +101,10 @@ export default function HomePage() {
       <ExitIntentPopup />
 
       {/* Top Announcement */}
-      <div className="w-full bg-indigo-600/10 border-b border-indigo-500/20 text-center text-sm py-2">
-        <span className="mr-3">🚀 Playtest Sign-ups are open</span>
+      <div className="w-full bg-gradient-to-r from-amber-600/20 to-orange-600/20 border-b border-amber-500/30 text-center text-sm py-2">
+        <span className="mr-3">⬆️ UPLOADING NOW - Demo goes live at 7PM tonight!</span>
         <a href="#download" className="underline decoration-dotted hover:text-white">
-          Join the Alpha
+          Wishlist to get notified
         </a>
       </div>
 
@@ -211,7 +211,7 @@ export default function HomePage() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
                 <span className="text-sm font-medium text-amber-100">
-                  🎄 Available December 25th
+                  ⬆️ UPLOADING NOW - Live at 7PM Tonight!
                 </span>
               </div>
 
@@ -233,7 +233,7 @@ export default function HomePage() {
 
               <p className="reveal mt-8 text-xl md:text-2xl lg:text-3xl text-white font-semibold max-w-3xl mx-auto leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] bg-black/30 backdrop-blur-sm px-6 py-4 rounded-2xl border border-white/10">
                 Master realistic physics. Level your ship. Survive a galaxy that remembers your choices.
-                <span className="block mt-4 text-2xl md:text-3xl text-amber-300 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">✨ FREE DEMO Dec 25 | Early Access Feb 2</span>
+                <span className="block mt-4 text-2xl md:text-3xl text-amber-300 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">⬆️ UPLOADING NOW - Demo Live at 7PM Tonight!</span>
               </p>
 
               {/* CTA Buttons with Steam */}
@@ -274,7 +274,7 @@ export default function HomePage() {
 
               {/* Countdown Timer & Real Signup Stats */}
               <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <CountdownTimer targetDate="2025-12-25T00:00:00" />
+                <CountdownTimer targetDate="2025-12-25T19:00:00" label="DEMO GOES LIVE IN" />
                 <RealSignupStats />
               </div>
 
@@ -1086,22 +1086,22 @@ export default function HomePage() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
               </span>
               <span className="text-sm font-bold text-amber-100 uppercase tracking-wider">
-                Limited Time Event
+                ⬆️ Uploading Now
               </span>
             </div>
 
             <h2 className="text-4xl md:text-6xl font-bold mb-4">
               <span className="bg-gradient-to-r from-red-400 via-amber-400 to-green-400 bg-clip-text text-transparent">
-                🎄 CHRISTMAS DEMO EVENT
+                🎄 DEMO UPLOADING - LIVE AT 7PM!
               </span>
             </h2>
 
             <p className="text-2xl md:text-3xl font-bold text-white mb-2">
-              December 25-31
+              December 25th @ 7:00 PM
             </p>
 
             <div className="flex justify-center mb-8">
-              <CountdownTimer targetDate="2025-12-25T00:00:00" label="EVENT STARTS IN" />
+              <CountdownTimer targetDate="2025-12-25T19:00:00" label="DEMO GOES LIVE IN" />
             </div>
           </div>
 
@@ -1141,8 +1141,8 @@ export default function HomePage() {
           {/* Main CTA */}
           <div className="reveal text-center p-8 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-cyan-600/20 ring-2 ring-indigo-500/40 backdrop-blur-sm">
             <p className="text-xl text-slate-100 mb-6">
-              <strong className="text-2xl text-amber-300">Don&apos;t miss out!</strong><br />
-              Wishlist now to get notified the instant the demo drops on December 25th
+              <strong className="text-2xl text-amber-300">The wait is almost over!</strong><br />
+              Demo uploading now - goes live at 7PM tonight! Wishlist to get instant access.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
