@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import '../input.css'
 
@@ -36,6 +37,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-6RCVW65DDL"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-6RCVW65DDL');
+          `}
+        </Script>
         {children}
       </body>
     </html>
