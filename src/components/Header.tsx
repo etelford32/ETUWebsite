@@ -55,8 +55,8 @@ export default function Header() {
             <NavLink href="/profile">Profile</NavLink>
             <NavLink href="/ship-designer">Ship Designer</NavLink>
             <NavLink href="/backlog">Backlog</NavLink>
-            <NavLink href="/#roadmap">Roadmap</NavLink>
-            <NavLink href="/#faq">FAQ</NavLink>
+            <NavLink href="/roadmap">Roadmap</NavLink>
+            <NavLink href="/faq">FAQ</NavLink>
           </nav>
 
           {/* Action Buttons */}
@@ -120,8 +120,8 @@ export default function Header() {
           <MobileNavLink href="/profile">Profile</MobileNavLink>
           <MobileNavLink href="/ship-designer">Ship Designer</MobileNavLink>
           <MobileNavLink href="/backlog">Backlog</MobileNavLink>
-          <MobileNavLink href="/#roadmap">Roadmap</MobileNavLink>
-          <MobileNavLink href="/#faq">FAQ</MobileNavLink>
+          <MobileNavLink href="/roadmap">Roadmap</MobileNavLink>
+          <MobileNavLink href="/faq">FAQ</MobileNavLink>
 
           <div className="pt-3 flex gap-3">
             <Link
