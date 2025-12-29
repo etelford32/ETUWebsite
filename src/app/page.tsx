@@ -14,13 +14,13 @@ import StickyHeaderCTA from "@/components/StickyHeaderCTA";
 import LatestUpdate from "@/components/LatestUpdate";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
-// Dynamically import BlackHole to avoid SSR issues
-const BlackHole = dynamic(() => import("@/components/BlackHole"), { ssr: false });
+// Dynamically import Megabot to avoid SSR issues
+const Megabot = dynamic(() => import("@/components/Megabot"), { ssr: false });
 
 export default function HomePage() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [animationQuality, setAnimationQuality] = useState<QualityLevel>("medium");
-  const blackHoleRef = useRef<any>(null);
+  const megabotRef = useRef<any>(null);
 
   useEffect(() => {
     // Initialize performance optimizations
@@ -116,9 +116,9 @@ export default function HomePage() {
         id="home"
         className="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas"
       >
-        {/* 3D Black Hole Effect (WebGL) */}
+        {/* 3D Megabot Effect (WebGL) */}
         <Suspense fallback={<div />}>
-          <BlackHole quality={animationQuality} />
+          <Megabot quality={animationQuality} />
         </Suspense>
 
         {/* Quality Settings Control */}
@@ -137,7 +137,7 @@ export default function HomePage() {
                   <circle cx="12" cy="12" r="6" strokeWidth="2" />
                   <circle cx="12" cy="12" r="2" fill="currentColor" />
                 </svg>
-                Witness gravitational forces at play 🌌
+                Witness the power of Megabot 🤖
               </span>
             </div>
           </div>
