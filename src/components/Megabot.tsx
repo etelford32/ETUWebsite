@@ -294,12 +294,58 @@ class MegabotScene {
     const THREE = window.THREE;
     this.mainMegabot = new THREE.Group();
 
-    // Core sphere (energy core)
-    const coreGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.3, 32, 32);
-    const coreMaterial = new THREE.ShaderMaterial({
+    // Mecha material - dark metallic with blue accents
+    const mechaMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a3e,
+      metalness: 0.95,
+      roughness: 0.15,
+      emissive: new THREE.Color(0.1, 0.2, 0.5),
+      emissiveIntensity: 0.4,
+    });
+
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2e3a5f,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: new THREE.Color(0.2, 0.3, 0.7),
+      emissiveIntensity: 0.6,
+    });
+
+    // ==================== HEAD ====================
+    const headGroup = new THREE.Group();
+
+    // Main head
+    const headGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.3);
+    const head = new THREE.Mesh(headGeometry, mechaMaterial);
+    headGroup.add(head);
+
+    // Face plate
+    const facePlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.36, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.05);
+    const facePlate = new THREE.Mesh(facePlateGeometry, accentMaterial);
+    facePlate.position.z = this.MAIN_SIZE * 0.175;
+    headGroup.add(facePlate);
+
+    // V-Fin antenna (Gundam style)
+    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.4, 3);
+    const vFin = new THREE.Mesh(vFinGeometry, new THREE.MeshStandardMaterial({
+      color: 0xffaa00,
+      metalness: 1.0,
+      roughness: 0.1,
+      emissive: new THREE.Color(1.0, 0.7, 0.0),
+      emissiveIntensity: 0.8,
+    }));
+    vFin.rotation.x = Math.PI;
+    vFin.position.y = this.MAIN_SIZE * 0.3;
+    vFin.position.z = this.MAIN_SIZE * 0.05;
+    headGroup.add(vFin);
+
+    // EVIL LASER EYES with glow effect
+    const eyeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.06, 16, 16);
+    const eyeMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        glowColor: { value: new THREE.Color(0.2, 0.6, 1.0) },
+        eyeColor: { value: new THREE.Color(1.0, 0.0, 0.0) }, // Evil red
+        glowIntensity: { value: 3.0 },
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -313,110 +359,298 @@ class MegabotScene {
       `,
       fragmentShader: `
         uniform float time;
-        uniform vec3 glowColor;
+        uniform vec3 eyeColor;
+        uniform float glowIntensity;
         varying vec3 vNormal;
         varying vec3 vPosition;
 
         void main() {
           vec3 viewDirection = normalize(cameraPosition - vPosition);
-          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.0);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 3.0);
 
-          // Pulsing energy effect
-          float pulse = 0.7 + sin(time * 2.0) * 0.3;
+          // Evil pulsing effect
+          float pulse = 0.8 + sin(time * 4.0) * 0.2;
 
-          // Energy patterns
-          float pattern = sin(vPosition.x * 0.1 + time) * cos(vPosition.y * 0.1 - time) * 0.5 + 0.5;
+          // Intense core with outer glow
+          float core = 1.0 - fresnel * 0.3;
+          vec3 finalColor = eyeColor * glowIntensity * pulse * (core + fresnel * 2.0);
 
-          vec3 finalColor = glowColor * (1.0 + fresnel * 2.0) * pulse * (0.8 + pattern * 0.4);
-          float alpha = 0.9 + fresnel * 0.1;
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `,
+      transparent: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2);
+    headGroup.add(leftEye);
+
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial.clone());
+    rightEye.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2);
+    headGroup.add(rightEye);
+
+    this.megabotParts.push({ mesh: leftEye, type: 'leftEye' });
+    this.megabotParts.push({ mesh: rightEye, type: 'rightEye' });
+
+    // Laser beam effects from eyes
+    const laserGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.01, this.MAIN_SIZE * 8, 8);
+    const laserMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
+        intensity: { value: 2.0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vPosition;
+
+        void main() {
+          vUv = uv;
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 beamColor;
+        uniform float intensity;
+        varying vec2 vUv;
+        varying vec3 vPosition;
+
+        void main() {
+          // Beam intensity from center to edge
+          float distFromCenter = abs(vUv.x - 0.5) * 2.0;
+          float beamIntensity = 1.0 - distFromCenter;
+          beamIntensity = pow(beamIntensity, 2.0);
+
+          // Pulsing energy
+          float pulse = 0.7 + sin(time * 6.0 + vUv.y * 10.0) * 0.3;
+
+          // Traveling energy waves
+          float wave = sin(vUv.y * 20.0 - time * 10.0) * 0.5 + 0.5;
+
+          vec3 finalColor = beamColor * intensity * beamIntensity * pulse * (0.7 + wave * 0.3);
+          float alpha = beamIntensity * 0.9;
 
           gl_FragColor = vec4(finalColor, alpha);
         }
       `,
       transparent: true,
       blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
     });
 
-    const core = new THREE.Mesh(coreGeometry, coreMaterial);
-    this.mainMegabot.add(core);
-    this.megabotParts.push({ mesh: core, type: 'core' });
+    const leftLaser = new THREE.Mesh(laserGeometry, laserMaterial);
+    leftLaser.rotation.x = Math.PI / 2;
+    leftLaser.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
+    headGroup.add(leftLaser);
 
-    // Outer shell segments (mechanical armor)
-    const shellCount = 8;
-    for (let i = 0; i < shellCount; i++) {
-      const angle = (i / shellCount) * Math.PI * 2;
-      const shellGeometry = new THREE.BoxGeometry(
-        this.MAIN_SIZE * 0.4,
-        this.MAIN_SIZE * 0.8,
-        this.MAIN_SIZE * 0.15
-      );
+    const rightLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
+    rightLaser.rotation.x = Math.PI / 2;
+    rightLaser.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
+    headGroup.add(rightLaser);
 
-      const shellMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2e,
+    this.megabotParts.push({ mesh: leftLaser, type: 'leftLaser' });
+    this.megabotParts.push({ mesh: rightLaser, type: 'rightLaser' });
+
+    // Eye glow lights
+    const leftEyeLight = new THREE.PointLight(0xff0000, 3, 500);
+    leftEyeLight.position.copy(leftEye.position);
+    headGroup.add(leftEyeLight);
+
+    const rightEyeLight = new THREE.PointLight(0xff0000, 3, 500);
+    rightEyeLight.position.copy(rightEye.position);
+    headGroup.add(rightEyeLight);
+
+    headGroup.position.y = this.MAIN_SIZE * 1.3;
+    this.mainMegabot.add(headGroup);
+    this.megabotParts.push({ mesh: headGroup, type: 'head' });
+
+    // ==================== TORSO ====================
+    const torsoGroup = new THREE.Group();
+
+    // Main chest
+    const chestGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.6, this.MAIN_SIZE * 0.8, this.MAIN_SIZE * 0.4);
+    const chest = new THREE.Mesh(chestGeometry, mechaMaterial);
+    torsoGroup.add(chest);
+
+    // Chest armor plates
+    const chestPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.05);
+    const chestPlate = new THREE.Mesh(chestPlateGeometry, accentMaterial);
+    chestPlate.position.z = this.MAIN_SIZE * 0.225;
+    chestPlate.position.y = this.MAIN_SIZE * 0.15;
+    torsoGroup.add(chestPlate);
+
+    // Core reactor (glowing)
+    const reactorGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.1, 16);
+    const reactorMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        coreColor: { value: new THREE.Color(0.3, 0.8, 1.0) },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec2 vUv;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 coreColor;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+
+        void main() {
+          float pulse = 0.8 + sin(time * 3.0) * 0.2;
+          float pattern = sin(vUv.y * 20.0 + time * 2.0) * 0.3 + 0.7;
+
+          vec3 finalColor = coreColor * 2.0 * pulse * pattern;
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `,
+      transparent: false,
+    });
+
+    const reactor = new THREE.Mesh(reactorGeometry, reactorMaterial);
+    reactor.rotation.z = Math.PI / 2;
+    reactor.position.z = this.MAIN_SIZE * 0.25;
+    reactor.position.y = -this.MAIN_SIZE * 0.1;
+    torsoGroup.add(reactor);
+    this.megabotParts.push({ mesh: reactor, type: 'reactor' });
+
+    // Reactor light
+    const reactorLight = new THREE.PointLight(0x4a90e2, 4, 600);
+    reactorLight.position.copy(reactor.position);
+    torsoGroup.add(reactorLight);
+
+    // Abdomen
+    const abdomenGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.35);
+    const abdomen = new THREE.Mesh(abdomenGeometry, mechaMaterial);
+    abdomen.position.y = -this.MAIN_SIZE * 0.575;
+    torsoGroup.add(abdomen);
+
+    torsoGroup.position.y = this.MAIN_SIZE * 0.4;
+    this.mainMegabot.add(torsoGroup);
+    this.megabotParts.push({ mesh: torsoGroup, type: 'torso' });
+
+    // ==================== ARMS ====================
+    for (let side = -1; side <= 1; side += 2) {
+      const armGroup = new THREE.Group();
+
+      // Shoulder armor
+      const shoulderGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.25, 16, 16);
+      const shoulder = new THREE.Mesh(shoulderGeometry, accentMaterial);
+      armGroup.add(shoulder);
+
+      // Upper arm
+      const upperArmGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.6, 12);
+      const upperArm = new THREE.Mesh(upperArmGeometry, mechaMaterial);
+      upperArm.position.y = -this.MAIN_SIZE * 0.4;
+      upperArm.rotation.z = side * 0.2;
+      armGroup.add(upperArm);
+
+      // Lower arm
+      const lowerArmGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.6, 12);
+      const lowerArm = new THREE.Mesh(lowerArmGeometry, mechaMaterial);
+      lowerArm.position.y = -this.MAIN_SIZE * 0.9;
+      lowerArm.rotation.z = side * 0.1;
+      armGroup.add(lowerArm);
+
+      // Hand/Fist
+      const handGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.15);
+      const hand = new THREE.Mesh(handGeometry, accentMaterial);
+      hand.position.y = -this.MAIN_SIZE * 1.3;
+      armGroup.add(hand);
+
+      armGroup.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.6, 0);
+      this.mainMegabot.add(armGroup);
+      this.megabotParts.push({
+        mesh: armGroup,
+        type: 'arm',
+        side: side,
+        rotationSpeed: 0.0005
+      });
+    }
+
+    // ==================== LEGS ====================
+    for (let side = -1; side <= 1; side += 2) {
+      const legGroup = new THREE.Group();
+
+      // Hip armor
+      const hipGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.3);
+      const hip = new THREE.Mesh(hipGeometry, accentMaterial);
+      legGroup.add(hip);
+
+      // Upper leg/thigh
+      const thighGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.8, 12);
+      const thigh = new THREE.Mesh(thighGeometry, mechaMaterial);
+      thigh.position.y = -this.MAIN_SIZE * 0.55;
+      legGroup.add(thigh);
+
+      // Knee armor
+      const kneeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.15, 12, 12);
+      const knee = new THREE.Mesh(kneeGeometry, accentMaterial);
+      knee.position.y = -this.MAIN_SIZE * 0.95;
+      legGroup.add(knee);
+
+      // Lower leg
+      const lowerLegGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.8, 12);
+      const lowerLeg = new THREE.Mesh(lowerLegGeometry, mechaMaterial);
+      lowerLeg.position.y = -this.MAIN_SIZE * 1.35;
+      legGroup.add(lowerLeg);
+
+      // Foot
+      const footGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.35);
+      const foot = new THREE.Mesh(footGeometry, accentMaterial);
+      foot.position.y = -this.MAIN_SIZE * 1.8;
+      foot.position.z = this.MAIN_SIZE * 0.05;
+      legGroup.add(foot);
+
+      // Thruster vents
+      const thrusterGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.2, 8);
+      const thrusterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2a2a4e,
         metalness: 0.9,
-        roughness: 0.2,
-        emissive: new THREE.Color(0.1, 0.3, 0.6),
-        emissiveIntensity: 0.5,
-      });
-
-      const shell = new THREE.Mesh(shellGeometry, shellMaterial);
-      const radius = this.MAIN_SIZE * 0.6;
-      shell.position.set(
-        Math.cos(angle) * radius,
-        0,
-        Math.sin(angle) * radius
-      );
-      shell.rotation.y = -angle;
-
-      this.mainMegabot.add(shell);
-      this.megabotParts.push({
-        mesh: shell,
-        type: 'shell',
-        baseAngle: angle,
-        rotationSpeed: 0.001 + Math.random() * 0.002
-      });
-    }
-
-    // Rotating rings
-    for (let ringIndex = 0; ringIndex < 3; ringIndex++) {
-      const ringGeometry = new THREE.TorusGeometry(
-        this.MAIN_SIZE * (0.7 + ringIndex * 0.15),
-        this.MAIN_SIZE * 0.02,
-        16,
-        64
-      );
-
-      const ringMaterial = new THREE.MeshStandardMaterial({
-        color: 0x4a90e2,
-        metalness: 1.0,
         roughness: 0.1,
-        emissive: new THREE.Color(0.2, 0.4, 0.8),
-        emissiveIntensity: 0.8,
+        emissive: new THREE.Color(0.8, 0.4, 0.0),
+        emissiveIntensity: 0.7,
       });
+      const thruster = new THREE.Mesh(thrusterGeometry, thrusterMaterial);
+      thruster.position.y = -this.MAIN_SIZE * 1.75;
+      thruster.position.z = -this.MAIN_SIZE * 0.15;
+      legGroup.add(thruster);
 
-      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-      ring.rotation.x = Math.PI / 2 + (ringIndex * 0.3);
-      ring.rotation.y = ringIndex * 0.5;
-
-      this.mainMegabot.add(ring);
+      legGroup.position.set(side * this.MAIN_SIZE * 0.2, -this.MAIN_SIZE * 0.25, 0);
+      this.mainMegabot.add(legGroup);
       this.megabotParts.push({
-        mesh: ring,
-        type: 'ring',
-        rotationSpeed: 0.002 * (ringIndex + 1),
-        axis: ringIndex % 2 === 0 ? 'z' : 'x'
+        mesh: legGroup,
+        type: 'leg',
+        side: side
       });
     }
 
-    // Add point lights for dramatic lighting
-    const light1 = new THREE.PointLight(0x4a90e2, 2, 1000);
-    light1.position.set(0, 0, 0);
-    this.mainMegabot.add(light1);
+    // Add ambient lighting
+    const ambientLight = new THREE.AmbientLight(0x404060, 1);
+    this.scene.add(ambientLight);
 
-    const light2 = new THREE.PointLight(0xff6b35, 1.5, 800);
-    light2.position.set(this.MAIN_SIZE, this.MAIN_SIZE, 0);
-    this.mainMegabot.add(light2);
+    // Dramatic key light
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    keyLight.position.set(500, 500, 500);
+    this.scene.add(keyLight);
+
+    // Back rim light
+    const rimLight = new THREE.DirectionalLight(0x4a90e2, 0.8);
+    rimLight.position.set(-300, 200, -300);
+    this.scene.add(rimLight);
 
     this.scene.add(this.mainMegabot);
+    console.log("🤖 Gundam-style Megabot created with evil laser eyes!");
   }
 
   createSatellites() {
@@ -612,28 +846,63 @@ class MegabotScene {
 
     // Animate main Megabot
     if (this.mainMegabot) {
-      this.mainMegabot.rotation.y += 0.002;
+      // Slow menacing rotation
+      this.mainMegabot.rotation.y += 0.001;
 
       // Animate individual parts
       this.megabotParts.forEach((part) => {
-        if (part.type === 'core' && part.mesh.material.uniforms) {
-          part.mesh.material.uniforms.time.value = this.time;
-        }
-
-        if (part.type === 'shell') {
-          const wobble = Math.sin(this.time * 2 + part.baseAngle) * 0.1;
-          const radius = this.MAIN_SIZE * (0.6 + wobble * 0.1);
-          part.mesh.position.x = Math.cos(part.baseAngle) * radius;
-          part.mesh.position.z = Math.sin(part.baseAngle) * radius;
-          part.mesh.rotation.y += part.rotationSpeed;
-        }
-
-        if (part.type === 'ring') {
-          if (part.axis === 'z') {
-            part.mesh.rotation.z += part.rotationSpeed;
-          } else {
-            part.mesh.rotation.x += part.rotationSpeed;
+        // Animate evil laser eyes
+        if (part.type === 'leftEye' || part.type === 'rightEye') {
+          if (part.mesh.material.uniforms) {
+            part.mesh.material.uniforms.time.value = this.time;
+            // Intensify the glow periodically
+            const intensity = 3.0 + Math.sin(this.time * 2.0) * 1.0;
+            part.mesh.material.uniforms.glowIntensity.value = intensity;
           }
+        }
+
+        // Animate laser beams
+        if (part.type === 'leftLaser' || part.type === 'rightLaser') {
+          if (part.mesh.material.uniforms) {
+            part.mesh.material.uniforms.time.value = this.time;
+            // Pulsing beam intensity
+            const intensity = 2.0 + Math.sin(this.time * 3.0) * 0.5;
+            part.mesh.material.uniforms.intensity.value = intensity;
+          }
+          // Subtle beam movement/scanning
+          part.mesh.rotation.z = Math.sin(this.time * 0.5) * 0.05;
+        }
+
+        // Animate energy reactor
+        if (part.type === 'reactor' && part.mesh.material.uniforms) {
+          part.mesh.material.uniforms.time.value = this.time;
+          // Rotate the reactor
+          part.mesh.rotation.z += 0.02;
+        }
+
+        // Head movement (menacing scan)
+        if (part.type === 'head') {
+          part.mesh.rotation.y = Math.sin(this.time * 0.3) * 0.2;
+          part.mesh.rotation.x = Math.sin(this.time * 0.5) * 0.1;
+        }
+
+        // Torso breathing effect
+        if (part.type === 'torso') {
+          const breathe = 1.0 + Math.sin(this.time * 1.5) * 0.02;
+          part.mesh.scale.set(breathe, 1.0 + Math.sin(this.time * 1.5) * 0.01, breathe);
+        }
+
+        // Arms movement (menacing idle animation)
+        if (part.type === 'arm') {
+          const sway = Math.sin(this.time * 0.8 + part.side) * 0.05;
+          part.mesh.rotation.z = part.side * 0.1 + sway;
+          part.mesh.rotation.x = Math.sin(this.time * 0.6) * 0.08;
+        }
+
+        // Legs subtle stance adjustment
+        if (part.type === 'leg') {
+          const stance = Math.sin(this.time * 0.7 + part.side) * 0.03;
+          part.mesh.rotation.x = stance;
         }
       });
     }
