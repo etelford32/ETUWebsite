@@ -294,21 +294,155 @@ class MegabotScene {
     const THREE = window.THREE;
     this.mainMegabot = new THREE.Group();
 
-    // Mecha material - dark metallic with blue accents
-    const mechaMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a1a3e,
-      metalness: 0.95,
-      roughness: 0.15,
-      emissive: new THREE.Color(0.1, 0.2, 0.5),
-      emissiveIntensity: 0.4,
+    // ENHANCED MECHA MATERIAL with panel lines and battle damage
+    const mechaMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(0x1a1a3e) },
+        emissiveColor: { value: new THREE.Color(0.1, 0.2, 0.5) },
+        emissiveIntensity: { value: 0.4 },
+        panelLineColor: { value: new THREE.Color(0.05, 0.05, 0.1) },
+        damageAmount: { value: 0.3 },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vWorldPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+
+          // Create UV coordinates from position
+          vUv = vec2(position.x * 0.1, position.y * 0.1);
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 baseColor;
+        uniform vec3 emissiveColor;
+        uniform float emissiveIntensity;
+        uniform vec3 panelLineColor;
+        uniform float damageAmount;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vWorldPosition;
+        varying vec2 vUv;
+
+        // Noise function for procedural detail
+        float noise(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+
+          // Fresnel effect for edge highlighting
+          float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 3.0);
+
+          // Panel lines (grid pattern)
+          float panelX = fract(vUv.x * 5.0);
+          float panelY = fract(vUv.y * 5.0);
+          float panelLines = smoothstep(0.95, 1.0, panelX) + smoothstep(0.95, 1.0, panelY);
+          panelLines += smoothstep(0.0, 0.05, panelX) + smoothstep(0.0, 0.05, panelY);
+
+          // Battle damage (scratches and wear)
+          float damage = noise(vUv * 50.0) * noise(vUv * 20.0);
+          damage = smoothstep(0.7, 0.9, damage) * damageAmount;
+
+          // Metallic reflections (fake environment mapping)
+          float metallic = 0.95;
+          float roughness = 0.15 + damage * 0.3;
+
+          // Energy flow lines
+          float energyFlow = sin(vUv.y * 10.0 + time * 2.0) * 0.5 + 0.5;
+          energyFlow *= smoothstep(0.0, 0.1, fract(vUv.y * 2.0)) * smoothstep(1.0, 0.9, fract(vUv.y * 2.0));
+
+          // Combine effects
+          vec3 color = baseColor;
+
+          // Darken panel lines
+          color = mix(color, panelLineColor, panelLines * 0.8);
+
+          // Add damage (lighter scratches)
+          color = mix(color, vec3(0.3, 0.3, 0.35), damage);
+
+          // Add fresnel edge glow
+          vec3 edgeGlow = emissiveColor * fresnel * 2.0;
+          color += edgeGlow;
+
+          // Add subtle energy flow
+          color += emissiveColor * energyFlow * emissiveIntensity * 0.3;
+
+          // Ambient occlusion (darker in crevices)
+          float ao = smoothstep(-0.5, 0.5, vNormal.y) * 0.3 + 0.7;
+          color *= ao;
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      lights: false,
     });
 
-    const accentMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2e3a5f,
-      metalness: 0.9,
-      roughness: 0.2,
-      emissive: new THREE.Color(0.2, 0.3, 0.7),
-      emissiveIntensity: 0.6,
+    const accentMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(0x2e3a5f) },
+        glowColor: { value: new THREE.Color(0.2, 0.4, 0.8) },
+        glowIntensity: { value: 0.6 },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vWorldPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+          vUv = vec2(position.x * 0.1, position.y * 0.1);
+
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 baseColor;
+        uniform vec3 glowColor;
+        uniform float glowIntensity;
+
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vWorldPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+          float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 2.5);
+
+          // Tech pattern
+          float pattern = sin(vUv.x * 20.0 + time) * cos(vUv.y * 20.0 - time) * 0.5 + 0.5;
+          pattern = smoothstep(0.3, 0.7, pattern);
+
+          // Pulsing glow
+          float pulse = 0.8 + sin(time * 2.0) * 0.2;
+
+          vec3 color = baseColor;
+          color += glowColor * pattern * glowIntensity * pulse * 0.5;
+          color += glowColor * fresnel * glowIntensity;
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      lights: false,
     });
 
     // ==================== HEAD ====================
@@ -325,19 +459,60 @@ class MegabotScene {
     facePlate.position.z = this.MAIN_SIZE * 0.175;
     headGroup.add(facePlate);
 
-    // V-Fin antenna (Gundam style)
+    // V-Fin antenna (Gundam style) with enhanced shader
     const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.4, 3);
-    const vFin = new THREE.Mesh(vFinGeometry, new THREE.MeshStandardMaterial({
-      color: 0xffaa00,
-      metalness: 1.0,
-      roughness: 0.1,
-      emissive: new THREE.Color(1.0, 0.7, 0.0),
-      emissiveIntensity: 0.8,
-    }));
+    const vFinMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(1.0, 0.7, 0.0) },
+        glowColor: { value: new THREE.Color(1.0, 0.9, 0.3) },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 baseColor;
+        uniform vec3 glowColor;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec2 vUv;
+
+        void main() {
+          vec3 viewDirection = normalize(cameraPosition - vPosition);
+          float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 2.0);
+
+          // Energy sweep effect
+          float sweep = sin(vPosition.y * 5.0 + time * 3.0) * 0.5 + 0.5;
+
+          // Pulsing glow
+          float pulse = 0.8 + sin(time * 4.0) * 0.2;
+
+          vec3 color = baseColor * (0.8 + sweep * 0.4);
+          color += glowColor * fresnel * 1.5;
+          color *= pulse;
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      side: THREE.DoubleSide,
+    });
+
+    const vFin = new THREE.Mesh(vFinGeometry, vFinMaterial);
     vFin.rotation.x = Math.PI;
     vFin.position.y = this.MAIN_SIZE * 0.3;
     vFin.position.z = this.MAIN_SIZE * 0.05;
     headGroup.add(vFin);
+    this.megabotParts.push({ mesh: vFin, type: 'vfin' });
 
     // EVIL LASER EYES with glow effect
     const eyeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.06, 16, 16);
@@ -635,6 +810,76 @@ class MegabotScene {
       });
     }
 
+    // ==================== HOLOGRAPHIC SCANNING EFFECT ====================
+    // Scanning rings that travel up and down the mecha
+    for (let i = 0; i < 3; i++) {
+      const scanRingGeometry = new THREE.RingGeometry(
+        this.MAIN_SIZE * 1.2,
+        this.MAIN_SIZE * 1.3,
+        64
+      );
+      const scanRingMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          scanColor: { value: new THREE.Color(0.3, 0.7, 1.0) },
+          scanSpeed: { value: 0.5 + i * 0.3 },
+          offset: { value: i * 2.0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vPosition;
+
+          void main() {
+            vUv = uv;
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          uniform vec3 scanColor;
+          uniform float scanSpeed;
+          uniform float offset;
+          varying vec2 vUv;
+          varying vec3 vPosition;
+
+          void main() {
+            // Radial distance from center
+            float dist = length(vUv - vec2(0.5));
+
+            // Pulsing effect
+            float pulse = sin(time * scanSpeed * 3.0 + offset) * 0.5 + 0.5;
+
+            // Scanline pattern
+            float scanlines = sin(dist * 50.0 + time * 2.0) * 0.5 + 0.5;
+
+            // Fade at edges
+            float fade = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x);
+
+            vec3 color = scanColor * (pulse * 0.5 + 0.5);
+            float alpha = fade * scanlines * pulse * 0.4;
+
+            gl_FragColor = vec4(color, alpha);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+
+      const scanRing = new THREE.Mesh(scanRingGeometry, scanRingMaterial);
+      scanRing.rotation.x = -Math.PI / 2;
+      this.mainMegabot.add(scanRing);
+      this.megabotParts.push({
+        mesh: scanRing,
+        type: 'scanRing',
+        baseY: -this.MAIN_SIZE * 1.5,
+        scanSpeed: 0.5 + i * 0.2,
+        offset: i * Math.PI * 0.66
+      });
+    }
+
     // Add ambient lighting
     const ambientLight = new THREE.AmbientLight(0x404060, 1);
     this.scene.add(ambientLight);
@@ -903,6 +1148,39 @@ class MegabotScene {
         if (part.type === 'leg') {
           const stance = Math.sin(this.time * 0.7 + part.side) * 0.03;
           part.mesh.rotation.x = stance;
+        }
+
+        // Animate holographic scan rings (moving up and down)
+        if (part.type === 'scanRing') {
+          const travelRange = this.MAIN_SIZE * 3;
+          const yPos = part.baseY + Math.sin(this.time * part.scanSpeed + part.offset) * travelRange;
+          part.mesh.position.y = yPos;
+
+          // Update shader time
+          if (part.mesh.material.uniforms) {
+            part.mesh.material.uniforms.time.value = this.time;
+          }
+        }
+
+        // Animate V-fin
+        if (part.type === 'vfin' && part.mesh.material.uniforms) {
+          part.mesh.material.uniforms.time.value = this.time;
+        }
+
+        // Update shader uniforms for enhanced materials
+        if (part.mesh && part.mesh.material) {
+          if (part.mesh.material.uniforms && part.mesh.material.uniforms.time) {
+            part.mesh.material.uniforms.time.value = this.time;
+          }
+        }
+
+        // Update children materials (for groups like arms, legs, torso)
+        if (part.mesh && part.mesh.children) {
+          part.mesh.children.forEach((child: any) => {
+            if (child.material && child.material.uniforms && child.material.uniforms.time) {
+              child.material.uniforms.time.value = this.time;
+            }
+          });
         }
       });
     }
