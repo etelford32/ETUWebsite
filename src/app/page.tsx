@@ -12,6 +12,7 @@ import RealSignupStats from "@/components/RealSignupStats";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
 import LatestUpdate from "@/components/LatestUpdate";
+import FOMOCounter from "@/components/FOMOCounter";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
 // Dynamically import Megabot to avoid SSR issues
@@ -350,6 +351,11 @@ export default function HomePage() {
                   <p className="text-xs text-slate-500 text-center mt-2">
                     ✓ Be first to know when demo drops • No spam, just launch notification
                   </p>
+                </div>
+
+                {/* FOMO Counter - Limited Founder Rewards */}
+                <div className="reveal mt-6 w-full">
+                  <FOMOCounter maxFounderSkins={500} showProgressBar={true} />
                 </div>
               </div>
 
