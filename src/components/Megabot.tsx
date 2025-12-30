@@ -294,20 +294,23 @@ class MegabotScene {
     const THREE = window.THREE;
     this.mainMegabot = new THREE.Group();
 
-    // ENHANCED MECHA MATERIAL with panel lines and battle damage
+    // METALLIC ARMOR MATERIAL with advanced PBR shading
     const mechaMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0x1a1a3e) },
+        baseColor: { value: new THREE.Color(0.15, 0.16, 0.2) }, // Dark gunmetal
+        metalness: { value: 0.95 },
+        roughness: { value: 0.25 },
+        envIntensity: { value: 0.8 },
         emissiveColor: { value: new THREE.Color(0.1, 0.2, 0.5) },
-        emissiveIntensity: { value: 0.4 },
-        panelLineColor: { value: new THREE.Color(0.05, 0.05, 0.1) },
-        damageAmount: { value: 0.3 },
+        emissiveIntensity: { value: 0.3 },
+        panelLineColor: { value: new THREE.Color(0.05, 0.05, 0.08) },
       },
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
         varying vec2 vUv;
 
         void main() {
@@ -315,92 +318,207 @@ class MegabotScene {
           vPosition = position;
           vec4 worldPos = modelMatrix * vec4(position, 1.0);
           vWorldPosition = worldPos.xyz;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
 
           // Create UV coordinates from position
-          vUv = vec2(position.x * 0.1, position.y * 0.1);
+          vUv = vec2(position.x * 0.05, position.y * 0.05);
 
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         uniform float time;
         uniform vec3 baseColor;
+        uniform float metalness;
+        uniform float roughness;
+        uniform float envIntensity;
         uniform vec3 emissiveColor;
         uniform float emissiveIntensity;
         uniform vec3 panelLineColor;
-        uniform float damageAmount;
 
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
         varying vec2 vUv;
 
-        // Noise function for procedural detail
+        // Advanced noise functions
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
+
         float noise(vec2 p) {
-          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // Procedural normal mapping
+        vec3 perturbNormal(vec3 normal, vec2 uv) {
+          float scale = 2.0;
+          float strength = 0.3;
+
+          // Panel line bumps
+          float bumpX = smoothstep(0.48, 0.5, fract(uv.x * 5.0)) - smoothstep(0.5, 0.52, fract(uv.x * 5.0));
+          float bumpY = smoothstep(0.48, 0.5, fract(uv.y * 5.0)) - smoothstep(0.5, 0.52, fract(uv.y * 5.0));
+
+          // Micro detail
+          float microDetail = noise(uv * 100.0) * 0.1;
+
+          vec3 perturbation = vec3(
+            (bumpX + microDetail) * strength,
+            (bumpY + microDetail) * strength,
+            1.0
+          );
+
+          return normalize(normal + perturbation);
+        }
+
+        // Fresnel (Schlick approximation)
+        float fresnel(vec3 viewDir, vec3 normal, float power) {
+          return pow(1.0 - max(dot(viewDir, normal), 0.0), power);
+        }
+
+        // GGX specular distribution
+        float ggx(vec3 normal, vec3 halfVector, float roughness) {
+          float a = roughness * roughness;
+          float a2 = a * a;
+          float NdotH = max(dot(normal, halfVector), 0.0);
+          float NdotH2 = NdotH * NdotH;
+
+          float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+          return a2 / (3.14159 * denom * denom);
         }
 
         void main() {
-          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+          vec3 viewDir = normalize(vViewPosition);
+          vec3 normal = normalize(vNormal);
 
-          // Fresnel effect for edge highlighting
-          float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 3.0);
+          // Perturb normal for surface detail
+          normal = perturbNormal(normal, vUv);
 
-          // Panel lines (grid pattern)
+          // Panel lines (deep recessed lines)
           float panelX = fract(vUv.x * 5.0);
           float panelY = fract(vUv.y * 5.0);
-          float panelLines = smoothstep(0.95, 1.0, panelX) + smoothstep(0.95, 1.0, panelY);
-          panelLines += smoothstep(0.0, 0.05, panelX) + smoothstep(0.0, 0.05, panelY);
+          float panelLines = smoothstep(0.47, 0.5, panelX) * smoothstep(0.5, 0.53, panelX);
+          panelLines += smoothstep(0.47, 0.5, panelY) * smoothstep(0.5, 0.53, panelY);
+          panelLines = clamp(panelLines, 0.0, 1.0);
 
-          // Battle damage (scratches and wear)
-          float damage = noise(vUv * 50.0) * noise(vUv * 20.0);
-          damage = smoothstep(0.7, 0.9, damage) * damageAmount;
+          // Rivets and mechanical details
+          vec2 rivetUv = fract(vUv * 2.5);
+          float rivetDist = length(rivetUv - 0.5);
+          float rivets = smoothstep(0.08, 0.06, rivetDist) * 0.3;
 
-          // Metallic reflections (fake environment mapping)
-          float metallic = 0.95;
-          float roughness = 0.15 + damage * 0.3;
+          // Battle damage and scratches
+          float scratches = noise(vUv * 80.0);
+          scratches = smoothstep(0.75, 0.85, scratches) * 0.2;
 
-          // Energy flow lines
-          float energyFlow = sin(vUv.y * 10.0 + time * 2.0) * 0.5 + 0.5;
-          energyFlow *= smoothstep(0.0, 0.1, fract(vUv.y * 2.0)) * smoothstep(1.0, 0.9, fract(vUv.y * 2.0));
+          // Wear on edges (lighter metal showing through)
+          float wear = noise(vUv * 30.0) * fresnel(viewDir, normal, 2.0);
+          wear = smoothstep(0.6, 0.8, wear) * 0.15;
 
-          // Combine effects
-          vec3 color = baseColor;
+          // Base metal color
+          vec3 albedo = baseColor;
 
           // Darken panel lines
-          color = mix(color, panelLineColor, panelLines * 0.8);
+          albedo = mix(albedo, panelLineColor, panelLines);
 
-          // Add damage (lighter scratches)
-          color = mix(color, vec3(0.3, 0.3, 0.35), damage);
+          // Add rivets (slightly lighter)
+          albedo += vec3(0.1) * rivets;
 
-          // Add fresnel edge glow
-          vec3 edgeGlow = emissiveColor * fresnel * 2.0;
-          color += edgeGlow;
+          // Add wear (exposed lighter metal)
+          albedo = mix(albedo, vec3(0.35, 0.36, 0.4), wear);
 
-          // Add subtle energy flow
-          color += emissiveColor * energyFlow * emissiveIntensity * 0.3;
+          // Scratches (lighter streaks)
+          albedo = mix(albedo, vec3(0.4, 0.42, 0.45), scratches);
 
-          // Ambient occlusion (darker in crevices)
-          float ao = smoothstep(-0.5, 0.5, vNormal.y) * 0.3 + 0.7;
-          color *= ao;
+          // Lighting setup (simulate 3-point lighting)
+          vec3 lightDir1 = normalize(vec3(1.0, 1.0, 1.0));
+          vec3 lightDir2 = normalize(vec3(-0.5, 0.3, 0.5));
+          vec3 lightDir3 = normalize(vec3(0.0, -1.0, 0.2));
 
-          gl_FragColor = vec4(color, 1.0);
+          vec3 lightColor1 = vec3(1.0, 0.98, 0.95) * 1.2;
+          vec3 lightColor2 = vec3(0.6, 0.7, 1.0) * 0.5;
+          vec3 lightColor3 = vec3(0.3, 0.4, 0.6) * 0.3;
+
+          // Calculate lighting
+          float NdotL1 = max(dot(normal, lightDir1), 0.0);
+          float NdotL2 = max(dot(normal, lightDir2), 0.0);
+          float NdotL3 = max(dot(normal, lightDir3), 0.0);
+
+          // Diffuse component
+          vec3 diffuse = albedo * (
+            lightColor1 * NdotL1 +
+            lightColor2 * NdotL2 +
+            lightColor3 * NdotL3
+          );
+
+          // Specular highlights (metallic reflection)
+          vec3 halfVector1 = normalize(lightDir1 + viewDir);
+          vec3 halfVector2 = normalize(lightDir2 + viewDir);
+
+          float spec1 = ggx(normal, halfVector1, roughness) * NdotL1;
+          float spec2 = ggx(normal, halfVector2, roughness * 1.2) * NdotL2;
+
+          vec3 specular = (spec1 * lightColor1 + spec2 * lightColor2) * metalness;
+
+          // Fake environment reflection (simulate sky/ground)
+          float upFacing = normal.y * 0.5 + 0.5;
+          vec3 skyColor = vec3(0.3, 0.5, 0.8);
+          vec3 groundColor = vec3(0.1, 0.12, 0.15);
+          vec3 envReflection = mix(groundColor, skyColor, upFacing) * envIntensity * metalness;
+
+          // Fresnel rim lighting
+          float rim = fresnel(viewDir, normal, 3.5);
+          vec3 rimLight = vec3(0.3, 0.5, 1.0) * rim * 0.4;
+
+          // Energy flow lines (subtle tech detail)
+          float energyFlow = sin(vUv.y * 8.0 + time * 1.5) * 0.5 + 0.5;
+          energyFlow *= smoothstep(0.0, 0.15, fract(vUv.y * 2.0)) * smoothstep(1.0, 0.85, fract(vUv.y * 2.0));
+          vec3 energy = emissiveColor * energyFlow * emissiveIntensity * 0.2;
+
+          // Ambient occlusion
+          float ao = smoothstep(-0.3, 0.7, normal.y) * 0.4 + 0.6;
+          ao *= (1.0 - panelLines * 0.5); // Darken panel lines more
+
+          // Final color composition
+          vec3 finalColor = diffuse * ao + specular + envReflection + rimLight + energy;
+
+          // Tone mapping (simple Reinhard)
+          finalColor = finalColor / (finalColor + vec3(1.0));
+
+          // Gamma correction
+          finalColor = pow(finalColor, vec3(1.0 / 2.2));
+
+          gl_FragColor = vec4(finalColor, 1.0);
         }
       `,
       lights: false,
     });
 
+    // METALLIC ACCENT MATERIAL with tech details
     const accentMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0x2e3a5f) },
+        baseColor: { value: new THREE.Color(0.2, 0.22, 0.28) }, // Slightly lighter gunmetal
+        metalness: { value: 0.92 },
+        roughness: { value: 0.35 },
         glowColor: { value: new THREE.Color(0.2, 0.4, 0.8) },
-        glowIntensity: { value: 0.6 },
+        glowIntensity: { value: 0.5 },
       },
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
         varying vec2 vUv;
 
         void main() {
@@ -408,38 +526,118 @@ class MegabotScene {
           vPosition = position;
           vec4 worldPos = modelMatrix * vec4(position, 1.0);
           vWorldPosition = worldPos.xyz;
-          vUv = vec2(position.x * 0.1, position.y * 0.1);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vViewPosition = -mvPosition.xyz;
+          vUv = vec2(position.x * 0.05, position.y * 0.05);
 
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
         }
       `,
       fragmentShader: `
         uniform float time;
         uniform vec3 baseColor;
+        uniform float metalness;
+        uniform float roughness;
         uniform vec3 glowColor;
         uniform float glowIntensity;
 
         varying vec3 vNormal;
         varying vec3 vPosition;
         varying vec3 vWorldPosition;
+        varying vec3 vViewPosition;
         varying vec2 vUv;
 
-        void main() {
-          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-          float fresnel = pow(1.0 - max(dot(viewDirection, vNormal), 0.0), 2.5);
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
 
-          // Tech pattern
-          float pattern = sin(vUv.x * 20.0 + time) * cos(vUv.y * 20.0 - time) * 0.5 + 0.5;
-          pattern = smoothstep(0.3, 0.7, pattern);
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(
+            mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+            mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+            f.y
+          );
+        }
+
+        float fresnel(vec3 viewDir, vec3 normal, float power) {
+          return pow(1.0 - max(dot(viewDir, normal), 0.0), power);
+        }
+
+        float ggx(vec3 normal, vec3 halfVector, float roughness) {
+          float a = roughness * roughness;
+          float a2 = a * a;
+          float NdotH = max(dot(normal, halfVector), 0.0);
+          float NdotH2 = NdotH * NdotH;
+          float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+          return a2 / (3.14159 * denom * denom);
+        }
+
+        void main() {
+          vec3 viewDir = normalize(vViewPosition);
+          vec3 normal = normalize(vNormal);
+
+          // Tech circuit pattern
+          float circuitX = smoothstep(0.48, 0.5, fract(vUv.x * 10.0));
+          float circuitY = smoothstep(0.48, 0.5, fract(vUv.y * 10.0));
+          float circuit = max(circuitX, circuitY) * 0.2;
+
+          // Animated tech pattern
+          float techPattern = sin(vUv.x * 15.0 + time * 0.5) * cos(vUv.y * 15.0 - time * 0.5) * 0.5 + 0.5;
+          techPattern = smoothstep(0.4, 0.6, techPattern) * 0.15;
 
           // Pulsing glow
-          float pulse = 0.8 + sin(time * 2.0) * 0.2;
+          float pulse = 0.85 + sin(time * 1.5) * 0.15;
 
-          vec3 color = baseColor;
-          color += glowColor * pattern * glowIntensity * pulse * 0.5;
-          color += glowColor * fresnel * glowIntensity;
+          // Base albedo with tech patterns
+          vec3 albedo = baseColor;
+          albedo += vec3(0.05) * circuit;
+          albedo += glowColor * techPattern * pulse * 0.3;
 
-          gl_FragColor = vec4(color, 1.0);
+          // Lighting
+          vec3 lightDir1 = normalize(vec3(1.0, 1.0, 1.0));
+          vec3 lightDir2 = normalize(vec3(-0.5, 0.3, 0.5));
+
+          vec3 lightColor1 = vec3(1.0, 0.98, 0.95) * 1.2;
+          vec3 lightColor2 = vec3(0.6, 0.7, 1.0) * 0.5;
+
+          float NdotL1 = max(dot(normal, lightDir1), 0.0);
+          float NdotL2 = max(dot(normal, lightDir2), 0.0);
+
+          vec3 diffuse = albedo * (lightColor1 * NdotL1 + lightColor2 * NdotL2);
+
+          // Specular
+          vec3 halfVector1 = normalize(lightDir1 + viewDir);
+          vec3 halfVector2 = normalize(lightDir2 + viewDir);
+
+          float spec1 = ggx(normal, halfVector1, roughness) * NdotL1;
+          float spec2 = ggx(normal, halfVector2, roughness * 1.1) * NdotL2;
+
+          vec3 specular = (spec1 * lightColor1 + spec2 * lightColor2) * metalness;
+
+          // Environment reflection
+          float upFacing = normal.y * 0.5 + 0.5;
+          vec3 envReflection = mix(vec3(0.1, 0.12, 0.15), vec3(0.3, 0.5, 0.8), upFacing) * 0.7 * metalness;
+
+          // Fresnel rim with tech glow
+          float rim = fresnel(viewDir, normal, 3.0);
+          vec3 rimLight = glowColor * rim * glowIntensity * pulse;
+
+          // Ambient occlusion
+          float ao = smoothstep(-0.3, 0.7, normal.y) * 0.4 + 0.6;
+
+          // Final composition
+          vec3 finalColor = diffuse * ao + specular + envReflection + rimLight;
+
+          // Tone mapping
+          finalColor = finalColor / (finalColor + vec3(1.0));
+
+          // Gamma correction
+          finalColor = pow(finalColor, vec3(1.0 / 2.2));
+
+          gl_FragColor = vec4(finalColor, 1.0);
         }
       `,
       lights: false,
