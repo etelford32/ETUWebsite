@@ -257,13 +257,13 @@ export default function HomePage() {
               </p>
 
               {/* CTA Buttons with Steam */}
-              <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap max-w-4xl mx-auto">
                 {/* Steam Wishlist Button (Primary) */}
                 <a
                   href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="steam-btn group inline-flex items-center gap-3 px-6 py-4 rounded-xl font-semibold text-base transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 relative overflow-hidden"
+                  className="steam-btn group inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 relative overflow-hidden w-full sm:w-auto justify-center"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
@@ -296,7 +296,7 @@ export default function HomePage() {
                 {/* Leaderboard Button (Secondary) */}
                 <Link
                   href="/leaderboard"
-                  className="btn-warp-alt px-6 py-4 rounded-xl font-semibold text-base relative overflow-hidden"
+                  className="btn-warp-alt px-5 py-3 rounded-xl font-semibold text-sm sm:text-base relative overflow-hidden w-full sm:w-auto justify-center inline-flex items-center"
                   onMouseEnter={(e) => handleButtonHover('leaderboard', e)}
                   onMouseMove={(e) => handleButtonHover('leaderboard', e)}
                   onMouseLeave={handleButtonLeave}
@@ -322,7 +322,7 @@ export default function HomePage() {
                 {/* Trailer Button (Tertiary) */}
                 <a
                   href="#trailer"
-                  className="btn-minimal px-6 py-4 rounded-xl font-medium text-base relative overflow-hidden"
+                  className="btn-minimal px-5 py-3 rounded-xl font-medium text-sm sm:text-base relative overflow-hidden w-full sm:w-auto justify-center inline-flex items-center"
                   onMouseEnter={(e) => handleButtonHover('trailer', e)}
                   onMouseMove={(e) => handleButtonHover('trailer', e)}
                   onMouseLeave={handleButtonLeave}
@@ -482,40 +482,84 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Latest Devlog - Compressed */}
+      <section
+        id="news"
+        className="reveal py-10 border-t border-white/10 bg-gradient-to-b from-deep-900/50 to-deep-800/30"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Latest Devlog</h2>
+              <p className="text-sm text-slate-400 mt-1">Deep dives on AI, physics, and worldbuilding</p>
+            </div>
+            <Link href="/backlog" className="text-sm text-cyan-400 hover:text-cyan-300 underline decoration-dotted transition-colors">
+              Read more →
+            </Link>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <article className="reveal rounded-xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition group">
+              <div className="relative w-full aspect-[2/1] bg-gradient-to-br from-purple-900/30 to-indigo-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-indigo-500/10"></div>
+                <span className="text-4xl opacity-40 group-hover:scale-110 transition-transform">🤖</span>
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-base">Adaptive Faction AI</h3>
+                <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                  How empires grow, fight, and negotiate over time.
+                </p>
+              </div>
+            </article>
+            <article className="reveal rounded-xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition group">
+              <div className="relative w-full aspect-[2/1] bg-gradient-to-br from-cyan-900/30 to-blue-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-500/10"></div>
+                <span className="text-4xl opacity-40 group-hover:scale-110 transition-transform">🚀</span>
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-base">Flight & Orbital Mechanics</h3>
+                <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                  Balancing realism with fun assists.
+                </p>
+              </div>
+            </article>
+            <article className="reveal rounded-xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition group">
+              <div className="relative w-full aspect-[2/1] bg-gradient-to-br from-red-900/30 to-orange-900/30 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-orange-500/10"></div>
+                <span className="text-4xl opacity-40 group-hover:scale-110 transition-transform">⚔️</span>
+              </div>
+              <div className="p-4">
+                <h3 className="font-semibold text-base">Designing Station Bosses</h3>
+                <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                  Multi-phase challenges and environmental hazards.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       {/* Badges */}
       <section className="reveal border-t border-white/10 bg-deep-800/40">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-slate-300/80 text-sm">
-          <div className="flex items-center gap-6">
-            <span className="uppercase tracking-widest">Powered by</span>
-            <Image
-              src="/media/badges/physics.svg"
-              className="h-6 opacity-80"
-              alt="Realistic physics"
-              width={24}
-              height={24}
-              loading="lazy"
-            />
-            <Image
-              src="/media/badges/ai.svg"
-              className="h-6 opacity-80"
-              alt="Adaptive AI"
-              width={24}
-              height={24}
-              loading="lazy"
-            />
-            <Image
-              src="/media/badges/procgen.svg"
-              className="h-6 opacity-80"
-              alt="Procedural generation"
-              width={24}
-              height={24}
-              loading="lazy"
-            />
+          <div className="flex items-center gap-6 flex-wrap">
+            <span className="uppercase tracking-widest text-slate-400">Powered by</span>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+              <span className="text-cyan-400">⚛️</span>
+              <span className="text-xs">Realistic Physics</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
+              <span className="text-purple-400">🤖</span>
+              <span className="text-xs">Adaptive AI</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              <span className="text-indigo-400">🌌</span>
+              <span className="text-xs">Procedural Generation</span>
+            </div>
           </div>
           <div>
-            <a href="/press-kit" className="underline decoration-dotted hover:text-white transition-colors">
+            <Link href="/press-kit" className="underline decoration-dotted hover:text-white transition-colors">
               Press Kit
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -1285,64 +1329,6 @@ export default function HomePage() {
               </ul>
             </li>
           </ol>
-        </div>
-      </section>
-
-      {/* Devlog */}
-      <section
-        id="news"
-        className="reveal py-16 border-t border-white/10 bg-deep-800/40"
-      >
-        <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <div className="flex items-end justify-between">
-            <header>
-              <h2 className="text-3xl font-bold">Latest Devlog</h2>
-              <p className="text-slate-300">
-                Deep dives on AI, physics, and worldbuilding.
-              </p>
-            </header>
-            <a href="/devlog" className="underline decoration-dotted">
-              Read more →
-            </a>
-          </div>
-          <div className="mt-8 grid md:grid-cols-3 gap-6">
-            <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-purple-900/30 to-indigo-900/30 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-indigo-500/10"></div>
-                <span className="text-7xl opacity-40">🤖</span>
-              </div>
-              <div className="p-5">
-                <h3 className="font-semibold">Adaptive Faction AI</h3>
-                <p className="text-sm text-slate-300/90 mt-2">
-                  How empires grow, fight, and negotiate over time.
-                </p>
-              </div>
-            </article>
-            <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-cyan-900/30 to-blue-900/30 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-500/10"></div>
-                <span className="text-7xl opacity-40">🚀</span>
-              </div>
-              <div className="p-5">
-                <h3 className="font-semibold">Flight & Orbital Mechanics</h3>
-                <p className="text-sm text-slate-300/90 mt-2">
-                  Balancing realism with fun assists.
-                </p>
-              </div>
-            </article>
-            <article className="reveal rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition">
-              <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-red-900/30 to-orange-900/30 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-orange-500/10"></div>
-                <span className="text-7xl opacity-40">⚔️</span>
-              </div>
-              <div className="p-5">
-                <h3 className="font-semibold">Designing Station Bosses</h3>
-                <p className="text-sm text-slate-300/90 mt-2">
-                  Multi-phase challenges and environmental hazards.
-                </p>
-              </div>
-            </article>
-          </div>
         </div>
       </section>
 
