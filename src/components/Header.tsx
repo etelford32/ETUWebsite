@@ -51,20 +51,21 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-1 text-sm">
             <NavLink href="/#features">Features</NavLink>
             <NavLink href="/audio" highlight={true}>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 font-medium">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                 </svg>
-                Audio
+                <span className="text-base">Audio</span>
               </span>
             </NavLink>
             <NavLink href="/#factions">Factions</NavLink>
             <NavLink href="/leaderboard">Leaderboard</NavLink>
-            <NavLink href="/profile">Profile</NavLink>
             <NavLink href="/ship-designer">Ship Designer</NavLink>
             <NavLink href="/backlog">Backlog</NavLink>
             <NavLink href="/roadmap">Roadmap</NavLink>
             <NavLink href="/faq">FAQ</NavLink>
+            <div className="flex-1"></div>
+            <NavLink href="/profile">Profile</NavLink>
           </nav>
 
           {/* Action Buttons */}
@@ -80,14 +81,14 @@ export default function Header() {
 
             <Link
               href="/login"
-              className="relative px-6 py-2.5 rounded-lg font-semibold text-white overflow-hidden group"
+              className="relative px-4 py-2 rounded-lg font-semibold text-sm text-white overflow-hidden group"
             >
               {/* Animated background */}
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-lg"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
               {/* Glow effect */}
-              <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_40px_rgba(34,211,238,0.8)] transition-all duration-300"></div>
+              <div className="absolute inset-0 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.4)] group-hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all duration-300"></div>
 
               {/* Shine effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-12"></div>
@@ -133,11 +134,11 @@ export default function Header() {
           </MobileNavLink>
           <MobileNavLink href="/#factions">Factions</MobileNavLink>
           <MobileNavLink href="/leaderboard">Leaderboard</MobileNavLink>
-          <MobileNavLink href="/profile">Profile</MobileNavLink>
           <MobileNavLink href="/ship-designer">Ship Designer</MobileNavLink>
           <MobileNavLink href="/backlog">Backlog</MobileNavLink>
           <MobileNavLink href="/roadmap">Roadmap</MobileNavLink>
           <MobileNavLink href="/faq">FAQ</MobileNavLink>
+          <MobileNavLink href="/profile">Profile</MobileNavLink>
 
           <div className="pt-3 flex gap-3">
             <Link

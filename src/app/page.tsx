@@ -252,11 +252,6 @@ export default function HomePage() {
                 </span>
               </h1>
 
-              <p className="reveal mt-8 text-xl md:text-2xl lg:text-3xl text-white font-semibold max-w-3xl mx-auto leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] bg-black/30 backdrop-blur-sm px-6 py-4 rounded-2xl border border-white/10">
-                Master realistic physics. Level your ship. Survive a galaxy that remembers your choices.
-                <span className="block mt-4 text-2xl md:text-3xl text-amber-300 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">🎄 Demo Coming New Year's Eve!</span>
-              </p>
-
               {/* Primary CTA - Simplified & Optimized for Conversions */}
               <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
                 {/* Steam Wishlist Button (Primary - LARGE & PROMINENT) */}
@@ -285,9 +280,9 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* FREE Badge */}
-                  <div className="absolute -top-3 -right-3 bg-green-500 text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg animate-pulse ring-2 ring-white z-20">
-                    IT'S FREE!
+                  {/* FREE Badge - Smaller to fit inside button */}
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[0.6rem] font-black px-2 py-1 rounded-full shadow-lg animate-pulse ring-1 ring-white z-20">
+                    FREE!
                   </div>
 
                   <svg
@@ -592,7 +587,7 @@ export default function HomePage() {
                   className="w-full h-full object-cover bg-black"
                   preload="metadata"
                 >
-                  <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4" />
+                  <source src="/ETU1.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               </div>
