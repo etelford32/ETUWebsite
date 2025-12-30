@@ -78,10 +78,10 @@ class MegabotScene {
   // Camera controls
   mouse: any = { x: 0, y: 0 };
   cameraAngle: number = 0;
-  cameraDistance: number = 800;
+  cameraDistance: number = 1400; // Increased for building-sized mecha
 
-  // Megabot constants
-  readonly MAIN_SIZE = 200;
+  // Megabot constants - BUILDING SIZED!
+  readonly MAIN_SIZE = 350; // Increased for massive scale
   readonly SATELLITE_COUNT_LOW = 3;
   readonly SATELLITE_COUNT_MED = 6;
   readonly SATELLITE_COUNT_HIGH = 12;
@@ -445,19 +445,26 @@ class MegabotScene {
       lights: false,
     });
 
-    // ==================== HEAD ====================
+    // ==================== HEAD - BUILDING SIZED ====================
     const headGroup = new THREE.Group();
 
-    // Main head
-    const headGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.3);
+    // Main head - larger and more imposing
+    const headGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.38);
     const head = new THREE.Mesh(headGeometry, mechaMaterial);
     headGroup.add(head);
 
-    // Face plate
-    const facePlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.36, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.05);
+    // Face plate - multi-layered
+    const facePlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.46, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.06);
     const facePlate = new THREE.Mesh(facePlateGeometry, accentMaterial);
-    facePlate.position.z = this.MAIN_SIZE * 0.175;
+    facePlate.position.z = this.MAIN_SIZE * 0.22;
     headGroup.add(facePlate);
+
+    // Additional face armor layer
+    const facePlate2Geometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.05);
+    const facePlate2 = new THREE.Mesh(facePlate2Geometry, mechaMaterial);
+    facePlate2.position.z = this.MAIN_SIZE * 0.25;
+    facePlate2.position.y = -this.MAIN_SIZE * 0.05;
+    headGroup.add(facePlate2);
 
     // V-Fin antenna (Gundam style) with enhanced shader
     const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.4, 3);
@@ -643,23 +650,35 @@ class MegabotScene {
     this.mainMegabot.add(headGroup);
     this.megabotParts.push({ mesh: headGroup, type: 'head' });
 
-    // ==================== TORSO ====================
+    // ==================== TORSO - BUILDING SIZED ====================
     const torsoGroup = new THREE.Group();
 
-    // Main chest
-    const chestGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.6, this.MAIN_SIZE * 0.8, this.MAIN_SIZE * 0.4);
+    // Main chest - MASSIVE and layered
+    const chestGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.75, this.MAIN_SIZE * 1.0, this.MAIN_SIZE * 0.5);
     const chest = new THREE.Mesh(chestGeometry, mechaMaterial);
     torsoGroup.add(chest);
 
-    // Chest armor plates
-    const chestPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.05);
-    const chestPlate = new THREE.Mesh(chestPlateGeometry, accentMaterial);
-    chestPlate.position.z = this.MAIN_SIZE * 0.225;
-    chestPlate.position.y = this.MAIN_SIZE * 0.15;
-    torsoGroup.add(chestPlate);
+    // Multi-layer armor plating system
+    for (let layer = 0; layer < 3; layer++) {
+      const plateWidth = this.MAIN_SIZE * (0.6 - layer * 0.05);
+      const plateHeight = this.MAIN_SIZE * (0.35 - layer * 0.05);
+      const chestPlateGeometry = new THREE.BoxGeometry(plateWidth, plateHeight, this.MAIN_SIZE * 0.06);
+      const chestPlate = new THREE.Mesh(chestPlateGeometry, accentMaterial);
+      chestPlate.position.z = this.MAIN_SIZE * (0.28 + layer * 0.03);
+      chestPlate.position.y = this.MAIN_SIZE * (0.2 - layer * 0.05);
+      torsoGroup.add(chestPlate);
+    }
 
-    // Core reactor (glowing)
-    const reactorGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.1, 16);
+    // Massive shoulder armor panels
+    for (let side = -1; side <= 1; side += 2) {
+      const shoulderPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.08);
+      const shoulderPlate = new THREE.Mesh(shoulderPlateGeometry, accentMaterial);
+      shoulderPlate.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.1);
+      shoulderPlate.rotation.y = side * 0.15;
+      torsoGroup.add(shoulderPlate);
+    }
+
+    // Core reactor array (multiple glowing reactors)
     const reactorMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
@@ -692,58 +711,246 @@ class MegabotScene {
       transparent: false,
     });
 
-    const reactor = new THREE.Mesh(reactorGeometry, reactorMaterial);
-    reactor.rotation.z = Math.PI / 2;
-    reactor.position.z = this.MAIN_SIZE * 0.25;
-    reactor.position.y = -this.MAIN_SIZE * 0.1;
-    torsoGroup.add(reactor);
-    this.megabotParts.push({ mesh: reactor, type: 'reactor' });
+    // Main central reactor - HUGE
+    const mainReactorGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.15, 24);
+    const mainReactor = new THREE.Mesh(mainReactorGeometry, reactorMaterial);
+    mainReactor.rotation.z = Math.PI / 2;
+    mainReactor.position.z = this.MAIN_SIZE * 0.35;
+    mainReactor.position.y = -this.MAIN_SIZE * 0.05;
+    torsoGroup.add(mainReactor);
+    this.megabotParts.push({ mesh: mainReactor, type: 'reactor' });
 
-    // Reactor light
-    const reactorLight = new THREE.PointLight(0x4a90e2, 4, 600);
-    reactorLight.position.copy(reactor.position);
+    // Auxiliary reactors (twin reactors)
+    for (let i = 0; i < 2; i++) {
+      const auxReactorGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.12, 16);
+      const auxReactor = new THREE.Mesh(auxReactorGeometry, reactorMaterial.clone());
+      auxReactor.rotation.z = Math.PI / 2;
+      const yOffset = i === 0 ? 0.25 : -0.25;
+      auxReactor.position.set(0, this.MAIN_SIZE * yOffset, this.MAIN_SIZE * 0.32);
+      torsoGroup.add(auxReactor);
+      this.megabotParts.push({ mesh: auxReactor, type: 'auxReactor' });
+    }
+
+    // Reactor lights
+    const reactorLight = new THREE.PointLight(0x4a90e2, 6, 1000);
+    reactorLight.position.copy(mainReactor.position);
     torsoGroup.add(reactorLight);
 
-    // Abdomen
-    const abdomenGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.35);
-    const abdomen = new THREE.Mesh(abdomenGeometry, mechaMaterial);
-    abdomen.position.y = -this.MAIN_SIZE * 0.575;
-    torsoGroup.add(abdomen);
+    // Mechanical vents (heat dissipation)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let vent = 0; vent < 4; vent++) {
+        const ventGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.03);
+        const ventMaterial = new THREE.MeshStandardMaterial({
+          color: 0x1a1a2e,
+          emissive: new THREE.Color(0.8, 0.3, 0.0),
+          emissiveIntensity: 0.5,
+          metalness: 0.9,
+          roughness: 0.2,
+        });
+        const ventMesh = new THREE.Mesh(ventGeometry, ventMaterial);
+        ventMesh.position.set(
+          side * this.MAIN_SIZE * 0.35,
+          this.MAIN_SIZE * (0.3 - vent * 0.15),
+          this.MAIN_SIZE * 0.22
+        );
+        torsoGroup.add(ventMesh);
+      }
+    }
+
+    // Abdomen - multi-segmented
+    const abdomenLayers = 3;
+    for (let layer = 0; layer < abdomenLayers; layer++) {
+      const abdomenGeometry = new THREE.BoxGeometry(
+        this.MAIN_SIZE * (0.55 - layer * 0.03),
+        this.MAIN_SIZE * 0.15,
+        this.MAIN_SIZE * (0.45 - layer * 0.03)
+      );
+      const abdomen = new THREE.Mesh(abdomenGeometry, mechaMaterial);
+      abdomen.position.y = -this.MAIN_SIZE * (0.55 + layer * 0.18);
+      torsoGroup.add(abdomen);
+
+      // Segment detail lines
+      const segmentLineGeometry = new THREE.BoxGeometry(
+        this.MAIN_SIZE * 0.6,
+        this.MAIN_SIZE * 0.02,
+        this.MAIN_SIZE * 0.48
+      );
+      const segmentLine = new THREE.Mesh(segmentLineGeometry, accentMaterial);
+      segmentLine.position.y = -this.MAIN_SIZE * (0.48 + layer * 0.18);
+      torsoGroup.add(segmentLine);
+    }
+
+    // Back thrusters/boosters
+    for (let side = -1; side <= 1; side += 2) {
+      const thrusterHousingGeometry = new THREE.BoxGeometry(
+        this.MAIN_SIZE * 0.2,
+        this.MAIN_SIZE * 0.6,
+        this.MAIN_SIZE * 0.3
+      );
+      const thrusterHousing = new THREE.Mesh(thrusterHousingGeometry, accentMaterial);
+      thrusterHousing.position.set(side * this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.1, -this.MAIN_SIZE * 0.35);
+      torsoGroup.add(thrusterHousing);
+
+      // Thruster nozzles
+      for (let nozzle = 0; nozzle < 2; nozzle++) {
+        const nozzleGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.06,
+          this.MAIN_SIZE * 0.08,
+          this.MAIN_SIZE * 0.2,
+          16
+        );
+        const nozzleMaterial = new THREE.MeshStandardMaterial({
+          color: 0x2a2a4e,
+          metalness: 0.9,
+          roughness: 0.1,
+          emissive: new THREE.Color(0.2, 0.5, 1.0),
+          emissiveIntensity: 0.6,
+        });
+        const nozzle = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
+        nozzle.rotation.x = Math.PI / 2;
+        nozzle.position.set(
+          side * this.MAIN_SIZE * 0.25,
+          this.MAIN_SIZE * (0.2 + nozzle * -0.2),
+          -this.MAIN_SIZE * 0.5
+        );
+        torsoGroup.add(nozzle);
+      }
+    }
 
     torsoGroup.position.y = this.MAIN_SIZE * 0.4;
     this.mainMegabot.add(torsoGroup);
     this.megabotParts.push({ mesh: torsoGroup, type: 'torso' });
 
-    // ==================== ARMS ====================
+    // ==================== ARMS - MASSIVE MECHA LIMBS ====================
     for (let side = -1; side <= 1; side += 2) {
       const armGroup = new THREE.Group();
 
-      // Shoulder armor
-      const shoulderGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.25, 16, 16);
-      const shoulder = new THREE.Mesh(shoulderGeometry, accentMaterial);
-      armGroup.add(shoulder);
+      // Massive shoulder armor (multi-layered)
+      const shoulderMainGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.35, 24, 24);
+      const shoulderMain = new THREE.Mesh(shoulderMainGeometry, accentMaterial);
+      armGroup.add(shoulderMain);
 
-      // Upper arm
-      const upperArmGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.6, 12);
-      const upperArm = new THREE.Mesh(upperArmGeometry, mechaMaterial);
-      upperArm.position.y = -this.MAIN_SIZE * 0.4;
-      upperArm.rotation.z = side * 0.2;
-      armGroup.add(upperArm);
+      // Shoulder pauldron (extra armor)
+      const pauldronGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.3);
+      const pauldron = new THREE.Mesh(pauldronGeometry, mechaMaterial);
+      pauldron.position.y = this.MAIN_SIZE * 0.1;
+      pauldron.rotation.x = -0.2;
+      armGroup.add(pauldron);
 
-      // Lower arm
-      const lowerArmGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.6, 12);
-      const lowerArm = new THREE.Mesh(lowerArmGeometry, mechaMaterial);
-      lowerArm.position.y = -this.MAIN_SIZE * 0.9;
-      lowerArm.rotation.z = side * 0.1;
-      armGroup.add(lowerArm);
+      // Shoulder cannon mount (weaponry)
+      if (side === 1) { // Right shoulder only
+        const cannonMountGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.15);
+        const cannonMount = new THREE.Mesh(cannonMountGeometry, accentMaterial);
+        cannonMount.position.set(side * this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.25, 0);
+        armGroup.add(cannonMount);
 
-      // Hand/Fist
-      const handGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.15);
-      const hand = new THREE.Mesh(handGeometry, accentMaterial);
-      hand.position.y = -this.MAIN_SIZE * 1.3;
-      armGroup.add(hand);
+        // Cannon barrel
+        const cannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.5, 16);
+        const cannon = new THREE.Mesh(cannonGeometry, mechaMaterial);
+        cannon.rotation.x = Math.PI / 2;
+        cannon.rotation.z = -Math.PI / 4;
+        cannon.position.set(side * this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.3);
+        armGroup.add(cannon);
+      }
 
-      armGroup.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.6, 0);
+      // Upper arm - thick and segmented
+      const upperArmSegments = 3;
+      for (let seg = 0; seg < upperArmSegments; seg++) {
+        const segmentGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.15,
+          this.MAIN_SIZE * 0.14,
+          this.MAIN_SIZE * 0.3,
+          16
+        );
+        const segment = new THREE.Mesh(segmentGeometry, mechaMaterial);
+        segment.position.y = -this.MAIN_SIZE * (0.35 + seg * 0.28);
+        armGroup.add(segment);
+
+        // Joint connector
+        if (seg < upperArmSegments - 1) {
+          const jointGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.12, 16, 16);
+          const joint = new THREE.Mesh(jointGeometry, accentMaterial);
+          joint.position.y = -this.MAIN_SIZE * (0.5 + seg * 0.28);
+          armGroup.add(joint);
+        }
+      }
+
+      // Elbow joint - massive and detailed
+      const elbowGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.16, 20, 20);
+      const elbow = new THREE.Mesh(elbowGeometry, accentMaterial);
+      elbow.position.y = -this.MAIN_SIZE * 1.15;
+      armGroup.add(elbow);
+
+      // Hydraulic pistons for elbow
+      for (let piston = 0; piston < 2; piston++) {
+        const pistonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.35, 8);
+        const pistonMesh = new THREE.Mesh(pistonGeometry, new THREE.MeshStandardMaterial({
+          color: 0x3a3a5e,
+          metalness: 1.0,
+          roughness: 0.3,
+        }));
+        pistonMesh.position.set(
+          side * this.MAIN_SIZE * 0.05 * (piston === 0 ? 1 : -1),
+          -this.MAIN_SIZE * 0.95,
+          this.MAIN_SIZE * 0.1
+        );
+        pistonMesh.rotation.z = side * (piston === 0 ? 0.3 : -0.3);
+        armGroup.add(pistonMesh);
+      }
+
+      // Lower arm/forearm - armored and powerful
+      const forearmSegments = 2;
+      for (let seg = 0; seg < forearmSegments; seg++) {
+        const forearmGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.13,
+          this.MAIN_SIZE * 0.11,
+          this.MAIN_SIZE * 0.4,
+          16
+        );
+        const forearm = new THREE.Mesh(forearmGeometry, mechaMaterial);
+        forearm.position.y = -this.MAIN_SIZE * (1.35 + seg * 0.38);
+        armGroup.add(forearm);
+
+        // Forearm armor plates
+        const armorPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.08);
+        const armorPlate = new THREE.Mesh(armorPlateGeometry, accentMaterial);
+        armorPlate.position.set(0, -this.MAIN_SIZE * (1.35 + seg * 0.38), this.MAIN_SIZE * 0.08);
+        armGroup.add(armorPlate);
+      }
+
+      // Wrist joint
+      const wristGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.12, 16, 16);
+      const wrist = new THREE.Mesh(wristGeometry, accentMaterial);
+      wrist.position.y = -this.MAIN_SIZE * 1.95;
+      armGroup.add(wrist);
+
+      // Hand/Fist - MASSIVE
+      const handMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.22);
+      const handMain = new THREE.Mesh(handMainGeometry, mechaMaterial);
+      handMain.position.y = -this.MAIN_SIZE * 2.2;
+      armGroup.add(handMain);
+
+      // Knuckle guards
+      const knuckleGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.24, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.24);
+      const knuckles = new THREE.Mesh(knuckleGeometry, accentMaterial);
+      knuckles.position.y = -this.MAIN_SIZE * 2.05;
+      knuckles.position.z = this.MAIN_SIZE * 0.05;
+      armGroup.add(knuckles);
+
+      // Fingers (basic representation)
+      for (let finger = 0; finger < 4; finger++) {
+        const fingerGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.04);
+        const fingerMesh = new THREE.Mesh(fingerGeometry, mechaMaterial);
+        fingerMesh.position.set(
+          this.MAIN_SIZE * (-0.08 + finger * 0.055),
+          -this.MAIN_SIZE * 2.4,
+          this.MAIN_SIZE * 0.08
+        );
+        fingerMesh.rotation.x = 0.3;
+        armGroup.add(fingerMesh);
+      }
+
+      armGroup.position.set(side * this.MAIN_SIZE * 0.55, this.MAIN_SIZE * 0.7, 0);
       this.mainMegabot.add(armGroup);
       this.megabotParts.push({
         mesh: armGroup,
@@ -753,55 +960,159 @@ class MegabotScene {
       });
     }
 
-    // ==================== LEGS ====================
+    // ==================== LEGS - MASSIVE SUPPORT STRUCTURES ====================
     for (let side = -1; side <= 1; side += 2) {
       const legGroup = new THREE.Group();
 
-      // Hip armor
-      const hipGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.3);
-      const hip = new THREE.Mesh(hipGeometry, accentMaterial);
-      legGroup.add(hip);
+      // Hip armor - heavy duty
+      const hipMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.4);
+      const hipMain = new THREE.Mesh(hipMainGeometry, accentMaterial);
+      legGroup.add(hipMain);
 
-      // Upper leg/thigh
-      const thighGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.8, 12);
-      const thigh = new THREE.Mesh(thighGeometry, mechaMaterial);
-      thigh.position.y = -this.MAIN_SIZE * 0.55;
-      legGroup.add(thigh);
+      // Hip side armor plates
+      const hipPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.1);
+      const hipPlate = new THREE.Mesh(hipPlateGeometry, mechaMaterial);
+      hipPlate.position.set(side * this.MAIN_SIZE * 0.15, -this.MAIN_SIZE * 0.1, 0);
+      hipPlate.rotation.y = side * 0.2;
+      legGroup.add(hipPlate);
 
-      // Knee armor
-      const kneeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.15, 12, 12);
+      // Upper leg/thigh - thick and segmented
+      const thighSegments = 3;
+      for (let seg = 0; seg < thighSegments; seg++) {
+        const thighGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.18,
+          this.MAIN_SIZE * 0.17,
+          this.MAIN_SIZE * 0.35,
+          16
+        );
+        const thigh = new THREE.Mesh(thighGeometry, mechaMaterial);
+        thigh.position.y = -this.MAIN_SIZE * (0.35 + seg * 0.33);
+        legGroup.add(thigh);
+
+        // Thigh armor panels
+        const thighArmorGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.1);
+        const thighArmor = new THREE.Mesh(thighArmorGeometry, accentMaterial);
+        thighArmor.position.set(0, -this.MAIN_SIZE * (0.35 + seg * 0.33), this.MAIN_SIZE * 0.12);
+        legGroup.add(thighArmor);
+      }
+
+      // Hydraulic systems for thigh
+      for (let hyd = 0; hyd < 3; hyd++) {
+        const hydraulicGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.4, 8);
+        const hydraulic = new THREE.Mesh(hydraulicGeometry, new THREE.MeshStandardMaterial({
+          color: 0x3a3a5e,
+          metalness: 1.0,
+          roughness: 0.2,
+        }));
+        const angle = (hyd / 3) * Math.PI * 2;
+        hydraulic.position.set(
+          Math.cos(angle) * this.MAIN_SIZE * 0.14,
+          -this.MAIN_SIZE * 0.6,
+          Math.sin(angle) * this.MAIN_SIZE * 0.14
+        );
+        hydraulic.rotation.z = angle;
+        legGroup.add(hydraulic);
+      }
+
+      // Knee - MASSIVE joint
+      const kneeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.2, 24, 24);
       const knee = new THREE.Mesh(kneeGeometry, accentMaterial);
-      knee.position.y = -this.MAIN_SIZE * 0.95;
+      knee.position.y = -this.MAIN_SIZE * 1.25;
       legGroup.add(knee);
 
-      // Lower leg
-      const lowerLegGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.8, 12);
-      const lowerLeg = new THREE.Mesh(lowerLegGeometry, mechaMaterial);
-      lowerLeg.position.y = -this.MAIN_SIZE * 1.35;
-      legGroup.add(lowerLeg);
+      // Knee guard armor
+      const kneeGuardGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.15);
+      const kneeGuard = new THREE.Mesh(kneeGuardGeometry, mechaMaterial);
+      kneeGuard.position.y = -this.MAIN_SIZE * 1.25;
+      kneeGuard.position.z = this.MAIN_SIZE * 0.15;
+      legGroup.add(kneeGuard);
 
-      // Foot
-      const footGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.35);
-      const foot = new THREE.Mesh(footGeometry, accentMaterial);
-      foot.position.y = -this.MAIN_SIZE * 1.8;
-      foot.position.z = this.MAIN_SIZE * 0.05;
-      legGroup.add(foot);
+      // Knee hydraulics
+      for (let piston = 0; piston < 2; piston++) {
+        const kneePistonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.3, 8);
+        const kneePiston = new THREE.Mesh(kneePistonGeometry, new THREE.MeshStandardMaterial({
+          color: 0x3a3a5e,
+          metalness: 1.0,
+          roughness: 0.3,
+        }));
+        kneePiston.position.set(
+          side * this.MAIN_SIZE * 0.08 * (piston === 0 ? 1 : -1),
+          -this.MAIN_SIZE * 1.1,
+          -this.MAIN_SIZE * 0.08
+        );
+        kneePiston.rotation.x = 0.5;
+        legGroup.add(kneePiston);
+      }
 
-      // Thruster vents
-      const thrusterGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.2, 8);
-      const thrusterMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2a2a4e,
-        metalness: 0.9,
-        roughness: 0.1,
-        emissive: new THREE.Color(0.8, 0.4, 0.0),
-        emissiveIntensity: 0.7,
-      });
-      const thruster = new THREE.Mesh(thrusterGeometry, thrusterMaterial);
-      thruster.position.y = -this.MAIN_SIZE * 1.75;
-      thruster.position.z = -this.MAIN_SIZE * 0.15;
-      legGroup.add(thruster);
+      // Lower leg/shin - reinforced
+      const shinSegments = 2;
+      for (let seg = 0; seg < shinSegments; seg++) {
+        const shinGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.16,
+          this.MAIN_SIZE * 0.18,
+          this.MAIN_SIZE * 0.45,
+          16
+        );
+        const shin = new THREE.Mesh(shinGeometry, mechaMaterial);
+        shin.position.y = -this.MAIN_SIZE * (1.5 + seg * 0.43);
+        legGroup.add(shin);
 
-      legGroup.position.set(side * this.MAIN_SIZE * 0.2, -this.MAIN_SIZE * 0.25, 0);
+        // Shin armor plates
+        const shinArmorGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.24, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.12);
+        const shinArmor = new THREE.Mesh(shinArmorGeometry, accentMaterial);
+        shinArmor.position.set(0, -this.MAIN_SIZE * (1.5 + seg * 0.43), this.MAIN_SIZE * 0.14);
+        legGroup.add(shinArmor);
+      }
+
+      // Ankle joint
+      const ankleGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.15, 16, 16);
+      const ankle = new THREE.Mesh(ankleGeometry, accentMaterial);
+      ankle.position.y = -this.MAIN_SIZE * 2.15;
+      legGroup.add(ankle);
+
+      // Foot - MASSIVE and stable
+      const footMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.5);
+      const footMain = new THREE.Mesh(footMainGeometry, accentMaterial);
+      footMain.position.y = -this.MAIN_SIZE * 2.35;
+      footMain.position.z = this.MAIN_SIZE * 0.08;
+      legGroup.add(footMain);
+
+      // Foot armor top plate
+      const footTopGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.52);
+      const footTop = new THREE.Mesh(footTopGeometry, mechaMaterial);
+      footTop.position.y = -this.MAIN_SIZE * 2.2;
+      footTop.position.z = this.MAIN_SIZE * 0.08;
+      legGroup.add(footTop);
+
+      // Toe guards
+      const toeGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.12);
+      const toe = new THREE.Mesh(toeGeometry, mechaMaterial);
+      toe.position.y = -this.MAIN_SIZE * 2.35;
+      toe.position.z = this.MAIN_SIZE * 0.28;
+      toe.rotation.x = 0.15;
+      legGroup.add(toe);
+
+      // Thruster array (for mobility)
+      for (let thruster = 0; thruster < 3; thruster++) {
+        const thrusterGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.25, 12);
+        const thrusterMaterial = new THREE.MeshStandardMaterial({
+          color: 0x2a2a4e,
+          metalness: 0.9,
+          roughness: 0.1,
+          emissive: new THREE.Color(0.8, 0.4, 0.0),
+          emissiveIntensity: 0.7,
+        });
+        const thrusterMesh = new THREE.Mesh(thrusterGeometry, thrusterMaterial);
+        thrusterMesh.position.set(
+          (thruster - 1) * this.MAIN_SIZE * 0.08,
+          -this.MAIN_SIZE * 2.15,
+          -this.MAIN_SIZE * 0.2
+        );
+        thrusterMesh.rotation.x = -0.3;
+        legGroup.add(thrusterMesh);
+      }
+
+      legGroup.position.set(side * this.MAIN_SIZE * 0.25, -this.MAIN_SIZE * 0.25, 0);
       this.mainMegabot.add(legGroup);
       this.megabotParts.push({
         mesh: legGroup,
@@ -1123,6 +1434,13 @@ class MegabotScene {
           part.mesh.material.uniforms.time.value = this.time;
           // Rotate the reactor
           part.mesh.rotation.z += 0.02;
+        }
+
+        // Animate auxiliary reactors
+        if (part.type === 'auxReactor' && part.mesh.material.uniforms) {
+          part.mesh.material.uniforms.time.value = this.time;
+          // Counter-rotate for visual interest
+          part.mesh.rotation.z -= 0.015;
         }
 
         // Head movement (menacing scan)
