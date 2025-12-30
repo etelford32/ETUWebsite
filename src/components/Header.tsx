@@ -50,6 +50,14 @@ export default function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 text-sm">
             <NavLink href="/#features">Features</NavLink>
+            <NavLink href="/audio" highlight={true}>
+              <span className="flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                Sonic Arsenal
+              </span>
+            </NavLink>
             <NavLink href="/#factions">Factions</NavLink>
             <NavLink href="/leaderboard">Leaderboard</NavLink>
             <NavLink href="/profile">Profile</NavLink>
@@ -115,6 +123,14 @@ export default function Header() {
       >
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
           <MobileNavLink href="/#features">Features</MobileNavLink>
+          <MobileNavLink href="/audio" highlight={true}>
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+              Sonic Arsenal
+            </span>
+          </MobileNavLink>
           <MobileNavLink href="/#factions">Factions</MobileNavLink>
           <MobileNavLink href="/leaderboard">Leaderboard</MobileNavLink>
           <MobileNavLink href="/profile">Profile</MobileNavLink>
@@ -147,21 +163,33 @@ export default function Header() {
 }
 
 // Desktop Navigation Link Component with 3D effects
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({ href, children, highlight = false }: { href: string; children: React.ReactNode; highlight?: boolean }) {
   return (
     <Link
       href={href}
-      className="relative px-3 py-2 group"
+      className={`relative px-3 py-2 group ${highlight ? 'animate-pulse-slow' : ''}`}
     >
       {/* Hover background with glow */}
-      <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.2)] scale-95 group-hover:scale-100"></div>
+      <div className={`absolute inset-0 bg-gradient-to-b ${
+        highlight
+          ? 'from-purple-500/10 via-purple-500/15 to-purple-500/10 opacity-100 group-hover:from-purple-500/20 group-hover:via-purple-500/25 group-hover:to-purple-500/20'
+          : 'from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100'
+      } rounded-lg transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.2)] scale-95 group-hover:scale-100`}></div>
 
       {/* Top and bottom borders */}
-      <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className={`absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent ${
+        highlight ? 'via-purple-400' : 'via-cyan-400'
+      } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+      <div className={`absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent ${
+        highlight ? 'via-pink-400' : 'via-blue-400'
+      } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
 
       {/* Text with gradient */}
-      <span className="relative z-10 text-slate-300 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-blue-300 group-hover:bg-clip-text transition-all duration-300 drop-shadow-[0_0_8px_rgba(34,211,238,0)] group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] font-medium">
+      <span className={`relative z-10 ${
+        highlight
+          ? 'text-transparent bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text group-hover:from-purple-200 group-hover:to-pink-200 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]'
+          : 'text-slate-300 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-blue-300 group-hover:bg-clip-text drop-shadow-[0_0_8px_rgba(34,211,238,0)] group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+      } transition-all duration-300 font-medium`}>
         {children}
       </span>
     </Link>
@@ -169,25 +197,39 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 // Mobile Navigation Link Component
-function MobileNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function MobileNavLink({ href, children, highlight = false }: { href: string; children: React.ReactNode; highlight?: boolean }) {
   return (
     <Link
       href={href}
       className="block relative px-4 py-3 rounded-lg group overflow-hidden"
     >
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 rounded-lg group-hover:border-cyan-400/40 group-hover:bg-gradient-to-r group-hover:from-cyan-500/10 group-hover:to-blue-500/10 transition-all duration-300"></div>
+      <div className={`absolute inset-0 bg-gradient-to-r ${
+        highlight
+          ? 'from-purple-500/10 to-pink-500/10 border border-purple-500/30 group-hover:border-purple-400/50 group-hover:from-purple-500/20 group-hover:to-pink-500/20'
+          : 'from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 group-hover:border-cyan-400/40 group-hover:from-cyan-500/10 group-hover:to-blue-500/10'
+      } rounded-lg transition-all duration-300`}></div>
 
       {/* Glow on hover */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)]"></div>
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+        highlight
+          ? 'shadow-[inset_0_0_20px_rgba(168,85,247,0.2)]'
+          : 'shadow-[inset_0_0_20px_rgba(34,211,238,0.1)]'
+      }`}></div>
 
       {/* Text */}
-      <span className="relative z-10 text-slate-300 group-hover:text-cyan-300 transition-colors duration-300">
+      <span className={`relative z-10 ${
+        highlight
+          ? 'text-transparent bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text group-hover:from-purple-200 group-hover:to-pink-200'
+          : 'text-slate-300 group-hover:text-cyan-300'
+      } transition-colors duration-300`}>
         {children}
       </span>
 
       {/* Animated line */}
-      <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-gradient-to-r from-cyan-400 to-blue-400 group-hover:w-full transition-all duration-300 rounded-full"></div>
+      <div className={`absolute bottom-0 left-0 h-[2px] w-0 bg-gradient-to-r ${
+        highlight ? 'from-purple-400 to-pink-400' : 'from-cyan-400 to-blue-400'
+      } group-hover:w-full transition-all duration-300 rounded-full`}></div>
     </Link>
   );
 }
