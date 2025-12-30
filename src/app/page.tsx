@@ -256,14 +256,14 @@ export default function HomePage() {
                 <span className="block mt-4 text-2xl md:text-3xl text-amber-300 font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">🎄 Demo Coming New Year's Eve!</span>
               </p>
 
-              {/* CTA Buttons with Steam */}
-              <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap max-w-4xl mx-auto">
-                {/* Steam Wishlist Button (Primary) */}
+              {/* Primary CTA - Simplified & Optimized for Conversions */}
+              <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
+                {/* Steam Wishlist Button (Primary - LARGE & PROMINENT) */}
                 <a
                   href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="steam-btn group inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 relative overflow-hidden w-full sm:w-auto justify-center"
+                  className="steam-btn group relative inline-flex items-center justify-center gap-3 px-8 py-6 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_60px_rgba(102,192,244,0.8)] hover:scale-105 overflow-hidden w-full max-w-xl"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
@@ -283,67 +283,74 @@ export default function HomePage() {
                       <div className="spark spark-br" />
                     </div>
                   )}
+
+                  {/* FREE Badge */}
+                  <div className="absolute -top-3 -right-3 bg-green-500 text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg animate-pulse ring-2 ring-white z-20">
+                    IT'S FREE!
+                  </div>
+
                   <svg
-                    className="w-6 h-6 transition-transform group-hover:scale-110 relative z-10"
+                    className="w-8 h-8 transition-transform group-hover:scale-110 relative z-10"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span className="relative z-10">🎮 WISHLIST FREE DEMO</span>
+                  <span className="relative z-10">🎮 GET FREE DEMO - WISHLIST NOW</span>
                 </a>
 
-                {/* Leaderboard Button (Secondary) */}
-                <Link
-                  href="/leaderboard"
-                  className="btn-warp-alt px-5 py-3 rounded-xl font-semibold text-sm sm:text-base relative overflow-hidden w-full sm:w-auto justify-center inline-flex items-center"
-                  onMouseEnter={(e) => handleButtonHover('leaderboard', e)}
-                  onMouseMove={(e) => handleButtonHover('leaderboard', e)}
-                  onMouseLeave={handleButtonLeave}
-                >
-                  {/* Red scanning line */}
-                  {hoveredButton === 'leaderboard' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-scan-line" />
-                    </div>
-                  )}
-                  {/* Welding sparks */}
-                  {hoveredButton === 'leaderboard' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="spark spark-tl" />
-                      <div className="spark spark-tr" />
-                      <div className="spark spark-bl" />
-                      <div className="spark spark-br" />
-                    </div>
-                  )}
-                  <span className="relative z-10">📊 See Live Leaderboard</span>
-                </Link>
+                {/* Secondary Links (De-emphasized) */}
+                <div className="flex items-center gap-4 text-sm md:text-base">
+                  <Link
+                    href="/leaderboard"
+                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
+                  >
+                    📊 See Live Leaderboard
+                  </Link>
+                  <span className="text-slate-500">•</span>
+                  <a
+                    href="#trailer"
+                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
+                  >
+                    ▶️ Watch Trailer
+                  </a>
+                </div>
 
-                {/* Trailer Button (Tertiary) */}
-                <a
-                  href="#trailer"
-                  className="btn-minimal px-5 py-3 rounded-xl font-medium text-sm sm:text-base relative overflow-hidden w-full sm:w-auto justify-center inline-flex items-center"
-                  onMouseEnter={(e) => handleButtonHover('trailer', e)}
-                  onMouseMove={(e) => handleButtonHover('trailer', e)}
-                  onMouseLeave={handleButtonLeave}
-                >
-                  {/* Red scanning line */}
-                  {hoveredButton === 'trailer' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-scan-line" />
-                    </div>
-                  )}
-                  {/* Welding sparks */}
-                  {hoveredButton === 'trailer' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="spark spark-tl" />
-                      <div className="spark spark-tr" />
-                      <div className="spark spark-bl" />
-                      <div className="spark spark-br" />
-                    </div>
-                  )}
-                  <span className="relative z-10">▶️ Watch Gameplay Trailer</span>
-                </a>
+                {/* Email Capture Alternative */}
+                <div className="w-full max-w-xl mt-4">
+                  <div className="text-center mb-3">
+                    <p className="text-sm text-slate-400">
+                      Don't use Steam? <span className="text-cyan-400 font-semibold">Get notified by email →</span>
+                    </p>
+                  </div>
+                  <form
+                    className="flex flex-col sm:flex-row gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const email = (e.target as HTMLFormElement).email.value;
+                      // TODO: Connect to email service (Mailchimp/ConvertKit/Supabase)
+                      console.log('Email signup:', email);
+                      alert('Thanks! Email signups launching soon. For now, please wishlist on Steam to stay updated.');
+                    }}
+                  >
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Enter your email address"
+                      required
+                      className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-cyan-500/30 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                    />
+                    <button
+                      type="submit"
+                      className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap"
+                    >
+                      Notify Me Dec 31st
+                    </button>
+                  </form>
+                  <p className="text-xs text-slate-500 text-center mt-2">
+                    ✓ Be first to know when demo drops • No spam, just launch notification
+                  </p>
+                </div>
               </div>
 
               {/* Countdown Timer & Real Signup Stats */}
