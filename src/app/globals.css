@@ -39,3 +39,72 @@
   from { transform: translateY(0); }
   to   { transform: translateY(-800px); }
 }
+
+/* Megabot Interactive Button Effects */
+@keyframes scan-line {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s ease-in-out infinite;
+}
+
+/* Welding spark effects */
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ef4444, 0 0 16px #f97316;
+  opacity: 0;
+  animation: spark-flash 0.6s ease-in-out infinite;
+}
+
+.spark-tl {
+  top: 0;
+  left: 0;
+  animation-delay: 0s;
+}
+
+.spark-tr {
+  top: 0;
+  right: 0;
+  animation-delay: 0.15s;
+}
+
+.spark-bl {
+  bottom: 0;
+  left: 0;
+  animation-delay: 0.3s;
+}
+
+.spark-br {
+  bottom: 0;
+  right: 0;
+  animation-delay: 0.45s;
+}
+
+@keyframes spark-flash {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}

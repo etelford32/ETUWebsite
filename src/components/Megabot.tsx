@@ -12,9 +12,10 @@ declare global {
 
 interface MegabotProps {
   quality?: QualityLevel;
+  trackingTarget?: { x: number; y: number } | null;
 }
 
-export default function Megabot({ quality = "medium" }: MegabotProps) {
+export default function Megabot({ quality = "medium", trackingTarget = null }: MegabotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const megabotRef = useRef<any>(null);
 
@@ -49,6 +50,13 @@ export default function Megabot({ quality = "medium" }: MegabotProps) {
     }
   }, [quality]);
 
+  // Update tracking target when buttons are hovered
+  useEffect(() => {
+    if (megabotRef.current && megabotRef.current.setTrackingTarget) {
+      megabotRef.current.setTrackingTarget(trackingTarget);
+    }
+  }, [trackingTarget]);
+
   return (
     <div
       ref={containerRef}
@@ -74,11 +82,17 @@ class MegabotScene {
   satellites: any[] = [];
   energyParticles: any[] = [];
   starField: any;
+  headGroup: any = null; // Reference to head for tracking
 
   // Camera controls
   mouse: any = { x: 0, y: 0 };
   cameraAngle: number = 0;
   cameraDistance: number = 1400; // Increased for building-sized mecha
+
+  // Mouse tracking for button hover effects
+  trackingTarget: { x: number; y: number } | null = null;
+  targetRotation: { x: number; y: number } = { x: 0, y: 0 };
+  currentRotation: { x: number; y: number } = { x: 0, y: 0 };
 
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
@@ -180,6 +194,28 @@ class MegabotScene {
     } catch (error) {
       console.error("❌ Error recreating scene:", error);
       this.showFallback();
+    }
+  }
+
+  setTrackingTarget(target: { x: number; y: number } | null) {
+    this.trackingTarget = target;
+
+    if (target && this.camera && this.headGroup) {
+      // Convert screen coordinates to 3D angle
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      // Calculate angle from center to mouse
+      const dx = target.x - centerX;
+      const dy = target.y - centerY;
+
+      // Convert to rotation angles (limited range for natural movement)
+      this.targetRotation.y = (dx / centerX) * 0.3; // Horizontal rotation (yaw)
+      this.targetRotation.x = -(dy / centerY) * 0.2; // Vertical rotation (pitch)
+    } else {
+      // Return to neutral position
+      this.targetRotation.x = 0;
+      this.targetRotation.y = 0;
     }
   }
 
@@ -847,6 +883,9 @@ class MegabotScene {
     headGroup.position.y = this.MAIN_SIZE * 1.3;
     this.mainMegabot.add(headGroup);
     this.megabotParts.push({ mesh: headGroup, type: 'head' });
+
+    // Store reference to head for tracking
+    this.headGroup = headGroup;
 
     // ==================== TORSO - BUILDING SIZED ====================
     const torsoGroup = new THREE.Group();
@@ -1641,10 +1680,28 @@ class MegabotScene {
           part.mesh.rotation.z -= 0.015;
         }
 
-        // Head movement (menacing scan)
+        // Head movement (menacing scan or tracking)
         if (part.type === 'head') {
-          part.mesh.rotation.y = Math.sin(this.time * 0.3) * 0.2;
-          part.mesh.rotation.x = Math.sin(this.time * 0.5) * 0.1;
+          if (this.trackingTarget) {
+            // Smoothly interpolate current rotation toward target
+            const lerpSpeed = 0.1;
+            this.currentRotation.x += (this.targetRotation.x - this.currentRotation.x) * lerpSpeed;
+            this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
+
+            part.mesh.rotation.x = this.currentRotation.x;
+            part.mesh.rotation.y = this.currentRotation.y;
+
+            // Intensify eye glow when tracking
+            this.megabotParts.forEach((eyePart) => {
+              if ((eyePart.type === 'leftEye' || eyePart.type === 'rightEye') && eyePart.mesh.material.uniforms) {
+                eyePart.mesh.material.uniforms.glowIntensity.value = 5.0; // Extra intense when tracking
+              }
+            });
+          } else {
+            // Default menacing scan when not tracking
+            part.mesh.rotation.y = Math.sin(this.time * 0.3) * 0.2;
+            part.mesh.rotation.x = Math.sin(this.time * 0.5) * 0.1;
+          }
         }
 
         // Torso breathing effect
