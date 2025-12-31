@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
-
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Check for authorization header (optional for anonymous game submissions)
     const authHeader = request.headers.get('authorization')
     let user = null
@@ -140,6 +139,7 @@ export async function POST(request: NextRequest) {
 // GET endpoint to retrieve user's feedback
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Require authentication for viewing feedback
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {

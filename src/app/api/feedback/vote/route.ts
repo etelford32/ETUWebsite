@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
 
 // POST - Upvote feedback
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Require authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove vote
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Require authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
