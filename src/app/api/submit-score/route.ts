@@ -78,18 +78,18 @@ export async function POST(request: NextRequest) {
     const is_verified = false
 
     // Insert score - use authenticated user's ID, not client-provided user_id
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('player_scores')
       .insert({
         user_id: user.id, // CRITICAL: Always use authenticated user's ID
-        score: parseInt(score),
+        score, // Already validated as number
         mode,
         platform,
-        level: parseInt(level),
-        time_seconds: time_seconds ? parseInt(time_seconds) : null,
+        level: typeof level === 'number' ? level : parseInt(level),
+        time_seconds: time_seconds ? (typeof time_seconds === 'number' ? time_seconds : parseInt(time_seconds)) : null,
         is_verified,
         metadata: metadata || {},
-      } as any)
+      })
       .select()
       .single()
 
