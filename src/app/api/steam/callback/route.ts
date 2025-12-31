@@ -114,13 +114,19 @@ export async function GET(request: NextRequest) {
 
     if (existingProfile) {
       // Update existing profile with latest Steam data
-      await supabase
-        .from('profiles')
-        .update({
-          username: steamProfile?.personaname || existingProfile.username,
-          avatar_url: steamProfile?.avatarfull || existingProfile.avatar_url,
-        })
+      const updateData = {
+        username: steamProfile?.personaname || (existingProfile as any).username,
+        avatar_url: steamProfile?.avatarfull || (existingProfile as any).avatar_url,
+      }
+
+      const { error: updateError } = await (supabase
+        .from('profiles') as any)
+        .update(updateData)
         .eq('steam_id', steamId)
+
+      if (updateError) {
+        console.error('Error updating profile:', updateError)
+      }
 
       // TODO: Create a session for this user
       // For now, redirect to sign in with instructions

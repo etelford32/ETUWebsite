@@ -28,7 +28,7 @@ export async function isAdmin(userId: string): Promise<boolean> {
       return false
     }
 
-    return data.role === 'admin'
+    return (data as any).role === 'admin'
   } catch (error) {
     console.error('Error checking admin status:', error)
     return false
@@ -52,7 +52,7 @@ export async function isStaff(userId: string): Promise<boolean> {
       return false
     }
 
-    return data.role === 'admin' || data.role === 'moderator'
+    return (data as any).role === 'admin' || (data as any).role === 'moderator'
   } catch (error) {
     console.error('Error checking staff status:', error)
     return false
@@ -75,7 +75,7 @@ export async function getUserRole(userId: string): Promise<UserRole> {
       return 'user'
     }
 
-    return (data.role as UserRole) || 'user'
+    return ((data as any).role as UserRole) || 'user'
   } catch (error) {
     console.error('Error getting user role:', error)
     return 'user'
