@@ -21,7 +21,7 @@ export default function PressKitPage() {
   const videos = [
     {
       title: 'Official Cinematic Trailer #1 (4K)',
-      filename: 'Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4',
+      filename: 'ETU_Cinematic_Trailer_4K.mp4',
       size: '13 MB',
       description: 'Main cinematic trailer showcasing gameplay and story'
     },
