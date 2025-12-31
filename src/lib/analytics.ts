@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
 
 // Generate a unique session ID
-function getSessionId(): string {
+export function getSessionId(): string {
   if (typeof window === 'undefined') return ''
 
   let sessionId = sessionStorage.getItem('analytics_session_id')

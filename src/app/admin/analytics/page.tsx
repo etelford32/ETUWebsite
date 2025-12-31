@@ -54,6 +54,8 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [timeRange, setTimeRange] = useState<7 | 30 | 90>(7)
   const [refreshing, setRefreshing] = useState(false)
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'updating'>('disconnected')
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -62,8 +64,71 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (isAdmin) {
       fetchAnalytics()
+      setupRealtimeSubscriptions()
+    }
+
+    return () => {
+      cleanupSubscriptions()
     }
   }, [timeRange, isAdmin])
+
+  function setupRealtimeSubscriptions() {
+    // Subscribe to new analytics events
+    const eventsChannel = supabase
+      .channel('analytics-events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'analytics_events'
+        },
+        (payload) => {
+          console.log('New event:', payload)
+          setRealtimeStatus('updating')
+          setLastUpdate(new Date())
+          // Refresh analytics when new event is inserted
+          fetchAnalytics().then(() => {
+            setRealtimeStatus('connected')
+          })
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected')
+        }
+      })
+
+    // Subscribe to session updates
+    const sessionsChannel = supabase
+      .channel('user-sessions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_sessions'
+        },
+        (payload) => {
+          console.log('Session change:', payload)
+          setRealtimeStatus('updating')
+          setLastUpdate(new Date())
+          // Refresh analytics when sessions are updated
+          fetchAnalytics().then(() => {
+            setRealtimeStatus('connected')
+          })
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected')
+        }
+      })
+  }
+
+  function cleanupSubscriptions() {
+    supabase.removeAllChannels()
+  }
 
   async function checkAuth() {
     setLoading(true)
@@ -238,6 +303,24 @@ export default function AnalyticsPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Real-time Status Indicator */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
+                <div className={`w-2 h-2 rounded-full ${
+                  realtimeStatus === 'connected' ? 'bg-green-500 animate-pulse' :
+                  realtimeStatus === 'updating' ? 'bg-yellow-500 animate-pulse' :
+                  'bg-red-500'
+                }`} />
+                <span className="text-xs text-slate-400">
+                  {realtimeStatus === 'connected' ? 'Live' :
+                   realtimeStatus === 'updating' ? 'Updating...' :
+                   'Disconnected'}
+                </span>
+                {lastUpdate && (
+                  <span className="text-xs text-slate-500">
+                    • {lastUpdate.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(Number(e.target.value) as 7 | 30 | 90)}
@@ -282,6 +365,18 @@ export default function AnalyticsPage() {
               className="px-4 py-2 bg-green-600 text-white rounded-lg whitespace-nowrap"
             >
               Analytics
+            </Link>
+            <Link
+              href="/admin/funnels"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Funnels
+            </Link>
+            <Link
+              href="/admin/experiments"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              A/B Tests
             </Link>
             <Link
               href="/admin/feedback"
