@@ -1037,11 +1037,11 @@ class MegabotScene {
           16
         );
         const nozzleMaterial = new THREE.MeshStandardMaterial({
-          color: 0x2a2a4e,
-          metalness: 0.9,
+          color: nozzle === 0 ? 0x8B0000 : 0x4B0082, // Dark red and purple
+          metalness: 0.95,
           roughness: 0.1,
-          emissive: new THREE.Color(0.2, 0.5, 1.0),
-          emissiveIntensity: 0.6,
+          emissive: new THREE.Color(nozzle === 0 ? 0.3 : 0.2, 0.0, nozzle === 0 ? 0.0 : 0.3),
+          emissiveIntensity: 0.5,
         });
         const nozzle = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
         nozzle.rotation.x = Math.PI / 2;
@@ -1122,9 +1122,9 @@ class MegabotScene {
       for (let piston = 0; piston < 2; piston++) {
         const pistonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.35, 8);
         const pistonMesh = new THREE.Mesh(pistonGeometry, new THREE.MeshStandardMaterial({
-          color: 0x3a3a5e,
-          metalness: 1.0,
-          roughness: 0.3,
+          color: piston === 0 ? 0x8B0000 : 0x4B0082, // Dark red and purple
+          metalness: 0.95,
+          roughness: 0.15,
         }));
         pistonMesh.position.set(
           side * this.MAIN_SIZE * 0.05 * (piston === 0 ? 1 : -1),
@@ -1237,9 +1237,9 @@ class MegabotScene {
       for (let hyd = 0; hyd < 3; hyd++) {
         const hydraulicGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.4, 8);
         const hydraulic = new THREE.Mesh(hydraulicGeometry, new THREE.MeshStandardMaterial({
-          color: 0x3a3a5e,
-          metalness: 1.0,
-          roughness: 0.2,
+          color: hyd % 2 === 0 ? 0x8B0000 : 0x4B0082, // Alternating dark red and purple
+          metalness: 0.95,
+          roughness: 0.15,
         }));
         const angle = (hyd / 3) * Math.PI * 2;
         hydraulic.position.set(
@@ -1268,9 +1268,9 @@ class MegabotScene {
       for (let piston = 0; piston < 2; piston++) {
         const kneePistonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.3, 8);
         const kneePiston = new THREE.Mesh(kneePistonGeometry, new THREE.MeshStandardMaterial({
-          color: 0x3a3a5e,
-          metalness: 1.0,
-          roughness: 0.3,
+          color: piston === 0 ? 0x8B0000 : 0x4B0082, // Dark red and purple
+          metalness: 0.95,
+          roughness: 0.15,
         }));
         kneePiston.position.set(
           side * this.MAIN_SIZE * 0.08 * (piston === 0 ? 1 : -1),
@@ -1333,11 +1333,11 @@ class MegabotScene {
       for (let thruster = 0; thruster < 3; thruster++) {
         const thrusterGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.25, 12);
         const thrusterMaterial = new THREE.MeshStandardMaterial({
-          color: 0x2a2a4e,
-          metalness: 0.9,
+          color: thruster % 2 === 0 ? 0x8B0000 : 0x4B0082, // Alternating dark red and purple
+          metalness: 0.95,
           roughness: 0.1,
-          emissive: new THREE.Color(0.8, 0.4, 0.0),
-          emissiveIntensity: 0.7,
+          emissive: new THREE.Color(thruster % 2 === 0 ? 0.3 : 0.2, 0.0, thruster % 2 === 0 ? 0.0 : 0.3),
+          emissiveIntensity: 0.5,
         });
         const thrusterMesh = new THREE.Mesh(thrusterGeometry, thrusterMaterial);
         thrusterMesh.position.set(

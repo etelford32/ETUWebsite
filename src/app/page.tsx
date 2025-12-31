@@ -24,6 +24,7 @@ export default function HomePage() {
   const megabotRef = useRef<any>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Handle button hover for Megabot tracking
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
@@ -38,6 +39,36 @@ export default function HomePage() {
   const handleButtonLeave = () => {
     setHoveredButton(null);
   };
+
+  // Track form position for Megabot laser eyes
+  useEffect(() => {
+    const updateFormPosition = () => {
+      if (formRef.current) {
+        const rect = formRef.current.getBoundingClientRect();
+        // Target the center of the form
+        const formCenter = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+        // Update mouse position to form center when not hovering buttons
+        if (!hoveredButton) {
+          setMousePosition(formCenter);
+        }
+      }
+    };
+
+    updateFormPosition();
+    window.addEventListener('scroll', updateFormPosition);
+    window.addEventListener('resize', updateFormPosition);
+
+    const interval = setInterval(updateFormPosition, 100); // Update regularly
+
+    return () => {
+      window.removeEventListener('scroll', updateFormPosition);
+      window.removeEventListener('resize', updateFormPosition);
+      clearInterval(interval);
+    };
+  }, [hoveredButton]);
 
   useEffect(() => {
     // Initialize performance optimizations
@@ -137,7 +168,7 @@ export default function HomePage() {
         <Suspense fallback={<div />}>
           <Megabot
             quality={animationQuality}
-            trackingTarget={hoveredButton ? mousePosition : null}
+            trackingTarget={mousePosition}
           />
         </Suspense>
 
@@ -320,6 +351,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <form
+                    ref={formRef}
                     className="flex flex-col sm:flex-row gap-2"
                     onSubmit={(e) => {
                       e.preventDefault();

@@ -51,12 +51,7 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-1 text-sm">
             <NavLink href="/#features">Features</NavLink>
             <NavLink href="/audio" highlight={true}>
-              <span className="flex items-center gap-1.5 font-medium">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                <span className="text-base">Audio</span>
-              </span>
+              <span className="font-semibold text-base">Audio</span>
             </NavLink>
             <NavLink href="/#factions">Factions</NavLink>
             <NavLink href="/leaderboard">Leaderboard</NavLink>
@@ -81,7 +76,7 @@ export default function Header() {
 
             <Link
               href="/login"
-              className="relative px-4 py-2 rounded-lg font-semibold text-sm text-white overflow-hidden group"
+              className="relative px-4 py-2 rounded-lg font-semibold text-sm text-white overflow-hidden group whitespace-nowrap"
             >
               {/* Animated background */}
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-lg"></div>
@@ -125,12 +120,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
           <MobileNavLink href="/#features">Features</MobileNavLink>
           <MobileNavLink href="/audio" highlight={true}>
-            <span className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-              </svg>
-              Audio
-            </span>
+            <span className="font-semibold">Audio</span>
           </MobileNavLink>
           <MobileNavLink href="/#factions">Factions</MobileNavLink>
           <MobileNavLink href="/leaderboard">Leaderboard</MobileNavLink>
