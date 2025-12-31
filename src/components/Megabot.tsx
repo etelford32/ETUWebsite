@@ -1036,11 +1036,17 @@ class MegabotScene {
           this.MAIN_SIZE * 0.2,
           16
         );
+
+        // Create emissive color separately to avoid TypeScript inference issues
+        const emissiveColor = nozzle === 0
+          ? new THREE.Color(0.3, 0.0, 0.0)  // Dark red
+          : new THREE.Color(0.2, 0.0, 0.3); // Purple
+
         const nozzleMaterial = new THREE.MeshStandardMaterial({
           color: nozzle === 0 ? 0x8B0000 : 0x4B0082, // Dark red and purple
           metalness: 0.95,
           roughness: 0.1,
-          emissive: new THREE.Color(nozzle === 0 ? 0.3 : 0.2, 0.0, nozzle === 0 ? 0.0 : 0.3),
+          emissive: emissiveColor,
           emissiveIntensity: 0.5,
         });
         const nozzleMesh = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
