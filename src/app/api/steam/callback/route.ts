@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { createServerClient } from '@/lib/supabaseServer'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -36,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create or update Supabase profile
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const supabase = createServerClient()
 
     // Check if profile with this Steam ID exists
     const { data: existingProfile } = await supabase
