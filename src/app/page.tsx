@@ -24,7 +24,10 @@ export default function HomePage() {
   const megabotRef = useRef<any>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [buttonBounds, setButtonBounds] = useState<DOMRect | null>(null);
+  const [isButtonClicked, setIsButtonClicked] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const steamButtonRef = useRef<HTMLAnchorElement>(null);
 
   // Handle button hover for Megabot tracking
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
@@ -34,10 +37,18 @@ export default function HomePage() {
       x: event.clientX,
       y: event.clientY
     });
+    setButtonBounds(rect);
   };
 
   const handleButtonLeave = () => {
     setHoveredButton(null);
+    setButtonBounds(null);
+  };
+
+  const handleButtonClick = (event: React.MouseEvent) => {
+    setIsButtonClicked(true);
+    // Reset after animation
+    setTimeout(() => setIsButtonClicked(false), 100);
   };
 
   // Track form position for Megabot laser eyes
@@ -169,6 +180,8 @@ export default function HomePage() {
           <Megabot
             quality={animationQuality}
             trackingTarget={mousePosition}
+            buttonBounds={buttonBounds}
+            isButtonClicked={isButtonClicked}
           />
         </Suspense>
 
@@ -287,6 +300,7 @@ export default function HomePage() {
               <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
                 {/* Steam Wishlist Button (Primary - LARGE & PROMINENT) */}
                 <a
+                  ref={steamButtonRef}
                   href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -294,6 +308,7 @@ export default function HomePage() {
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
+                  onClick={handleButtonClick}
                 >
                   {/* Red scanning line */}
                   {hoveredButton === 'steam' && (
