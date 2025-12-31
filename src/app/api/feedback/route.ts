@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         status: 'open',
         priority: 'medium',
         metadata: enhancedMetadata,
-      } as any)
+      })
       .select()
       .single()
 
@@ -118,14 +118,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create feedback' }, { status: 500 })
     }
 
+    // Type assertion to help TypeScript understand data is not null
+    const feedbackData = data as any
+
     return NextResponse.json({
       success: true,
       message: 'Feedback submitted successfully',
       feedback: {
-        id: data.id,
-        type: data.type,
-        status: data.status,
-        created_at: data.created_at,
+        id: feedbackData.id,
+        type: feedbackData.type,
+        status: feedbackData.status,
+        created_at: feedbackData.created_at,
       }
     }, { status: 201 })
 
