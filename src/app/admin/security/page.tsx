@@ -502,6 +502,7 @@ function ChecklistItem({
 }: {
   label: string
   status: 'pass' | 'warning' | 'fail'
+  description?: string
 }) {
   const colors = {
     pass: 'border-green-500/30 bg-green-500/10',

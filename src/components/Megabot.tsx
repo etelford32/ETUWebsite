@@ -13,9 +13,16 @@ declare global {
 interface MegabotProps {
   quality?: QualityLevel;
   trackingTarget?: { x: number; y: number } | null;
+  buttonBounds?: DOMRect | null;
+  isButtonClicked?: boolean;
 }
 
-export default function Megabot({ quality = "medium", trackingTarget = null }: MegabotProps) {
+export default function Megabot({
+  quality = "medium",
+  trackingTarget = null,
+  buttonBounds = null,
+  isButtonClicked = false
+}: MegabotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const megabotRef = useRef<any>(null);
 
@@ -57,6 +64,20 @@ export default function Megabot({ quality = "medium", trackingTarget = null }: M
     }
   }, [trackingTarget]);
 
+  // Update button bounds for laser border tracing
+  useEffect(() => {
+    if (megabotRef.current && megabotRef.current.setButtonBounds) {
+      megabotRef.current.setButtonBounds(buttonBounds);
+    }
+  }, [buttonBounds]);
+
+  // Trigger blast effect when button is clicked
+  useEffect(() => {
+    if (megabotRef.current && megabotRef.current.triggerBlast && isButtonClicked) {
+      megabotRef.current.triggerBlast();
+    }
+  }, [isButtonClicked]);
+
   return (
     <div
       ref={containerRef}
@@ -93,6 +114,15 @@ class MegabotScene {
   trackingTarget: { x: number; y: number } | null = null;
   targetRotation: { x: number; y: number } = { x: 0, y: 0 };
   currentRotation: { x: number; y: number } = { x: 0, y: 0 };
+
+  // Button border tracking for laser effects
+  buttonBounds: DOMRect | null = null;
+  borderLasers: any[] = [];
+  scanProgress: number = 0;
+  isScanning: boolean = false;
+  blastParticles: any[] = [];
+  isBlasting: boolean = false;
+  blastTime: number = 0;
 
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
@@ -217,6 +247,186 @@ class MegabotScene {
       this.targetRotation.x = 0;
       this.targetRotation.y = 0;
     }
+  }
+
+  setButtonBounds(bounds: DOMRect | null) {
+    this.buttonBounds = bounds;
+    if (bounds) {
+      this.isScanning = true;
+      this.scanProgress = 0;
+      this.createBorderLasers();
+    } else {
+      this.isScanning = false;
+      this.clearBorderLasers();
+    }
+  }
+
+  triggerBlast() {
+    this.isBlasting = true;
+    this.blastTime = 0;
+    this.createBlastEffect();
+  }
+
+  createBorderLasers() {
+    const THREE = window.THREE;
+    if (!THREE || !this.buttonBounds || !this.scene) return;
+
+    // Clear existing border lasers
+    this.clearBorderLasers();
+
+    // Create laser beams that trace the button border
+    // We'll create multiple segments for the border outline
+    const laserMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        scanProgress: { value: 0 },
+        beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
+        intensity: { value: 4.0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vPosition;
+
+        void main() {
+          vUv = uv;
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float scanProgress;
+        uniform vec3 beamColor;
+        uniform float intensity;
+        varying vec2 vUv;
+        varying vec3 vPosition;
+
+        void main() {
+          // Beam intensity from center to edge
+          float distFromCenter = abs(vUv.x - 0.5) * 2.0;
+          float beamIntensity = 1.0 - distFromCenter;
+          beamIntensity = pow(beamIntensity, 1.5);
+
+          // Scanning wave effect
+          float scanWave = smoothstep(scanProgress - 0.2, scanProgress, vUv.y) *
+                          smoothstep(scanProgress + 0.2, scanProgress, vUv.y);
+
+          // Pulsing energy
+          float pulse = 0.7 + sin(time * 8.0 + vUv.y * 20.0) * 0.3;
+
+          // Only show laser where scan has reached
+          float visibility = step(0.0, scanProgress - vUv.y) * 0.7 + scanWave;
+
+          vec3 finalColor = beamColor * intensity * beamIntensity * pulse;
+          float alpha = beamIntensity * visibility * 0.95;
+
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    // Store material for cleanup
+    this.borderLasers.push({ material: laserMaterial, meshes: [] });
+  }
+
+  clearBorderLasers() {
+    this.borderLasers.forEach(laser => {
+      if (laser.material) laser.material.dispose();
+      if (laser.meshes) {
+        laser.meshes.forEach((mesh: any) => {
+          if (this.scene) this.scene.remove(mesh);
+          if (mesh.geometry) mesh.geometry.dispose();
+        });
+      }
+    });
+    this.borderLasers = [];
+  }
+
+  createBlastEffect() {
+    const THREE = window.THREE;
+    if (!THREE || !this.buttonBounds || !this.scene) return;
+
+    // Create explosive particle effect
+    const particleCount = 200;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities: number[] = [];
+    const colors = new Float32Array(particleCount * 3);
+
+    // Get button center in 3D space
+    const centerX = this.buttonBounds.left + this.buttonBounds.width / 2;
+    const centerY = this.buttonBounds.top + this.buttonBounds.height / 2;
+
+    // Convert screen to world coordinates
+    const vector = new THREE.Vector3(
+      (centerX / window.innerWidth) * 2 - 1,
+      -(centerY / window.innerHeight) * 2 + 1,
+      0.5
+    );
+    vector.unproject(this.camera);
+    const dir = vector.sub(this.camera.position).normalize();
+    const distance = 500;
+    const worldPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
+
+    for (let i = 0; i < particleCount; i++) {
+      // Start at explosion center
+      positions[i * 3] = worldPos.x;
+      positions[i * 3 + 1] = worldPos.y;
+      positions[i * 3 + 2] = worldPos.z;
+
+      // Random explosion velocities
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      const speed = 5 + Math.random() * 10;
+
+      velocities.push(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.sin(phi) * Math.sin(theta) * speed,
+        Math.cos(phi) * speed
+      );
+
+      // Explosion colors (red, orange, yellow)
+      const colorChoice = Math.random();
+      if (colorChoice < 0.33) {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 0.0;
+        colors[i * 3 + 2] = 0.0;
+      } else if (colorChoice < 0.66) {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 0.5;
+        colors[i * 3 + 2] = 0.0;
+      } else {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 1.0;
+        colors[i * 3 + 2] = 0.0;
+      }
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 8,
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    this.scene.add(particles);
+
+    this.blastParticles.push({
+      system: particles,
+      velocities: velocities,
+      age: 0,
+      maxAge: 2.0
+    });
   }
 
   isWebGLAvailable() {
@@ -1836,6 +2046,64 @@ class MegabotScene {
     if (this.starField) {
       this.starField.rotation.y += 0.0001;
       this.starField.rotation.x += 0.00005;
+    }
+
+    // Update border laser scanning animation
+    if (this.isScanning) {
+      this.scanProgress += deltaTime * 0.5; // Scan speed
+      if (this.scanProgress > 1.0) {
+        this.scanProgress = 0; // Loop the scan
+      }
+
+      // Update shader uniforms for border lasers
+      this.borderLasers.forEach(laser => {
+        if (laser.material && laser.material.uniforms) {
+          laser.material.uniforms.time.value = this.time;
+          laser.material.uniforms.scanProgress.value = this.scanProgress;
+        }
+      });
+    }
+
+    // Update blast particles
+    if (this.blastParticles.length > 0) {
+      this.blastParticles = this.blastParticles.filter(blast => {
+        blast.age += deltaTime;
+
+        if (blast.age >= blast.maxAge) {
+          // Remove expired blast
+          if (this.scene) this.scene.remove(blast.system);
+          if (blast.system.geometry) blast.system.geometry.dispose();
+          if (blast.system.material) blast.system.material.dispose();
+          return false;
+        }
+
+        // Update particle positions
+        const positions = blast.system.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < positions.length / 3; i++) {
+          positions[i * 3] += blast.velocities[i * 3];
+          positions[i * 3 + 1] += blast.velocities[i * 3 + 1];
+          positions[i * 3 + 2] += blast.velocities[i * 3 + 2];
+
+          // Apply gravity
+          blast.velocities[i * 3 + 1] -= 0.5;
+
+          // Damping
+          blast.velocities[i * 3] *= 0.98;
+          blast.velocities[i * 3 + 1] *= 0.98;
+          blast.velocities[i * 3 + 2] *= 0.98;
+        }
+        blast.system.geometry.attributes.position.needsUpdate = true;
+
+        // Fade out
+        const fadeProgress = blast.age / blast.maxAge;
+        blast.system.material.opacity = 1.0 - fadeProgress;
+
+        return true;
+      });
+
+      if (this.blastParticles.length === 0) {
+        this.isBlasting = false;
+      }
     }
 
     this.renderer.render(this.scene, this.camera);
