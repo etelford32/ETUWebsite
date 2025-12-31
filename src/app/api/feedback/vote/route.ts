@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       vote: data,
-      vote_count: feedback?.vote_count || 0,
+      vote_count: (feedback as any)?.vote_count || 0,
     })
 
   } catch (error: any) {
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      vote_count: feedback?.vote_count || 0,
+      vote_count: (feedback as any)?.vote_count || 0,
     })
 
   } catch (error: any) {
