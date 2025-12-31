@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         status: 'open',
         priority: 'medium',
         metadata: enhancedMetadata,
-      })
+      } as any)
       .select()
       .single()
 
