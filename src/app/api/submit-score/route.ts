@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Get authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {

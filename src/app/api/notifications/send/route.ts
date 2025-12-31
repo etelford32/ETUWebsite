@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
 
 // POST - Process pending email notifications
 // This should be called by a cron job or manually
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     // Optional: Add authentication for cron job
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET

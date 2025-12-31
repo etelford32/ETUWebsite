@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
-
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // 'feature', 'bug', or null for all
     const status = searchParams.get('status') // 'open', 'in_progress', etc.
@@ -73,6 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const body = await request.json()
     const {
       user_id,

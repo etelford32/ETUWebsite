@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
-
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const body = await request.json()
     const { user_id, backlog_item_id } = body
 
@@ -61,6 +60,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const body = await request.json()
     const { user_id, backlog_item_id } = body
 
@@ -99,6 +99,7 @@ export async function DELETE(request: NextRequest) {
 // Get user votes for checking which items the user has voted on
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const { searchParams } = new URL(request.url)
     const user_id = searchParams.get('user_id')
 

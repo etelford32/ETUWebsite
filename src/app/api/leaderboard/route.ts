@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 
-const supabase = createServerClient()
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createServerClient()
     const searchParams = request.nextUrl.searchParams
     const mode = searchParams.get('mode') || 'global'
     const windowKey = searchParams.get('window') || '30d'
