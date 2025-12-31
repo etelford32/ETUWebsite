@@ -207,7 +207,7 @@ export default function HomePage() {
             </div>
             <div className="retro-game-box-image rounded overflow-hidden mb-2">
               <Image
-                src="/ETU_XMAS.png"
+                src="/Explore_Epic5.png"
                 alt="ETU 2175 PC Game"
                 width={180}
                 height={120}
@@ -231,8 +231,8 @@ export default function HomePage() {
         {/* Optimized background image with gradient overlay (fallback + blend) */}
         <div className="hero-bg-wrapper" style={{ opacity: 0.2 }}>
           <Image
-            src="/ETU_XMAS.png"
-            alt="Explore the Universe 2175 - Available December 25th"
+            src="/Explore_Epic5.png"
+            alt="Explore the Universe 2175 - Available January 1st"
             className="hero-bg-image"
             fill
             priority
@@ -615,11 +615,11 @@ export default function HomePage() {
               <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.3)]">
                 <video
                   controls
-                  poster="/ETU_XMAS.png"
+                  poster="/Explore_Epic5.png"
                   className="w-full h-full object-cover bg-black"
                   preload="metadata"
                 >
-                  <source src="/ETU1.mp4" type="video/mp4" />
+                  <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               </div>
@@ -724,7 +724,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Progression That Matters */}
+      {/* Emergent Upgrades */}
       <section
         id="progression"
         className="py-20 bg-gradient-to-b from-deep-900 via-deep-800 to-deep-900"
