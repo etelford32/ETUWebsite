@@ -55,8 +55,7 @@ export async function POST(request: NextRequest) {
 
         if (emailSent) {
           // Mark as sent
-          // @ts-ignore - Database types don't include feedback_notifications table yet
-          await supabase
+          await (supabase as any)
             .from('feedback_notifications')
             .update({ status: 'sent' })
             .eq('id', notification.id)
@@ -68,8 +67,7 @@ export async function POST(request: NextRequest) {
           })
         } else {
           // Mark as failed
-          // @ts-ignore - Database types don't include feedback_notifications table yet
-          await supabase
+          await (supabase as any)
             .from('feedback_notifications')
             .update({
               status: 'failed',
@@ -87,8 +85,7 @@ export async function POST(request: NextRequest) {
         console.error('Error processing notification:', err)
 
         // Mark as failed
-        // @ts-ignore - Database types don't include feedback_notifications table yet
-        await supabase
+        await (supabase as any)
           .from('feedback_notifications')
           .update({
             status: 'failed',
