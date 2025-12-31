@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
           // Mark as sent
           await supabase
             .from('feedback_notifications')
-            .update({ status: 'sent' } as any)
+            .update({ status: 'sent' })
             .eq('id', notification.id)
 
           results.push({
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
             .update({
               status: 'failed',
               error_message: 'Email service not configured'
-            } as any)
+            })
             .eq('id', notification.id)
 
           results.push({
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
           .update({
             status: 'failed',
             error_message: err.message
-          } as any)
+          })
           .eq('id', notification.id)
 
         results.push({
