@@ -619,7 +619,7 @@ export default function HomePage() {
                   className="w-full h-full object-cover bg-black"
                   preload="metadata"
                 >
-                  <source src="/Explore the Universe 2175 — Official Cinematic Trailer #1(4K).mp4" type="video/mp4" />
+                  <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               </div>
