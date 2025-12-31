@@ -1043,14 +1043,14 @@ class MegabotScene {
           emissive: new THREE.Color(nozzle === 0 ? 0.3 : 0.2, 0.0, nozzle === 0 ? 0.0 : 0.3),
           emissiveIntensity: 0.5,
         });
-        const nozzle = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
-        nozzle.rotation.x = Math.PI / 2;
-        nozzle.position.set(
+        const nozzleMesh = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
+        nozzleMesh.rotation.x = Math.PI / 2;
+        nozzleMesh.position.set(
           side * this.MAIN_SIZE * 0.25,
           this.MAIN_SIZE * (0.2 + nozzle * -0.2),
           -this.MAIN_SIZE * 0.5
         );
-        torsoGroup.add(nozzle);
+        torsoGroup.add(nozzleMesh);
       }
     }
 
