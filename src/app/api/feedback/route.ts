@@ -114,6 +114,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    if (!data) {
+      return NextResponse.json({ error: 'Failed to create feedback' }, { status: 500 })
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Feedback submitted successfully',
