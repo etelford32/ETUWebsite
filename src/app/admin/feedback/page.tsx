@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
+import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface FeedbackItem {
   id: string
@@ -44,12 +46,14 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 export default function AdminFeedbackPage() {
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [feedback, setFeedback] = useState<FeedbackItem[]>([])
   const [filteredFeedback, setFilteredFeedback] = useState<FeedbackItem[]>([])
   const [selectedItem, setSelectedItem] = useState<FeedbackItem | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -72,13 +76,24 @@ export default function AdminFeedbackPage() {
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!session?.user) {
+      // Not authenticated - redirect to login
+      router.push('/login?message=admin_auth_required')
       setLoading(false)
       return
     }
 
-    // TODO: Add actual admin check (e.g., check user role in profiles table)
-    // For now, just check if user is authenticated
+    // Check if user has admin or moderator role
+    const role = await getUserRole(session.user.id)
+
+    if (role !== 'admin' && role !== 'moderator') {
+      // Not authorized - redirect to home with error message
+      router.push('/?error=unauthorized_admin_access')
+      setLoading(false)
+      return
+    }
+
     setUser(session.user)
+    setIsAdmin(role === 'admin' || role === 'moderator')
     fetchFeedback()
   }
 

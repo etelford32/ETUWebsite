@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/types';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createServerClient } from '@/lib/supabaseServer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Supabase client with service role key
-    const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
+    const supabase = createServerClient();
 
     // Check if ship with same name already exists for this user
     // @ts-ignore - ship_designs table will be created in Supabase
