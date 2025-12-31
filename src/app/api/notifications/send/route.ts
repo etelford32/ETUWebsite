@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get pending notifications
-    const { data: notifications, error } = await supabase
+    const { data: notifications, error } = await (supabase as any)
       .from('feedback_notifications')
       .select(`
         *,
