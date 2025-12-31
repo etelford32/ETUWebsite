@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient";
+import { motion } from "framer-motion";
 
 interface RoadmapItem {
   id: string;
@@ -144,8 +146,106 @@ const categories = [
   { id: "post-launch", name: "Post-Launch", color: "bg-orange-600" }
 ];
 
+interface FeedbackItem {
+  id: string;
+  title: string;
+  description: string;
+  vote_count: number;
+  status: string;
+  type: string;
+  created_at: string;
+  user_voted?: boolean;
+}
+
 export default function RoadmapPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [featureRequests, setFeatureRequests] = useState<FeedbackItem[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Fetch community feature requests
+  useEffect(() => {
+    fetchFeatureRequests();
+    checkUser();
+  }, []);
+
+  async function checkUser() {
+    const { data: { session } } = await supabase.auth.getSession();
+    setCurrentUser(session?.user || null);
+  }
+
+  async function fetchFeatureRequests() {
+    try {
+      // Get feature requests
+      const { data, error } = await supabase
+        .from('feedback')
+        .select('*')
+        .eq('type', 'feature')
+        .order('vote_count', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      // Check if user has voted for each
+      if (currentUser) {
+        const { data: votes } = await supabase
+          .from('feedback_votes')
+          .select('feedback_id')
+          .eq('user_id', currentUser.id);
+
+        const votedIds = new Set(votes?.map(v => v.feedback_id) || []);
+        const dataWithVotes = data?.map(item => ({
+          ...item,
+          user_voted: votedIds.has(item.id)
+        })) || [];
+
+        setFeatureRequests(dataWithVotes);
+      } else {
+        setFeatureRequests(data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching feature requests:', err);
+    } finally {
+      setLoadingFeatures(false);
+    }
+  }
+
+  async function toggleVote(feedbackId: string) {
+    if (!currentUser) {
+      alert('Please sign in to vote on features');
+      return;
+    }
+
+    try {
+      const feature = featureRequests.find(f => f.id === feedbackId);
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (feature?.user_voted) {
+        // Remove vote
+        await fetch(`/api/feedback/vote?feedback_id=${feedbackId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`
+          }
+        });
+      } else {
+        // Add vote
+        await fetch('/api/feedback/vote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({ feedback_id: feedbackId })
+        });
+      }
+
+      // Refresh feature requests
+      await fetchFeatureRequests();
+    } catch (err) {
+      console.error('Error toggling vote:', err);
+    }
+  }
 
   const filteredData = selectedCategory === "all"
     ? roadmapData
@@ -279,6 +379,90 @@ export default function RoadmapPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* Community Feature Requests */}
+      <section className="max-w-6xl mx-auto px-4 pb-12">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            🗳️ Community Feature Requests
+          </h2>
+          <p className="text-slate-300 text-lg">
+            Vote for the features you'd like to see! The most popular requests will be prioritized.
+          </p>
+        </div>
+
+        {loadingFeatures ? (
+          <div className="text-center py-12">
+            <div className="inline-block w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : featureRequests.length === 0 ? (
+          <div className="text-center py-12 bg-slate-800/50 rounded-xl border border-slate-700">
+            <p className="text-slate-400">No feature requests yet. Be the first to suggest one!</p>
+            <Link
+              href="/feedback"
+              className="inline-block mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-semibold hover:from-cyan-500 hover:to-blue-500 transition-all"
+            >
+              Submit Feature Request
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {featureRequests.map((feature) => (
+              <motion.div
+                key={feature.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Vote Button */}
+                  <button
+                    onClick={() => toggleVote(feature.id)}
+                    className={`flex flex-col items-center justify-center min-w-[60px] px-3 py-2 rounded-lg font-bold transition-all ${
+                      feature.user_voted
+                        ? 'bg-cyan-600 text-white hover:bg-cyan-500'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" transform="rotate(-90 12 12)" />
+                    </svg>
+                    <span className="text-sm">{feature.vote_count}</span>
+                  </button>
+
+                  {/* Feature Info */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <h3 className="text-xl font-bold text-slate-100">{feature.title}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        feature.status === 'open' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                        feature.status === 'in_progress' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                        feature.status === 'resolved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                        'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                      }`}>
+                        {feature.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-sm mb-3">{feature.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <span>Submitted {new Date(feature.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            <div className="text-center pt-6">
+              <Link
+                href="/feedback"
+                className="inline-block px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50 rounded-lg font-semibold transition-all"
+              >
+                View All Feedback & Submit Your Ideas →
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* CTA Section */}
