@@ -55,9 +55,10 @@ export async function POST(request: NextRequest) {
 
         if (emailSent) {
           // Mark as sent
+          // @ts-expect-error - Database types don't include feedback_notifications table yet
           await supabase
             .from('feedback_notifications')
-            .update({ status: 'sent' } as any)
+            .update({ status: 'sent' })
             .eq('id', notification.id)
 
           results.push({
@@ -67,12 +68,13 @@ export async function POST(request: NextRequest) {
           })
         } else {
           // Mark as failed
+          // @ts-expect-error - Database types don't include feedback_notifications table yet
           await supabase
             .from('feedback_notifications')
             .update({
               status: 'failed',
               error_message: 'Email service not configured'
-            } as any)
+            })
             .eq('id', notification.id)
 
           results.push({
@@ -85,12 +87,13 @@ export async function POST(request: NextRequest) {
         console.error('Error processing notification:', err)
 
         // Mark as failed
+        // @ts-expect-error - Database types don't include feedback_notifications table yet
         await supabase
           .from('feedback_notifications')
           .update({
             status: 'failed',
             error_message: err.message
-          } as any)
+          })
           .eq('id', notification.id)
 
         results.push({
