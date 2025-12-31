@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [featuresDropdownOpen, setFeaturesDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setFeaturesDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-cyan-500/20 shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
@@ -49,15 +63,50 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 text-sm">
-            <NavLink href="/#features">Features</NavLink>
+            {/* Features Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
+                className="relative px-3 py-2 group flex items-center gap-1"
+              >
+                {/* Hover background with glow */}
+                <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 rounded-lg transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.2)] scale-95 group-hover:scale-100"></div>
+
+                {/* Top and bottom borders */}
+                <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                <span className="relative z-10 text-slate-300 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-blue-300 group-hover:bg-clip-text drop-shadow-[0_0_8px_rgba(34,211,238,0)] group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-300 font-medium">
+                  Features
+                </span>
+                <svg
+                  className={`w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-all duration-300 ${featuresDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {featuresDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden">
+                  <div className="py-2">
+                    <DropdownLink href="/#factions" icon="🏛️">Factions</DropdownLink>
+                    <DropdownLink href="/leaderboard" icon="🏆">Leaderboard</DropdownLink>
+                    <DropdownLink href="/ship-designer" icon="🚀">Ship Designer</DropdownLink>
+                    <DropdownLink href="/backlog" icon="📝">Backlog</DropdownLink>
+                    <DropdownLink href="/roadmap" icon="🗺️">Roadmap</DropdownLink>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <NavLink href="/audio" highlight={true}>
               <span className="font-semibold text-base">Audio</span>
             </NavLink>
-            <NavLink href="/#factions">Factions</NavLink>
-            <NavLink href="/leaderboard">Leaderboard</NavLink>
-            <NavLink href="/ship-designer">Ship Designer</NavLink>
-            <NavLink href="/backlog">Backlog</NavLink>
-            <NavLink href="/roadmap">Roadmap</NavLink>
+            <NavLink href="/feedback">Feedback</NavLink>
             <NavLink href="/faq">FAQ</NavLink>
             <div className="flex-1"></div>
             <NavLink href="/profile">Profile</NavLink>
@@ -118,15 +167,22 @@ export default function Header() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
-          <MobileNavLink href="/#features">Features</MobileNavLink>
+          {/* Features Section in Mobile */}
+          <div className="mb-3">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 px-4">Features</div>
+            <div className="space-y-1 pl-4 border-l-2 border-cyan-500/30">
+              <MobileNavLink href="/#factions">🏛️ Factions</MobileNavLink>
+              <MobileNavLink href="/leaderboard">🏆 Leaderboard</MobileNavLink>
+              <MobileNavLink href="/ship-designer">🚀 Ship Designer</MobileNavLink>
+              <MobileNavLink href="/backlog">📝 Backlog</MobileNavLink>
+              <MobileNavLink href="/roadmap">🗺️ Roadmap</MobileNavLink>
+            </div>
+          </div>
+
           <MobileNavLink href="/audio" highlight={true}>
             <span className="font-semibold">Audio</span>
           </MobileNavLink>
-          <MobileNavLink href="/#factions">Factions</MobileNavLink>
-          <MobileNavLink href="/leaderboard">Leaderboard</MobileNavLink>
-          <MobileNavLink href="/ship-designer">Ship Designer</MobileNavLink>
-          <MobileNavLink href="/backlog">Backlog</MobileNavLink>
-          <MobileNavLink href="/roadmap">Roadmap</MobileNavLink>
+          <MobileNavLink href="/feedback">Feedback</MobileNavLink>
           <MobileNavLink href="/faq">FAQ</MobileNavLink>
           <MobileNavLink href="/profile">Profile</MobileNavLink>
 
@@ -221,6 +277,22 @@ function MobileNavLink({ href, children, highlight = false }: { href: string; ch
       <div className={`absolute bottom-0 left-0 h-[2px] w-0 bg-gradient-to-r ${
         highlight ? 'from-purple-400 to-pink-400' : 'from-cyan-400 to-blue-400'
       } group-hover:w-full transition-all duration-300 rounded-full`}></div>
+    </Link>
+  );
+}
+
+// Dropdown Link Component for Features Menu
+function DropdownLink({ href, children, icon }: { href: string; children: React.ReactNode; icon: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all duration-200 group"
+    >
+      <span className="text-lg group-hover:scale-110 transition-transform duration-200">{icon}</span>
+      <span className="text-sm font-medium">{children}</span>
+      <svg className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+      </svg>
     </Link>
   );
 }
