@@ -99,7 +99,7 @@ export async function initializeSession() {
       },
     }
 
-    await supabase.from('user_sessions').insert(sessionData)
+    await (supabase.from('user_sessions') as any).insert(sessionData)
   } catch (error) {
     console.error('Error initializing session:', error)
   }
@@ -130,10 +130,10 @@ export async function trackPageView(pageUrl?: string, pageTitle?: string) {
       os,
     }
 
-    await supabase.from('analytics_events').insert(eventData)
+    await (supabase.from('analytics_events') as any).insert(eventData)
 
     // Update session page view count
-    await supabase.rpc('increment_session_page_views', { p_session_id: sessionId })
+    await (supabase as any).rpc('increment_session_page_views', { p_session_id: sessionId })
   } catch (error) {
     console.error('Error tracking page view:', error)
   }
@@ -167,10 +167,10 @@ export async function trackEvent(
       metadata: metadata || {},
     }
 
-    await supabase.from('analytics_events').insert(eventData)
+    await (supabase.from('analytics_events') as any).insert(eventData)
 
     // Update session events count
-    await supabase.rpc('increment_session_events', { p_session_id: sessionId })
+    await (supabase as any).rpc('increment_session_events', { p_session_id: sessionId })
   } catch (error) {
     console.error('Error tracking event:', error)
   }
@@ -207,7 +207,7 @@ export async function endSession() {
   const sessionId = getSessionId()
 
   try {
-    await supabase.rpc('end_user_session', { p_session_id: sessionId })
+    await (supabase as any).rpc('end_user_session', { p_session_id: sessionId })
   } catch (error) {
     console.error('Error ending session:', error)
   }

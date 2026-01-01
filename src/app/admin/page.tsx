@@ -113,7 +113,7 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      const activity: ActivityItem[] = (recentFeedback || []).map(f => ({
+      const activity: ActivityItem[] = (recentFeedback || []).map((f: any) => ({
         id: f.id,
         type: 'feedback',
         description: `New ${f.type}: ${f.title}`,

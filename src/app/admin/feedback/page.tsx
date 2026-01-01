@@ -155,8 +155,8 @@ export default function AdminFeedbackPage() {
   async function updateFeedback(id: string, updates: Partial<FeedbackItem>) {
     setUpdating(true)
     try {
-      const { error } = await supabase
-        .from('feedback')
+      const { error } = await (supabase
+        .from('feedback') as any)
         .update(updates)
         .eq('id', id)
 

@@ -60,8 +60,8 @@ export default function FeedbackPage() {
     setSuccess(false)
 
     try {
-      const { data, error: submitError } = await supabase
-        .from('feedback')
+      const { data, error: submitError } = await (supabase
+        .from('feedback') as any)
         .insert({
           user_id: user.id,
           type,

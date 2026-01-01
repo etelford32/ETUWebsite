@@ -117,19 +117,19 @@ export default function AnalyticsPage() {
       // Calculate summary metrics (mock data for now)
       const summaryData = {
         totalSessions: sessions?.length || 0,
-        totalPageViews: events?.filter(e => e.event_type === 'page_view').length || 0,
-        totalUsers: new Set(sessions?.map(s => s.user_id).filter(Boolean)).size || 0,
+        totalPageViews: events?.filter((e: any) => e.event_type === 'page_view').length || 0,
+        totalUsers: new Set(sessions?.map((s: any) => s.user_id).filter(Boolean)).size || 0,
         avgSessionDuration: sessions?.length
-          ? sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0) / sessions.length
+          ? sessions.reduce((acc: number, s: any) => acc + (s.duration_seconds || 0), 0) / sessions.length
           : 0,
         bounceRate: sessions?.length
-          ? (sessions.filter(s => s.page_views === 1).length / sessions.length) * 100
+          ? (sessions.filter((s: any) => s.page_views === 1).length / sessions.length) * 100
           : 0,
       }
 
       // Process time series data
       const timeSeriesMap = new Map<string, any>()
-      sessions?.forEach(session => {
+      sessions?.forEach((session: any) => {
         const date = new Date(session.started_at).toISOString().split('T')[0]
         if (!timeSeriesMap.has(date)) {
           timeSeriesMap.set(date, { date, sessions: 0, pageViews: 0, users: new Set() })
@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
 
       // Top pages
       const pageViewsMap = new Map<string, number>()
-      events?.filter(e => e.event_type === 'page_view').forEach(event => {
+      events?.filter((e: any) => e.event_type === 'page_view').forEach((event: any) => {
         const url = event.page_url || 'Unknown'
         pageViewsMap.set(url, (pageViewsMap.get(url) || 0) + 1)
       })
@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
 
       // Device breakdown
       const deviceMap = new Map<string, number>()
-      sessions?.forEach(session => {
+      sessions?.forEach((session: any) => {
         const device = session.device_type || 'Unknown'
         deviceMap.set(device, (deviceMap.get(device) || 0) + 1)
       })
