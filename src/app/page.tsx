@@ -191,55 +191,7 @@ export default function HomePage() {
           defaultQuality={animationQuality}
         />
 
-        {/* Interactive hint */}
-        <div className="absolute top-24 right-6 z-20 hidden md:block">
-          <div className="relative group">
-            <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-purple-500/30 text-xs text-white/80 hover:text-white hover:border-purple-400/50 transition-all cursor-pointer animate-pulse hover:animate-none shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="6" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="2" fill="currentColor" />
-                </svg>
-                Witness the power of Megabot 🤖
-              </span>
-            </div>
-          </div>
-        </div>
 
-        {/* Retro PC Game Box */}
-        <a
-          href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute top-20 right-6 z-20 hidden lg:block"
-        >
-          <div className="retro-game-box rounded-lg p-3 w-48 cursor-pointer">
-            <div className="retro-game-box-badge">
-              DEC 31
-            </div>
-            <div className="retro-game-box-image rounded overflow-hidden mb-2">
-              <Image
-                src="/Explore_Epic5.png"
-                alt="ETU 2175 PC Game"
-                width={180}
-                height={120}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-            <div className="text-center">
-              <div className="retro-game-box-title text-white text-xs mb-1">
-                ETU 2175
-              </div>
-              <div className="retro-game-box-subtitle text-white/70 text-[0.65rem]">
-                FOR PC • WINDOWS/MAC/LINUX
-              </div>
-              <div className="mt-2 text-[0.6rem] text-amber-400 font-semibold">
-                ★ WISHLIST NOW ★
-              </div>
-            </div>
-          </div>
-        </a>
 
         {/* Optimized background image with gradient overlay (fallback + blend) */}
         <div className="hero-bg-wrapper" style={{ opacity: 0.2 }}>
@@ -276,7 +228,7 @@ export default function HomePage() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
                 <span className="text-sm font-medium text-amber-100">
-                  🎄 Demo Coming New Year's Eve - Quality Takes Time!
+                  🎮 Free Demo Available Dec 31st
                 </span>
               </div>
 
@@ -290,11 +242,18 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8">
-                <span className="neon-blue-title drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
-                  Battle the Ultimate Evolving AI Boss
+              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-4">
+                <span className="text-white drop-shadow-[0_4px_30px_rgba(255,255,255,0.3)]">
+                  Battle Megabot as He Evolves
                 </span>
               </h1>
+
+              {/* Value Proposition */}
+              <p className="reveal text-lg sm:text-xl md:text-2xl text-slate-300 leading-relaxed mb-8 max-w-3xl mx-auto">
+                Your tactics teach him. Your strategies become his weapons.
+                <br className="hidden sm:block" />
+                <span className="text-cyan-400">Can you outsmart an enemy that never stops learning?</span>
+              </p>
 
               {/* Primary CTA - Simplified & Optimized for Conversions */}
               <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
@@ -304,7 +263,7 @@ export default function HomePage() {
                   href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="steam-btn group relative inline-flex items-center justify-center gap-3 px-8 py-6 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_60px_rgba(102,192,244,0.8)] hover:scale-105 overflow-hidden w-full max-w-xl"
+                  className="group relative inline-flex items-center justify-center gap-3 px-10 py-7 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 shadow-2xl bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 hover:from-orange-500 hover:via-orange-400 hover:to-amber-400 hover:shadow-[0_0_60px_rgba(251,146,60,0.9)] hover:scale-105 overflow-hidden w-full max-w-xl text-white"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
@@ -326,11 +285,6 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* FREE Badge - Smaller to fit inside button */}
-                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[0.6rem] font-black px-2 py-1 rounded-full shadow-lg animate-pulse ring-1 ring-white z-20">
-                    FREE!
-                  </div>
-
                   <svg
                     className="w-8 h-8 transition-transform group-hover:scale-110 relative z-10"
                     viewBox="0 0 24 24"
@@ -338,31 +292,39 @@ export default function HomePage() {
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span className="relative z-10">🎮 GET FREE DEMO - WISHLIST NOW</span>
+                  <span className="relative z-10 flex items-center gap-2">
+                    GET FREE DEMO - WISHLIST ON STEAM
+                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm font-normal">FREE</span>
+                  </span>
                 </a>
 
                 {/* Secondary Links (De-emphasized) */}
-                <div className="flex items-center gap-4 text-sm md:text-base">
+                <div className="flex items-center gap-4 text-sm text-slate-400">
                   <Link
                     href="/leaderboard"
-                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
+                    className="hover:text-cyan-400 transition-colors"
                   >
-                    📊 See Live Leaderboard
+                    See Live Leaderboard
                   </Link>
-                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-600">•</span>
                   <a
                     href="#trailer"
-                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
+                    className="hover:text-cyan-400 transition-colors"
                   >
-                    ▶️ Watch Trailer
+                    Watch Trailer
                   </a>
                 </div>
 
-                {/* Email Capture Alternative */}
-                <div className="w-full max-w-xl mt-4">
+                {/* FOMO Counter - Limited Founder Rewards (moved up for urgency) */}
+                <div className="reveal mt-6 w-full">
+                  <FOMOCounter maxFounderSkins={500} showProgressBar={true} />
+                </div>
+
+                {/* Email Capture Alternative (moved below FOMO for better flow) */}
+                <div className="w-full max-w-xl mt-6">
                   <div className="text-center mb-3">
                     <p className="text-sm text-slate-400">
-                      Don't use Steam? <span className="text-cyan-400 font-semibold">Get notified by email →</span>
+                      Don't use Steam? <span className="text-slate-300">Get notified by email</span>
                     </p>
                   </div>
                   <form
@@ -381,23 +343,18 @@ export default function HomePage() {
                       name="email"
                       placeholder="Enter your email address"
                       required
-                      className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-cyan-500/30 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                      className="flex-1 px-4 py-3 rounded-lg bg-white/5 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
                     />
                     <button
                       type="submit"
-                      className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap"
+                      className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg transition-all duration-300 whitespace-nowrap"
                     >
                       Notify Me Dec 31st
                     </button>
                   </form>
                   <p className="text-xs text-slate-500 text-center mt-2">
-                    ✓ Be first to know when demo drops • No spam, just launch notification
+                    Be first to know when demo drops • No spam
                   </p>
-                </div>
-
-                {/* FOMO Counter - Limited Founder Rewards */}
-                <div className="reveal mt-6 w-full">
-                  <FOMOCounter maxFounderSkins={500} showProgressBar={true} />
                 </div>
               </div>
 
