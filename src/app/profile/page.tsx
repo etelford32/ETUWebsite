@@ -211,8 +211,8 @@ export default function ProfilePage() {
     if (!profile) return
 
     try {
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase
+        .from('profiles') as any)
         .update({
           username: editedUsername,
           faction_choice: editedFaction

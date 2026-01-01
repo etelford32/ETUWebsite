@@ -88,7 +88,7 @@ export default function UserManagement() {
 
       if (authError) {
         // Fallback if admin API not available
-        const usersData = profiles?.map(profile => ({
+        const usersData = profiles?.map((profile: any) => ({
           id: profile.id,
           email: 'N/A',
           username: profile.username || 'Anonymous',
@@ -107,8 +107,8 @@ export default function UserManagement() {
       }
 
       // Merge profile and auth data
-      const usersData = profiles?.map(profile => {
-        const authUser = authUsers?.find(au => au.id === profile.id)
+      const usersData = profiles?.map((profile: any) => {
+        const authUser = authUsers?.find((au: any) => au.id === profile.id)
         return {
           id: profile.id,
           email: authUser?.email || 'N/A',
@@ -162,8 +162,8 @@ export default function UserManagement() {
 
     setUpdating(true)
     try {
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase
+        .from('profiles') as any)
         .update({ role: newRole })
         .eq('id', userId)
 

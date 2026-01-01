@@ -193,8 +193,8 @@ export default function RoadmapPage() {
           .select('feedback_id')
           .eq('user_id', currentUser.id);
 
-        const votedIds = new Set(votes?.map(v => v.feedback_id) || []);
-        const dataWithVotes = data?.map(item => ({
+        const votedIds = new Set(votes?.map((v: any) => v.feedback_id) || []);
+        const dataWithVotes = data?.map((item: any) => ({
           ...item,
           user_voted: votedIds.has(item.id)
         })) || [];
