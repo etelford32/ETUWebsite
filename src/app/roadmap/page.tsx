@@ -19,131 +19,112 @@ interface RoadmapItem {
 
 const roadmapData: RoadmapItem[] = [
   {
-    id: "alpha-1",
-    title: "Alpha v0.1 - Core Engine",
-    description: "Foundation of the game engine with basic physics and controls",
-    status: "completed",
-    date: "Q2 2024",
-    category: "alpha",
-    features: [
-      "Realistic Newtonian physics engine",
-      "Basic ship controls and movement",
-      "Space environment rendering",
-      "Collision detection system"
-    ]
-  },
-  {
-    id: "alpha-2",
-    title: "Alpha v0.2 - AI Systems",
-    description: "Implementation of adaptive AI and faction mechanics",
-    status: "completed",
-    date: "Q3 2024",
-    category: "alpha",
-    features: [
-      "Learning AI boss - Megabot",
-      "Faction relationship system",
-      "Basic combat mechanics",
-      "Enemy behavior patterns"
-    ]
-  },
-  {
-    id: "alpha-3",
-    title: "Alpha v0.3 - Universe Building",
-    description: "Expanded universe with multiple systems and planets",
-    status: "completed",
-    date: "Q4 2024",
-    category: "alpha",
-    features: [
-      "Procedural star system generation",
-      "Planet surfaces and landing",
-      "Resource gathering mechanics",
-      "Trading system foundation"
-    ]
-  },
-  {
-    id: "beta-1",
-    title: "Beta v1.0 - Demo Release",
-    description: "Public demo showcasing core gameplay loop",
+    id: "milestone-1",
+    title: "MILESTONE 1: The Foundations",
+    description: "Polish the core loop until it's addictive. Every battle feels rewarding. Every upgrade matters. Your AI companion actually feels alive.",
     status: "in-progress",
-    date: "Dec 31, 2024",
-    category: "beta",
-    features: [
-      "Polished tutorial experience",
-      "3-4 hour gameplay demo",
-      "Steam integration",
-      "Global leaderboards",
-      "Performance optimizations"
-    ]
-  },
-  {
-    id: "beta-2",
-    title: "Beta v1.5 - Community Feedback",
-    description: "Refinements based on player feedback",
-    status: "planned",
     date: "Q1 2025",
-    category: "beta",
+    category: "alpha",
     features: [
-      "Balance adjustments",
-      "Bug fixes and stability",
-      "UI/UX improvements",
-      "Additional ship customization",
-      "Enhanced visual effects"
+      "Ship Designer with website integration",
+      "Crafting system for upgrades and new abilities",
+      "Cyl dialogue and personality system",
+      "Station leveling and experience polish",
+      "Enhanced targeting system with evolution mechanics",
+      "Energy survival tactics at stations",
+      "First 10 Crystal Memories unlocked"
     ]
   },
   {
-    id: "launch-1",
-    title: "Full Release v2.0",
-    description: "Complete game launch with all features",
+    id: "milestone-2",
+    title: "MILESTONE 2: Rise of the Machines",
+    description: "Face the ultimate AI threat. The machines don't just fight—they learn, adapt, and evolve. Every general battle is a puzzle. Every victory reshapes the galaxy.",
     status: "planned",
     date: "Q2 2025",
+    category: "beta",
+    features: [
+      "Central Wormhole Battle - Epic intro with 4 unique bosses",
+      "MegaBot & Evil Robot Pressure System",
+      "MegaBot Generals with unique strategies",
+      "Evil Robot Zone - AI-controlled region",
+      "Cinematic Cut Scenes - Hollywood-quality storytelling",
+      "Procedural Galaxy Evolution Event Engine",
+      "Black Hole gravity affects projectiles",
+      "Advanced targeting system with AI reticle"
+    ]
+  },
+  {
+    id: "milestone-3",
+    title: "MILESTONE 3: Bloom Begins",
+    description: "The Mycelari awakening. Nature fights back. Stations bloom with alien life. Your enemies become gardens. Nothing is quite what it seems.",
+    status: "planned",
+    date: "Q3-Q4 2025",
     category: "launch",
     features: [
-      "Complete story campaign",
-      "All factions and systems unlocked",
-      "Multiplayer co-op mode",
-      "Ship designer & customization",
-      "Achievement system",
-      "Full mod support"
+      "Mycelari Mind Control Mechanics",
+      "Infection Logic - Stations become living ecosystems",
+      "Erosion Mechanics - Parasitic armor growth",
+      "Mycelari Substrate - New resource system",
+      "Unique Mycelari Weapons",
+      "Boss: Ursos - The Mycelari Titan",
+      "Boss: Arkanvil - Greed incarnate",
+      "New Locations: Mycelar Prime, Fungal Biomes"
     ]
   },
   {
-    id: "post-1",
-    title: "Expansion: Deep Space",
-    description: "Major content expansion with new regions",
+    id: "multiplayer-1",
+    title: "Multiplayer Expansion",
+    description: "Team up with friends or challenge rivals in competitive space combat",
     status: "planned",
-    date: "Q3 2025",
+    date: "2026",
     category: "post-launch",
     features: [
-      "New galaxy regions to explore",
-      "Advanced ship types",
-      "Extended storylines",
-      "Legendary boss encounters",
-      "Community events"
-    ]
-  },
-  {
-    id: "post-2",
-    title: "Expansion: Faction Wars",
-    description: "PvP and large-scale faction conflicts",
-    status: "planned",
-    date: "Q4 2025",
-    category: "post-launch",
-    features: [
-      "Faction vs faction battles",
-      "Territory control system",
-      "PvP arenas and ranked play",
+      "Co-operative Multiplayer",
+      "1v1 PvP battles",
+      "Asynchronous Multiplayer Influence",
       "Guild/clan systems",
-      "Seasonal content"
+      "Seasonal competitive events"
+    ]
+  },
+  {
+    id: "3d-evolution",
+    title: "3D Evolution",
+    description: "Visual and gameplay overhaul with 3D engine expansion",
+    status: "planned",
+    date: "2026+",
+    category: "post-launch",
+    features: [
+      "3D Game Engine Expansion",
+      "3D Rendering Engine - Visual overhaul",
+      "3D Physics Engine - Realistic space combat",
+      "3D Coordinate Transformation",
+      "Transfer Orbit Simulations",
+      "Realistic orbital mechanics"
+    ]
+  },
+  {
+    id: "ai-advanced",
+    title: "Advanced AI Features",
+    description: "Next-generation AI companion with true consciousness",
+    status: "planned",
+    date: "2026+",
+    category: "post-launch",
+    features: [
+      "Cyl GPT/Claude Integration - True AI conversations",
+      "Consciousness System Layers - Deep AI personality",
+      "Memory & Perception - AI that remembers",
+      "Adaptive learning based on your playstyle",
+      "Emotional intelligence and empathy"
     ]
   }
 ];
 
 const categories = [
-  { id: "all", name: "All", color: "bg-slate-600" },
-  { id: "alpha", name: "Alpha", color: "bg-purple-600" },
-  { id: "beta", name: "Beta", color: "bg-blue-600" },
-  { id: "launch", name: "Launch", color: "bg-green-600" },
-  { id: "post-launch", name: "Post-Launch", color: "bg-orange-600" }
+  { id: "all", name: "All Milestones", color: "bg-slate-600" },
+  { id: "alpha", name: "Q1 2025", color: "bg-cyan-600" },
+  { id: "beta", name: "Q2 2025", color: "bg-blue-600" },
+  { id: "launch", name: "Q3-Q4 2025", color: "bg-purple-600" },
+  { id: "post-launch", name: "2026+", color: "bg-indigo-600" }
 ];
 
 interface FeedbackItem {
@@ -288,13 +269,67 @@ export default function RoadmapPage() {
           <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
             <span>←</span> Back to Home
           </Link>
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Development Roadmap
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+            🚀 Explore the Universe 2175 Roadmap
           </h1>
-          <p className="text-xl text-slate-300 max-w-3xl">
-            Follow our journey from alpha to full release and beyond. We're committed to transparency
-            and building the best space RPG experience possible.
+          <p className="text-xl text-slate-300 max-w-3xl mb-4">
+            <strong>Our Vision:</strong> Build the ultimate space combat experience where every battle tells a story,
+            every companion evolves, and every player shapes the galaxy.
           </p>
+          <p className="text-lg text-slate-400 max-w-3xl">
+            Follow our journey through epic campaigns, evolving AI companions, and expanding universes.
+            We're committed to transparency and building together with our community.
+          </p>
+          <a
+            href="/PUBLIC_ROADMAP.md"
+            target="_blank"
+            className="inline-block mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-semibold hover:from-cyan-500 hover:to-blue-500 transition-all"
+          >
+            📖 View Full Detailed Roadmap
+          </a>
+        </div>
+      </section>
+
+      {/* Current Focus Section */}
+      <section className="max-w-6xl mx-auto px-4 mb-12">
+        <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-2xl p-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-4xl">🎯</span>
+            <h2 className="text-3xl font-bold text-cyan-400">Current Focus: Q1 2025 - Core Experience Polish</h2>
+          </div>
+          <p className="text-slate-300 text-lg mb-6">
+            Building the solid gameplay foundation that makes ETU2175 incredible
+          </p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🤖</span>
+                <h3 className="font-bold text-cyan-400">Cyl AI Companion Evolution</h3>
+              </div>
+              <p className="text-sm text-slate-400">Your AI companion gets smarter dialogue, energy warnings, and personality</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🚀</span>
+                <h3 className="font-bold text-cyan-400">Ship Designer</h3>
+              </div>
+              <p className="text-sm text-slate-400">Customize your ship with full website → game integration</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">⚔️</span>
+                <h3 className="font-bold text-cyan-400">Scoring & Damage Logic Polish</h3>
+              </div>
+              <p className="text-sm text-slate-400">Making combat feel incredible and rewarding</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">💎</span>
+                <h3 className="font-bold text-cyan-400">First 10 Crystal Memories</h3>
+              </div>
+              <p className="text-sm text-slate-400">Unlock the story through collectible memories</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -321,7 +356,7 @@ export default function RoadmapPage() {
       <section className="max-w-6xl mx-auto px-4 pb-20">
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-slate-700"></div>
+          <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-cyan-500 via-blue-500 via-purple-500 to-indigo-700"></div>
 
           {/* Roadmap Items */}
           <div className="space-y-16">
@@ -465,29 +500,63 @@ export default function RoadmapPage() {
         )}
       </section>
 
+      {/* Transparency Dashboard */}
+      <section className="max-w-6xl mx-auto px-4 pb-12">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8">
+          <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            📈 Transparency Dashboard
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-cyan-400 font-semibold mb-2">Current Sprint Focus</h3>
+              <p className="text-slate-300">Ship Designer + Cyl Dialogue + Combat Polish</p>
+            </div>
+            <div>
+              <h3 className="text-cyan-400 font-semibold mb-2">Team Size</h3>
+              <p className="text-slate-300">Indie dev (scaling with success)</p>
+            </div>
+            <div>
+              <h3 className="text-cyan-400 font-semibold mb-2">Update Frequency</h3>
+              <p className="text-slate-300">Bi-weekly dev blogs, monthly major updates</p>
+            </div>
+            <div>
+              <h3 className="text-cyan-400 font-semibold mb-2">Community Influence</h3>
+              <p className="text-slate-300">High - Your votes shape priorities</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="max-w-4xl mx-auto px-4 pb-20">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 md:p-12 text-center">
+        <div className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-2xl p-8 md:p-12 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Want to Shape the Future?
+            🗳️ Have Your Say - Shape the Future
           </h2>
-          <p className="text-blue-100 text-lg mb-6">
-            Join our community and help us build the ultimate space RPG. Your feedback matters!
+          <p className="text-cyan-100 text-lg mb-6">
+            This roadmap exists because of <strong>YOU</strong> - our incredible community. Every wishlist,
+            every piece of feedback, every vote shapes this journey. Together, we're building something special.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all"
+              className="px-8 py-3 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
             >
-              Wishlist on Steam
+              ⭐ Wishlist on Steam
             </a>
             <Link
-              href="/faq"
+              href="/backlog"
               className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-bold hover:bg-white/10 transition-all"
             >
-              Read FAQ
+              📋 Vote on Features
+            </Link>
+            <Link
+              href="/feedback"
+              className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-bold hover:bg-white/10 transition-all"
+            >
+              💬 Submit Feedback
             </Link>
           </div>
         </div>
