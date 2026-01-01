@@ -259,27 +259,41 @@ export default function BacklogPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Feature & Bug Backlog
-            </h1>
-            <p className="text-slate-400 mt-2">
-              Submit and vote on features and bug reports
-            </p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                🗳️ Community Backlog
+              </h1>
+              <p className="text-slate-400 mt-2 text-lg">
+                Submit and vote on features and bug reports. Your voice shapes the future of ETU2175!
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (!currentUser) {
+                  router.push('/login')
+                } else {
+                  setShowSubmitModal(true)
+                }
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all duration-200 font-semibold shadow-lg hover:shadow-cyan-500/50"
+            >
+              + Submit Item
+            </button>
           </div>
-          <button
-            onClick={() => {
-              if (!currentUser) {
-                router.push('/login')
-              } else {
-                setShowSubmitModal(true)
-              }
-            }}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 font-semibold shadow-lg hover:shadow-purple-500/50"
-          >
-            + Submit Item
-          </button>
+          <div className="bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📋</span>
+              <p className="text-slate-300">
+                Want to see the big picture? Check out our{' '}
+                <a href="/roadmap" className="text-cyan-400 hover:text-cyan-300 font-semibold underline">
+                  Development Roadmap
+                </a>
+                {' '}to see major milestones and planned features.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Search */}
@@ -303,7 +317,7 @@ export default function BacklogPage() {
                   onClick={() => setTypeFilter(option.key)}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                     typeFilter === option.key
-                      ? 'bg-indigo-600 text-white'
+                      ? 'bg-cyan-600 text-white'
                       : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
@@ -321,7 +335,7 @@ export default function BacklogPage() {
                   onClick={() => setStatusFilter(option.key)}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                     statusFilter === option.key
-                      ? 'bg-indigo-600 text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
@@ -390,7 +404,7 @@ export default function BacklogPage() {
                         onClick={() => handleVote(item.id)}
                         className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-200 ${
                           userVotes.has(item.id)
-                            ? 'bg-indigo-600 text-white'
+                            ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
                             : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
                         }`}
                       >
@@ -406,7 +420,7 @@ export default function BacklogPage() {
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[item.status]}`}>
                             {item.status.replace('_', ' ')}
                           </span>
-                          <span className={`text-sm font-semibold ${item.type === 'feature' ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className={`text-sm font-semibold ${item.type === 'feature' ? 'text-cyan-400' : 'text-red-400'}`}>
                             {item.type === 'feature' ? '✨ Feature' : '🐛 Bug'}
                           </span>
                           <span className={`text-sm font-semibold ${PRIORITY_COLORS[item.priority]}`}>
@@ -493,7 +507,7 @@ export default function BacklogPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-slate-900 border border-slate-700 rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
-            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Submit New Item
             </h2>
 
@@ -572,7 +586,7 @@ export default function BacklogPage() {
                       onClick={() => setSubmitPriority(priority)}
                       className={`px-4 py-2 rounded-lg transition-all duration-200 capitalize ${
                         submitPriority === priority
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-cyan-600 text-white'
                           : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
                       }`}
                     >
@@ -594,7 +608,7 @@ export default function BacklogPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 font-semibold disabled:opacity-50"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-500 hover:to-blue-500 transition-all duration-200 font-semibold disabled:opacity-50 shadow-lg hover:shadow-cyan-500/50"
                   disabled={submitting}
                 >
                   {submitting ? 'Submitting...' : 'Submit'}
