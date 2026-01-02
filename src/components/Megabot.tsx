@@ -38,6 +38,11 @@ export default function Megabot({
       }
     };
 
+    threeScript.onerror = () => {
+      console.error('❌ Failed to load Three.js library from CDN');
+      // Fallback: Could show a static image or retry with a different CDN
+    };
+
     document.head.appendChild(threeScript);
 
     return () => {
@@ -275,15 +280,19 @@ class MegabotScene {
 
       // Intersect ray with plane
       const targetPos = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, targetPos);
+      const intersection = raycaster.ray.intersectPlane(plane, targetPos);
 
-      this.targetPosition3D = targetPos;
-
-      console.log('🎯 Tracking target set:', {
-        screen: `(${target.x}, ${target.y})`,
-        world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
-        hasLasers: !!(this.leftLaser && this.rightLaser)
-      });
+      if (intersection) {
+        this.targetPosition3D = targetPos;
+        console.log('🎯 Tracking target set:', {
+          screen: `(${target.x}, ${target.y})`,
+          world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
+          hasLasers: !!(this.leftLaser && this.rightLaser)
+        });
+      } else {
+        console.warn('⚠️ Ray-plane intersection failed, falling back to scanning mode');
+        this.targetPosition3D = null;
+      }
     } else {
       // Return to neutral position
       this.targetRotation.x = 0;
@@ -2285,8 +2294,8 @@ class MegabotScene {
     if (this.leftLaser && this.rightLaser && this.leftEye && this.rightEye && this.headGroup) {
       const THREE = window.THREE;
 
-      if (this.targetPosition3D && this.trackingTarget) {
-        // TRACKING MODE: Aim lasers at button
+      if (this.trackingTarget && this.targetPosition3D) {
+        // TRACKING MODE: Aim lasers at button (only if plane intersection succeeded)
         this.leftLaser.visible = true;
         this.rightLaser.visible = true;
 
@@ -2340,10 +2349,12 @@ class MegabotScene {
         this.rightLaser.quaternion.copy(rightQuaternion);
 
         // Move laser origin to eye center (cylinder's center is at origin, we want base at eye)
-        const offsetDistance = leftDistance / 2;
-        this.leftLaser.position.add(new THREE.Vector3().copy(targetLocal).sub(this.leftEye.position).normalize().multiplyScalar(offsetDistance));
-        const rightOffsetDistance = rightDistance / 2;
-        this.rightLaser.position.add(new THREE.Vector3().copy(targetLocal).sub(this.rightEye.position).normalize().multiplyScalar(rightOffsetDistance));
+        // Offset by half the laser length in the direction it's pointing (local space)
+        const leftLocalDirection = leftDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
+        this.leftLaser.position.add(leftLocalDirection.multiplyScalar(leftDistance / 2));
+
+        const rightLocalDirection = rightDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
+        this.rightLaser.position.add(rightLocalDirection.multiplyScalar(rightDistance / 2));
 
       } else {
         // SCANNING MODE: Lasers sweep the area menacingly
