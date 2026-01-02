@@ -26,18 +26,20 @@ export default function HomePage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [buttonBounds, setButtonBounds] = useState<DOMRect | null>(null);
   const [isButtonClicked, setIsButtonClicked] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const steamButtonRef = useRef<HTMLAnchorElement>(null);
 
-  // Handle button hover for Megabot tracking
+  // Handle button hover for Megabot tracking (only Steam button)
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
-    setHoveredButton(buttonId);
-    const rect = event.currentTarget.getBoundingClientRect();
-    setMousePosition({
-      x: event.clientX,
-      y: event.clientY
-    });
-    setButtonBounds(rect);
+    // Only track Steam button for Megabot laser eyes
+    if (buttonId === 'steam') {
+      setHoveredButton(buttonId);
+      const rect = event.currentTarget.getBoundingClientRect();
+      setMousePosition({
+        x: event.clientX,
+        y: event.clientY
+      });
+      setButtonBounds(rect);
+    }
   };
 
   const handleButtonLeave = () => {
@@ -50,36 +52,6 @@ export default function HomePage() {
     // Reset after animation
     setTimeout(() => setIsButtonClicked(false), 100);
   };
-
-  // Track form position for Megabot laser eyes
-  useEffect(() => {
-    const updateFormPosition = () => {
-      if (formRef.current) {
-        const rect = formRef.current.getBoundingClientRect();
-        // Target the center of the form
-        const formCenter = {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2
-        };
-        // Update mouse position to form center when not hovering buttons
-        if (!hoveredButton) {
-          setMousePosition(formCenter);
-        }
-      }
-    };
-
-    updateFormPosition();
-    window.addEventListener('scroll', updateFormPosition);
-    window.addEventListener('resize', updateFormPosition);
-
-    const interval = setInterval(updateFormPosition, 100); // Update regularly
-
-    return () => {
-      window.removeEventListener('scroll', updateFormPosition);
-      window.removeEventListener('resize', updateFormPosition);
-      clearInterval(interval);
-    };
-  }, [hoveredButton]);
 
   useEffect(() => {
     // Initialize performance optimizations
@@ -242,7 +214,7 @@ export default function HomePage() {
         </a>
 
         {/* Optimized background image with gradient overlay (fallback + blend) */}
-        <div className="hero-bg-wrapper" style={{ opacity: 0.2 }}>
+        <div className="hero-bg-wrapper" style={{ opacity: 0.25 }}>
           <Image
             src="/Explore_Epic5.png"
             alt="Explore the Universe 2175 - Available January 1st"
@@ -291,8 +263,9 @@ export default function HomePage() {
               </div>
 
               <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8">
-                <span className="neon-blue-title drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
-                  Battle the Ultimate Evolving AI Boss
+                <span className="neon-blue-title-sparking drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
+                  Command Star Fleets.<br />
+                  Outsmart the Ultimate Evil AI.
                 </span>
               </h1>
 
@@ -356,43 +329,6 @@ export default function HomePage() {
                   >
                     ▶️ Watch Trailer
                   </a>
-                </div>
-
-                {/* Email Capture Alternative */}
-                <div className="w-full max-w-xl mt-4">
-                  <div className="text-center mb-3">
-                    <p className="text-sm text-slate-400">
-                      Don't use Steam? <span className="text-cyan-400 font-semibold">Get notified by email →</span>
-                    </p>
-                  </div>
-                  <form
-                    ref={formRef}
-                    className="flex flex-col sm:flex-row gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const email = (e.target as HTMLFormElement).email.value;
-                      // TODO: Connect to email service (Mailchimp/ConvertKit/Supabase)
-                      console.log('Email signup:', email);
-                      alert('Thanks! Email signups launching soon. For now, please wishlist on Steam to stay updated.');
-                    }}
-                  >
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Enter your email address"
-                      required
-                      className="flex-1 px-4 py-3 rounded-lg bg-white/10 border border-cyan-500/30 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    />
-                    <button
-                      type="submit"
-                      className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap"
-                    >
-                      Notify Me Dec 31st
-                    </button>
-                  </form>
-                  <p className="text-xs text-slate-500 text-center mt-2">
-                    ✓ Be first to know when demo drops • No spam, just launch notification
-                  </p>
                 </div>
 
                 {/* FOMO Counter - Limited Founder Rewards */}
