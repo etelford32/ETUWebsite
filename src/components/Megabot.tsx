@@ -104,6 +104,11 @@ class MegabotScene {
   energyParticles: any[] = [];
   starField: any;
   headGroup: any = null; // Reference to head for tracking
+  leftEye: any = null; // Reference to left eye
+  rightEye: any = null; // Reference to right eye
+  leftLaser: any = null; // Reference to left laser
+  rightLaser: any = null; // Reference to right laser
+  targetPosition3D: any = null; // 3D position of the button target
 
   // Camera controls
   mouse: any = { x: 0, y: 0 };
@@ -228,10 +233,13 @@ class MegabotScene {
   }
 
   setTrackingTarget(target: { x: number; y: number } | null) {
+    const THREE = window.THREE;
+    if (!THREE) return;
+
     this.trackingTarget = target;
 
     if (target && this.camera && this.headGroup) {
-      // Convert screen coordinates to 3D angle
+      // Convert screen coordinates to 3D world position
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
 
@@ -242,10 +250,26 @@ class MegabotScene {
       // Convert to rotation angles (limited range for natural movement)
       this.targetRotation.y = (dx / centerX) * 0.3; // Horizontal rotation (yaw)
       this.targetRotation.x = -(dy / centerY) * 0.2; // Vertical rotation (pitch)
+
+      // Convert 2D screen coordinates to 3D position using raycasting
+      const mouse = new THREE.Vector2();
+      mouse.x = (target.x / window.innerWidth) * 2 - 1;
+      mouse.y = -(target.y / window.innerHeight) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, this.camera);
+
+      // Project onto a plane at a fixed distance from camera
+      const distance = 2000; // Distance from camera where button "exists" in 3D space
+      const targetPos = new THREE.Vector3();
+      raycaster.ray.at(distance, targetPos);
+
+      this.targetPosition3D = targetPos;
     } else {
       // Return to neutral position
       this.targetRotation.x = 0;
       this.targetRotation.y = 0;
+      this.targetPosition3D = null;
     }
   }
 
@@ -1016,6 +1040,10 @@ class MegabotScene {
     rightEye.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2);
     headGroup.add(rightEye);
 
+    // Store references to eyes
+    this.leftEye = leftEye;
+    this.rightEye = rightEye;
+
     this.megabotParts.push({ mesh: leftEye, type: 'leftEye' });
     this.megabotParts.push({ mesh: rightEye, type: 'rightEye' });
 
@@ -1071,12 +1099,18 @@ class MegabotScene {
     const leftLaser = new THREE.Mesh(laserGeometry, laserMaterial);
     leftLaser.rotation.x = Math.PI / 2;
     leftLaser.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
+    leftLaser.visible = false; // Hidden by default until targeting
     headGroup.add(leftLaser);
 
     const rightLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
     rightLaser.rotation.x = Math.PI / 2;
     rightLaser.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
+    rightLaser.visible = false; // Hidden by default until targeting
     headGroup.add(rightLaser);
+
+    // Store references to lasers
+    this.leftLaser = leftLaser;
+    this.rightLaser = rightLaser;
 
     this.megabotParts.push({ mesh: leftLaser, type: 'leftLaser' });
     this.megabotParts.push({ mesh: rightLaser, type: 'rightLaser' });
@@ -1870,7 +1904,7 @@ class MegabotScene {
           }
         }
 
-        // Animate laser beams
+        // Animate laser beams with 3D raytracing
         if (part.type === 'leftLaser' || part.type === 'rightLaser') {
           if (part.mesh.material.uniforms) {
             part.mesh.material.uniforms.time.value = this.time;
@@ -1878,8 +1912,6 @@ class MegabotScene {
             const intensity = 2.0 + Math.sin(this.time * 3.0) * 0.5;
             part.mesh.material.uniforms.intensity.value = intensity;
           }
-          // Subtle beam movement/scanning
-          part.mesh.rotation.z = Math.sin(this.time * 0.5) * 0.05;
         }
 
         // Animate energy reactor
@@ -2103,6 +2135,68 @@ class MegabotScene {
 
       if (this.blastParticles.length === 0) {
         this.isBlasting = false;
+      }
+    }
+
+    // Update laser raycasting to target the button
+    if (this.leftLaser && this.rightLaser && this.leftEye && this.rightEye) {
+      const THREE = window.THREE;
+
+      if (this.targetPosition3D && this.trackingTarget) {
+        // Show lasers when tracking
+        this.leftLaser.visible = true;
+        this.rightLaser.visible = true;
+
+        // Get world positions of the eyes
+        const leftEyeWorldPos = new THREE.Vector3();
+        const rightEyeWorldPos = new THREE.Vector3();
+        this.leftEye.getWorldPosition(leftEyeWorldPos);
+        this.rightEye.getWorldPosition(rightEyeWorldPos);
+
+        // Calculate direction from each eye to target
+        const leftDirection = new THREE.Vector3().subVectors(this.targetPosition3D, leftEyeWorldPos);
+        const rightDirection = new THREE.Vector3().subVectors(this.targetPosition3D, rightEyeWorldPos);
+
+        // Calculate distance to target
+        const leftDistance = leftDirection.length();
+        const rightDistance = rightDirection.length();
+
+        // Normalize directions
+        leftDirection.normalize();
+        rightDirection.normalize();
+
+        // Position laser at midpoint between eye and target
+        const leftMidpoint = new THREE.Vector3().lerpVectors(leftEyeWorldPos, this.targetPosition3D, 0.5);
+        const rightMidpoint = new THREE.Vector3().lerpVectors(rightEyeWorldPos, this.targetPosition3D, 0.5);
+
+        // Convert world positions back to local head group space
+        const headWorldPos = new THREE.Vector3();
+        this.headGroup.getWorldPosition(headWorldPos);
+
+        this.leftLaser.position.copy(leftMidpoint).sub(headWorldPos);
+        this.rightLaser.position.copy(rightMidpoint).sub(headWorldPos);
+
+        // Scale lasers based on distance
+        const laserScale = Math.max(leftDistance, rightDistance) / (this.MAIN_SIZE * 8);
+        this.leftLaser.scale.y = laserScale;
+        this.rightLaser.scale.y = laserScale;
+
+        // Rotate lasers to point at target
+        // Create quaternions for rotation
+        const up = new THREE.Vector3(0, 1, 0);
+        const leftQuat = new THREE.Quaternion();
+        const rightQuat = new THREE.Quaternion();
+
+        leftQuat.setFromUnitVectors(up, leftDirection);
+        rightQuat.setFromUnitVectors(up, rightDirection);
+
+        this.leftLaser.quaternion.copy(leftQuat);
+        this.rightLaser.quaternion.copy(rightQuat);
+
+      } else {
+        // Hide lasers when not tracking
+        this.leftLaser.visible = false;
+        this.rightLaser.visible = false;
       }
     }
 
