@@ -44,6 +44,7 @@ export default function HomePage() {
 
   const handleButtonLeave = () => {
     setHoveredButton(null);
+    setMousePosition({ x: 0, y: 0 });
     setButtonBounds(null);
   };
 

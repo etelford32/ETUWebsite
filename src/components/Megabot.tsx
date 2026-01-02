@@ -38,6 +38,11 @@ export default function Megabot({
       }
     };
 
+    threeScript.onerror = () => {
+      console.error('❌ Failed to load Three.js library from CDN');
+      // Fallback: Could show a static image or retry with a different CDN
+    };
+
     document.head.appendChild(threeScript);
 
     return () => {
@@ -128,6 +133,10 @@ class MegabotScene {
   blastParticles: any[] = [];
   isBlasting: boolean = false;
   blastTime: number = 0;
+
+  // Laser spark particles for continuous hover effect
+  sparkParticles: any[] = [];
+  sparkSpawnTimer: number = 0;
 
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
@@ -259,18 +268,31 @@ class MegabotScene {
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, this.camera);
 
-      // Project onto a plane at a fixed distance from camera
-      const distance = 2000; // Distance from camera where button "exists" in 3D space
+      // Project onto a plane in front of the camera at a reasonable UI depth
+      // Use the camera's view direction to create a plane perpendicular to camera
+      const cameraDirection = new THREE.Vector3();
+      this.camera.getWorldDirection(cameraDirection);
+
+      // Create a plane at a fixed distance from camera (where UI elements appear to be)
+      const planeDistance = 800; // Closer distance for UI targeting
+      const planePoint = this.camera.position.clone().add(cameraDirection.multiplyScalar(planeDistance));
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraDirection.clone().negate(), planePoint);
+
+      // Intersect ray with plane
       const targetPos = new THREE.Vector3();
-      raycaster.ray.at(distance, targetPos);
+      const intersection = raycaster.ray.intersectPlane(plane, targetPos);
 
-      this.targetPosition3D = targetPos;
-
-      console.log('🎯 Tracking target set:', {
-        screen: `(${target.x}, ${target.y})`,
-        world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
-        hasLasers: !!(this.leftLaser && this.rightLaser)
-      });
+      if (intersection) {
+        this.targetPosition3D = targetPos;
+        console.log('🎯 Tracking target set:', {
+          screen: `(${target.x}, ${target.y})`,
+          world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
+          hasLasers: !!(this.leftLaser && this.rightLaser)
+        });
+      } else {
+        console.warn('⚠️ Ray-plane intersection failed, falling back to scanning mode');
+        this.targetPosition3D = null;
+      }
     } else {
       // Return to neutral position
       this.targetRotation.x = 0;
@@ -375,6 +397,75 @@ class MegabotScene {
       }
     });
     this.borderLasers = [];
+  }
+
+  createLaserSparks() {
+    const THREE = window.THREE;
+    if (!THREE || !this.targetPosition3D || !this.scene) return;
+
+    // Create small spark bursts at laser impact point
+    const particleCount = 15; // Smaller bursts for continuous effect
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities: number[] = [];
+    const colors = new Float32Array(particleCount * 3);
+
+    // Sparks originate from target position
+    const worldPos = this.targetPosition3D.clone();
+
+    for (let i = 0; i < particleCount; i++) {
+      // Start at impact point with slight randomness
+      positions[i * 3] = worldPos.x + (Math.random() - 0.5) * 20;
+      positions[i * 3 + 1] = worldPos.y + (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = worldPos.z + (Math.random() - 0.5) * 20;
+
+      // Random velocities for spark spray
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 5 + Math.random() * 10;
+      const elevation = (Math.random() - 0.5) * Math.PI * 0.3;
+
+      velocities.push(Math.cos(angle) * Math.cos(elevation) * speed);
+      velocities.push(Math.sin(elevation) * speed);
+      velocities.push(Math.sin(angle) * Math.cos(elevation) * speed);
+
+      // Bright red/orange/yellow sparks
+      const colorChoice = Math.random();
+      if (colorChoice < 0.4) {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 0.0;
+        colors[i * 3 + 2] = 0.0;
+      } else if (colorChoice < 0.7) {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 0.3;
+        colors[i * 3 + 2] = 0.0;
+      } else {
+        colors[i * 3] = 1.0;
+        colors[i * 3 + 1] = 1.0;
+        colors[i * 3 + 2] = 0.2;
+      }
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 4,
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    this.scene.add(particles);
+
+    this.sparkParticles.push({
+      system: particles,
+      velocities: velocities,
+      age: 0,
+      maxAge: 0.8 // Short-lived sparks
+    });
   }
 
   createBlastEffect() {
@@ -1054,13 +1145,13 @@ class MegabotScene {
     this.megabotParts.push({ mesh: leftEye, type: 'leftEye' });
     this.megabotParts.push({ mesh: rightEye, type: 'rightEye' });
 
-    // Laser beam effects from eyes
-    const laserGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.01, this.MAIN_SIZE * 8, 8);
+    // Laser beam effects from eyes - now properly positioned
+    const laserGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.008, 1, 8);
     const laserMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
         beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
-        intensity: { value: 2.0 },
+        intensity: { value: 3.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -1081,18 +1172,21 @@ class MegabotScene {
 
         void main() {
           // Beam intensity from center to edge
-          float distFromCenter = abs(vUv.x - 0.5) * 2.0;
+          float distFromCenter = length(vec2(vUv.x - 0.5, 0.0)) * 2.0;
           float beamIntensity = 1.0 - distFromCenter;
-          beamIntensity = pow(beamIntensity, 2.0);
+          beamIntensity = pow(beamIntensity, 3.0);
 
           // Pulsing energy
-          float pulse = 0.7 + sin(time * 6.0 + vUv.y * 10.0) * 0.3;
+          float pulse = 0.8 + sin(time * 8.0 + vUv.y * 15.0) * 0.2;
 
           // Traveling energy waves
-          float wave = sin(vUv.y * 20.0 - time * 10.0) * 0.5 + 0.5;
+          float wave = sin(vUv.y * 30.0 - time * 15.0) * 0.4 + 0.6;
 
-          vec3 finalColor = beamColor * intensity * beamIntensity * pulse * (0.7 + wave * 0.3);
-          float alpha = beamIntensity * 0.9;
+          // Core beam is brighter
+          float coreBrightness = smoothstep(0.3, 0.0, distFromCenter);
+
+          vec3 finalColor = beamColor * intensity * (beamIntensity * pulse * wave + coreBrightness * 2.0);
+          float alpha = beamIntensity * 0.95;
 
           gl_FragColor = vec4(finalColor, alpha);
         }
@@ -1104,15 +1198,13 @@ class MegabotScene {
     });
 
     const leftLaser = new THREE.Mesh(laserGeometry, laserMaterial);
-    leftLaser.rotation.x = Math.PI / 2;
-    leftLaser.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
-    leftLaser.visible = true; // Visible for debugging
+    leftLaser.position.copy(leftEye.position);
+    leftLaser.visible = false; // Start hidden
     headGroup.add(leftLaser);
 
     const rightLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
-    rightLaser.rotation.x = Math.PI / 2;
-    rightLaser.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
-    rightLaser.visible = true; // Visible for debugging
+    rightLaser.position.copy(rightEye.position);
+    rightLaser.visible = false; // Start hidden
     headGroup.add(rightLaser);
 
     // Store references to lasers
@@ -1122,7 +1214,10 @@ class MegabotScene {
     this.megabotParts.push({ mesh: leftLaser, type: 'leftLaser' });
     this.megabotParts.push({ mesh: rightLaser, type: 'rightLaser' });
 
-    console.log('🔴 Lasers created:', { leftLaser, rightLaser, visible: leftLaser.visible });
+    console.log('🔴 Lasers created at eye positions:', {
+      leftEyePos: leftEye.position,
+      rightEyePos: rightEye.position
+    });
 
     // Eye glow lights
     const leftEyeLight = new THREE.PointLight(0xff0000, 3, 500);
@@ -2147,12 +2242,60 @@ class MegabotScene {
       }
     }
 
+    // Generate and update laser spark particles
+    if (this.targetPosition3D && this.trackingTarget) {
+      // Spawn sparks periodically when tracking
+      this.sparkSpawnTimer += deltaTime;
+      if (this.sparkSpawnTimer >= 0.05) { // Spawn every 50ms
+        this.createLaserSparks();
+        this.sparkSpawnTimer = 0;
+      }
+    }
+
+    // Update existing spark particles
+    if (this.sparkParticles.length > 0) {
+      this.sparkParticles = this.sparkParticles.filter(spark => {
+        spark.age += deltaTime;
+
+        if (spark.age >= spark.maxAge) {
+          // Remove expired sparks
+          if (this.scene) this.scene.remove(spark.system);
+          if (spark.system.geometry) spark.system.geometry.dispose();
+          if (spark.system.material) spark.system.material.dispose();
+          return false;
+        }
+
+        // Update particle positions
+        const positions = spark.system.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < positions.length / 3; i++) {
+          positions[i * 3] += spark.velocities[i * 3];
+          positions[i * 3 + 1] += spark.velocities[i * 3 + 1];
+          positions[i * 3 + 2] += spark.velocities[i * 3 + 2];
+
+          // Apply gravity to sparks
+          spark.velocities[i * 3 + 1] -= 0.8;
+
+          // Air resistance
+          spark.velocities[i * 3] *= 0.95;
+          spark.velocities[i * 3 + 1] *= 0.95;
+          spark.velocities[i * 3 + 2] *= 0.95;
+        }
+        spark.system.geometry.attributes.position.needsUpdate = true;
+
+        // Fade out
+        const fadeProgress = spark.age / spark.maxAge;
+        spark.system.material.opacity = 1.0 - fadeProgress;
+
+        return true;
+      });
+    }
+
     // Update laser raycasting to target the button
-    if (this.leftLaser && this.rightLaser && this.leftEye && this.rightEye) {
+    if (this.leftLaser && this.rightLaser && this.leftEye && this.rightEye && this.headGroup) {
       const THREE = window.THREE;
 
-      if (this.targetPosition3D && this.trackingTarget) {
-        // Show lasers when tracking
+      if (this.trackingTarget && this.targetPosition3D) {
+        // TRACKING MODE: Aim lasers at button (only if plane intersection succeeded)
         this.leftLaser.visible = true;
         this.rightLaser.visible = true;
 
@@ -2174,45 +2317,86 @@ class MegabotScene {
         leftDirection.normalize();
         rightDirection.normalize();
 
-        // Update laser scale to match distance
-        this.leftLaser.scale.y = leftDistance / (this.MAIN_SIZE * 8);
-        this.rightLaser.scale.y = rightDistance / (this.MAIN_SIZE * 8);
+        // Update laser scale to match distance (cylinder height is 1, so scale.y = actual distance)
+        this.leftLaser.scale.y = leftDistance;
+        this.rightLaser.scale.y = rightDistance;
 
-        // Position lasers at eye positions in local head space
+        // Position lasers at eye positions
         this.leftLaser.position.copy(this.leftEye.position);
         this.rightLaser.position.copy(this.rightEye.position);
 
-        // Point lasers at target using lookAt (convert target to local space)
+        // Convert target from world space to head local space for lookAt
         const headWorldPos = new THREE.Vector3();
         const headWorldQuat = new THREE.Quaternion();
         const headWorldScale = new THREE.Vector3();
         this.headGroup.matrixWorld.decompose(headWorldPos, headWorldQuat, headWorldScale);
 
-        // Convert target from world space to head local space
         const targetLocal = new THREE.Vector3().copy(this.targetPosition3D);
         targetLocal.sub(headWorldPos);
         targetLocal.applyQuaternion(headWorldQuat.clone().invert());
 
-        // Make lasers point at target
-        this.leftLaser.lookAt(targetLocal);
-        this.rightLaser.lookAt(targetLocal);
+        // Point lasers at target (cylinder's Y axis points along length)
+        const upVector = new THREE.Vector3(0, 1, 0);
 
-        // Rotate 90 degrees because cylinder is oriented along Y axis
-        this.leftLaser.rotateX(Math.PI / 2);
-        this.rightLaser.rotateX(Math.PI / 2);
+        // For left laser
+        const leftQuaternion = new THREE.Quaternion();
+        leftQuaternion.setFromUnitVectors(upVector, leftDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize());
+        this.leftLaser.quaternion.copy(leftQuaternion);
 
-        console.log('👁️ Lasers active:', {
-          leftDistance: leftDistance.toFixed(0),
-          rightDistance: rightDistance.toFixed(0),
-          leftScale: this.leftLaser.scale.y.toFixed(2),
-          rightScale: this.rightLaser.scale.y.toFixed(2),
-          targetPos: `${this.targetPosition3D.x.toFixed(0)}, ${this.targetPosition3D.y.toFixed(0)}, ${this.targetPosition3D.z.toFixed(0)}`
-        });
+        // For right laser
+        const rightQuaternion = new THREE.Quaternion();
+        rightQuaternion.setFromUnitVectors(upVector, rightDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize());
+        this.rightLaser.quaternion.copy(rightQuaternion);
+
+        // Move laser origin to eye center (cylinder's center is at origin, we want base at eye)
+        // Offset by half the laser length in the direction it's pointing (local space)
+        const leftLocalDirection = leftDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
+        this.leftLaser.position.add(leftLocalDirection.multiplyScalar(leftDistance / 2));
+
+        const rightLocalDirection = rightDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
+        this.rightLaser.position.add(rightLocalDirection.multiplyScalar(rightDistance / 2));
 
       } else {
-        // Hide lasers when not tracking
-        this.leftLaser.visible = false;
-        this.rightLaser.visible = false;
+        // SCANNING MODE: Lasers sweep the area menacingly
+        this.leftLaser.visible = true;
+        this.rightLaser.visible = true;
+
+        // Position at eyes
+        this.leftLaser.position.copy(this.leftEye.position);
+        this.rightLaser.position.copy(this.rightEye.position);
+
+        // Scanning pattern - figure-8 sweep
+        const scanSpeed = 0.3;
+        const scanAngleY = Math.sin(this.time * scanSpeed) * 0.4; // Horizontal sweep
+        const scanAngleX = Math.sin(this.time * scanSpeed * 2) * 0.3; // Vertical sweep
+
+        // Left laser scans in a pattern
+        const leftScanDirection = new THREE.Vector3(
+          Math.sin(scanAngleY - 0.2),
+          Math.sin(scanAngleX),
+          1
+        ).normalize();
+
+        const leftQuaternion = new THREE.Quaternion();
+        leftQuaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), leftScanDirection);
+        this.leftLaser.quaternion.copy(leftQuaternion);
+        this.leftLaser.scale.y = this.MAIN_SIZE * 3; // Medium range for scanning
+
+        // Right laser scans in opposite pattern
+        const rightScanDirection = new THREE.Vector3(
+          Math.sin(scanAngleY + 0.2),
+          Math.sin(scanAngleX),
+          1
+        ).normalize();
+
+        const rightQuaternion = new THREE.Quaternion();
+        rightQuaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rightScanDirection);
+        this.rightLaser.quaternion.copy(rightQuaternion);
+        this.rightLaser.scale.y = this.MAIN_SIZE * 3;
+
+        // Offset position so laser starts at eye
+        this.leftLaser.position.add(leftScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
+        this.rightLaser.position.add(rightScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
       }
     }
 
