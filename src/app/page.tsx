@@ -132,14 +132,6 @@ export default function HomePage() {
       <StickyHeaderCTA />
       <ExitIntentPopup />
 
-      {/* Top Announcement */}
-      <div className="w-full bg-gradient-to-r from-amber-600/20 to-orange-600/20 border-b border-amber-500/30 text-center text-sm py-2">
-        <span className="mr-3">🎄 Demo delayed to New Year's Eve - Quality over speed!</span>
-        <a href="#download" className="underline decoration-dotted hover:text-white">
-          Wishlist to get notified
-        </a>
-      </div>
-
       <Header />
 
       {/* HERO with Christmas Theme + Black Hole */}
@@ -314,27 +306,28 @@ export default function HomePage() {
                   <span className="relative z-10">🎮 GET FREE DEMO - WISHLIST NOW</span>
                 </a>
 
-                {/* Secondary Links (De-emphasized) */}
-                <div className="flex items-center gap-4 text-sm md:text-base">
-                  <Link
-                    href="/leaderboard"
-                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
-                  >
-                    📊 See Live Leaderboard
-                  </Link>
-                  <span className="text-slate-500">•</span>
-                  <a
-                    href="#trailer"
-                    className="text-cyan-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4 transition-colors flex items-center gap-1"
-                  >
-                    ▶️ Watch Trailer
-                  </a>
-                </div>
+              </div>
 
-                {/* FOMO Counter - Limited Founder Rewards */}
-                <div className="reveal mt-6 w-full">
-                  <FOMOCounter maxFounderSkins={500} showProgressBar={true} />
-                </div>
+              {/* Secondary Action Buttons - Placed Lower */}
+              <div className="reveal mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  href="/leaderboard"
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 hover:from-purple-600/30 hover:to-indigo-600/30 border border-purple-500/30 hover:border-purple-400/50 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16 11V3H8v6H2v12h20V11h-6zM10 5h4v14h-4V5zm-6 8h4v6H4v-6zm16 6h-4v-6h4v6z" />
+                  </svg>
+                  See Live Leaderboard
+                </Link>
+                <a
+                  href="#trailer"
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/30 hover:border-cyan-400/50 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Watch Trailer
+                </a>
               </div>
 
               {/* Countdown Timer & Real Signup Stats */}
