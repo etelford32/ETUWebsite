@@ -248,18 +248,6 @@ class MegabotScene {
     this.trackingTarget = target;
 
     if (target && this.camera && this.headGroup) {
-      // Convert screen coordinates to 3D world position
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-
-      // Calculate angle from center to mouse
-      const dx = target.x - centerX;
-      const dy = target.y - centerY;
-
-      // Convert to rotation angles (limited range for natural movement)
-      this.targetRotation.y = (dx / centerX) * 0.3; // Horizontal rotation (yaw)
-      this.targetRotation.x = -(dy / centerY) * 0.2; // Vertical rotation (pitch)
-
       // Convert 2D screen coordinates to 3D position using raycasting
       const mouse = new THREE.Vector2();
       mouse.x = (target.x / window.innerWidth) * 2 - 1;
@@ -284,14 +272,38 @@ class MegabotScene {
 
       if (intersection) {
         this.targetPosition3D = targetPos;
+
+        // Calculate proper head and body rotation to look at the target
+        // Get megabot's world position
+        const megabotWorldPos = new THREE.Vector3();
+        this.mainMegabot.getWorldPosition(megabotWorldPos);
+
+        // Calculate direction from megabot to target
+        const directionToTarget = new THREE.Vector3().subVectors(targetPos, megabotWorldPos);
+
+        // Calculate rotation angles (Euler angles in Y-X-Z order)
+        // Y-axis rotation (yaw - horizontal turn)
+        const targetYaw = Math.atan2(directionToTarget.x, directionToTarget.z);
+
+        // X-axis rotation (pitch - vertical tilt)
+        const horizontalDistance = Math.sqrt(directionToTarget.x * directionToTarget.x + directionToTarget.z * directionToTarget.z);
+        const targetPitch = -Math.atan2(directionToTarget.y, horizontalDistance);
+
+        // Store target rotations (limited for natural movement)
+        this.targetRotation.y = THREE.MathUtils.clamp(targetYaw, -0.5, 0.5); // Limit horizontal turn
+        this.targetRotation.x = THREE.MathUtils.clamp(targetPitch, -0.3, 0.3); // Limit vertical tilt
+
         console.log('🎯 Tracking target set:', {
           screen: `(${target.x}, ${target.y})`,
           world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
+          rotation: `yaw: ${(targetYaw * 180 / Math.PI).toFixed(1)}°, pitch: ${(targetPitch * 180 / Math.PI).toFixed(1)}°`,
           hasLasers: !!(this.leftLaser && this.rightLaser)
         });
       } else {
         console.warn('⚠️ Ray-plane intersection failed, falling back to scanning mode');
         this.targetPosition3D = null;
+        this.targetRotation.x = 0;
+        this.targetRotation.y = 0;
       }
     } else {
       // Return to neutral position
@@ -1993,8 +2005,24 @@ class MegabotScene {
 
     // Animate main Megabot
     if (this.mainMegabot) {
-      // Slow menacing rotation
-      this.mainMegabot.rotation.y += 0.001;
+      // Body rotation - track target or idle rotation
+      if (this.trackingTarget && this.targetPosition3D) {
+        // TRACKING MODE: Make the whole body turn to face the target!
+        const lerpSpeed = 0.08; // Slower for the massive body
+
+        // Smoothly rotate body toward target
+        this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
+        this.mainMegabot.rotation.y = this.currentRotation.y;
+      } else {
+        // IDLE MODE: Slow menacing rotation
+        // Smoothly return to neutral rotation when not tracking
+        const returnSpeed = 0.05;
+        this.currentRotation.y += (0 - this.currentRotation.y) * returnSpeed;
+        this.currentRotation.x += (0 - this.currentRotation.x) * returnSpeed;
+
+        // Apply slow idle rotation on top of neutral position
+        this.mainMegabot.rotation.y += 0.001;
+      }
 
       // Animate individual parts
       this.megabotParts.forEach((part) => {
@@ -2012,8 +2040,9 @@ class MegabotScene {
         if (part.type === 'leftLaser' || part.type === 'rightLaser') {
           if (part.mesh.material.uniforms) {
             part.mesh.material.uniforms.time.value = this.time;
-            // Pulsing beam intensity
-            const intensity = 2.0 + Math.sin(this.time * 3.0) * 0.5;
+            // Pulsing beam intensity - extra intense when tracking
+            const baseIntensity = this.trackingTarget ? 3.5 : 2.0;
+            const intensity = baseIntensity + Math.sin(this.time * 3.0) * 0.5;
             part.mesh.material.uniforms.intensity.value = intensity;
           }
         }
@@ -2034,25 +2063,35 @@ class MegabotScene {
 
         // Head movement (menacing scan or tracking)
         if (part.type === 'head') {
-          if (this.trackingTarget) {
-            // Smoothly interpolate current rotation toward target
-            const lerpSpeed = 0.1;
-            this.currentRotation.x += (this.targetRotation.x - this.currentRotation.x) * lerpSpeed;
-            this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
+          if (this.trackingTarget && this.targetPosition3D) {
+            // TRACKING MODE: Head tilts to aim precisely at target
+            const headLerpSpeed = 0.12; // Faster than body for responsive feeling
 
+            // Head pitch (X rotation) - vertical tilt
+            this.currentRotation.x += (this.targetRotation.x - this.currentRotation.x) * headLerpSpeed;
             part.mesh.rotation.x = this.currentRotation.x;
-            part.mesh.rotation.y = this.currentRotation.y;
+
+            // Head is already pointing forward due to body rotation, so minimal Y adjustment
+            part.mesh.rotation.y = 0;
 
             // Intensify eye glow when tracking
             this.megabotParts.forEach((eyePart) => {
               if ((eyePart.type === 'leftEye' || eyePart.type === 'rightEye') && eyePart.mesh.material.uniforms) {
-                eyePart.mesh.material.uniforms.glowIntensity.value = 5.0; // Extra intense when tracking
+                eyePart.mesh.material.uniforms.glowIntensity.value = 6.0; // MAXIMUM INTENSITY when locked on!
               }
             });
           } else {
-            // Default menacing scan when not tracking
-            part.mesh.rotation.y = Math.sin(this.time * 0.3) * 0.2;
-            part.mesh.rotation.x = Math.sin(this.time * 0.5) * 0.1;
+            // IDLE MODE: Default menacing scan when not tracking
+            // Smoothly lerp back to scanning pattern
+            const scanY = Math.sin(this.time * 0.3) * 0.2;
+            const scanX = Math.sin(this.time * 0.5) * 0.1;
+
+            const returnSpeed = 0.08;
+            this.currentRotation.x += (scanX - this.currentRotation.x) * returnSpeed;
+            this.currentRotation.y += (scanY - this.currentRotation.y) * returnSpeed;
+
+            part.mesh.rotation.y = this.currentRotation.y;
+            part.mesh.rotation.x = this.currentRotation.x;
           }
         }
 
