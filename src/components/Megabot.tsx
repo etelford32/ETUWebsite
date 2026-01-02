@@ -265,11 +265,18 @@ class MegabotScene {
       raycaster.ray.at(distance, targetPos);
 
       this.targetPosition3D = targetPos;
+
+      console.log('🎯 Tracking target set:', {
+        screen: `(${target.x}, ${target.y})`,
+        world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
+        hasLasers: !!(this.leftLaser && this.rightLaser)
+      });
     } else {
       // Return to neutral position
       this.targetRotation.x = 0;
       this.targetRotation.y = 0;
       this.targetPosition3D = null;
+      console.log('🎯 Tracking target cleared');
     }
   }
 
@@ -1099,13 +1106,13 @@ class MegabotScene {
     const leftLaser = new THREE.Mesh(laserGeometry, laserMaterial);
     leftLaser.rotation.x = Math.PI / 2;
     leftLaser.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
-    leftLaser.visible = false; // Hidden by default until targeting
+    leftLaser.visible = true; // Visible for debugging
     headGroup.add(leftLaser);
 
     const rightLaser = new THREE.Mesh(laserGeometry, laserMaterial.clone());
     rightLaser.rotation.x = Math.PI / 2;
     rightLaser.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 4.5);
-    rightLaser.visible = false; // Hidden by default until targeting
+    rightLaser.visible = true; // Visible for debugging
     headGroup.add(rightLaser);
 
     // Store references to lasers
@@ -1114,6 +1121,8 @@ class MegabotScene {
 
     this.megabotParts.push({ mesh: leftLaser, type: 'leftLaser' });
     this.megabotParts.push({ mesh: rightLaser, type: 'rightLaser' });
+
+    console.log('🔴 Lasers created:', { leftLaser, rightLaser, visible: leftLaser.visible });
 
     // Eye glow lights
     const leftEyeLight = new THREE.PointLight(0xff0000, 3, 500);
@@ -2165,33 +2174,40 @@ class MegabotScene {
         leftDirection.normalize();
         rightDirection.normalize();
 
-        // Position laser at midpoint between eye and target
-        const leftMidpoint = new THREE.Vector3().lerpVectors(leftEyeWorldPos, this.targetPosition3D, 0.5);
-        const rightMidpoint = new THREE.Vector3().lerpVectors(rightEyeWorldPos, this.targetPosition3D, 0.5);
+        // Update laser scale to match distance
+        this.leftLaser.scale.y = leftDistance / (this.MAIN_SIZE * 8);
+        this.rightLaser.scale.y = rightDistance / (this.MAIN_SIZE * 8);
 
-        // Convert world positions back to local head group space
+        // Position lasers at eye positions in local head space
+        this.leftLaser.position.copy(this.leftEye.position);
+        this.rightLaser.position.copy(this.rightEye.position);
+
+        // Point lasers at target using lookAt (convert target to local space)
         const headWorldPos = new THREE.Vector3();
-        this.headGroup.getWorldPosition(headWorldPos);
+        const headWorldQuat = new THREE.Quaternion();
+        const headWorldScale = new THREE.Vector3();
+        this.headGroup.matrixWorld.decompose(headWorldPos, headWorldQuat, headWorldScale);
 
-        this.leftLaser.position.copy(leftMidpoint).sub(headWorldPos);
-        this.rightLaser.position.copy(rightMidpoint).sub(headWorldPos);
+        // Convert target from world space to head local space
+        const targetLocal = new THREE.Vector3().copy(this.targetPosition3D);
+        targetLocal.sub(headWorldPos);
+        targetLocal.applyQuaternion(headWorldQuat.clone().invert());
 
-        // Scale lasers based on distance
-        const laserScale = Math.max(leftDistance, rightDistance) / (this.MAIN_SIZE * 8);
-        this.leftLaser.scale.y = laserScale;
-        this.rightLaser.scale.y = laserScale;
+        // Make lasers point at target
+        this.leftLaser.lookAt(targetLocal);
+        this.rightLaser.lookAt(targetLocal);
 
-        // Rotate lasers to point at target
-        // Create quaternions for rotation
-        const up = new THREE.Vector3(0, 1, 0);
-        const leftQuat = new THREE.Quaternion();
-        const rightQuat = new THREE.Quaternion();
+        // Rotate 90 degrees because cylinder is oriented along Y axis
+        this.leftLaser.rotateX(Math.PI / 2);
+        this.rightLaser.rotateX(Math.PI / 2);
 
-        leftQuat.setFromUnitVectors(up, leftDirection);
-        rightQuat.setFromUnitVectors(up, rightDirection);
-
-        this.leftLaser.quaternion.copy(leftQuat);
-        this.rightLaser.quaternion.copy(rightQuat);
+        console.log('👁️ Lasers active:', {
+          leftDistance: leftDistance.toFixed(0),
+          rightDistance: rightDistance.toFixed(0),
+          leftScale: this.leftLaser.scale.y.toFixed(2),
+          rightScale: this.rightLaser.scale.y.toFixed(2),
+          targetPos: `${this.targetPosition3D.x.toFixed(0)}, ${this.targetPosition3D.y.toFixed(0)}, ${this.targetPosition3D.z.toFixed(0)}`
+        });
 
       } else {
         // Hide lasers when not tracking
