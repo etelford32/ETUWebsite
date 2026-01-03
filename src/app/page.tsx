@@ -612,10 +612,110 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Video Gallery */}
+      <section className="py-20 bg-gradient-to-b from-deep-900 to-deep-800 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              More Videos & Footage
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Dive deeper into the universe with gameplay footage and animations
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <article className="reveal group">
+              <div className="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-cyan-500/50 transition-all">
+                <video
+                  controls
+                  poster="/Explore_Epic5.png"
+                  className="w-full h-full object-cover bg-black"
+                  preload="metadata"
+                >
+                  <source src="/ETU1.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-xl font-bold text-cyan-300">Gameplay Footage</h3>
+                <p className="text-slate-300 mt-2">Watch real gameplay showcasing combat mechanics, ship customization, and faction interactions in action.</p>
+              </div>
+            </article>
+
+            <article className="reveal group">
+              <div className="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-blue-500/50 transition-all">
+                <video
+                  controls
+                  poster="/logo2.png"
+                  className="w-full h-full object-cover bg-black"
+                  preload="metadata"
+                >
+                  <source src="/ETU_Logo2.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-xl font-bold text-blue-300">Logo Animation</h3>
+                <p className="text-slate-300 mt-2">Experience the mesmerizing animated logo reveal that sets the tone for your space adventure.</p>
+              </div>
+            </article>
+
+            <article className="reveal group">
+              <div className="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-purple-500/50 transition-all">
+                <video
+                  controls
+                  poster="/Explore_Epic5.png"
+                  className="w-full h-full object-cover bg-black"
+                  preload="metadata"
+                >
+                  <source src="/Quasar1.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-xl font-bold text-purple-300">Quasar Environment</h3>
+                <p className="text-slate-300 mt-2">Explore the stunning space environments featuring quasars, nebulae, and cosmic phenomena.</p>
+              </div>
+            </article>
+
+            <article className="reveal group">
+              <div className="relative aspect-video rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-indigo-500/50 transition-all">
+                <video
+                  controls
+                  poster="/Explore_Epic5.png"
+                  className="w-full h-full object-cover bg-black"
+                  preload="metadata"
+                >
+                  <source src="/u3172841634__--ar_11_--video_1_--end_httpss.mj.runAlLxrf1zR6w_fc74704f-b0b3-4d69-a6e6-d2da06d47faa_0.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-xl font-bold text-indigo-300">Universe Exploration</h3>
+                <p className="text-slate-300 mt-2">Journey through the procedurally generated galaxy and discover what awaits among the stars.</p>
+              </div>
+            </article>
+          </div>
+
+          <div className="reveal text-center mt-12">
+            <a
+              href="/press-kit"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 hover:border-white/30 font-semibold transition-all"
+            >
+              <span>Download All Media</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section
         id="features"
-        className="py-20 bg-gradient-to-b from-deep-800/30 to-deep-900"
+        className="py-20 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-white/10"
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <header className="reveal max-w-3xl">
@@ -669,10 +769,83 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Game Systems Showcase */}
+      <section className="py-20 bg-gradient-to-b from-deep-900 to-deep-800 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Next-Gen Game Systems
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Revolutionary technology that brings the universe to life
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <article className="reveal group rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-cyan-500/50 transition-all">
+              <div className="relative aspect-video overflow-hidden">
+                <Image
+                  src="/ai_systems.jpg"
+                  alt="Adaptive AI Systems"
+                  width={600}
+                  height={400}
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-deep-900/50 to-transparent"></div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-bold text-cyan-300 mb-3">Adaptive AI</h3>
+                <p className="text-slate-300 leading-relaxed">
+                  Face enemies that learn from your tactics. MEGABOT evolves with each encounter, analyzing your strategies and adapting its defenses. No two battles are ever the same.
+                </p>
+              </div>
+            </article>
+
+            <article className="reveal group rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-blue-500/50 transition-all">
+              <div className="relative aspect-video overflow-hidden">
+                <Image
+                  src="/physics.jpg"
+                  alt="Realistic Physics Systems"
+                  width={600}
+                  height={400}
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-deep-900/50 to-transparent"></div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-bold text-blue-300 mb-3">NASA-Grade Physics</h3>
+                <p className="text-slate-300 leading-relaxed">
+                  Experience true Newtonian orbital mechanics. Plan gravity assists, manage delta-v budgets, and master realistic space combat where every action has an equal and opposite reaction.
+                </p>
+              </div>
+            </article>
+
+            <article className="reveal group rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10 hover:ring-purple-500/50 transition-all">
+              <div className="relative aspect-video overflow-hidden">
+                <Image
+                  src="/upgrade.jpg"
+                  alt="Ship Upgrade Systems"
+                  width={600}
+                  height={400}
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-deep-900/50 to-transparent"></div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-bold text-purple-300 mb-3">Deep Customization</h3>
+                <p className="text-slate-300 leading-relaxed">
+                  Craft your perfect starship with modular upgrades. From weapons to shields, engines to sensors—every component affects your ship&apos;s performance and your playstyle.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       {/* Emergent Upgrades */}
       <section
         id="progression"
-        className="py-20 bg-gradient-to-b from-deep-900 via-deep-800 to-deep-900"
+        className="py-20 bg-gradient-to-b from-deep-800 via-deep-900 to-deep-800"
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-12">
@@ -883,10 +1056,106 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Screenshot Gallery */}
+      <section className="py-20 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Experience the Universe
+            </h2>
+            <p className="mt-4 text-xl text-slate-300">
+              Stunning visuals from across the galaxy
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <article className="reveal group relative overflow-hidden rounded-2xl ring-1 ring-white/10 hover:ring-cyan-500/50 transition-all">
+              <div className="relative aspect-video">
+                <Image
+                  src="/etu_epic7.png"
+                  alt="Epic gameplay showcase"
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-transparent to-transparent opacity-60"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-2xl font-bold text-white drop-shadow-lg">Epic Space Battles</h3>
+                  <p className="text-slate-200 mt-1">Engage in intense combat across the stars</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="reveal group relative overflow-hidden rounded-2xl ring-1 ring-white/10 hover:ring-blue-500/50 transition-all">
+              <div className="relative aspect-video">
+                <Image
+                  src="/ETC_Offish_cover6.png"
+                  alt="Official game cover"
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-transparent to-transparent opacity-60"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-2xl font-bold text-white drop-shadow-lg">Explore Unknown Worlds</h3>
+                  <p className="text-slate-200 mt-1">Discover secrets in procedurally generated galaxies</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="reveal group relative overflow-hidden rounded-2xl ring-1 ring-white/10 hover:ring-purple-500/50 transition-all">
+              <div className="relative aspect-video">
+                <Image
+                  src="/etugp1.jpg"
+                  alt="In-game screenshot"
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-transparent to-transparent opacity-60"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-2xl font-bold text-white drop-shadow-lg">Master Your Ship</h3>
+                  <p className="text-slate-200 mt-1">Navigate with NASA-grade physics</p>
+                </div>
+              </div>
+            </article>
+
+            <article className="reveal group relative overflow-hidden rounded-2xl ring-1 ring-white/10 hover:ring-red-500/50 transition-all">
+              <div className="relative aspect-video">
+                <Image
+                  src="/Megabot1.png"
+                  alt="Megabot faction showcase"
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-transparent to-transparent opacity-60"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <h3 className="text-2xl font-bold text-white drop-shadow-lg">Face MEGABOT Empire</h3>
+                  <p className="text-slate-200 mt-1">Battle the adaptive AI boss that evolves</p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div className="reveal text-center mt-12">
+            <a
+              href="/press-kit"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 hover:border-white/30 font-semibold transition-all"
+            >
+              <span>View Full Press Kit</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Steam Wishlist + Leaderboard Section */}
       <section
         id="leaderboard"
-        className="reveal py-20 border-t border-white/10 bg-gradient-to-b from-deep-800/40 to-deep-900"
+        className="reveal py-20 border-t border-white/10 bg-gradient-to-b from-deep-900 to-deep-800"
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           {/* STEAM WISHLIST HERO */}

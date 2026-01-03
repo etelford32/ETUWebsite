@@ -4,6 +4,7 @@ export interface Faction {
   tagline: string;
   description: string;
   heroImage: string;
+  gallery?: string[];
   color: {
     primary: string;
     secondary: string;
@@ -29,6 +30,7 @@ export const factions: Record<string, Faction> = {
     description:
       "The Crystal Intelligences are sentient crystalline beings that harness light and electromagnetic energy. Their civilization is built on principles of perfect geometry and harmonic resonance.",
     heroImage: "/Crystal_Race.jpg",
+    gallery: ["/Crystal_Race.jpg", "/FutureCyl.jpg"],
     color: {
       primary: "#60a5fa",
       secondary: "#3b82f6",
@@ -80,6 +82,7 @@ export const factions: Record<string, Faction> = {
     description:
       "The Mycelari are a collective consciousness of fungal organisms that spread through space via spore clouds. They consume asteroids and derelict stations to fuel rapid expansion.",
     heroImage: "/Mycelari_Hero2.jpg",
+    gallery: ["/Mycelari_Hero2.jpg", "/Mycelari_Hero1.jpg"],
     color: {
       primary: "#a78bfa",
       secondary: "#8b5cf6",
@@ -131,6 +134,7 @@ export const factions: Record<string, Faction> = {
     description:
       "The Megabot Empire consists of massive modular machines that can reconfigure themselves for any combat situation. Each unit is a marvel of engineering with devastating firepower.",
     heroImage: "/eveil_robot_hero1.jpg",
+    gallery: ["/eveil_robot_hero1.jpg", "/Megabot1.png"],
     color: {
       primary: "#ef4444",
       secondary: "#dc2626",
@@ -182,6 +186,7 @@ export const factions: Record<string, Faction> = {
     description:
       "The Wild are ancient tree-like beings that have evolved to survive in the vacuum of space. They terraform asteroids into living gardens and use biological warfare to control territory.",
     heroImage: "/Wild_Race.jpg",
+    gallery: ["/Wild_Race.jpg"],
     color: {
       primary: "#10b981",
       secondary: "#059669",

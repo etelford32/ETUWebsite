@@ -5,14 +5,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
 
-// GitHub raw content base URL
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/etelford32/ETUWebsite/main';
-
 export default function PressKitPage() {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+    const fullUrl = `${window.location.origin}${text}`;
+    navigator.clipboard.writeText(fullUrl);
     setCopiedLink(label);
     setTimeout(() => setCopiedLink(null), 2000);
   };
@@ -21,56 +19,64 @@ export default function PressKitPage() {
   const videos = [
     {
       title: 'Official Cinematic Trailer #1 (4K)',
-      filename: 'ETU_Cinematic_Trailer_4K.mp4',
+      filename: '/ETU_Cinematic_Trailer_4K.mp4',
       size: '13 MB',
       description: 'Main cinematic trailer showcasing gameplay and story'
     },
     {
       title: 'ETU Gameplay Video 1',
-      filename: 'ETU1.mp4',
+      filename: '/ETU1.mp4',
       size: '8.3 MB',
       description: 'Gameplay footage and mechanics'
     },
     {
       title: 'ETU Logo Animation',
-      filename: 'ETU_Logo2.mp4',
+      filename: '/ETU_Logo2.mp4',
       size: '6.2 MB',
       description: 'Animated logo reveal'
     },
     {
       title: 'Quasar Footage',
-      filename: 'Quasar1.mp4',
+      filename: '/Quasar1.mp4',
       size: '4.4 MB',
       description: 'Space environment showcase'
+    },
+    {
+      title: 'Universe Exploration',
+      filename: '/u3172841634__--ar_11_--video_1_--end_httpss.mj.runAlLxrf1zR6w_fc74704f-b0b3-4d69-a6e6-d2da06d47faa_0.mp4',
+      size: '5.9 MB',
+      description: 'Cinematic universe exploration footage'
     }
   ];
 
   const logos = [
-    { title: 'ETU Logo (Primary)', filename: 'logo2.png', size: '1.6 MB' },
-    { title: 'ETU Logo (Alt)', filename: 'logo3.png', size: '556 KB' },
-    { title: 'ETU Logo (JPEG)', filename: 'ETU_LOGO.jpg', size: '155 KB' }
+    { title: 'ETU Logo (Primary)', filename: '/logo2.png', size: '1.6 MB' },
+    { title: 'ETU Logo (Alt)', filename: '/logo3.png', size: '556 KB' },
+    { title: 'ETU Logo (JPEG)', filename: '/ETU_LOGO.jpg', size: '155 KB' }
   ];
 
   const promotionalImages = [
-    { title: 'ETU Christmas Special', filename: 'ETU_XMAS.png', size: '2.7 MB', description: 'Holiday promotional banner' },
-    { title: 'ETU Epic Cover 7', filename: 'etu_epic7.png', size: '1.7 MB', description: 'Epic Games Store promotional' },
-    { title: 'Explore Epic Cover 5', filename: 'Explore_Epic5.png', size: '2.6 MB', description: 'Alternative promotional banner' },
-    { title: 'Official Cover 6', filename: 'ETC_Offish_cover6.png', size: '2.6 MB', description: 'Official game cover art' }
+    { title: 'ETU Christmas Special', filename: '/ETU_XMAS.png', size: '2.7 MB', description: 'Holiday promotional banner' },
+    { title: 'ETU Epic Cover 7', filename: '/etu_epic7.png', size: '1.7 MB', description: 'Epic Games Store promotional' },
+    { title: 'Explore Epic Cover 5', filename: '/Explore_Epic5.png', size: '2.6 MB', description: 'Alternative promotional banner' },
+    { title: 'Official Cover 6', filename: '/ETC_Offish_cover6.png', size: '2.6 MB', description: 'Official game cover art' },
+    { title: 'ETU Gameplay Screenshot', filename: '/etugp1.jpg', size: '1.2 MB', description: 'In-game screenshot' },
+    { title: 'Megabot Showcase', filename: '/Megabot1.png', size: '2.4 MB', description: 'Megabot faction showcase' }
   ];
 
   const factionImages = [
-    { title: 'Crystal Intelligences', filename: 'Crystal_Race.jpg', size: '386 KB', faction: 'CYL' },
-    { title: 'Mycelari Hero 1', filename: 'Mycelari_Hero1.jpg', size: '490 KB', faction: 'Mycelari' },
-    { title: 'Mycelari Hero 2', filename: 'Mycelari_Hero2.jpg', size: '570 KB', faction: 'Mycelari' },
-    { title: 'Wild Faction', filename: 'Wild_Race.jpg', size: '498 KB', faction: 'Wild' },
-    { title: 'Evil Robot Hero', filename: 'eveil_robot_hero1.jpg', size: '322 KB', faction: 'Megabot' },
-    { title: 'Future Cylinder', filename: 'FutureCyl.jpg', size: '464 KB', faction: 'CYL' }
+    { title: 'Crystal Intelligences', filename: '/Crystal_Race.jpg', size: '386 KB', faction: 'CYL' },
+    { title: 'Mycelari Hero 1', filename: '/Mycelari_Hero1.jpg', size: '490 KB', faction: 'Mycelari' },
+    { title: 'Mycelari Hero 2', filename: '/Mycelari_Hero2.jpg', size: '570 KB', faction: 'Mycelari' },
+    { title: 'Wild Faction', filename: '/Wild_Race.jpg', size: '498 KB', faction: 'Wild' },
+    { title: 'Evil Robot Hero', filename: '/eveil_robot_hero1.jpg', size: '322 KB', faction: 'Megabot' },
+    { title: 'Future Cylinder', filename: '/FutureCyl.jpg', size: '464 KB', faction: 'CYL' }
   ];
 
   const systemImages = [
-    { title: 'AI Systems', filename: 'ai_systems.jpg', size: '372 KB', description: 'Adaptive AI showcase' },
-    { title: 'Physics Systems', filename: 'physics.jpg', size: '457 KB', description: 'Realistic physics mechanics' },
-    { title: 'Upgrade Systems', filename: 'upgrade.jpg', size: '441 KB', description: 'Ship upgrade interface' }
+    { title: 'AI Systems', filename: '/ai_systems.jpg', size: '372 KB', description: 'Adaptive AI showcase' },
+    { title: 'Physics Systems', filename: '/physics.jpg', size: '457 KB', description: 'Realistic physics mechanics' },
+    { title: 'Upgrade Systems', filename: '/upgrade.jpg', size: '441 KB', description: 'Ship upgrade interface' }
   ];
 
   return (
@@ -220,15 +226,14 @@ export default function PressKitPage() {
 
                 <div className="flex gap-2">
                   <a
-                    href={`${GITHUB_RAW_BASE}/${video.filename}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={video.filename}
+                    download
                     className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
                   >
                     Download
                   </a>
                   <button
-                    onClick={() => copyToClipboard(`${GITHUB_RAW_BASE}/${video.filename}`, video.title)}
+                    onClick={() => copyToClipboard(video.filename, video.title)}
                     className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
                   >
                     {copiedLink === video.title ? '✓ Copied!' : 'Copy URL'}
@@ -251,9 +256,11 @@ export default function PressKitPage() {
             {logos.map((logo, idx) => (
               <div key={idx} className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-all">
                 <div className="aspect-square bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                  <img
-                    src={`${GITHUB_RAW_BASE}/${logo.filename}`}
+                  <Image
+                    src={logo.filename}
                     alt={logo.title}
+                    width={400}
+                    height={400}
                     className="w-full h-full object-contain p-4"
                   />
                 </div>
@@ -261,14 +268,14 @@ export default function PressKitPage() {
                 <p className="text-xs text-slate-500 mb-4">Size: {logo.size}</p>
                 <div className="flex gap-2">
                   <a
-                    href={`${GITHUB_RAW_BASE}/${logo.filename}`}
+                    href={logo.filename}
                     download
                     className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
                   >
                     Download
                   </a>
                   <button
-                    onClick={() => copyToClipboard(`${GITHUB_RAW_BASE}/${logo.filename}`, logo.title)}
+                    onClick={() => copyToClipboard(logo.filename, logo.title)}
                     className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
                   >
                     {copiedLink === logo.title ? '✓' : 'URL'}
@@ -291,9 +298,11 @@ export default function PressKitPage() {
             {promotionalImages.map((img, idx) => (
               <div key={idx} className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-all">
                 <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-4 overflow-hidden">
-                  <img
-                    src={`${GITHUB_RAW_BASE}/${img.filename}`}
+                  <Image
+                    src={img.filename}
                     alt={img.title}
+                    width={800}
+                    height={450}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -302,14 +311,14 @@ export default function PressKitPage() {
                 <p className="text-xs text-slate-500 mb-4">Size: {img.size}</p>
                 <div className="flex gap-2">
                   <a
-                    href={`${GITHUB_RAW_BASE}/${img.filename}`}
+                    href={img.filename}
                     download
                     className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
                   >
                     Download
                   </a>
                   <button
-                    onClick={() => copyToClipboard(`${GITHUB_RAW_BASE}/${img.filename}`, img.title)}
+                    onClick={() => copyToClipboard(img.filename, img.title)}
                     className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
                   >
                     {copiedLink === img.title ? '✓' : 'URL'}
@@ -332,9 +341,11 @@ export default function PressKitPage() {
             {factionImages.map((img, idx) => (
               <div key={idx} className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-all">
                 <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-4 overflow-hidden">
-                  <img
-                    src={`${GITHUB_RAW_BASE}/${img.filename}`}
+                  <Image
+                    src={img.filename}
                     alt={img.title}
+                    width={600}
+                    height={400}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -347,14 +358,14 @@ export default function PressKitPage() {
                 <p className="text-xs text-slate-500 mb-4">Size: {img.size}</p>
                 <div className="flex gap-2">
                   <a
-                    href={`${GITHUB_RAW_BASE}/${img.filename}`}
+                    href={img.filename}
                     download
                     className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
                   >
                     Download
                   </a>
                   <button
-                    onClick={() => copyToClipboard(`${GITHUB_RAW_BASE}/${img.filename}`, img.title)}
+                    onClick={() => copyToClipboard(img.filename, img.title)}
                     className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
                   >
                     {copiedLink === img.title ? '✓' : 'URL'}
@@ -377,9 +388,11 @@ export default function PressKitPage() {
             {systemImages.map((img, idx) => (
               <div key={idx} className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-all">
                 <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg mb-4 overflow-hidden">
-                  <img
-                    src={`${GITHUB_RAW_BASE}/${img.filename}`}
+                  <Image
+                    src={img.filename}
                     alt={img.title}
+                    width={600}
+                    height={400}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -388,14 +401,14 @@ export default function PressKitPage() {
                 <p className="text-xs text-slate-500 mb-4">Size: {img.size}</p>
                 <div className="flex gap-2">
                   <a
-                    href={`${GITHUB_RAW_BASE}/${img.filename}`}
+                    href={img.filename}
                     download
                     className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
                   >
                     Download
                   </a>
                   <button
-                    onClick={() => copyToClipboard(`${GITHUB_RAW_BASE}/${img.filename}`, img.title)}
+                    onClick={() => copyToClipboard(img.filename, img.title)}
                     className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
                   >
                     {copiedLink === img.title ? '✓' : 'URL'}
