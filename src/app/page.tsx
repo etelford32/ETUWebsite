@@ -1300,7 +1300,7 @@ export default function HomePage() {
                   <div className="bg-[#0e141b] rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300">
                     <div className="aspect-video bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center overflow-hidden">
                       <Image
-                        src="/ETU_XMAS.png"
+                        src="/Megabot1.png"
                         alt="ETU Game Preview"
                         className="w-full h-full object-cover opacity-90"
                         width={400}
@@ -1498,7 +1498,7 @@ export default function HomePage() {
                 Your Name in the Credits
               </h3>
               <p className="text-slate-200 text-sm">
-                All Christmas demo players will be immortalized in the game credits as founding commanders!
+                All demo players will be immortalized in the game scoreboards as founding commanders and engineers!
               </p>
             </div>
 
@@ -1517,7 +1517,7 @@ export default function HomePage() {
           <div className="reveal text-center p-8 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-cyan-600/20 ring-2 ring-indigo-500/40 backdrop-blur-sm">
             <p className="text-xl text-slate-100 mb-6">
               <strong className="text-2xl text-amber-300">Ring in the new year with ETU 2175!</strong><br />
-              Demo launching New Year's Eve at 11:59 PM! Wishlist to get instant access.
+              Demo launching Soon! Wishlist to get instant access.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -1646,7 +1646,7 @@ export default function HomePage() {
               </summary>
               <p className="mt-2 text-slate-300/90">
                 Primarily single-player with online scoreboards and live events.
-                Co-op stats are planned.
+                Co-op and PvP is planned, but not in production yet.
               </p>
             </details>
             <details className="rounded-xl bg-white/5 ring-1 ring-white/10 p-5">
