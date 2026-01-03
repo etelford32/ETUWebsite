@@ -515,7 +515,7 @@ export default function HomePage() {
               <div className="p-4">
                 <h3 className="font-semibold text-base">Adaptive Faction AI</h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                  How empires grow, fight, and negotiate over time.
+                  How empires grow, battles are lost and won, and negotiate over time and expand and contract their borders.
                 </p>
               </div>
             </article>
@@ -533,7 +533,7 @@ export default function HomePage() {
               <div className="p-4">
                 <h3 className="font-semibold text-base">Flight & Orbital Mechanics</h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                  Balancing realism with fun assists.
+                  The First game EVER to feature realistic models of Black Hole Physics.
                 </p>
               </div>
             </article>
@@ -541,7 +541,7 @@ export default function HomePage() {
               <div className="relative w-full aspect-[2/1] overflow-hidden">
                 <Image
                   src="/Megabot1.png"
-                  alt="Designing Station Bosses"
+                  alt="Open World Bosses"
                   width={400}
                   height={200}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform"
@@ -549,9 +549,9 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-deep-900/40 to-transparent"></div>
               </div>
               <div className="p-4">
-                <h3 className="font-semibold text-base">Designing Station Bosses</h3>
+                <h3 className="font-semibold text-base">Open World Bosses</h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                  Multi-phase challenges and environmental hazards.
+                  Zone Based Combat Evolution with Bosses that Hunt.
                 </p>
               </div>
             </article>
