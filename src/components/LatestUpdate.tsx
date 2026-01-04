@@ -50,10 +50,10 @@ export default function LatestUpdate() {
             <span className="text-4xl flex-shrink-0 mt-1">🎄</span>
             <div className="flex-1">
               <h2 className="text-2xl md:text-3xl font-bold text-amber-100 mb-2">
-                CHRISTMAS UPDATE: Demo Delayed to New Year's
+                CHRISTMAS UPDATE: Demo Delayed to after New Year's
               </h2>
               <p className="text-sm text-slate-400">
-                December 26, 2025
+                January 4, 2026
               </p>
             </div>
           </div>
@@ -61,11 +61,11 @@ export default function LatestUpdate() {
           {/* Body */}
           <div className="space-y-4 text-slate-200 leading-relaxed">
             <p>
-              The demo won't be launching as planned. After a year of building adaptive AI and real-time physics systems, the last 10% has proven to be critical.
+              Hey Everyone, we are still just a little delayed. Thanks for your patience, I promise the quality will be worth it when it's ready.
             </p>
 
             <p className="font-semibold text-lg text-amber-200">
-              New target: New Year's Eve (possibly earlier)
+              New target: January 5th
             </p>
 
             <p>
@@ -75,15 +75,15 @@ export default function LatestUpdate() {
             <ul className="space-y-2 ml-4">
               <li className="flex items-start gap-2">
                 <span className="text-cyan-400 mt-1">•</span>
-                <span>MEGABOT's adaptive AI working flawlessly</span>
+                <span>Adaptive AI working flawlessly</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-cyan-400 mt-1">•</span>
-                <span>Smooth orbital mechanics that feel real</span>
+                <span>Smooth orbital and gravitational mechanics that feel real</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-cyan-400 mt-1">•</span>
-                <span>All four factions operating in harmony</span>
+                <span>Two factions operating in harmony</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-cyan-400 mt-1">•</span>
@@ -92,7 +92,7 @@ export default function LatestUpdate() {
             </ul>
 
             <p className="text-slate-300">
-              This isn't just another space game - it's a physics-based RTS where the AI boss learns from YOU. That requires polish.
+              This isn't just another space game - it's a physics-based RTS where the AI boss learns from YOU. Its a lotta work that requires polish.
             </p>
 
             {/* CTA Link */}
@@ -115,7 +115,7 @@ export default function LatestUpdate() {
               Thank you for your patience. The wait will be worth it.
             </p>
             <p className="text-amber-200 font-semibold">
-              — Eliot
+              — Elliot
             </p>
 
             {/* Additional CTAs */}
