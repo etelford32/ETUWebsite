@@ -389,7 +389,7 @@ export default function AlphaTestingPage() {
                       <p className="mt-2 text-xs text-slate-400">
                         Join our official{' '}
                         <a
-                          href="https://discord.gg/T6SRUa4p"
+                          href="https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-cyan-400 hover:text-cyan-300 underline font-semibold"
