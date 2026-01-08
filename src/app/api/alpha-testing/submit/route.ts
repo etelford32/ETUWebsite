@@ -58,9 +58,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    // Don't fail if table doesn't exist - we'll just send the email
-    if (dbError && !dbError.message.includes('does not exist')) {
+    // Log database errors
+    if (dbError) {
       console.error('Database error:', dbError)
+      // Continue anyway - Discord and email notifications will still work
     }
 
     // Format the email content
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     // Send Discord webhook notification
     try {
-      const discordWebhookUrl = 'https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL'
+      const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || 'https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL'
 
       const discordEmbed = {
         embeds: [{
