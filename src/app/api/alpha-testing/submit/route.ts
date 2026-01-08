@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           status: 'pending',
           created_at: new Date().toISOString()
         }
-      ])
+      ] as any)
       .select()
       .single()
 
