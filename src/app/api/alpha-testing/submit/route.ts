@@ -171,6 +171,87 @@ export async function POST(request: NextRequest) {
 </html>
     `.trim()
 
+    // Send Discord webhook notification
+    try {
+      const discordWebhookUrl = 'https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL'
+
+      const discordEmbed = {
+        embeds: [{
+          title: '🚀 New Alpha Testing Application!',
+          description: `**${username}** has applied for alpha testing`,
+          color: 0x06b6d4, // Cyan color
+          fields: [
+            {
+              name: '📧 Email',
+              value: email,
+              inline: true
+            },
+            ...(discord ? [{
+              name: '💬 Discord',
+              value: discord,
+              inline: true
+            }] : []),
+            {
+              name: '🎯 Testing Interests',
+              value: selectedInterests,
+              inline: false
+            },
+            {
+              name: '🎮 Experience Level',
+              value: experience.charAt(0).toUpperCase() + experience.slice(1),
+              inline: true
+            },
+            ...(availability ? [{
+              name: '⏰ Availability',
+              value: availability,
+              inline: true
+            }] : []),
+            {
+              name: '💭 Motivation',
+              value: motivation.length > 200 ? motivation.substring(0, 200) + '...' : motivation,
+              inline: false
+            },
+            ...(balancingInterest ? [{
+              name: '⚖️ Game Balancing Interest',
+              value: balancingInterest.length > 200 ? balancingInterest.substring(0, 200) + '...' : balancingInterest,
+              inline: false
+            }] : []),
+            ...(aiDifficultyFeedback ? [{
+              name: '🧠 AI Difficulty Focus',
+              value: aiDifficultyFeedback.length > 200 ? aiDifficultyFeedback.substring(0, 200) + '...' : aiDifficultyFeedback,
+              inline: false
+            }] : []),
+            ...(bugTestingExperience ? [{
+              name: '🐛 Bug Testing Experience',
+              value: bugTestingExperience.length > 200 ? bugTestingExperience.substring(0, 200) + '...' : bugTestingExperience,
+              inline: false
+            }] : [])
+          ],
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: 'Explore the Universe 2175 Alpha Applications'
+          }
+        }]
+      }
+
+      const discordResponse = await fetch(discordWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(discordEmbed)
+      })
+
+      if (!discordResponse.ok) {
+        console.error('Discord webhook failed:', await discordResponse.text())
+      } else {
+        console.log('Discord notification sent successfully')
+      }
+    } catch (discordError) {
+      console.error('Discord webhook error:', discordError)
+      // Don't fail the request if Discord fails
+    }
+
     // Try to send email if Resend is configured
     if (process.env.RESEND_API_KEY) {
       try {

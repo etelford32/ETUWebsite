@@ -74,11 +74,11 @@ export default function AlphaTestingPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile) {
+      if (profile && typeof profile === 'object') {
         setFormData(prev => ({
           ...prev,
-          username: profile.username || '',
-          discord: profile.discord || ''
+          username: (profile as any).username || '',
+          discord: (profile as any).discord || ''
         }))
       }
     }
@@ -386,8 +386,17 @@ export default function AlphaTestingPage() {
                         className="w-full px-4 py-3 rounded-lg bg-slate-800/80 border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none text-white placeholder-slate-500 transition-all"
                         placeholder="username#1234"
                       />
-                      <p className="mt-2 text-xs text-slate-500">
-                        We'll invite you to our private alpha testing Discord server
+                      <p className="mt-2 text-xs text-slate-400">
+                        Join our official{' '}
+                        <a
+                          href="https://discord.gg/your-invite-code"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 underline font-semibold"
+                        >
+                          Explore the Universe 2175 Discord
+                        </a>
+                        {' '}to connect with the community and get alpha testing updates!
                       </p>
                     </div>
                   </motion.div>
