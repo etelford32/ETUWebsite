@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createClientComponentClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
 import {
   Rocket,
   Target,
@@ -41,8 +41,6 @@ export default function AlphaTestingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  const supabase = createClientComponentClient()
 
   const [formData, setFormData] = useState<FormData>({
     username: '',
