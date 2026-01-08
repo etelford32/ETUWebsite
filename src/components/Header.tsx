@@ -103,6 +103,25 @@ export default function Header() {
               )}
             </div>
 
+            <Link
+              href="/alpha-testing"
+              className="relative px-4 py-2 rounded-lg font-semibold text-sm overflow-hidden group ml-2"
+            >
+              {/* Animated gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-lg animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+              {/* Strong glow effect */}
+              <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_30px_rgba(6,182,212,0.8)] transition-all duration-300"></div>
+
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-12"></div>
+
+              <span className="relative z-10 text-white drop-shadow-lg flex items-center gap-1.5">
+                <span className="animate-pulse">✨</span>
+                Alpha Testing
+              </span>
+            </Link>
             <NavLink href="/audio" highlight={true}>
               <span className="font-semibold text-base">Audio</span>
             </NavLink>
@@ -178,6 +197,30 @@ export default function Header() {
               <MobileNavLink href="/roadmap">🗺️ Roadmap</MobileNavLink>
             </div>
           </div>
+
+          {/* Alpha Testing - Special Highlight */}
+          <Link
+            href="/alpha-testing"
+            className="block relative px-4 py-3 rounded-lg mb-3 overflow-hidden group"
+          >
+            {/* Animated gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-lg"></div>
+
+            {/* Glow effect */}
+            <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] group-hover:shadow-[inset_0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300"></div>
+
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-between">
+              <span className="text-white font-semibold flex items-center gap-2">
+                <span className="animate-pulse">✨</span>
+                Alpha Testing
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">OPEN</span>
+              </span>
+              <svg className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
 
           <MobileNavLink href="/audio" highlight={true}>
             <span className="font-semibold">Audio</span>

@@ -241,7 +241,7 @@ export default function HomePage() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
                 <span className="text-sm font-medium text-amber-100">
-                  🎄 Demo Coming New Year's Eve - Quality Takes Time!
+                  ✨ Closed Alpha Playtesting - Applications Open!
                 </span>
               </div>
 
@@ -264,12 +264,10 @@ export default function HomePage() {
 
               {/* Primary CTA - Simplified & Optimized for Conversions */}
               <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
-                {/* Steam Wishlist Button (Primary - LARGE & PROMINENT) */}
-                <a
+                {/* Alpha Testing Application (Primary - LARGE & PROMINENT) */}
+                <Link
+                  href="/alpha-testing"
                   ref={steamButtonRef}
-                  href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="steam-btn group relative inline-flex items-center justify-center gap-3 px-8 py-6 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_60px_rgba(102,192,244,0.8)] hover:scale-105 overflow-hidden w-full max-w-xl"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
@@ -304,8 +302,8 @@ export default function HomePage() {
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span className="relative z-10">🎮 GET FREE DEMO - WISHLIST NOW</span>
-                </a>
+                  <span className="relative z-10">✨ APPLY FOR ALPHA TESTING</span>
+                </Link>
 
               </div>
 
@@ -333,7 +331,7 @@ export default function HomePage() {
 
               {/* Countdown Timer & Real Signup Stats */}
               <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <CountdownTimer targetDate="2025-12-31T23:59:59" label="DEMO GOES LIVE IN" />
+                <CountdownTimer targetDate="2025-12-31T23:59:59" label="ALPHA TESTING STARTS IN" />
                 <RealSignupStats />
               </div>
 
@@ -1502,73 +1500,73 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Christmas Demo Event */}
+      {/* Closed Alpha Playtesting Event */}
       <section
-        id="christmas-demo"
-        className="py-20 bg-gradient-to-b from-deep-900 via-red-950/20 to-deep-900 border-y border-amber-500/30 relative overflow-hidden"
+        id="alpha-testing"
+        className="py-20 bg-gradient-to-b from-deep-900 via-cyan-950/20 to-deep-900 border-y border-cyan-500/30 relative overflow-hidden"
       >
         {/* Animated background elements */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-red-500 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-40 h-40 bg-amber-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-10 left-10 w-32 h-32 bg-cyan-500 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-blue-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 lg:px-6 relative z-10">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-red-500/20 to-green-500/20 border border-amber-400/40 backdrop-blur-sm mb-6">
+            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/40 backdrop-blur-sm mb-6">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
               </span>
-              <span className="text-sm font-bold text-amber-100 uppercase tracking-wider">
-                🎄 Coming Soon
+              <span className="text-sm font-bold text-cyan-100 uppercase tracking-wider">
+                ✨ Applications Open
               </span>
             </div>
 
             <h2 className="text-4xl md:text-6xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-red-400 via-amber-400 to-green-400 bg-clip-text text-transparent">
-                🎄 DEMO COMING NEW YEAR'S EVE!
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                ✨ CLOSED ALPHA PLAYTESTING!
               </span>
             </h2>
 
             <p className="text-2xl md:text-3xl font-bold text-white mb-2">
-              December 31st @ 11:59 PM
+              Help Shape the Future of ETU 2175
             </p>
 
             <div className="flex justify-center mb-8">
-              <CountdownTimer targetDate="2025-12-31T23:59:59" label="DEMO GOES LIVE IN" />
+              <CountdownTimer targetDate="2025-12-31T23:59:59" label="ALPHA TESTING STARTS IN" />
             </div>
           </div>
 
-          {/* Special Offers */}
+          {/* Alpha Testing Benefits */}
           <div className="grid md:grid-cols-3 gap-6 mb-10">
-            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 ring-2 ring-amber-500/30 hover:ring-amber-400/50 transition-all text-center">
-              <div className="text-5xl mb-4">🎁</div>
-              <h3 className="text-xl font-bold text-amber-300 mb-3">
-                Exclusive &quot;Founder&quot; Ship Skin
+            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 ring-2 ring-cyan-500/30 hover:ring-cyan-400/50 transition-all text-center">
+              <div className="text-5xl mb-4">⚖️</div>
+              <h3 className="text-xl font-bold text-cyan-300 mb-3">
+                Shape Game Balance
               </h3>
               <p className="text-slate-200 text-sm">
-                First 500 demo players get a unique cosmetic ship skin when Early Access launches in February!
+                Help fine-tune gameplay mechanics, weapon systems, and faction balance to create the ultimate space combat experience!
               </p>
             </div>
 
             <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/5 ring-2 ring-purple-500/30 hover:ring-purple-400/50 transition-all text-center">
-              <div className="text-5xl mb-4">📜</div>
+              <div className="text-5xl mb-4">🧠</div>
               <h3 className="text-xl font-bold text-purple-300 mb-3">
-                Your Name in the Credits
+                Test AI Difficulty Modes
               </h3>
               <p className="text-slate-200 text-sm">
-                All demo players will be immortalized in the game scoreboards as founding commanders and engineers!
+                Experience our adaptive AI systems first-hand and help us perfect difficulty curves for all player types!
               </p>
             </div>
 
-            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 ring-2 ring-cyan-500/30 hover:ring-cyan-400/50 transition-all text-center">
-              <div className="text-5xl mb-4">🚀</div>
-              <h3 className="text-xl font-bold text-cyan-300 mb-3">
-                Early Access Beta Priority
+            <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 ring-2 ring-amber-500/30 hover:ring-amber-400/50 transition-all text-center">
+              <div className="text-5xl mb-4">🎁</div>
+              <h3 className="text-xl font-bold text-amber-300 mb-3">
+                Exclusive Alpha Tester Rewards
               </h3>
               <p className="text-slate-200 text-sm">
-                Get priority invites to closed beta testing sessions before the February launch!
+                Receive unique cosmetic items, special badges, and recognition in the game credits as a founding tester!
               </p>
             </div>
           </div>
@@ -1576,30 +1574,24 @@ export default function HomePage() {
           {/* Main CTA */}
           <div className="reveal text-center p-8 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-cyan-600/20 ring-2 ring-indigo-500/40 backdrop-blur-sm">
             <p className="text-xl text-slate-100 mb-6">
-              <strong className="text-2xl text-amber-300">Ring in the new year with ETU 2175!</strong><br />
-              Demo launching Soon! Wishlist to get instant access.
+              <strong className="text-2xl text-cyan-300">Be Among the First to Explore!</strong><br />
+              Limited alpha testing slots available. Apply now to secure your spot.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="steam-btn group inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-xl shadow-2xl hover:shadow-3xl hover:scale-105 transition-all"
+              <Link
+                href="/alpha-testing"
+                className="group inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-xl shadow-2xl hover:shadow-3xl hover:scale-105 transition-all bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white"
               >
-                <svg
-                  className="w-7 h-7 transition-transform group-hover:scale-110"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
+                <svg className="w-7 h-7 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
-                <span>⚡ WISHLIST TO GET NOTIFIED</span>
-              </a>
+                <span>✨ APPLY FOR ALPHA ACCESS</span>
+              </Link>
             </div>
 
             <p className="mt-6 text-sm text-slate-400">
-              Join <span className="font-bold text-cyan-400">1,200+</span> commanders who won&apos;t miss launch
+              Join our elite group of alpha testers and help shape the future
             </p>
           </div>
         </div>
