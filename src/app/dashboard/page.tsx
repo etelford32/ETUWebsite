@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
 import { Profile, LeaderboardEntry } from '@/lib/types'
 import { SteamProfileLink } from '@/components/SteamProfileLink'
 import Header from '@/components/Header'
@@ -13,6 +12,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [userRank, setUserRank] = useState<number | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     checkUser()
@@ -21,28 +21,27 @@ export default function DashboardPage() {
 
   async function checkUser() {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      // Check session via API
+      const sessionRes = await fetch('/api/auth/session')
+      const sessionData = await sessionRes.json()
 
-      if (!session) {
-        router.push('/')
+      if (!sessionData.authenticated) {
+        router.push('/login')
         return
       }
 
-      // Fetch user profile
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
+      setUserId(sessionData.user.id)
 
-      if (error) {
-        console.error('Error fetching profile:', error)
-      } else {
-        setProfile(profileData)
+      // Fetch user profile via API
+      const profileRes = await fetch('/api/profile')
+      const profileData = await profileRes.json()
+
+      if (profileData.profile) {
+        setProfile(profileData.profile)
       }
     } catch (error) {
       console.error('Auth error:', error)
-      router.push('/')
+      router.push('/login')
     } finally {
       setLoading(false)
     }
@@ -56,11 +55,10 @@ export default function DashboardPage() {
       if (json.data) {
         setLeaderboard(json.data)
 
-        // Find user's rank
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
+        // Find user's rank after we have userId
+        if (userId) {
           const userEntry = json.data.find((entry: LeaderboardEntry) =>
-            entry.user_id === session.user.id
+            entry.user_id === userId
           )
           if (userEntry) {
             setUserRank(userEntry.rank || null)
@@ -73,8 +71,12 @@ export default function DashboardPage() {
   }
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   if (loading) {
