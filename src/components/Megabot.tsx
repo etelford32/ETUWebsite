@@ -1031,22 +1031,49 @@ class MegabotScene {
     const head = new THREE.Mesh(headGeometry, mechaMaterial);
     headGroup.add(head);
 
-    // DEMON HORNS - menacing side spikes
+    // HEAD-MOUNTED WEAPON ARRAYS - side turrets
     for (let side = -1; side <= 1; side += 2) {
-      const hornGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.35, 4);
-      const horn = new THREE.Mesh(hornGeometry, accentMaterial);
-      horn.position.set(side * this.MAIN_SIZE * 0.26, this.MAIN_SIZE * 0.25, -this.MAIN_SIZE * 0.05);
-      horn.rotation.z = side * Math.PI * 0.25; // Angle outward menacingly
-      horn.rotation.x = -0.3;
-      headGroup.add(horn);
+      // Turret housing
+      const turretHousingGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.12);
+      const turretHousing = new THREE.Mesh(turretHousingGeometry, accentMaterial);
+      turretHousing.position.set(side * this.MAIN_SIZE * 0.26, this.MAIN_SIZE * 0.15, 0);
+      headGroup.add(turretHousing);
 
-      // Horn tip spikes
-      const hornTipGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.15, 4);
-      const hornTip = new THREE.Mesh(hornTipGeometry, mechaMaterial);
-      hornTip.position.set(side * this.MAIN_SIZE * 0.34, this.MAIN_SIZE * 0.38, -this.MAIN_SIZE * 0.12);
-      hornTip.rotation.z = side * Math.PI * 0.25;
-      hornTip.rotation.x = -0.3;
-      headGroup.add(hornTip);
+      // Dual gatling cannons
+      for (let cannon = 0; cannon < 2; cannon++) {
+        const cannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.25, 8);
+        const cannonMesh = new THREE.Mesh(cannonGeometry, mechaMaterial);
+        cannonMesh.rotation.z = Math.PI / 2;
+        cannonMesh.position.set(
+          side * this.MAIN_SIZE * 0.36,
+          this.MAIN_SIZE * (0.15 + (cannon - 0.5) * 0.06),
+          this.MAIN_SIZE * 0.05
+        );
+        headGroup.add(cannonMesh);
+
+        // Cannon barrel details
+        const barrelTipGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.05, 8);
+        const barrelTip = new THREE.Mesh(barrelTipGeometry, accentMaterial);
+        barrelTip.rotation.z = Math.PI / 2;
+        barrelTip.position.set(
+          side * this.MAIN_SIZE * 0.48,
+          this.MAIN_SIZE * (0.15 + (cannon - 0.5) * 0.06),
+          this.MAIN_SIZE * 0.05
+        );
+        headGroup.add(barrelTip);
+      }
+
+      // Sensor array / targeting system
+      const sensorGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.04, 16, 16);
+      const sensor = new THREE.Mesh(sensorGeometry, new THREE.MeshStandardMaterial({
+        color: 0xff3300,
+        emissive: new THREE.Color(0xff3300),
+        emissiveIntensity: 0.8,
+        metalness: 0.9,
+        roughness: 0.1,
+      }));
+      sensor.position.set(side * this.MAIN_SIZE * 0.26, this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.08);
+      headGroup.add(sensor);
     }
 
     // Face plate - angular and menacing
@@ -1055,17 +1082,23 @@ class MegabotScene {
     facePlate.position.z = this.MAIN_SIZE * 0.22;
     headGroup.add(facePlate);
 
-    // JAW SPIKES - teeth-like menacing protrusions
-    for (let spike = 0; spike < 5; spike++) {
-      const jawSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.08, 4);
-      const jawSpike = new THREE.Mesh(jawSpikeGeometry, mechaMaterial);
-      jawSpike.position.set(
-        this.MAIN_SIZE * (-0.15 + spike * 0.075),
-        -this.MAIN_SIZE * 0.2,
-        this.MAIN_SIZE * 0.24
+    // CHIN MOUNTED WEAPON POD - forward firepower
+    const chinWeaponHousingGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.15);
+    const chinWeaponHousing = new THREE.Mesh(chinWeaponHousingGeometry, accentMaterial);
+    chinWeaponHousing.position.set(0, -this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.22);
+    headGroup.add(chinWeaponHousing);
+
+    // Triple barrel under-chin cannons
+    for (let barrel = 0; barrel < 3; barrel++) {
+      const underChinCannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.18, 8);
+      const underChinCannon = new THREE.Mesh(underChinCannonGeometry, mechaMaterial);
+      underChinCannon.rotation.x = Math.PI / 2;
+      underChinCannon.position.set(
+        this.MAIN_SIZE * (-0.08 + barrel * 0.08),
+        -this.MAIN_SIZE * 0.22,
+        this.MAIN_SIZE * 0.32
       );
-      jawSpike.rotation.x = Math.PI;
-      headGroup.add(jawSpike);
+      headGroup.add(underChinCannon);
     }
 
     // Additional face armor layer - more angular
@@ -1075,20 +1108,53 @@ class MegabotScene {
     facePlate2.position.y = -this.MAIN_SIZE * 0.05;
     headGroup.add(facePlate2);
 
-    // Cheek guards - sharp and angular
+    // Cheek armor plates - reinforced protection
     for (let side = -1; side <= 1; side += 2) {
-      const cheekGuardGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.12);
-      const cheekGuard = new THREE.Mesh(cheekGuardGeometry, accentMaterial);
-      cheekGuard.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.25);
-      cheekGuard.rotation.y = side * 0.2;
-      headGroup.add(cheekGuard);
+      const cheekArmorGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.09, this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.14);
+      const cheekArmor = new THREE.Mesh(cheekArmorGeometry, accentMaterial);
+      cheekArmor.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.25);
+      cheekArmor.rotation.y = side * 0.15;
+      headGroup.add(cheekArmor);
 
-      // Sharp cheek spikes
-      const cheekSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.15, 4);
-      const cheekSpike = new THREE.Mesh(cheekSpikeGeometry, mechaMaterial);
-      cheekSpike.position.set(side * this.MAIN_SIZE * 0.28, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.28);
-      cheekSpike.rotation.z = side * Math.PI * 0.5;
-      headGroup.add(cheekSpike);
+      // Side-mounted missile pods
+      const missilePodGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.06);
+      const missilePod = new THREE.Mesh(missilePodGeometry, mechaMaterial);
+      missilePod.position.set(side * this.MAIN_SIZE * 0.28, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.28);
+      headGroup.add(missilePod);
+
+      // Individual missiles in the pod (4 per side)
+      for (let missile = 0; missile < 4; missile++) {
+        const missileGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.08, 6);
+        const missileMesh = new THREE.Mesh(missileGeometry, new THREE.MeshStandardMaterial({
+          color: 0x222222,
+          metalness: 0.95,
+          roughness: 0.2,
+        }));
+        missileMesh.rotation.x = Math.PI / 2;
+        const row = Math.floor(missile / 2);
+        const col = missile % 2;
+        missileMesh.position.set(
+          side * this.MAIN_SIZE * (0.26 + col * 0.03),
+          -this.MAIN_SIZE * (0.0 + row * 0.06),
+          this.MAIN_SIZE * 0.31
+        );
+        headGroup.add(missileMesh);
+
+        // Missile warhead (red tip)
+        const warheadGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.03, 6);
+        const warhead = new THREE.Mesh(warheadGeometry, new THREE.MeshStandardMaterial({
+          color: 0xff0000,
+          emissive: new THREE.Color(0xff0000),
+          emissiveIntensity: 0.3,
+        }));
+        warhead.rotation.x = Math.PI / 2;
+        warhead.position.set(
+          side * this.MAIN_SIZE * (0.26 + col * 0.03),
+          -this.MAIN_SIZE * (0.0 + row * 0.06),
+          this.MAIN_SIZE * 0.36
+        );
+        headGroup.add(warhead);
+      }
     }
 
     // V-Fin antenna - SHARP and aggressive
@@ -1314,13 +1380,54 @@ class MegabotScene {
       torsoGroup.add(chestPlate);
     }
 
-    // Massive shoulder armor panels
+    // CHEST-MOUNTED WEAPON ARRAYS - dual heavy cannons
     for (let side = -1; side <= 1; side += 2) {
-      const shoulderPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.08);
+      // Chest cannon housing
+      const chestCannonHousingGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.12);
+      const chestCannonHousing = new THREE.Mesh(chestCannonHousingGeometry, accentMaterial);
+      chestCannonHousing.position.set(side * this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.32);
+      torsoGroup.add(chestCannonHousing);
+
+      // Heavy cannon barrel
+      const heavyCannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.35, 12);
+      const heavyCannon = new THREE.Mesh(heavyCannonGeometry, mechaMaterial);
+      heavyCannon.rotation.x = Math.PI / 2;
+      heavyCannon.position.set(side * this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.5);
+      torsoGroup.add(heavyCannon);
+    }
+
+    // Massive shoulder armor panels with weapon mounts
+    for (let side = -1; side <= 1; side += 2) {
+      const shoulderPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.12);
       const shoulderPlate = new THREE.Mesh(shoulderPlateGeometry, accentMaterial);
-      shoulderPlate.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.1);
-      shoulderPlate.rotation.y = side * 0.15;
+      shoulderPlate.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.08);
+      shoulderPlate.rotation.y = side * 0.12;
       torsoGroup.add(shoulderPlate);
+
+      // SHOULDER-MOUNTED MISSILE LAUNCHER POD
+      const missileLauncherGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.15);
+      const missileLauncher = new THREE.Mesh(missileLauncherGeometry, mechaMaterial);
+      missileLauncher.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.52, this.MAIN_SIZE * 0.05);
+      torsoGroup.add(missileLauncher);
+
+      // Missile tubes (6 per shoulder)
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const missileTubeGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.18, 8);
+          const missileTube = new THREE.Mesh(missileTubeGeometry, new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            metalness: 0.9,
+            roughness: 0.3,
+          }));
+          missileTube.rotation.x = -Math.PI * 0.15; // Angle upward slightly
+          missileTube.position.set(
+            side * this.MAIN_SIZE * (0.39 + col * 0.04),
+            this.MAIN_SIZE * (0.58 + row * -0.08),
+            this.MAIN_SIZE * 0.12
+          );
+          torsoGroup.add(missileTube);
+        }
+      }
     }
 
     // Core reactor array (multiple glowing reactors)
