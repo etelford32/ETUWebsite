@@ -10,17 +10,25 @@ function getSupabaseClient() {
 
   // Validate required environment variables at runtime
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 
   if (!supabaseUrl) {
     throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL')
   }
 
-  if (!supabaseAnonKey) {
-    throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  if (!supabasePublishableKey) {
+    throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY')
   }
 
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
+  // Create client with publishable key (safe for browser use with RLS)
+  supabaseInstance = createClient(supabaseUrl, supabasePublishableKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  })
+
   return supabaseInstance
 }
 
