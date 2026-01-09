@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
 
 function LoginForm() {
@@ -27,9 +26,14 @@ function LoginForm() {
   }, [searchParams])
 
   async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      router.push('/dashboard')
+    try {
+      const response = await fetch('/api/auth/session')
+      const data = await response.json()
+      if (data.authenticated) {
+        router.push('/dashboard')
+      }
+    } catch (error) {
+      // Not logged in, stay on page
     }
   }
 
@@ -49,35 +53,44 @@ function LoginForm() {
           throw new Error('Password must be at least 6 characters')
         }
 
-        // Sign up
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              username: email.split('@')[0], // Default username from email
-            }
-          }
+        // Sign up via API
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            username: email.split('@')[0],
+          }),
         })
 
-        if (error) throw error
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create account')
+        }
 
         setMessage({
           type: 'success',
-          text: 'Check your email for a confirmation link!'
-        })
-        setEmail('')
-        setPassword('')
-        setConfirmPassword('')
-      } else {
-        // Sign in
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          text: 'Account created successfully! Redirecting...'
         })
 
-        if (error) throw error
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1000)
+      } else {
+        // Sign in via API
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid credentials')
+        }
 
         setMessage({
           type: 'success',
@@ -98,50 +111,13 @@ function LoginForm() {
     }
   }
 
+  // TODO: Implement magic link and OAuth via server-side API
   async function handleMagicLink() {
-    if (!email) {
-      setMessage({ type: 'error', text: 'Please enter your email' })
-      return
-    }
-
-    setLoading(true)
-    setMessage(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
-      })
-
-      if (error) throw error
-
-      setMessage({
-        type: 'success',
-        text: 'Magic link sent! Check your email.'
-      })
-    } catch (error: any) {
-      setMessage({
-        type: 'error',
-        text: error.message || 'Failed to send magic link'
-      })
-    } finally {
-      setLoading(false)
-    }
+    setMessage({ type: 'error', text: 'Magic link not yet implemented in server-only mode' })
   }
 
   async function handleOAuth(provider: 'google' | 'github' | 'apple') {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-
-    if (error) {
-      setMessage({ type: 'error', text: error.message })
-    }
+    setMessage({ type: 'error', text: 'OAuth not yet implemented in server-only mode. Use Steam login instead!' })
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
 import { Profile } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
@@ -153,52 +152,48 @@ export default function ProfilePage() {
 
   async function loadProfile() {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      // Check session via API
+      const sessionRes = await fetch('/api/auth/session')
+      const sessionData = await sessionRes.json()
 
-      if (!session) {
+      if (!sessionData.authenticated) {
         router.push('/login')
         return
       }
 
-      // Fetch profile from database
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
+      // Fetch profile from API
+      const profileRes = await fetch('/api/profile')
+      const profileData = await profileRes.json()
 
-      if (error) {
-        console.error('Error fetching profile:', error)
+      if (profileRes.ok && profileData.profile) {
+        const dbProfile = profileData.profile as Profile
+
+        // Use database data if available, otherwise use defaults
+        const profile: PlayerProfile = {
+          id: dbProfile.id,
+          username: dbProfile.username || sessionData.user.email?.split('@')[0] || 'Commander',
+          steam_id: dbProfile.steam_id || null,
+          avatar_url: dbProfile.avatar_url || null,
+          faction_choice: dbProfile.faction_choice || 'neutral',
+          ship_class: dbProfile.ship_class || null,
+          created_at: dbProfile.created_at || new Date().toISOString(),
+          updated_at: dbProfile.updated_at || new Date().toISOString(),
+          // Stats - use DB values or defaults
+          level: dbProfile.level ?? 1,
+          xp: dbProfile.xp ?? 0,
+          total_kills: dbProfile.total_kills ?? 0,
+          total_deaths: dbProfile.total_deaths ?? 0,
+          total_wins: dbProfile.total_wins ?? 0,
+          total_losses: dbProfile.total_losses ?? 0,
+          total_playtime: dbProfile.total_playtime ?? 0,
+          highest_score: dbProfile.highest_score ?? 0
+        }
+
+        setProfile(profile)
+        setEditedUsername(profile.username)
+        setEditedFaction(profile.faction_choice)
+        setEditedShipClass(profile.ship_class || '')
       }
-
-      // Type assertion for profileData (safe because we're providing defaults)
-      const dbProfile = profileData as Profile | null
-
-      // Use database data if available, otherwise use defaults
-      const profile: PlayerProfile = {
-        id: session.user.id,
-        username: dbProfile?.username || session.user.email?.split('@')[0] || 'Commander',
-        steam_id: dbProfile?.steam_id || null,
-        avatar_url: dbProfile?.avatar_url || null,
-        faction_choice: dbProfile?.faction_choice || 'neutral',
-        ship_class: dbProfile?.ship_class || null,
-        created_at: dbProfile?.created_at || new Date().toISOString(),
-        updated_at: dbProfile?.updated_at || new Date().toISOString(),
-        // Stats - use DB values or defaults (handles case where columns don't exist yet)
-        level: dbProfile?.level ?? 1,
-        xp: dbProfile?.xp ?? 0,
-        total_kills: dbProfile?.total_kills ?? 0,
-        total_deaths: dbProfile?.total_deaths ?? 0,
-        total_wins: dbProfile?.total_wins ?? 0,
-        total_losses: dbProfile?.total_losses ?? 0,
-        total_playtime: dbProfile?.total_playtime ?? 0,
-        highest_score: dbProfile?.highest_score ?? 0
-      }
-
-      setProfile(profile)
-      setEditedUsername(profile.username)
-      setEditedFaction(profile.faction_choice)
-      setEditedShipClass(profile.ship_class || '')
     } catch (error) {
       console.error('Error loading profile:', error)
       router.push('/login')
@@ -211,15 +206,20 @@ export default function ProfilePage() {
     if (!profile) return
 
     try {
-      const { error } = await (supabase
-        .from('profiles') as any)
-        .update({
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           username: editedUsername,
           faction_choice: editedFaction
         })
-        .eq('id', profile.id)
+      })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile')
+      }
 
       setProfile({
         ...profile,
