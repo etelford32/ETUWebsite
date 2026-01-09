@@ -2,8 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabaseClient'
 import {
+
+/* MIGRATION STUB - needs API route migration */
+const supabase: any = {
+  from: () => ({
+    select: () => ({ 
+      eq: () => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
+    }),
+    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
+  }),
+  removeChannel: () => {},
+  channel: () => ({ on: () => ({ subscribe: () => {} }) })
+};
+
   Rocket,
   Target,
   Brain,

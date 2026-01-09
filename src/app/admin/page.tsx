@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabaseClient'
-import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -74,88 +72,45 @@ export default function AdminDashboard() {
 
   async function checkAuth() {
     setLoading(true)
-    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!session?.user) {
-      router.push('/login?message=admin_auth_required')
-      return
+    try {
+      const response = await fetch('/api/auth/session')
+      const data = await response.json()
+
+      if (!data.authenticated) {
+        router.push('/login?message=admin_auth_required')
+        return
+      }
+
+      // Check admin role via session data
+      const role = data.user.role
+
+      if (role !== 'admin' && role !== 'staff') {
+        router.push('/?error=unauthorized_admin_access')
+        return
+      }
+
+      setUser(data.user)
+      setIsAdmin(role === 'admin' || role === 'staff')
+      await fetchDashboardData()
+    } catch (error) {
+      console.error('Auth error:', error)
+      router.push('/login')
+    } finally {
+      setLoading(false)
     }
-
-    const role = await getUserRole(session.user.id)
-
-    if (role !== 'admin' && role !== 'moderator') {
-      router.push('/?error=unauthorized_admin_access')
-      return
-    }
-
-    setUser(session.user)
-    setIsAdmin(role === 'admin' || role === 'moderator')
-    await fetchDashboardData()
-    setLoading(false)
   }
 
   async function fetchDashboardData() {
     try {
       setRefreshing(true)
 
-      // Fetch counts in parallel
-      const [usersRes, feedbackRes, backlogRes, scoresRes] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('feedback').select('*', { count: 'exact', head: true }),
-        supabase.from('backlog_items').select('*', { count: 'exact', head: true }),
-        supabase.from('player_scores').select('*', { count: 'exact', head: true }),
-      ])
+      const response = await fetch('/api/admin/stats')
+      const data = await response.json()
 
-      // Fetch recent activity
-      const { data: recentFeedback } = await supabase
-        .from('feedback')
-        .select('id, type, title, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      const activity: ActivityItem[] = (recentFeedback || []).map((f: any) => ({
-        id: f.id,
-        type: 'feedback',
-        description: `New ${f.type}: ${f.title}`,
-        timestamp: f.created_at,
-      }))
-
-      // Mock security alerts (in production, fetch from security_events table)
-      const securityAlerts: SecurityAlert[] = [
-        {
-          id: '1',
-          severity: 'low',
-          title: 'Security headers configured',
-          description: 'All recommended security headers are active',
-          timestamp: new Date().toISOString(),
-          resolved: true,
-        },
-        {
-          id: '2',
-          severity: 'low',
-          title: 'Admin RBAC active',
-          description: 'Role-based access control is properly configured',
-          timestamp: new Date().toISOString(),
-          resolved: true,
-        },
-      ]
-
-      // Check system health
-      const systemHealth: SystemHealth = {
-        database: 'healthy',
-        authentication: 'healthy',
-        api: 'healthy',
+      if (response.ok) {
+        setStats(data)
       }
-
-      setStats({
-        totalUsers: usersRes.count || 0,
-        totalFeedback: feedbackRes.count || 0,
-        totalBacklogItems: backlogRes.count || 0,
-        totalScores: scoresRes.count || 0,
-        recentActivity: activity,
-        securityAlerts,
-        systemHealth,
-      })
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {

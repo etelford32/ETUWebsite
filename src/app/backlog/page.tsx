@@ -3,9 +3,24 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BacklogItemWithProfile } from '@/lib/types'
-import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
+
+/* MIGRATION STUB - needs API route migration */
+const supabase: any = {
+  from: () => ({
+    select: () => ({ 
+      eq: () => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
+    }),
+    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
+  }),
+  removeChannel: () => {},
+  channel: () => ({ on: () => ({ subscribe: () => {} }) })
+};
+
 
 type BacklogType = 'all' | 'feature' | 'bug'
 type BacklogStatus = 'all' | 'open' | 'in_progress' | 'completed' | 'wont_fix' | 'duplicate'
@@ -80,7 +95,7 @@ export default function BacklogPage() {
   }, [])
 
   async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession()
+    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
     setCurrentUser(session?.user || null)
 
     if (session?.user) {

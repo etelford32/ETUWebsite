@@ -2,9 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabaseClient'
 import Header from '@/components/Header'
 import Link from 'next/link'
+
+/* MIGRATION STUB - needs API route migration */
+const supabase: any = {
+  from: () => ({
+    select: () => ({ 
+      eq: () => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
+    }),
+    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
+  }),
+  removeChannel: () => {},
+  channel: () => ({ on: () => ({ subscribe: () => {} }) })
+};
+
 
 type FeedbackType = 'bug' | 'feature' | 'suggestion' | 'support' | 'other'
 
@@ -36,7 +51,7 @@ export default function FeedbackPage() {
 
   async function checkUser() {
     setLoading(true)
-    const { data: { session } } = await supabase.auth.getSession()
+    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
     setUser(session?.user || null)
 
     // Pre-fill email if user is logged in

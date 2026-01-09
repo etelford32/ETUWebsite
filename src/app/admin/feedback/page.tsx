@@ -2,11 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { supabase } from '@/lib/supabaseClient'
 import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+
+/* MIGRATION STUB - needs API route migration */
+const supabase: any = {
+  from: () => ({
+    select: () => ({ 
+      eq: () => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
+    }),
+    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
+  }),
+  removeChannel: () => {},
+  channel: () => ({ on: () => ({ subscribe: () => {} }) })
+};
+
 
 interface FeedbackItem {
   id: string
@@ -73,7 +88,7 @@ export default function AdminFeedbackPage() {
 
   async function checkUser() {
     setLoading(true)
-    const { data: { session } } = await supabase.auth.getSession()
+    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
 
     if (!session?.user) {
       // Not authenticated - redirect to login
