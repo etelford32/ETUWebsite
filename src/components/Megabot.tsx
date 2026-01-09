@@ -678,13 +678,13 @@ class MegabotScene {
     const mechaMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.15, 0.16, 0.2) }, // Dark gunmetal
-        metalness: { value: 0.95 },
-        roughness: { value: 0.25 },
-        envIntensity: { value: 0.8 },
-        emissiveColor: { value: new THREE.Color(0.1, 0.2, 0.5) },
-        emissiveIntensity: { value: 0.3 },
-        panelLineColor: { value: new THREE.Color(0.05, 0.05, 0.08) },
+        baseColor: { value: new THREE.Color(0.12, 0.13, 0.18) }, // Darker, more ominous gunmetal
+        metalness: { value: 0.98 }, // More metallic
+        roughness: { value: 0.15 }, // Shinier for evil machine aesthetic
+        envIntensity: { value: 1.2 }, // Stronger reflections
+        emissiveColor: { value: new THREE.Color(0.8, 0.1, 0.1) }, // Evil red glow
+        emissiveIntensity: { value: 0.6 }, // More intense
+        panelLineColor: { value: new THREE.Color(0.02, 0.02, 0.05) }, // Deeper panel lines
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -820,14 +820,14 @@ class MegabotScene {
           // Scratches (lighter streaks)
           albedo = mix(albedo, vec3(0.4, 0.42, 0.45), scratches);
 
-          // Lighting setup (simulate 3-point lighting)
+          // Lighting setup (dramatic, high-contrast lighting for menacing look)
           vec3 lightDir1 = normalize(vec3(1.0, 1.0, 1.0));
           vec3 lightDir2 = normalize(vec3(-0.5, 0.3, 0.5));
           vec3 lightDir3 = normalize(vec3(0.0, -1.0, 0.2));
 
-          vec3 lightColor1 = vec3(1.0, 0.98, 0.95) * 1.2;
-          vec3 lightColor2 = vec3(0.6, 0.7, 1.0) * 0.5;
-          vec3 lightColor3 = vec3(0.3, 0.4, 0.6) * 0.3;
+          vec3 lightColor1 = vec3(1.0, 0.98, 0.95) * 1.8; // Brighter key light
+          vec3 lightColor2 = vec3(0.5, 0.6, 1.0) * 0.7; // Stronger fill
+          vec3 lightColor3 = vec3(0.8, 0.2, 0.2) * 0.4; // Evil red rim light
 
           // Calculate lighting
           float NdotL1 = max(dot(normal, lightDir1), 0.0);
@@ -841,14 +841,14 @@ class MegabotScene {
             lightColor3 * NdotL3
           );
 
-          // Specular highlights (metallic reflection)
+          // Specular highlights (metallic reflection) - more intense and sharp
           vec3 halfVector1 = normalize(lightDir1 + viewDir);
           vec3 halfVector2 = normalize(lightDir2 + viewDir);
 
           float spec1 = ggx(normal, halfVector1, roughness) * NdotL1;
-          float spec2 = ggx(normal, halfVector2, roughness * 1.2) * NdotL2;
+          float spec2 = ggx(normal, halfVector2, roughness * 1.1) * NdotL2;
 
-          vec3 specular = (spec1 * lightColor1 + spec2 * lightColor2) * metalness;
+          vec3 specular = (spec1 * lightColor1 * 1.5 + spec2 * lightColor2 * 1.3) * metalness;
 
           // Fake environment reflection (simulate sky/ground)
           float upFacing = normal.y * 0.5 + 0.5;
@@ -856,9 +856,9 @@ class MegabotScene {
           vec3 groundColor = vec3(0.1, 0.12, 0.15);
           vec3 envReflection = mix(groundColor, skyColor, upFacing) * envIntensity * metalness;
 
-          // Fresnel rim lighting
-          float rim = fresnel(viewDir, normal, 3.5);
-          vec3 rimLight = vec3(0.3, 0.5, 1.0) * rim * 0.4;
+          // Fresnel rim lighting - evil red glow
+          float rim = fresnel(viewDir, normal, 3.0);
+          vec3 rimLight = vec3(1.0, 0.15, 0.15) * rim * 0.8; // Menacing red rim
 
           // Energy flow lines (subtle tech detail)
           float energyFlow = sin(vUv.y * 8.0 + time * 1.5) * 0.5 + 0.5;
@@ -884,15 +884,15 @@ class MegabotScene {
       lights: false,
     });
 
-    // METALLIC ACCENT MATERIAL with tech details
+    // METALLIC ACCENT MATERIAL with tech details - more menacing
     const accentMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.2, 0.22, 0.28) }, // Slightly lighter gunmetal
-        metalness: { value: 0.92 },
-        roughness: { value: 0.35 },
-        glowColor: { value: new THREE.Color(0.2, 0.4, 0.8) },
-        glowIntensity: { value: 0.5 },
+        baseColor: { value: new THREE.Color(0.16, 0.17, 0.22) }, // Darker accent color
+        metalness: { value: 0.96 }, // More metallic
+        roughness: { value: 0.20 }, // Shinier
+        glowColor: { value: new THREE.Color(0.9, 0.1, 0.1) }, // Evil red glow
+        glowIntensity: { value: 0.8 }, // More intense
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -1023,29 +1023,76 @@ class MegabotScene {
       lights: false,
     });
 
-    // ==================== HEAD - BUILDING SIZED ====================
+    // ==================== HEAD - MENACING AND VILLAINOUS ====================
     const headGroup = new THREE.Group();
 
-    // Main head - larger and more imposing
+    // Main head - angular and aggressive
     const headGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.38);
     const head = new THREE.Mesh(headGeometry, mechaMaterial);
     headGroup.add(head);
 
-    // Face plate - multi-layered
+    // DEMON HORNS - menacing side spikes
+    for (let side = -1; side <= 1; side += 2) {
+      const hornGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.35, 4);
+      const horn = new THREE.Mesh(hornGeometry, accentMaterial);
+      horn.position.set(side * this.MAIN_SIZE * 0.26, this.MAIN_SIZE * 0.25, -this.MAIN_SIZE * 0.05);
+      horn.rotation.z = side * Math.PI * 0.25; // Angle outward menacingly
+      horn.rotation.x = -0.3;
+      headGroup.add(horn);
+
+      // Horn tip spikes
+      const hornTipGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.15, 4);
+      const hornTip = new THREE.Mesh(hornTipGeometry, mechaMaterial);
+      hornTip.position.set(side * this.MAIN_SIZE * 0.34, this.MAIN_SIZE * 0.38, -this.MAIN_SIZE * 0.12);
+      hornTip.rotation.z = side * Math.PI * 0.25;
+      hornTip.rotation.x = -0.3;
+      headGroup.add(hornTip);
+    }
+
+    // Face plate - angular and menacing
     const facePlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.46, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.06);
     const facePlate = new THREE.Mesh(facePlateGeometry, accentMaterial);
     facePlate.position.z = this.MAIN_SIZE * 0.22;
     headGroup.add(facePlate);
 
-    // Additional face armor layer
+    // JAW SPIKES - teeth-like menacing protrusions
+    for (let spike = 0; spike < 5; spike++) {
+      const jawSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.08, 4);
+      const jawSpike = new THREE.Mesh(jawSpikeGeometry, mechaMaterial);
+      jawSpike.position.set(
+        this.MAIN_SIZE * (-0.15 + spike * 0.075),
+        -this.MAIN_SIZE * 0.2,
+        this.MAIN_SIZE * 0.24
+      );
+      jawSpike.rotation.x = Math.PI;
+      headGroup.add(jawSpike);
+    }
+
+    // Additional face armor layer - more angular
     const facePlate2Geometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.4, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.05);
     const facePlate2 = new THREE.Mesh(facePlate2Geometry, mechaMaterial);
     facePlate2.position.z = this.MAIN_SIZE * 0.25;
     facePlate2.position.y = -this.MAIN_SIZE * 0.05;
     headGroup.add(facePlate2);
 
-    // V-Fin antenna (Gundam style) with enhanced shader
-    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.4, 3);
+    // Cheek guards - sharp and angular
+    for (let side = -1; side <= 1; side += 2) {
+      const cheekGuardGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.12);
+      const cheekGuard = new THREE.Mesh(cheekGuardGeometry, accentMaterial);
+      cheekGuard.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.25);
+      cheekGuard.rotation.y = side * 0.2;
+      headGroup.add(cheekGuard);
+
+      // Sharp cheek spikes
+      const cheekSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.15, 4);
+      const cheekSpike = new THREE.Mesh(cheekSpikeGeometry, mechaMaterial);
+      cheekSpike.position.set(side * this.MAIN_SIZE * 0.28, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.28);
+      cheekSpike.rotation.z = side * Math.PI * 0.5;
+      headGroup.add(cheekSpike);
+    }
+
+    // V-Fin antenna - SHARP and aggressive
+    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5, 3); // Larger and sharper
     const vFinMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
@@ -1099,13 +1146,13 @@ class MegabotScene {
     headGroup.add(vFin);
     this.megabotParts.push({ mesh: vFin, type: 'vfin' });
 
-    // EVIL LASER EYES with glow effect
+    // EVIL LASER EYES with intense glow effect
     const eyeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.06, 16, 16);
     const eyeMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        eyeColor: { value: new THREE.Color(1.0, 0.0, 0.0) }, // Evil red
-        glowIntensity: { value: 3.0 },
+        eyeColor: { value: new THREE.Color(1.0, 0.05, 0.0) }, // Intense evil red
+        glowIntensity: { value: 8.0 }, // Much brighter!
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -1126,14 +1173,15 @@ class MegabotScene {
 
         void main() {
           vec3 viewDirection = normalize(cameraPosition - vPosition);
-          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 3.0);
+          float fresnel = pow(1.0 - abs(dot(viewDirection, vNormal)), 2.5);
 
-          // Evil pulsing effect
-          float pulse = 0.8 + sin(time * 4.0) * 0.2;
+          // Evil pulsing effect - more intense
+          float pulse = 0.9 + sin(time * 5.0) * 0.1;
+          float slowPulse = 0.85 + sin(time * 2.0) * 0.15;
 
-          // Intense core with outer glow
-          float core = 1.0 - fresnel * 0.3;
-          vec3 finalColor = eyeColor * glowIntensity * pulse * (core + fresnel * 2.0);
+          // Intense core with dramatic outer glow
+          float core = 1.0 - fresnel * 0.2;
+          vec3 finalColor = eyeColor * glowIntensity * pulse * slowPulse * (core * 1.5 + fresnel * 3.0);
 
           gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -1157,13 +1205,13 @@ class MegabotScene {
     this.megabotParts.push({ mesh: leftEye, type: 'leftEye' });
     this.megabotParts.push({ mesh: rightEye, type: 'rightEye' });
 
-    // Laser beam effects from eyes - now properly positioned
-    const laserGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.008, 1, 8);
+    // Laser beam effects from eyes - INTENSE and menacing
+    const laserGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.018, this.MAIN_SIZE * 0.01, 1, 8);
     const laserMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
-        intensity: { value: 3.0 },
+        beamColor: { value: new THREE.Color(1.0, 0.08, 0.0) }, // More intense red
+        intensity: { value: 6.0 }, // Double the brightness!
       },
       vertexShader: `
         varying vec2 vUv;
@@ -1183,22 +1231,22 @@ class MegabotScene {
         varying vec3 vPosition;
 
         void main() {
-          // Beam intensity from center to edge
+          // Beam intensity from center to edge - sharper falloff
           float distFromCenter = length(vec2(vUv.x - 0.5, 0.0)) * 2.0;
           float beamIntensity = 1.0 - distFromCenter;
-          beamIntensity = pow(beamIntensity, 3.0);
+          beamIntensity = pow(beamIntensity, 2.5); // Sharper beam
 
-          // Pulsing energy
-          float pulse = 0.8 + sin(time * 8.0 + vUv.y * 15.0) * 0.2;
+          // Pulsing energy - faster and more intense
+          float pulse = 0.85 + sin(time * 10.0 + vUv.y * 20.0) * 0.15;
 
-          // Traveling energy waves
-          float wave = sin(vUv.y * 30.0 - time * 15.0) * 0.4 + 0.6;
+          // Traveling energy waves - more dramatic
+          float wave = sin(vUv.y * 40.0 - time * 20.0) * 0.3 + 0.7;
 
-          // Core beam is brighter
-          float coreBrightness = smoothstep(0.3, 0.0, distFromCenter);
+          // Core beam is MUCH brighter
+          float coreBrightness = smoothstep(0.4, 0.0, distFromCenter);
 
-          vec3 finalColor = beamColor * intensity * (beamIntensity * pulse * wave + coreBrightness * 2.0);
-          float alpha = beamIntensity * 0.95;
+          vec3 finalColor = beamColor * intensity * (beamIntensity * pulse * wave + coreBrightness * 4.0);
+          float alpha = beamIntensity * 0.98;
 
           gl_FragColor = vec4(finalColor, alpha);
         }
@@ -1231,12 +1279,12 @@ class MegabotScene {
       rightEyePos: rightEye.position
     });
 
-    // Eye glow lights
-    const leftEyeLight = new THREE.PointLight(0xff0000, 3, 500);
+    // Eye glow lights - INTENSE red glow
+    const leftEyeLight = new THREE.PointLight(0xff0000, 8, 600); // Much brighter and wider range
     leftEyeLight.position.copy(leftEye.position);
     headGroup.add(leftEyeLight);
 
-    const rightEyeLight = new THREE.PointLight(0xff0000, 3, 500);
+    const rightEyeLight = new THREE.PointLight(0xff0000, 8, 600); // Much brighter and wider range
     rightEyeLight.position.copy(rightEye.position);
     headGroup.add(rightEyeLight);
 
@@ -1440,6 +1488,33 @@ class MegabotScene {
       pauldron.rotation.x = -0.2;
       armGroup.add(pauldron);
 
+      // AGGRESSIVE SHOULDER SPIKES - menacing armor
+      for (let spike = 0; spike < 3; spike++) {
+        const shoulderSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.25, 4);
+        const shoulderSpike = new THREE.Mesh(shoulderSpikeGeometry, accentMaterial);
+        shoulderSpike.position.set(
+          side * this.MAIN_SIZE * 0.15,
+          this.MAIN_SIZE * (0.2 - spike * 0.12),
+          -this.MAIN_SIZE * 0.15
+        );
+        shoulderSpike.rotation.z = side * Math.PI * 0.3;
+        shoulderSpike.rotation.x = -0.3;
+        armGroup.add(shoulderSpike);
+      }
+
+      // Shoulder blade spikes
+      for (let blade = 0; blade < 4; blade++) {
+        const bladeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.18, 3);
+        const bladeMesh = new THREE.Mesh(bladeGeometry, mechaMaterial);
+        bladeMesh.position.set(
+          side * this.MAIN_SIZE * 0.25,
+          this.MAIN_SIZE * (0.25 - blade * 0.08),
+          this.MAIN_SIZE * 0.05
+        );
+        bladeMesh.rotation.y = side * Math.PI * 0.15;
+        armGroup.add(bladeMesh);
+      }
+
       // Shoulder cannon mount (weaponry)
       if (side === 1) { // Right shoulder only
         const cannonMountGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.15);
@@ -1484,6 +1559,21 @@ class MegabotScene {
       elbow.position.y = -this.MAIN_SIZE * 1.15;
       armGroup.add(elbow);
 
+      // ELBOW SPIKES - aggressive and sharp
+      for (let elbowSpike = 0; elbowSpike < 3; elbowSpike++) {
+        const elbowSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2, 4);
+        const elbowSpikeMesh = new THREE.Mesh(elbowSpikeGeometry, accentMaterial);
+        const angle = (elbowSpike / 3) * Math.PI * 2;
+        elbowSpikeMesh.position.set(
+          Math.cos(angle) * this.MAIN_SIZE * 0.12,
+          -this.MAIN_SIZE * 1.15,
+          Math.sin(angle) * this.MAIN_SIZE * 0.12 - this.MAIN_SIZE * 0.08
+        );
+        elbowSpikeMesh.rotation.x = Math.PI * 0.5;
+        elbowSpikeMesh.rotation.z = angle;
+        armGroup.add(elbowSpikeMesh);
+      }
+
       // Hydraulic pistons for elbow
       for (let piston = 0; piston < 2; piston++) {
         const pistonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.35, 8);
@@ -1519,6 +1609,19 @@ class MegabotScene {
         const armorPlate = new THREE.Mesh(armorPlateGeometry, accentMaterial);
         armorPlate.position.set(0, -this.MAIN_SIZE * (1.35 + seg * 0.38), this.MAIN_SIZE * 0.08);
         armGroup.add(armorPlate);
+
+        // FOREARM BLADE SPIKES - aggressive edge
+        for (let bladeSeg = 0; bladeSeg < 2; bladeSeg++) {
+          const forearmBladeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.12, 3);
+          const forearmBlade = new THREE.Mesh(forearmBladeGeometry, mechaMaterial);
+          forearmBlade.position.set(
+            0,
+            -this.MAIN_SIZE * (1.28 + seg * 0.38 + bladeSeg * 0.15),
+            this.MAIN_SIZE * 0.14
+          );
+          forearmBlade.rotation.x = -Math.PI * 0.3;
+          armGroup.add(forearmBlade);
+        }
       }
 
       // Wrist joint
@@ -1527,31 +1630,91 @@ class MegabotScene {
       wrist.position.y = -this.MAIN_SIZE * 1.95;
       armGroup.add(wrist);
 
-      // Hand/Fist - MASSIVE
-      const handMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.22);
+      // Hand/Fist - MASSIVE and MENACING
+      const handMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.24, this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.24);
       const handMain = new THREE.Mesh(handMainGeometry, mechaMaterial);
       handMain.position.y = -this.MAIN_SIZE * 2.2;
       armGroup.add(handMain);
 
-      // Knuckle guards
-      const knuckleGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.24, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.24);
+      // Knuckle guards - spiked and aggressive
+      const knuckleGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.26, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.26);
       const knuckles = new THREE.Mesh(knuckleGeometry, accentMaterial);
       knuckles.position.y = -this.MAIN_SIZE * 2.05;
       knuckles.position.z = this.MAIN_SIZE * 0.05;
       armGroup.add(knuckles);
 
-      // Fingers (basic representation)
-      for (let finger = 0; finger < 4; finger++) {
-        const fingerGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.04);
-        const fingerMesh = new THREE.Mesh(fingerGeometry, mechaMaterial);
-        fingerMesh.position.set(
-          this.MAIN_SIZE * (-0.08 + finger * 0.055),
-          -this.MAIN_SIZE * 2.4,
-          this.MAIN_SIZE * 0.08
+      // Knuckle spikes - one per finger
+      for (let spike = 0; spike < 4; spike++) {
+        const knuckleSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.1, 4);
+        const knuckleSpike = new THREE.Mesh(knuckleSpikeGeometry, accentMaterial);
+        knuckleSpike.position.set(
+          this.MAIN_SIZE * (-0.08 + spike * 0.055),
+          -this.MAIN_SIZE * 2.0,
+          this.MAIN_SIZE * 0.13
         );
-        fingerMesh.rotation.x = 0.3;
-        armGroup.add(fingerMesh);
+        knuckleSpike.rotation.x = -Math.PI * 0.4;
+        armGroup.add(knuckleSpike);
       }
+
+      // Fingers - claw-like with multiple segments
+      for (let finger = 0; finger < 4; finger++) {
+        // First finger segment (thicker)
+        const finger1Geometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.045, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.045);
+        const finger1 = new THREE.Mesh(finger1Geometry, mechaMaterial);
+        finger1.position.set(
+          this.MAIN_SIZE * (-0.08 + finger * 0.055),
+          -this.MAIN_SIZE * 2.35,
+          this.MAIN_SIZE * 0.1
+        );
+        finger1.rotation.x = 0.4;
+        armGroup.add(finger1);
+
+        // Second finger segment (thinner)
+        const finger2Geometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.04);
+        const finger2 = new THREE.Mesh(finger2Geometry, mechaMaterial);
+        finger2.position.set(
+          this.MAIN_SIZE * (-0.08 + finger * 0.055),
+          -this.MAIN_SIZE * 2.45,
+          this.MAIN_SIZE * 0.15
+        );
+        finger2.rotation.x = 0.5;
+        armGroup.add(finger2);
+
+        // SHARP TALON - menacing claw tip
+        const talonGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.12, 4);
+        const talon = new THREE.Mesh(talonGeometry, accentMaterial);
+        talon.position.set(
+          this.MAIN_SIZE * (-0.08 + finger * 0.055),
+          -this.MAIN_SIZE * 2.54,
+          this.MAIN_SIZE * 0.2
+        );
+        talon.rotation.x = Math.PI * 0.4; // Point forward menacingly
+        armGroup.add(talon);
+      }
+
+      // Thumb claw - larger and more aggressive
+      const thumbMainGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.15, this.MAIN_SIZE * 0.06);
+      const thumbMain = new THREE.Mesh(thumbMainGeometry, mechaMaterial);
+      thumbMain.position.set(
+        side * this.MAIN_SIZE * 0.13,
+        -this.MAIN_SIZE * 2.3,
+        this.MAIN_SIZE * 0.05
+      );
+      thumbMain.rotation.z = side * 0.5;
+      thumbMain.rotation.x = 0.3;
+      armGroup.add(thumbMain);
+
+      // Thumb talon
+      const thumbTalonGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.035, this.MAIN_SIZE * 0.15, 4);
+      const thumbTalon = new THREE.Mesh(thumbTalonGeometry, accentMaterial);
+      thumbTalon.position.set(
+        side * this.MAIN_SIZE * 0.15,
+        -this.MAIN_SIZE * 2.42,
+        this.MAIN_SIZE * 0.12
+      );
+      thumbTalon.rotation.z = side * 0.5;
+      thumbTalon.rotation.x = Math.PI * 0.4;
+      armGroup.add(thumbTalon);
 
       armGroup.position.set(side * this.MAIN_SIZE * 0.55, this.MAIN_SIZE * 0.7, 0);
       this.mainMegabot.add(armGroup);
@@ -1623,12 +1786,20 @@ class MegabotScene {
       knee.position.y = -this.MAIN_SIZE * 1.25;
       legGroup.add(knee);
 
-      // Knee guard armor
+      // Knee guard armor - aggressive
       const kneeGuardGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.2, this.MAIN_SIZE * 0.15);
       const kneeGuard = new THREE.Mesh(kneeGuardGeometry, mechaMaterial);
       kneeGuard.position.y = -this.MAIN_SIZE * 1.25;
       kneeGuard.position.z = this.MAIN_SIZE * 0.15;
       legGroup.add(kneeGuard);
+
+      // KNEE SPIKE - menacing forward blade
+      const kneeSpikeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.3, 4);
+      const kneeSpike = new THREE.Mesh(kneeSpikeGeometry, accentMaterial);
+      kneeSpike.position.y = -this.MAIN_SIZE * 1.25;
+      kneeSpike.position.z = this.MAIN_SIZE * 0.25;
+      kneeSpike.rotation.x = -Math.PI * 0.4;
+      legGroup.add(kneeSpike);
 
       // Knee hydraulics
       for (let piston = 0; piston < 2; piston++) {
@@ -1665,6 +1836,19 @@ class MegabotScene {
         const shinArmor = new THREE.Mesh(shinArmorGeometry, accentMaterial);
         shinArmor.position.set(0, -this.MAIN_SIZE * (1.5 + seg * 0.43), this.MAIN_SIZE * 0.14);
         legGroup.add(shinArmor);
+
+        // SHIN BLADE SPIKES - aggressive frontal armor
+        for (let shinBlade = 0; shinBlade < 3; shinBlade++) {
+          const shinBladeGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.035, this.MAIN_SIZE * 0.15, 3);
+          const shinBladeMesh = new THREE.Mesh(shinBladeGeometry, mechaMaterial);
+          shinBladeMesh.position.set(
+            0,
+            -this.MAIN_SIZE * (1.42 + seg * 0.43 + shinBlade * 0.12),
+            this.MAIN_SIZE * 0.2
+          );
+          shinBladeMesh.rotation.x = -Math.PI * 0.35;
+          legGroup.add(shinBladeMesh);
+        }
       }
 
       // Ankle joint
