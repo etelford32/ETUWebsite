@@ -1,18 +1,45 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { createServerClient } from '@/lib/supabaseServer'
+import { setSessionOnResponse } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
 
   if (code) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-    await supabase.auth.exchangeCodeForSession(code)
+    try {
+      const supabase = createServerClient()
+
+      // Exchange code for session (OAuth callback)
+      const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code)
+
+      if (error) {
+        console.error('OAuth callback error:', error)
+        return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_failed`)
+      }
+
+      if (user) {
+        // Get user profile to include role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        const role = profile?.role || 'user'
+
+        // Create session cookie
+        const response = NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+        setSessionOnResponse(response, user.id, user.email!, role)
+
+        return response
+      }
+    } catch (error) {
+      console.error('OAuth callback exception:', error)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=server_error`)
+    }
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+  // No code provided - redirect to login
+  return NextResponse.redirect(`${requestUrl.origin}/login`)
 }
