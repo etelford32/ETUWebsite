@@ -6,6 +6,11 @@ import '../input.css'
 export const metadata: Metadata = {
   title: 'Explore the Universe 2175 — Open-World Space Adventure',
   description: 'Explore the Universe 2175 is an open-world space adventure with living factions, realistic astrophysics, and a global scoreboard.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/logo2.png',
+  },
+  manifest: '/manifest.json',
   openGraph: {
     title: 'Explore the Universe 2175 — Open-World Space Adventure',
     description: 'A living galaxy with adaptive AI, realistic space physics, and community leaderboards.',
