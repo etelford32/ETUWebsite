@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
 import { motion } from "framer-motion";
 
 interface RoadmapItem {
@@ -151,7 +150,7 @@ export default function RoadmapPage() {
   }, []);
 
   async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null;
     setCurrentUser(session?.user || null);
   }
 
@@ -199,7 +198,7 @@ export default function RoadmapPage() {
 
     try {
       const feature = featureRequests.find(f => f.id === feedbackId);
-      const { data: { session } } = await supabase.auth.getSession();
+      const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null;
 
       if (feature?.user_voted) {
         // Remove vote

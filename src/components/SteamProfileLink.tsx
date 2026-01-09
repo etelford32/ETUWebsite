@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
 
 export function SteamProfileLink({ currentSteamId }: { currentSteamId?: string | null }) {
   const [linking, setLinking] = useState(false)
