@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LeaderboardEntry } from '@/lib/types'
-import { supabase } from '@/lib/supabaseClient'
 import Header from '@/components/Header'
 
 type TimeWindow = 'today' | '7d' | '30d' | '90d' | 'all'
@@ -50,8 +49,13 @@ export default function LeaderboardPage() {
   }, [])
 
   async function checkUser() {
-    const { data: { session } } = await supabase.auth.getSession()
-    setCurrentUser(session?.user || null)
+    try {
+      const response = await fetch('/api/auth/session')
+      const data = await response.json()
+      setCurrentUser(data.authenticated ? data.user : null)
+    } catch (error) {
+      setCurrentUser(null)
+    }
   }
 
   // Fetch leaderboard data
