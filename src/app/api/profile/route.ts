@@ -75,7 +75,6 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
-    // @ts-expect-error - Dynamic field updates require bypassing strict Supabase typing
     const { data: profile, error } = await supabase
       .from('profiles')
       .update(allowedFields)
