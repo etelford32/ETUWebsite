@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
           .eq('id', user.id)
           .single()
 
-        const role = profile?.role || 'user'
+        const role = (profile as any)?.role || 'user'
 
         // Create session cookie
         const response = NextResponse.redirect(`${requestUrl.origin}/dashboard`)
