@@ -58,14 +58,20 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { username, avatar_url, faction_choice, is_public } = body
 
-    // Validate allowed fields
-    const allowedFields: Record<string, any> = {}
-    if (username !== undefined) allowedFields.username = username
-    if (avatar_url !== undefined) allowedFields.avatar_url = avatar_url
-    if (faction_choice !== undefined) allowedFields.faction_choice = faction_choice
-    if (is_public !== undefined) allowedFields.is_public = Boolean(is_public)
+    // Validate and build update object with explicit typing
+    const updates: {
+      username?: string
+      avatar_url?: string | null
+      faction_choice?: string | null
+      is_public?: boolean
+    } = {}
 
-    if (Object.keys(allowedFields).length === 0) {
+    if (username !== undefined) updates.username = username
+    if (avatar_url !== undefined) updates.avatar_url = avatar_url
+    if (faction_choice !== undefined) updates.faction_choice = faction_choice
+    if (is_public !== undefined) updates.is_public = Boolean(is_public)
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         { error: 'No valid fields to update' },
         { status: 400 }
@@ -75,9 +81,10 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
+    // @ts-ignore - Supabase type generation issue with dynamic updates
     const { data: profile, error } = await supabase
       .from('profiles')
-      .update(allowedFields)
+      .update(updates)
       .eq('id', session.userId)
       .select()
       .single()
