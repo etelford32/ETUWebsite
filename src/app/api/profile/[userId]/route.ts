@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
-import { getSession } from '@/lib/session'
+import { getSessionFromRequest } from '@/lib/session'
 
 /**
  * GET /api/profile/[userId]
@@ -36,7 +36,7 @@ export async function GET(
     }
 
     const supabase = createServerClient()
-    const session = await getSession(request)
+    const session = getSessionFromRequest(request)
 
     // Fetch the profile
     const { data: profile, error } = await supabase
