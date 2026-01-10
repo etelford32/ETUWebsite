@@ -81,6 +81,7 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
+    // @ts-ignore - Supabase type generation issue with dynamic updates
     const { data: profile, error } = await supabase
       .from('profiles')
       .update(updates)
