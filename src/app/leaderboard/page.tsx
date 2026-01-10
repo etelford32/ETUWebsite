@@ -423,11 +423,23 @@ function LeaderboardRow({
               👤
             </div>
           )}
-          <div>
-            <div className="font-semibold text-slate-100">
-              {entry.profile?.username || 'Anonymous'}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <a
+                href={entry.user_id ? `/profile/${entry.user_id}` : '#'}
+                className={`font-semibold ${
+                  entry.user_id
+                    ? 'text-cyan-400 hover:text-cyan-300 hover:underline transition-colors'
+                    : 'text-slate-100'
+                }`}
+                onClick={(e) => {
+                  if (!entry.user_id) e.preventDefault()
+                }}
+              >
+                {entry.profile?.username || 'Anonymous'}
+              </a>
               {isCurrentUser && (
-                <span className="ml-2 text-xs px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-400">
+                <span className="text-xs px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-400">
                   You
                 </span>
               )}

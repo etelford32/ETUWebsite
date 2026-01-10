@@ -372,12 +372,22 @@ export default function UserManagement() {
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => setSelectedUser(user)}
-                        className="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
-                      >
-                        Manage
-                      </button>
+                      <div className="flex gap-2">
+                        <a
+                          href={`/profile/${user.id}`}
+                          className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View Profile
+                        </a>
+                        <button
+                          onClick={() => setSelectedUser(user)}
+                          className="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
+                        >
+                          Manage
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -56,13 +56,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, avatar_url, faction_choice } = body
+    const { username, avatar_url, faction_choice, is_public } = body
 
     // Validate allowed fields
     const allowedFields: any = {}
     if (username !== undefined) allowedFields.username = username
     if (avatar_url !== undefined) allowedFields.avatar_url = avatar_url
     if (faction_choice !== undefined) allowedFields.faction_choice = faction_choice
+    if (is_public !== undefined) allowedFields.is_public = Boolean(is_public)
 
     if (Object.keys(allowedFields).length === 0) {
       return NextResponse.json(
