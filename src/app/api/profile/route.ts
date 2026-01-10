@@ -59,7 +59,7 @@ export async function PATCH(request: NextRequest) {
     const { username, avatar_url, faction_choice, is_public } = body
 
     // Validate allowed fields
-    const allowedFields: any = {}
+    const allowedFields: Record<string, any> = {}
     if (username !== undefined) allowedFields.username = username
     if (avatar_url !== undefined) allowedFields.avatar_url = avatar_url
     if (faction_choice !== undefined) allowedFields.faction_choice = faction_choice
@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest) {
     // Update profile (RLS ensures user can only update their own)
     const { data: profile, error } = await supabase
       .from('profiles')
-      .update(allowedFields)
+      .update(allowedFields as any)
       .eq('id', session.userId)
       .select()
       .single()
