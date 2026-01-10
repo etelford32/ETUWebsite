@@ -1,6 +1,5 @@
 import { User } from '@supabase/supabase-js'
 import { createServerClient } from './supabaseServer'
-import { supabase as clientSupabase } from './supabaseClient'
 
 export type UserRole = 'user' | 'admin' | 'moderator'
 
@@ -60,12 +59,19 @@ export async function isStaff(userId: string): Promise<boolean> {
 }
 
 /**
- * Get user's profile with role (client-side)
- * Use this in React components
+ * Get user's profile with role (client-side safe)
+ * This should be called from the client via an API route
+ *
+ * CLIENT USAGE:
+ * const res = await fetch('/api/profile')
+ * const { profile } = await res.json()
+ * const role = profile.role
  */
 export async function getUserRole(userId: string): Promise<UserRole> {
   try {
-    const { data, error } = await clientSupabase
+    // Use server-side client instead of client-side
+    const supabase = createServerClient()
+    const { data, error } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', userId)

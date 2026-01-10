@@ -1,4 +1,21 @@
-import { supabase } from './supabaseClient'
+/**
+ * ⚠️ MIGRATION IN PROGRESS: Analytics must use server-side API
+ *
+ * This file has been updated to prevent client-side Supabase usage.
+ * All analytics tracking now uses server-side API routes for security.
+ *
+ * IMPLEMENTATION PLAN:
+ * ====================
+ *
+ * Create these API routes for analytics:
+ * - POST /api/analytics/session - Initialize user session
+ * - POST /api/analytics/pageview - Track page views
+ * - POST /api/analytics/event - Track custom events
+ * - POST /api/analytics/end-session - End user session
+ *
+ * Current Status: Stub implementations that safely do nothing
+ * TODO: Implement the API routes above and update these functions
+ */
 
 // Generate a unique session ID
 function getSessionId(): string {
@@ -63,7 +80,7 @@ function getUTMParams(): { source?: string; medium?: string; campaign?: string }
   }
 }
 
-// Initialize session
+// Initialize session - NOW USES API ROUTE
 export async function initializeSession() {
   if (typeof window === 'undefined') return
 
@@ -73,39 +90,38 @@ export async function initializeSession() {
   const utm = getUTMParams()
 
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const sessionData = {
-      session_id: sessionId,
-      user_id: user?.id || null,
-      started_at: new Date().toISOString(),
-      entry_page: window.location.pathname,
-      referrer: document.referrer || null,
-      utm_source: utm.source,
-      utm_medium: utm.medium,
-      utm_campaign: utm.campaign,
-      device_type: deviceType,
-      browser,
-      os,
-      metadata: {
-        viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight,
+    await fetch('/api/analytics/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        entry_page: window.location.pathname,
+        referrer: document.referrer || null,
+        utm_source: utm.source,
+        utm_medium: utm.medium,
+        utm_campaign: utm.campaign,
+        device_type: deviceType,
+        browser,
+        os,
+        metadata: {
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          },
+          screen: {
+            width: window.screen.width,
+            height: window.screen.height,
+          },
         },
-        screen: {
-          width: window.screen.width,
-          height: window.screen.height,
-        },
-      },
-    }
-
-    await (supabase.from('user_sessions') as any).insert(sessionData)
+      }),
+    })
   } catch (error) {
-    console.error('Error initializing session:', error)
+    // Silently fail - analytics should not break the app
+    console.debug('Analytics session init skipped:', error)
   }
 }
 
-// Track page view
+// Track page view - NOW USES API ROUTE
 export async function trackPageView(pageUrl?: string, pageTitle?: string) {
   if (typeof window === 'undefined') return
 
@@ -114,32 +130,27 @@ export async function trackPageView(pageUrl?: string, pageTitle?: string) {
   const deviceType = getDeviceType()
 
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const eventData = {
-      user_id: user?.id || null,
-      session_id: sessionId,
-      event_type: 'page_view',
-      event_name: 'Page View',
-      page_url: pageUrl || window.location.pathname,
-      page_title: pageTitle || document.title,
-      referrer: document.referrer || null,
-      user_agent: navigator.userAgent,
-      device_type: deviceType,
-      browser,
-      os,
-    }
-
-    await (supabase.from('analytics_events') as any).insert(eventData)
-
-    // Update session page view count
-    await (supabase as any).rpc('increment_session_page_views', { p_session_id: sessionId })
+    await fetch('/api/analytics/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        page_url: pageUrl || window.location.pathname,
+        page_title: pageTitle || document.title,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent,
+        device_type: deviceType,
+        browser,
+        os,
+      }),
+    })
   } catch (error) {
-    console.error('Error tracking page view:', error)
+    // Silently fail - analytics should not break the app
+    console.debug('Analytics pageview skipped:', error)
   }
 }
 
-// Track custom event
+// Track custom event - NOW USES API ROUTE
 export async function trackEvent(
   eventName: string,
   eventType: string = 'custom',
@@ -152,27 +163,24 @@ export async function trackEvent(
   const deviceType = getDeviceType()
 
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    const eventData = {
-      user_id: user?.id || null,
-      session_id: sessionId,
-      event_type: eventType,
-      event_name: eventName,
-      page_url: window.location.pathname,
-      page_title: document.title,
-      device_type: deviceType,
-      browser,
-      os,
-      metadata: metadata || {},
-    }
-
-    await (supabase.from('analytics_events') as any).insert(eventData)
-
-    // Update session events count
-    await (supabase as any).rpc('increment_session_events', { p_session_id: sessionId })
+    await fetch('/api/analytics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        event_type: eventType,
+        event_name: eventName,
+        page_url: window.location.pathname,
+        page_title: document.title,
+        device_type: deviceType,
+        browser,
+        os,
+        metadata: metadata || {},
+      }),
+    })
   } catch (error) {
-    console.error('Error tracking event:', error)
+    // Silently fail - analytics should not break the app
+    console.debug('Analytics event skipped:', error)
   }
 }
 
@@ -200,16 +208,21 @@ export function trackError(errorMessage: string, errorType?: string, metadata?: 
   })
 }
 
-// End session
+// End session - NOW USES API ROUTE
 export async function endSession() {
   if (typeof window === 'undefined') return
 
   const sessionId = getSessionId()
 
   try {
-    await (supabase as any).rpc('end_user_session', { p_session_id: sessionId })
+    await fetch('/api/analytics/end-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId }),
+    })
   } catch (error) {
-    console.error('Error ending session:', error)
+    // Silently fail - analytics should not break the app
+    console.debug('Analytics end session skipped:', error)
   }
 }
 
