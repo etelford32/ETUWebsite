@@ -16,6 +16,7 @@ interface PlayerProfile {
   ship_class: string | null
   created_at: string
   updated_at: string
+  is_public: boolean
   // Stats - always populated (from DB or defaults)
   level: number
   xp: number
@@ -661,21 +662,85 @@ export default function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Privacy
+                    Privacy Settings
                   </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" className="w-4 h-4 rounded" defaultChecked />
-                      <span className="text-sm">Show my profile on leaderboards</span>
-                    </label>
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" className="w-4 h-4 rounded" defaultChecked />
-                      <span className="text-sm">Allow friend requests</span>
-                    </label>
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" className="w-4 h-4 rounded" />
-                      <span className="text-sm">Hide match history</span>
-                    </label>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 rounded mt-0.5 text-cyan-600 bg-slate-700 border-slate-600 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-0"
+                          checked={profile?.is_public ?? true}
+                          onChange={async (e) => {
+                            const newValue = e.target.checked
+                            try {
+                              const response = await fetch('/api/profile', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ is_public: newValue })
+                              })
+
+                              if (response.ok) {
+                                const { profile: updatedProfile } = await response.json()
+                                setProfile(updatedProfile)
+                              } else {
+                                e.target.checked = !newValue
+                                alert('Failed to update privacy settings')
+                              }
+                            } catch (error) {
+                              e.target.checked = !newValue
+                              alert('Failed to update privacy settings')
+                            }
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-white mb-1">
+                            Public Profile
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            Allow other players to view your profile, stats, and achievements.
+                            Admins and moderators can always view all profiles.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="p-4 bg-slate-800/30 rounded-lg border border-slate-700/50 opacity-60">
+                      <label className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 rounded mt-0.5"
+                          disabled
+                          defaultChecked
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-400 mb-1">
+                            Allow Friend Requests <span className="text-xs text-slate-500">(Coming Soon)</span>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Let other players send you friend requests
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="p-4 bg-slate-800/30 rounded-lg border border-slate-700/50 opacity-60">
+                      <label className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 rounded mt-0.5"
+                          disabled
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-400 mb-1">
+                            Hide Match History <span className="text-xs text-slate-500">(Coming Soon)</span>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Hide your recent match history from other players
+                          </div>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
