@@ -75,9 +75,10 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
-    const { data: profile, error } = await supabase
+    // Type assertion to bypass strict Supabase typing for dynamic updates
+    const { data: profile, error } = await (supabase
       .from('profiles')
-      .update(allowedFields as any)
+      .update(allowedFields) as any)
       .eq('id', session.userId)
       .select()
       .single()
