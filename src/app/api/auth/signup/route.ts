@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
+import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
+import { validatePassword } from '@/lib/passwordValidation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +16,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (password.length < 6) {
+    // Rate limiting: 3 signup attempts per hour per email+IP combination
+    const identifier = getEmailIdentifier(email.toLowerCase(), request)
+    const rateLimitResult = RateLimiters.signup(identifier)
+
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
+        {
+          error: 'Too many signup attempts. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
+            'X-RateLimit-Limit': '3',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString()
+          }
+        }
+      )
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password)
+    if (!passwordValidation.valid) {
+      return NextResponse.json(
+        {
+          error: 'Password does not meet security requirements',
+          details: passwordValidation.errors
+        },
         { status: 400 }
       )
     }

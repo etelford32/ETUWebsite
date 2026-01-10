@@ -3,22 +3,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({ 
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
-
   Rocket,
   Target,
   Brain,
@@ -31,6 +15,24 @@ const supabase: any = {
   Sparkles,
   GamepadIcon
 } from 'lucide-react'
+
+/* MIGRATION STUB - needs API route migration */
+const supabase: any = {
+  from: () => ({
+    select: () => ({
+      eq: () => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
+    }),
+    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
+    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
+  }),
+  auth: {
+    getUser: () => Promise.resolve({ data: { user: null } })
+  },
+  removeChannel: () => {},
+  channel: () => ({ on: () => ({ subscribe: () => {} }) })
+}
 
 interface FormData {
   // Profile data

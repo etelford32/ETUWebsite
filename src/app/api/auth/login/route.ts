@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
+import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Rate limiting: 5 login attempts per 15 minutes per email+IP combination
+    const identifier = getEmailIdentifier(email.toLowerCase(), request)
+    const rateLimitResult = RateLimiters.auth(identifier)
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Too many login attempts. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '900',
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString()
+          }
+        }
+      )
+    }
+
     const supabase = createServerClient()
 
     // Authenticate with Supabase
@@ -23,8 +46,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError || !authData.user) {
+      // Don't reveal whether email exists or password is wrong
       return NextResponse.json(
-        { error: authError?.message || 'Invalid credentials' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
