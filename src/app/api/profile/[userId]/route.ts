@@ -69,10 +69,13 @@ export async function GET(
       )
     }
 
+    // Type assertion for profile data
+    const profileData = profile as any
+
     // Check if user has permission to view this profile
     const isOwner = session?.userId === userId
     const isAdmin = session && ['admin', 'moderator'].includes(session.role || '')
-    const isPublic = profile.is_public
+    const isPublic = profileData.is_public
 
     // If profile is private and user is not owner or admin, return 403
     if (!isPublic && !isOwner && !isAdmin) {
@@ -83,37 +86,37 @@ export async function GET(
     }
 
     // Calculate derived stats
-    const totalMatches = (profile.total_wins || 0) + (profile.total_losses || 0)
+    const totalMatches = (profileData.total_wins || 0) + (profileData.total_losses || 0)
     const winRate = totalMatches > 0
-      ? ((profile.total_wins || 0) / totalMatches * 100).toFixed(1)
+      ? ((profileData.total_wins || 0) / totalMatches * 100).toFixed(1)
       : '0.0'
-    const kdRatio = (profile.total_deaths || 0) > 0
-      ? ((profile.total_kills || 0) / profile.total_deaths).toFixed(2)
-      : (profile.total_kills || 0).toFixed(2)
+    const kdRatio = (profileData.total_deaths || 0) > 0
+      ? ((profileData.total_kills || 0) / profileData.total_deaths).toFixed(2)
+      : (profileData.total_kills || 0).toFixed(2)
 
     // Format playtime (seconds to hours)
-    const playtimeHours = Math.floor((profile.total_playtime || 0) / 3600)
-    const playtimeMinutes = Math.floor(((profile.total_playtime || 0) % 3600) / 60)
+    const playtimeHours = Math.floor((profileData.total_playtime || 0) / 3600)
+    const playtimeMinutes = Math.floor(((profileData.total_playtime || 0) % 3600) / 60)
 
     // Build response with appropriate data based on access level
-    const profileData = {
-      id: profile.id,
-      username: profile.username || 'Anonymous',
-      avatar_url: profile.avatar_url,
-      faction_choice: profile.faction_choice,
-      created_at: profile.created_at,
-      level: profile.level || 1,
-      xp: profile.xp || 0,
+    const responseData = {
+      id: profileData.id,
+      username: profileData.username || 'Anonymous',
+      avatar_url: profileData.avatar_url,
+      faction_choice: profileData.faction_choice,
+      created_at: profileData.created_at,
+      level: profileData.level || 1,
+      xp: profileData.xp || 0,
 
       // Stats
       stats: {
-        total_kills: profile.total_kills || 0,
-        total_deaths: profile.total_deaths || 0,
-        total_wins: profile.total_wins || 0,
-        total_losses: profile.total_losses || 0,
+        total_kills: profileData.total_kills || 0,
+        total_deaths: profileData.total_deaths || 0,
+        total_wins: profileData.total_wins || 0,
+        total_losses: profileData.total_losses || 0,
         total_matches: totalMatches,
-        highest_score: profile.highest_score || 0,
-        total_playtime: profile.total_playtime || 0,
+        highest_score: profileData.highest_score || 0,
+        total_playtime: profileData.total_playtime || 0,
         playtime_formatted: `${playtimeHours}h ${playtimeMinutes}m`,
 
         // Derived stats
@@ -122,12 +125,12 @@ export async function GET(
       },
 
       // Privacy status
-      is_public: profile.is_public,
+      is_public: profileData.is_public,
 
       // Meta info (only for owner or admin)
       meta: (isOwner || isAdmin) ? {
-        role: profile.role,
-        ship_class: profile.ship_class,
+        role: profileData.role,
+        ship_class: profileData.ship_class,
       } : undefined,
 
       // Access info
@@ -139,7 +142,7 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ profile: profileData })
+    return NextResponse.json({ profile: responseData })
   } catch (error: any) {
     console.error('Error fetching profile:', error)
     return NextResponse.json(
