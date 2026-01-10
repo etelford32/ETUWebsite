@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .eq('id', authData.user.id)
       .single()
 
-    const role = profile?.role || 'user'
+    const role = (profile as any)?.role || 'user'
 
     // Create session cookie
     const response = NextResponse.json({
