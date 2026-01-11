@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 /* MIGRATION STUB - needs API route migration */
 const supabase: any = {
   from: () => ({
-    select: () => ({ 
+    select: () => ({
       eq: () => Promise.resolve({ data: [], error: null }),
       single: () => Promise.resolve({ data: null, error: null }),
       order: () => ({ limit: () => Promise.resolve({ data: [] }) })
@@ -16,6 +16,9 @@ const supabase: any = {
     insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
     update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
   }),
+  auth: {
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+  },
   removeChannel: () => {},
   channel: () => ({ on: () => ({ subscribe: () => {} }) })
 };
@@ -81,7 +84,7 @@ export default function ShipDesigner() {
     checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user || null);
     });
 

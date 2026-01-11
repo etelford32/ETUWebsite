@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest } from '@/lib/session'
+import { Database } from '@/lib/types'
 
 /**
  * GET /api/profile - Get current user's profile
@@ -58,13 +59,8 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { username, avatar_url, faction_choice, is_public } = body
 
-    // Validate and build update object with explicit typing
-    const updates: {
-      username?: string
-      avatar_url?: string | null
-      faction_choice?: string | null
-      is_public?: boolean
-    } = {}
+    // Validate and build update object
+    const updates: Record<string, any> = {}
 
     if (username !== undefined) updates.username = username
     if (avatar_url !== undefined) updates.avatar_url = avatar_url
@@ -81,9 +77,9 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
-    // @ts-ignore - Supabase type generation issue with dynamic updates
-    const { data: profile, error } = await supabase
-      .from('profiles')
+    // Type assertion needed due to Supabase type inference limitations
+    const { data: profile, error } = await (supabase
+      .from('profiles') as any)
       .update(updates)
       .eq('id', session.userId)
       .select()

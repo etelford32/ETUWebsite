@@ -179,6 +179,7 @@ export default function ProfilePage() {
           ship_class: dbProfile.ship_class || null,
           created_at: dbProfile.created_at || new Date().toISOString(),
           updated_at: dbProfile.updated_at || new Date().toISOString(),
+          is_public: dbProfile.is_public ?? true,
           // Stats - use DB values or defaults
           level: dbProfile.level ?? 1,
           xp: dbProfile.xp ?? 0,

@@ -16,6 +16,7 @@ export interface Database {
           steam_id: string | null
           avatar_url: string | null
           faction_choice: string | null
+          is_public: boolean
           created_at: string
           updated_at: string
           // Player Stats (optional until migration is run)
@@ -35,6 +36,7 @@ export interface Database {
           steam_id?: string | null
           avatar_url?: string | null
           faction_choice?: string | null
+          is_public?: boolean
           created_at?: string
           updated_at?: string
           // Player Stats
@@ -54,6 +56,7 @@ export interface Database {
           steam_id?: string | null
           avatar_url?: string | null
           faction_choice?: string | null
+          is_public?: boolean
           created_at?: string
           updated_at?: string
           // Player Stats

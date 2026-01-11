@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/lib/types'
 
 /**
@@ -6,7 +6,7 @@ import { Database } from '@/lib/types'
  * This should only be used in API routes and server components
  * NEVER expose this client to the browser
  */
-export function createServerClient() {
+export function createServerClient(): SupabaseClient<Database> {
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
