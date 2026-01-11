@@ -156,33 +156,13 @@ export default function RoadmapPage() {
 
   async function fetchFeatureRequests() {
     try {
-      // Get feature requests
-      const { data, error } = await supabase
-        .from('feedback')
-        .select('*')
-        .eq('type', 'feature')
-        .order('vote_count', { ascending: false })
-        .limit(10);
+      // Get feature requests via API
+      const response = await fetch('/api/feedback?type=feature&limit=10');
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch feature requests');
 
-      // Check if user has voted for each
-      if (currentUser) {
-        const { data: votes } = await supabase
-          .from('feedback_votes')
-          .select('feedback_id')
-          .eq('user_id', currentUser.id);
-
-        const votedIds = new Set(votes?.map((v: any) => v.feedback_id) || []);
-        const dataWithVotes = data?.map((item: any) => ({
-          ...item,
-          user_voted: votedIds.has(item.id)
-        })) || [];
-
-        setFeatureRequests(dataWithVotes);
-      } else {
-        setFeatureRequests(data || []);
-      }
+      setFeatureRequests(data.feedback || []);
     } catch (err) {
       console.error('Error fetching feature requests:', err);
     } finally {
@@ -198,23 +178,18 @@ export default function RoadmapPage() {
 
     try {
       const feature = featureRequests.find(f => f.id === feedbackId);
-      const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null;
 
       if (feature?.user_voted) {
-        // Remove vote
+        // Remove vote (uses cookie-based auth)
         await fetch(`/api/feedback/vote?feedback_id=${feedbackId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${session?.access_token}`
-          }
+          method: 'DELETE'
         });
       } else {
-        // Add vote
+        // Add vote (uses cookie-based auth)
         await fetch('/api/feedback/vote', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ feedback_id: feedbackId })
         });
