@@ -11,7 +11,6 @@ import CountdownTimer from "@/components/CountdownTimer";
 import RealSignupStats from "@/components/RealSignupStats";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
-import LatestUpdate from "@/components/LatestUpdate";
 import FOMOCounter from "@/components/FOMOCounter";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
@@ -180,9 +179,6 @@ export default function HomePage() {
           className="absolute top-20 right-6 z-20 hidden lg:block"
         >
           <div className="retro-game-box rounded-lg p-3 w-48 cursor-pointer">
-            <div className="retro-game-box-badge">
-              DEC 31
-            </div>
             <div className="retro-game-box-image rounded overflow-hidden mb-2">
               <Image
                 src="/Explore_Epic5.png"
@@ -388,9 +384,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Latest Update - Christmas Demo Delay */}
-      <LatestUpdate />
 
       {/* Why ETU Changes Everything - Above the Fold */}
       <section
@@ -1241,8 +1234,7 @@ export default function HomePage() {
                 </div>
 
                 <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-                  Join <span className="text-[#66c0f4]">Thousands</span> of
-                  Commanders
+                  Command <span className="text-[#66c0f4]">Invasions</span>, Battle AI
                 </h2>
 
                 <p className="text-lg text-slate-200/90 mb-6 leading-relaxed">
@@ -1320,34 +1312,6 @@ export default function HomePage() {
                       <strong>Free Demo</strong> Available
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-green-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>
-                      <strong>New Year's Eve</strong> Launch
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-blue-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                    </svg>
-                    <span>
-                      <strong>Solo Dev</strong> Passion Project
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -1396,9 +1360,6 @@ export default function HomePage() {
                   {/* Floating badges */}
                   <div className="absolute -top-4 -right-4 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg animate-bounce">
                     FREE DEMO
-                  </div>
-                  <div className="absolute -bottom-4 -left-4 bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg">
-                    DEC 31st
                   </div>
                 </div>
               </div>
