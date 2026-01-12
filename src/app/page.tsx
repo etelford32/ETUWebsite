@@ -251,11 +251,18 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8">
-                <span className="neon-blue-title-sparking drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
-                  Command Star Fleets.<br />
-                  Outsmart the Ultimate Evil AI.
+              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8 relative">
+                <span className="black-metal-title">
+                  Create Star Fleets.<br />
+                  Outsmart Megabot.
                 </span>
+                {/* Animated golden sparks around the text */}
+                <span className="golden-spark golden-spark-1" aria-hidden="true"></span>
+                <span className="golden-spark golden-spark-2" aria-hidden="true"></span>
+                <span className="golden-spark golden-spark-3" aria-hidden="true"></span>
+                <span className="golden-spark golden-spark-4" aria-hidden="true"></span>
+                <span className="golden-spark golden-spark-5" aria-hidden="true"></span>
+                <span className="golden-spark golden-spark-6" aria-hidden="true"></span>
               </h1>
 
               {/* Primary CTA - Simplified & Optimized for Conversions */}
