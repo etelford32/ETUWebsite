@@ -123,50 +123,71 @@
   animation: shimmer 2s infinite;
 }
 
-/* Black Metal Hero Title with Golden Sparks */
+/* Neon Outline Hero Title with Purple/Blue Gradient */
 .black-metal-title {
-  color: #0a0a0a;
-  text-shadow:
-    /* Multiple golden outlines for depth */
-    -1px -1px 0 #d4af37,
-    1px -1px 0 #d4af37,
-    -1px 1px 0 #d4af37,
-    1px 1px 0 #d4af37,
-    -2px -2px 0 #b8941f,
-    2px -2px 0 #b8941f,
-    -2px 2px 0 #b8941f,
-    2px 2px 0 #b8941f,
-    /* Metallic sheen */
-    -3px -3px 0 #8b7500,
-    3px -3px 0 #8b7500,
-    -3px 3px 0 #8b7500,
-    3px 3px 0 #8b7500,
-    /* Depth shadow */
-    0 4px 8px rgba(0, 0, 0, 0.8);
+  /* Transparent fill - see through the text */
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  /* Neon gradient stroke outline */
+  -webkit-text-stroke: 3px transparent;
+  background: linear-gradient(
+    135deg,
+    #a855f7 0%,
+    #8b5cf6 15%,
+    #6366f1 30%,
+    #3b82f6 45%,
+    #06b6d4 60%,
+    #3b82f6 75%,
+    #6366f1 85%,
+    #a855f7 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
 
   font-weight: 900;
   letter-spacing: 0.02em;
   position: relative;
   display: inline-block;
 
-  /* Metallic gradient overlay */
-  background: linear-gradient(
-    165deg,
-    #1a1a1a 0%,
-    #0a0a0a 30%,
-    #2a2a2a 50%,
-    #0a0a0a 70%,
-    #1a1a1a 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  /* Animated gradient flow */
+  animation: gradient-flow 4s ease infinite, neon-pulse 2s ease-in-out infinite;
 
-  /* Animated border sparks */
-  animation: border-spark-glow 3s ease-in-out infinite;
+  /* Multi-layer neon glow on the stroke */
+  filter:
+    drop-shadow(0 0 10px rgba(168, 85, 247, 0.8))
+    drop-shadow(0 0 20px rgba(99, 102, 241, 0.6))
+    drop-shadow(0 0 30px rgba(59, 130, 246, 0.4));
 }
 
-/* Golden spark particles around text */
+/* Gradient animation */
+@keyframes gradient-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Neon pulse effect */
+@keyframes neon-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 10px rgba(168, 85, 247, 0.8))
+      drop-shadow(0 0 20px rgba(99, 102, 241, 0.6))
+      drop-shadow(0 0 30px rgba(59, 130, 246, 0.4));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 15px rgba(168, 85, 247, 1))
+      drop-shadow(0 0 30px rgba(99, 102, 241, 0.8))
+      drop-shadow(0 0 45px rgba(59, 130, 246, 0.6));
+  }
+}
+
+/* Old animation kept for compatibility */
 @keyframes border-spark-glow {
   0%, 100% {
     filter:
@@ -190,56 +211,185 @@
   }
 }
 
-/* Animated golden sparks */
+/* Upgraded animated sparks - neon purple/blue/cyan */
 .golden-spark {
   position: absolute;
-  width: 3px;
-  height: 3px;
-  background: #ffcc00;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  box-shadow:
-    0 0 4px #ffcc00,
-    0 0 8px #d4af37,
-    0 0 12px #b8941f;
   opacity: 0;
-  animation: golden-spark-flash 2s ease-in-out infinite;
   pointer-events: none;
+  filter: blur(0.5px);
 }
 
+/* Different colored sparks for variety */
 .golden-spark-1 {
-  top: 10%;
-  left: 5%;
-  animation-delay: 0s;
+  top: 8%;
+  left: 3%;
+  background: radial-gradient(circle, #a855f7 0%, #8b5cf6 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #a855f7,
+    0 0 16px #8b5cf6,
+    0 0 24px #6366f1;
+  animation: neon-spark-flash-1 2.5s ease-in-out infinite;
 }
 
 .golden-spark-2 {
-  top: 15%;
-  right: 8%;
-  animation-delay: 0.3s;
+  top: 12%;
+  right: 5%;
+  background: radial-gradient(circle, #3b82f6 0%, #2563eb 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #3b82f6,
+    0 0 16px #2563eb,
+    0 0 24px #1d4ed8;
+  animation: neon-spark-flash-2 2.8s ease-in-out infinite;
 }
 
 .golden-spark-3 {
-  bottom: 12%;
-  left: 10%;
-  animation-delay: 0.6s;
+  bottom: 10%;
+  left: 8%;
+  background: radial-gradient(circle, #06b6d4 0%, #0891b2 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #06b6d4,
+    0 0 16px #0891b2,
+    0 0 24px #0e7490;
+  animation: neon-spark-flash-3 3s ease-in-out infinite;
 }
 
 .golden-spark-4 {
-  bottom: 18%;
-  right: 6%;
-  animation-delay: 0.9s;
+  bottom: 15%;
+  right: 4%;
+  background: radial-gradient(circle, #8b5cf6 0%, #7c3aed 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #8b5cf6,
+    0 0 16px #7c3aed,
+    0 0 24px #6d28d9;
+  animation: neon-spark-flash-4 2.3s ease-in-out infinite;
 }
 
 .golden-spark-5 {
-  top: 50%;
-  left: 2%;
-  animation-delay: 1.2s;
+  top: 45%;
+  left: 1%;
+  background: radial-gradient(circle, #6366f1 0%, #4f46e5 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #6366f1,
+    0 0 16px #4f46e5,
+    0 0 24px #4338ca;
+  animation: neon-spark-flash-5 2.6s ease-in-out infinite;
 }
 
 .golden-spark-6 {
-  top: 45%;
-  right: 3%;
-  animation-delay: 1.5s;
+  top: 55%;
+  right: 2%;
+  background: radial-gradient(circle, #a855f7 0%, #9333ea 50%, transparent 100%);
+  box-shadow:
+    0 0 8px #a855f7,
+    0 0 16px #9333ea,
+    0 0 24px #7e22ce;
+  animation: neon-spark-flash-6 2.9s ease-in-out infinite;
+}
+
+/* Individual spark animations with more dynamic movement */
+@keyframes neon-spark-flash-1 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5) translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(2.5) translate(3px, -3px);
+  }
+  40% {
+    opacity: 0.6;
+    transform: scale(1.5) translate(-2px, 2px);
+  }
+  60% {
+    opacity: 0.9;
+    transform: scale(2) translate(2px, -4px);
+  }
+  80% {
+    opacity: 0.4;
+    transform: scale(1) translate(-1px, 1px);
+  }
+}
+
+@keyframes neon-spark-flash-2 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(2.2) rotate(45deg) translate(-3px, 2px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.8) rotate(90deg) translate(2px, -3px);
+  }
+  75% {
+    opacity: 0.5;
+    transform: scale(1.3) rotate(135deg) translate(-1px, 1px);
+  }
+}
+
+@keyframes neon-spark-flash-3 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.3) translateX(0);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(2.8) translateX(5px) translateY(-5px);
+  }
+  60% {
+    opacity: 0.8;
+    transform: scale(1.6) translateX(-3px) translateY(3px);
+  }
+}
+
+@keyframes neon-spark-flash-4 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(2.4) rotate(-45deg) translate(4px, -4px);
+  }
+  70% {
+    opacity: 0.6;
+    transform: scale(1.4) rotate(-90deg) translate(-2px, 2px);
+  }
+}
+
+@keyframes neon-spark-flash-5 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.6) translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(2.6) translateY(-6px) translateX(3px);
+  }
+  80% {
+    opacity: 0.5;
+    transform: scale(1.2) translateY(2px) translateX(-2px);
+  }
+}
+
+@keyframes neon-spark-flash-6 {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(2.7) rotate(60deg) translate(-4px, -3px);
+  }
+  90% {
+    opacity: 0.7;
+    transform: scale(1.5) rotate(120deg) translate(2px, 2px);
+  }
 }
 
 @keyframes golden-spark-flash {
