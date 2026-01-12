@@ -122,3 +122,137 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+
+/* Black Metal Hero Title with Golden Sparks */
+.black-metal-title {
+  color: #0a0a0a;
+  text-shadow:
+    /* Multiple golden outlines for depth */
+    -1px -1px 0 #d4af37,
+    1px -1px 0 #d4af37,
+    -1px 1px 0 #d4af37,
+    1px 1px 0 #d4af37,
+    -2px -2px 0 #b8941f,
+    2px -2px 0 #b8941f,
+    -2px 2px 0 #b8941f,
+    2px 2px 0 #b8941f,
+    /* Metallic sheen */
+    -3px -3px 0 #8b7500,
+    3px -3px 0 #8b7500,
+    -3px 3px 0 #8b7500,
+    3px 3px 0 #8b7500,
+    /* Depth shadow */
+    0 4px 8px rgba(0, 0, 0, 0.8);
+
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  position: relative;
+  display: inline-block;
+
+  /* Metallic gradient overlay */
+  background: linear-gradient(
+    165deg,
+    #1a1a1a 0%,
+    #0a0a0a 30%,
+    #2a2a2a 50%,
+    #0a0a0a 70%,
+    #1a1a1a 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* Animated border sparks */
+  animation: border-spark-glow 3s ease-in-out infinite;
+}
+
+/* Golden spark particles around text */
+@keyframes border-spark-glow {
+  0%, 100% {
+    filter:
+      drop-shadow(-1px -1px 0px #d4af37)
+      drop-shadow(1px 1px 0px #d4af37);
+  }
+  25% {
+    filter:
+      drop-shadow(-1px -1px 2px #ffcc00)
+      drop-shadow(1px 1px 2px #ffcc00);
+  }
+  50% {
+    filter:
+      drop-shadow(-2px -2px 1px #d4af37)
+      drop-shadow(2px 2px 1px #d4af37);
+  }
+  75% {
+    filter:
+      drop-shadow(-1px -1px 2px #ffcc00)
+      drop-shadow(1px 1px 2px #ffcc00);
+  }
+}
+
+/* Animated golden sparks */
+.golden-spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #ffcc00;
+  border-radius: 50%;
+  box-shadow:
+    0 0 4px #ffcc00,
+    0 0 8px #d4af37,
+    0 0 12px #b8941f;
+  opacity: 0;
+  animation: golden-spark-flash 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.golden-spark-1 {
+  top: 10%;
+  left: 5%;
+  animation-delay: 0s;
+}
+
+.golden-spark-2 {
+  top: 15%;
+  right: 8%;
+  animation-delay: 0.3s;
+}
+
+.golden-spark-3 {
+  bottom: 12%;
+  left: 10%;
+  animation-delay: 0.6s;
+}
+
+.golden-spark-4 {
+  bottom: 18%;
+  right: 6%;
+  animation-delay: 0.9s;
+}
+
+.golden-spark-5 {
+  top: 50%;
+  left: 2%;
+  animation-delay: 1.2s;
+}
+
+.golden-spark-6 {
+  top: 45%;
+  right: 3%;
+  animation-delay: 1.5s;
+}
+
+@keyframes golden-spark-flash {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.8) translateY(-2px);
+  }
+  60% {
+    opacity: 0.8;
+    transform: scale(1.2) translateY(-1px);
+  }
+}
