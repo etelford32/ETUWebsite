@@ -14,6 +14,7 @@ import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/per
 
 // Dynamically import Megabot to avoid SSR issues
 const Megabot = dynamic(() => import("@/components/Megabot"), { ssr: false });
+const HeroMissileGame = dynamic(() => import("@/components/HeroMissileGame"), { ssr: false });
 
 export default function HomePage() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [buttonBounds, setButtonBounds] = useState<DOMRect | null>(null);
   const [isButtonClicked, setIsButtonClicked] = useState(false);
   const steamButtonRef = useRef<HTMLAnchorElement>(null);
+  const heroSectionRef = useRef<HTMLDivElement>(null);
 
   // Handle button hover for Megabot tracking (only Steam button)
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
@@ -134,6 +136,7 @@ export default function HomePage() {
 
       {/* HERO with Christmas Theme + Black Hole */}
       <section
+        ref={heroSectionRef}
         id="home"
         className="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas"
       >
@@ -145,6 +148,11 @@ export default function HomePage() {
             buttonBounds={buttonBounds}
             isButtonClicked={isButtonClicked}
           />
+        </Suspense>
+
+        {/* Interactive Missile Game */}
+        <Suspense fallback={<div />}>
+          <HeroMissileGame containerRef={heroSectionRef} />
         </Suspense>
 
         {/* Quality Settings Control */}
