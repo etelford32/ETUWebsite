@@ -678,9 +678,9 @@ class MegabotScene {
     const mechaMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.12, 0.13, 0.18) }, // Darker, more ominous gunmetal
-        metalness: { value: 0.98 }, // More metallic
-        roughness: { value: 0.15 }, // Shinier for evil machine aesthetic
+        baseColor: { value: new THREE.Color(0.02, 0.02, 0.03) }, // Sleek black metallic
+        metalness: { value: 0.99 }, // Ultra metallic for glossy finish
+        roughness: { value: 0.08 }, // Very shiny, reflective armor
         envIntensity: { value: 1.2 }, // Stronger reflections
         emissiveColor: { value: new THREE.Color(0.8, 0.1, 0.1) }, // Evil red glow
         emissiveIntensity: { value: 0.6 }, // More intense
@@ -888,9 +888,9 @@ class MegabotScene {
     const accentMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.16, 0.17, 0.22) }, // Darker accent color
-        metalness: { value: 0.96 }, // More metallic
-        roughness: { value: 0.20 }, // Shinier
+        baseColor: { value: new THREE.Color(0.05, 0.05, 0.06) }, // Charcoal black accent
+        metalness: { value: 0.98 }, // Very metallic
+        roughness: { value: 0.12 }, // Glossy finish
         glowColor: { value: new THREE.Color(0.9, 0.1, 0.1) }, // Evil red glow
         glowIntensity: { value: 0.8 }, // More intense
       },
@@ -1115,55 +1115,15 @@ class MegabotScene {
       cheekArmor.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.25);
       cheekArmor.rotation.y = side * 0.15;
       headGroup.add(cheekArmor);
-
-      // Side-mounted missile pods
-      const missilePodGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.06);
-      const missilePod = new THREE.Mesh(missilePodGeometry, mechaMaterial);
-      missilePod.position.set(side * this.MAIN_SIZE * 0.28, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.28);
-      headGroup.add(missilePod);
-
-      // Individual missiles in the pod (4 per side)
-      for (let missile = 0; missile < 4; missile++) {
-        const missileGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.08, 6);
-        const missileMesh = new THREE.Mesh(missileGeometry, new THREE.MeshStandardMaterial({
-          color: 0x222222,
-          metalness: 0.95,
-          roughness: 0.2,
-        }));
-        missileMesh.rotation.x = Math.PI / 2;
-        const row = Math.floor(missile / 2);
-        const col = missile % 2;
-        missileMesh.position.set(
-          side * this.MAIN_SIZE * (0.26 + col * 0.03),
-          -this.MAIN_SIZE * (0.0 + row * 0.06),
-          this.MAIN_SIZE * 0.31
-        );
-        headGroup.add(missileMesh);
-
-        // Missile warhead (red tip)
-        const warheadGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.03, 6);
-        const warhead = new THREE.Mesh(warheadGeometry, new THREE.MeshStandardMaterial({
-          color: 0xff0000,
-          emissive: new THREE.Color(0xff0000),
-          emissiveIntensity: 0.3,
-        }));
-        warhead.rotation.x = Math.PI / 2;
-        warhead.position.set(
-          side * this.MAIN_SIZE * (0.26 + col * 0.03),
-          -this.MAIN_SIZE * (0.0 + row * 0.06),
-          this.MAIN_SIZE * 0.36
-        );
-        headGroup.add(warhead);
-      }
     }
 
-    // V-Fin antenna - SHARP and aggressive
-    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5, 3); // Larger and sharper
+    // V-Fin sensor crest - Menacing black blade with red energy
+    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5, 3); // Sharp aggressive blade
     const vFinMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(1.0, 0.7, 0.0) },
-        glowColor: { value: new THREE.Color(1.0, 0.9, 0.3) },
+        baseColor: { value: new THREE.Color(0.05, 0.05, 0.08) }, // Dark metallic black
+        glowColor: { value: new THREE.Color(1.0, 0.1, 0.0) }, // Menacing red energy
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -1404,28 +1364,50 @@ class MegabotScene {
       shoulderPlate.rotation.y = side * 0.12;
       torsoGroup.add(shoulderPlate);
 
-      // SHOULDER-MOUNTED MISSILE LAUNCHER POD
-      const missileLauncherGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.15);
+      // SHOULDER-MOUNTED MISSILE LAUNCHER POD - MASSIVE AND MENACING
+      const missileLauncherGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.20);
       const missileLauncher = new THREE.Mesh(missileLauncherGeometry, mechaMaterial);
-      missileLauncher.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.52, this.MAIN_SIZE * 0.05);
+      missileLauncher.position.set(side * this.MAIN_SIZE * 0.48, this.MAIN_SIZE * 0.58, this.MAIN_SIZE * 0.05);
       torsoGroup.add(missileLauncher);
 
-      // Missile tubes (6 per shoulder)
+      // Missile launcher support frame
+      const launcherFrameGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.18);
+      const launcherFrame = new THREE.Mesh(launcherFrameGeometry, accentMaterial);
+      launcherFrame.position.set(side * this.MAIN_SIZE * 0.48, this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.05);
+      torsoGroup.add(launcherFrame);
+
+      // Missile tubes (8 per shoulder in 2x4 grid - more firepower!)
       for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 3; col++) {
-          const missileTubeGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.18, 8);
+        for (let col = 0; col < 4; col++) {
+          const missileTubeGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.22, 8);
           const missileTube = new THREE.Mesh(missileTubeGeometry, new THREE.MeshStandardMaterial({
-            color: 0x111111,
-            metalness: 0.9,
-            roughness: 0.3,
+            color: 0x0a0a0a,
+            metalness: 0.95,
+            roughness: 0.2,
           }));
-          missileTube.rotation.x = -Math.PI * 0.15; // Angle upward slightly
+          missileTube.rotation.x = -Math.PI * 0.12; // Angle upward menacingly
           missileTube.position.set(
-            side * this.MAIN_SIZE * (0.39 + col * 0.04),
-            this.MAIN_SIZE * (0.58 + row * -0.08),
-            this.MAIN_SIZE * 0.12
+            side * this.MAIN_SIZE * (0.40 + col * 0.045),
+            this.MAIN_SIZE * (0.64 + row * -0.10),
+            this.MAIN_SIZE * 0.14
           );
           torsoGroup.add(missileTube);
+
+          // Missile warheads visible in tubes (red tips)
+          const warheadGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.022, this.MAIN_SIZE * 0.04, 6);
+          const warhead = new THREE.Mesh(warheadGeometry, new THREE.MeshStandardMaterial({
+            color: 0xcc0000,
+            emissive: new THREE.Color(0xcc0000),
+            emissiveIntensity: 0.6,
+            metalness: 0.8,
+          }));
+          warhead.rotation.x = -Math.PI * 0.12;
+          warhead.position.set(
+            side * this.MAIN_SIZE * (0.40 + col * 0.045),
+            this.MAIN_SIZE * (0.64 + row * -0.10),
+            this.MAIN_SIZE * 0.24
+          );
+          torsoGroup.add(warhead);
         }
       }
     }
