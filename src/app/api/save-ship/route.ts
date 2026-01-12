@@ -1,13 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabaseServer';
+import { getSessionFromRequest } from '@/lib/session';
+import { validateCSRFFromRequest } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   try {
-    const { user_id, ship_data } = await request.json();
-
-    if (!user_id || !ship_data) {
+    // Require authentication
+    const session = getSessionFromRequest(request);
+    if (!session) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      );
+    }
+
+    // Validate CSRF token
+    if (!validateCSRFFromRequest(request)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      );
+    }
+
+    const { ship_data } = await request.json();
+
+    // Use authenticated user's ID, not client-provided ID
+    const user_id = session.userId;
+
+    if (!ship_data) {
+      return NextResponse.json(
+        { error: 'Missing required field: ship_data' },
+        { status: 400 }
+      );
+    }
+
+    // Validate ship data structure
+    if (!ship_data.name || typeof ship_data.name !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid ship data: name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (ship_data.name.length < 3 || ship_data.name.length > 50) {
+      return NextResponse.json(
+        { error: 'Ship name must be between 3 and 50 characters' },
         { status: 400 }
       );
     }

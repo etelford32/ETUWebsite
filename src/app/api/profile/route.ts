@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest } from '@/lib/session'
+import { validateCSRFFromRequest } from '@/lib/csrf'
 import { Database } from '@/lib/types'
 
 /**
@@ -53,6 +54,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized - Please log in' },
         { status: 401 }
+      )
+    }
+
+    // Validate CSRF token
+    if (!validateCSRFFromRequest(request)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
       )
     }
 
