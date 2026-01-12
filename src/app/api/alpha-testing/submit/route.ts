@@ -174,9 +174,13 @@ export async function POST(request: NextRequest) {
 
     // Send Discord webhook notification
     try {
-      const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || 'https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL'
+      const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL
 
-      const discordEmbed = {
+      if (!discordWebhookUrl) {
+        console.warn('DISCORD_WEBHOOK_URL not configured - skipping Discord notification')
+        // Continue without failing - application is still saved to database
+      } else {
+        const discordEmbed = {
         embeds: [{
           title: '🚀 New Alpha Testing Application!',
           description: `**${username}** has applied for alpha testing`,
@@ -243,10 +247,11 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(discordEmbed)
       })
 
-      if (!discordResponse.ok) {
-        console.error('Discord webhook failed:', await discordResponse.text())
-      } else {
-        console.log('Discord notification sent successfully')
+        if (!discordResponse.ok) {
+          console.error('Discord webhook failed:', await discordResponse.text())
+        } else {
+          console.log('Discord notification sent successfully')
+        }
       }
     } catch (discordError) {
       console.error('Discord webhook error:', discordError)

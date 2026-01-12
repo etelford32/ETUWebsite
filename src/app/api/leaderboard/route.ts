@@ -10,8 +10,15 @@ export async function GET(request: NextRequest) {
     const windowKey = searchParams.get('window') || '30d'
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '50')
-    const sortField = searchParams.get('sortField') || 'score'
+    const sortFieldParam = searchParams.get('sortField') || 'score'
     const sortDir = searchParams.get('sortDir') || 'desc'
+
+    // Whitelist valid sort fields to prevent SQL injection
+    const validSortFields = ['score', 'submitted_at', 'level', 'time_seconds']
+    const sortField = validSortFields.includes(sortFieldParam) ? sortFieldParam : 'score'
+
+    // Validate sort direction
+    const validSortDir = sortDir === 'asc' ? 'asc' : 'desc'
 
     // Calculate time window
     const now = new Date()
@@ -42,8 +49,8 @@ export async function GET(request: NextRequest) {
       .gte('submitted_at', cutoffDate.toISOString())
       .eq('is_verified', true)
 
-    // Apply sorting
-    query = query.order(sortField as any, { ascending: sortDir === 'asc' })
+    // Apply sorting (already validated sortField and validSortDir)
+    query = query.order(sortField as any, { ascending: validSortDir === 'asc' })
 
     // Apply pagination
     const start = (page - 1) * pageSize

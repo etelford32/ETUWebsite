@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from './supabaseServer'
+import { generateCSRFToken } from './csrf'
 
 const SESSION_COOKIE_NAME = 'etu_session'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
@@ -9,19 +10,21 @@ export interface SessionData {
   userId: string
   email: string
   role?: string
+  csrfToken?: string
 }
 
 /**
  * Create a session cookie (HTTP-only, secure)
  */
 export async function createSession(userId: string, email: string, role?: string): Promise<void> {
-  const sessionData: SessionData = { userId, email, role }
+  const csrfToken = generateCSRFToken()
+  const sessionData: SessionData = { userId, email, role, csrfToken }
 
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict', // Changed from 'lax' to 'strict' for better security
     maxAge: SESSION_MAX_AGE,
     path: '/',
   })
@@ -90,12 +93,13 @@ export function setSessionOnResponse(
   email: string,
   role?: string
 ): void {
-  const sessionData: SessionData = { userId, email, role }
+  const csrfToken = generateCSRFToken()
+  const sessionData: SessionData = { userId, email, role, csrfToken }
 
   response.cookies.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict', // Changed from 'lax' to 'strict' for better security
     maxAge: SESSION_MAX_AGE,
     path: '/',
   })

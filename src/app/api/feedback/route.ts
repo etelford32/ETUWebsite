@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
+import { getSessionFromRequest } from '@/lib/session'
+import { validateCSRFFromRequest } from '@/lib/csrf'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
+
+    // Check for session-based authentication
+    const session = getSessionFromRequest(request)
+
+    // If user is authenticated via session, validate CSRF token
+    if (session) {
+      if (!validateCSRFFromRequest(request)) {
+        return NextResponse.json(
+          { error: 'Invalid CSRF token' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Check for authorization header (optional for anonymous game submissions)
     const authHeader = request.headers.get('authorization')
     let user = null
@@ -16,6 +32,9 @@ export async function POST(request: NextRequest) {
       if (!authError && authUser) {
         user = authUser
       }
+    } else if (session) {
+      // Use session user if no auth header
+      user = { id: session.userId, email: session.email } as any
     }
 
     const body = await request.json()
