@@ -8,10 +8,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
 import CountdownTimer from "@/components/CountdownTimer";
-import RealSignupStats from "@/components/RealSignupStats";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
-import FOMOCounter from "@/components/FOMOCounter";
 import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
 
 // Dynamically import Megabot to avoid SSR issues
@@ -330,12 +328,6 @@ export default function HomePage() {
                   </svg>
                   Watch Trailer
                 </a>
-              </div>
-
-              {/* Countdown Timer & Real Signup Stats */}
-              <div className="reveal mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <CountdownTimer targetDate="2025-12-31T23:59:59" label="ALPHA TESTING STARTS IN" />
-                <RealSignupStats />
               </div>
 
               {/* Platform info */}
