@@ -63,6 +63,27 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 text-sm">
+            {/* Elliot's Devlog - Left-most position */}
+            <Link
+              href="/devlog"
+              className="relative px-4 py-2 rounded-lg font-semibold text-sm overflow-hidden group mr-2"
+            >
+              {/* Animated gradient background - Purple/Pink gradient */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-lg"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-lg shadow-[0_0_15px_rgba(168,85,247,0.4)] group-hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all duration-300"></div>
+
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-12"></div>
+
+              {/* 3D border effect */}
+              <div className="absolute inset-0 rounded-lg border border-white/20 group-hover:border-white/40 transition-all duration-300"></div>
+
+              <span className="relative z-10 text-white drop-shadow-lg">Elliot's Devlog</span>
+            </Link>
+
             {/* Features Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -103,25 +124,6 @@ export default function Header() {
               )}
             </div>
 
-            <Link
-              href="/alpha-testing"
-              className="relative px-4 py-2 rounded-lg font-semibold text-sm overflow-hidden group ml-2"
-            >
-              {/* Animated gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-lg animate-pulse"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-              {/* Strong glow effect */}
-              <div className="absolute inset-0 rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_30px_rgba(6,182,212,0.8)] transition-all duration-300"></div>
-
-              {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-12"></div>
-
-              <span className="relative z-10 text-white drop-shadow-lg flex items-center gap-1.5">
-                <span className="animate-pulse">✨</span>
-                Alpha Testing
-              </span>
-            </Link>
             <NavLink href="/audio" highlight={true}>
               <span className="font-semibold text-base">Audio</span>
             </NavLink>
@@ -133,26 +135,6 @@ export default function Header() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/alpha-testing"
-              className="relative px-4 py-2 rounded-lg font-semibold text-sm text-white overflow-hidden group whitespace-nowrap"
-            >
-              {/* Animated background - Orange/Amber gradient for contrast */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 rounded-lg"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-              {/* Glow effect */}
-              <div className="absolute inset-0 rounded-lg shadow-[0_0_15px_rgba(249,115,22,0.4)] group-hover:shadow-[0_0_30px_rgba(251,191,36,0.6)] transition-all duration-300"></div>
-
-              {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 skew-x-12"></div>
-
-              {/* 3D border effect */}
-              <div className="absolute inset-0 rounded-lg border border-white/20 group-hover:border-white/40 transition-all duration-300"></div>
-
-              <span className="relative z-10 drop-shadow-lg">Alpha Testing</span>
-            </Link>
-
             <Link
               href="/login"
               className="relative px-4 py-2 rounded-lg font-medium text-cyan-300 overflow-hidden group"
@@ -198,13 +180,13 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Alpha Testing - Special Highlight */}
+          {/* Elliot's Devlog - Special Highlight */}
           <Link
-            href="/alpha-testing"
+            href="/devlog"
             className="block relative px-4 py-3 rounded-lg mb-3 overflow-hidden group"
           >
             {/* Animated gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-lg"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 rounded-lg"></div>
 
             {/* Glow effect */}
             <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_20px_rgba(255,255,255,0.1)] group-hover:shadow-[inset_0_0_30px_rgba(255,255,255,0.2)] transition-all duration-300"></div>
@@ -212,9 +194,9 @@ export default function Header() {
             {/* Content */}
             <div className="relative z-10 flex items-center justify-between">
               <span className="text-white font-semibold flex items-center gap-2">
-                <span className="animate-pulse">✨</span>
-                Alpha Testing
-                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">OPEN</span>
+                <span>✍️</span>
+                Elliot's Devlog
+                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">NEW</span>
               </span>
               <svg className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -229,16 +211,10 @@ export default function Header() {
           <MobileNavLink href="/faq">FAQ</MobileNavLink>
           <MobileNavLink href="/profile">Profile</MobileNavLink>
 
-          <div className="pt-3 flex gap-3">
-            <Link
-              href="/alpha-testing"
-              className="flex-1 px-6 py-2.5 rounded-lg text-center font-semibold bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:shadow-[0_0_30px_rgba(251,191,36,0.6)] transition-all duration-300"
-            >
-              Alpha Testing
-            </Link>
+          <div className="pt-3">
             <Link
               href="/login"
-              className="flex-1 px-4 py-2 rounded-lg text-center border border-cyan-500/30 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all duration-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+              className="block w-full px-4 py-2 rounded-lg text-center border border-cyan-500/30 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all duration-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.2)]"
             >
               Sign in
             </Link>
