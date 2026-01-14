@@ -6,18 +6,17 @@ import { useEffect, useRef, useState } from "react";
 const ENABLE_MISSILE_GAME = true;
 
 interface Missile {
-  id: string;
+  active: boolean; // For object pooling
   x: number;
   y: number;
-  vx: number; // velocity x
-  vy: number; // velocity y
-  startX: number;
-  startY: number;
-  targetX: number;
-  targetY: number;
-  lifetime: number; // seconds
+  vx: number;
+  vy: number;
+  lifetime: number;
   maxLifetime: number;
-  trail: { x: number; y: number }[];
+  trailX: Float32Array; // Circular buffer for trail X positions
+  trailY: Float32Array; // Circular buffer for trail Y positions
+  trailIndex: number; // Current position in circular buffer
+  trailFilled: boolean; // Whether the trail buffer is full
 }
 
 interface HeroMissileGameProps {
@@ -25,29 +24,62 @@ interface HeroMissileGameProps {
 }
 
 export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) {
-  const [missiles, setMissiles] = useState<Missile[]>([]);
-  const missilesRef = useRef<Missile[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
-  const missileIdCounter = useRef<number>(0);
+
+  // Object pool for missiles
+  const missilePoolRef = useRef<Missile[]>([]);
+  const activeMissileCountRef = useRef<number>(0);
+  const [activeMissileCount, setActiveMissileCount] = useState(0);
 
   // Physics constants
-  const MISSILE_SPEED = 600; // pixels per second
-  const MAX_MISSILES = 20; // performance limit
-  const MISSILE_LIFETIME = 3; // seconds
-  const TRAIL_LENGTH = 8; // number of trail points
-  const GRAVITY = 0; // pixels per second squared (can add later)
+  const MISSILE_SPEED = 600;
+  const MAX_MISSILES = 50; // Increased limit due to better performance
+  const MISSILE_LIFETIME = 3;
+  const TRAIL_LENGTH = 15; // Increased for smoother trails
+  const GRAVITY = 0;
+
+  // Initialize object pool
+  const initializeMissilePool = () => {
+    missilePoolRef.current = Array.from({ length: MAX_MISSILES }, () => ({
+      active: false,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      lifetime: 0,
+      maxLifetime: MISSILE_LIFETIME,
+      trailX: new Float32Array(TRAIL_LENGTH),
+      trailY: new Float32Array(TRAIL_LENGTH),
+      trailIndex: 0,
+      trailFilled: false,
+    }));
+  };
+
+  // Get an inactive missile from the pool
+  const getMissileFromPool = (): Missile | null => {
+    for (let i = 0; i < missilePoolRef.current.length; i++) {
+      const missile = missilePoolRef.current[i];
+      if (!missile.active) {
+        return missile;
+      }
+    }
+    return null; // Pool exhausted
+  };
 
   // Launch missile from Megabot's shoulder position
   const launchMissile = (clickX: number, clickY: number) => {
     if (!containerRef.current) return;
-    if (missilesRef.current.length >= MAX_MISSILES) return;
+
+    const missile = getMissileFromPool();
+    if (!missile) return; // Pool exhausted
 
     const rect = containerRef.current.getBoundingClientRect();
 
     // Spawn from top center (Megabot's approximate position)
     const startX = rect.width / 2;
-    const startY = rect.height * 0.3; // Upper portion where Megabot is
+    const startY = rect.height * 0.3;
 
     // Calculate velocity components for straight-line motion
     const dx = clickX - startX;
@@ -58,23 +90,18 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     const vx = (dx / distance) * MISSILE_SPEED;
     const vy = (dy / distance) * MISSILE_SPEED;
 
-    const missile: Missile = {
-      id: `missile-${missileIdCounter.current++}`,
-      x: startX,
-      y: startY,
-      vx,
-      vy,
-      startX,
-      startY,
-      targetX: clickX,
-      targetY: clickY,
-      lifetime: 0,
-      maxLifetime: MISSILE_LIFETIME,
-      trail: [],
-    };
+    // Reset and activate missile from pool
+    missile.active = true;
+    missile.x = startX;
+    missile.y = startY;
+    missile.vx = vx;
+    missile.vy = vy;
+    missile.lifetime = 0;
+    missile.trailIndex = 0;
+    missile.trailFilled = false;
 
-    missilesRef.current = [...missilesRef.current, missile];
-    setMissiles(missilesRef.current);
+    activeMissileCountRef.current++;
+    setActiveMissileCount(activeMissileCountRef.current);
   };
 
   // Handle click events
@@ -88,50 +115,144 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     launchMissile(clickX, clickY);
   };
 
-  // Physics update loop
-  const updateMissiles = (deltaTime: number) => {
-    const dt = deltaTime / 1000; // convert to seconds
+  // Physics update and render loop
+  const updateAndRender = (deltaTime: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !containerRef.current) return;
 
-    missilesRef.current = missilesRef.current
-      .map((missile) => {
-        // Update lifetime
-        missile.lifetime += dt;
-        if (missile.lifetime >= missile.maxLifetime) {
-          return null; // Mark for removal
-        }
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
 
-        // Store previous position for trail
-        missile.trail.push({ x: missile.x, y: missile.y });
-        if (missile.trail.length > TRAIL_LENGTH) {
-          missile.trail.shift(); // Remove oldest point
-        }
+    const dt = deltaTime / 1000; // Convert to seconds
+    const rect = containerRef.current.getBoundingClientRect();
 
-        // Update position using physics
-        missile.x += missile.vx * dt;
-        missile.y += missile.vy * dt;
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Apply gravity (if enabled)
-        if (GRAVITY !== 0) {
-          missile.vy += GRAVITY * dt;
-        }
+    let activeCount = 0;
 
-        // Remove if out of bounds
-        if (!containerRef.current) return null;
-        const rect = containerRef.current.getBoundingClientRect();
-        if (
-          missile.x < -50 ||
-          missile.x > rect.width + 50 ||
-          missile.y < -50 ||
-          missile.y > rect.height + 50
-        ) {
-          return null; // Out of bounds
-        }
+    // Update and render all active missiles
+    for (let i = 0; i < missilePoolRef.current.length; i++) {
+      const missile = missilePoolRef.current[i];
+      if (!missile.active) continue;
 
-        return missile;
-      })
-      .filter((m): m is Missile => m !== null); // Remove nulls
+      activeCount++;
 
-    setMissiles([...missilesRef.current]);
+      // Update lifetime
+      missile.lifetime += dt;
+      if (missile.lifetime >= missile.maxLifetime) {
+        missile.active = false;
+        continue;
+      }
+
+      // Add current position to trail (circular buffer)
+      missile.trailX[missile.trailIndex] = missile.x;
+      missile.trailY[missile.trailIndex] = missile.y;
+      missile.trailIndex = (missile.trailIndex + 1) % TRAIL_LENGTH;
+      if (missile.trailIndex === 0) {
+        missile.trailFilled = true;
+      }
+
+      // Update position using physics
+      missile.x += missile.vx * dt;
+      missile.y += missile.vy * dt;
+
+      // Apply gravity (if enabled)
+      if (GRAVITY !== 0) {
+        missile.vy += GRAVITY * dt;
+      }
+
+      // Remove if out of bounds
+      if (
+        missile.x < -50 ||
+        missile.x > rect.width + 50 ||
+        missile.y < -50 ||
+        missile.y > rect.height + 50
+      ) {
+        missile.active = false;
+        continue;
+      }
+
+      // Render trail
+      const trailLength = missile.trailFilled ? TRAIL_LENGTH : missile.trailIndex;
+      for (let j = 0; j < trailLength; j++) {
+        // Calculate the index in the circular buffer (oldest to newest)
+        const bufferIndex = missile.trailFilled
+          ? (missile.trailIndex + j) % TRAIL_LENGTH
+          : j;
+
+        const x = missile.trailX[bufferIndex];
+        const y = missile.trailY[bufferIndex];
+
+        // Progress through the trail (0 = oldest, 1 = newest)
+        const progress = (j + 1) / trailLength;
+        const opacity = progress * 0.8;
+        const size = 2 + progress * 3;
+
+        // Draw trail point with gradient
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+        gradient.addColorStop(0, `rgba(6, 182, 212, ${opacity})`);
+        gradient.addColorStop(0.5, `rgba(59, 130, 246, ${opacity * 0.7})`);
+        gradient.addColorStop(1, `rgba(139, 92, 246, 0)`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Render missile head with glow effect
+      const headSize = 4;
+      const glowSize = 15;
+
+      // Outer glow
+      const outerGlow = ctx.createRadialGradient(
+        missile.x,
+        missile.y,
+        0,
+        missile.x,
+        missile.y,
+        glowSize
+      );
+      outerGlow.addColorStop(0, "rgba(139, 92, 246, 0.4)");
+      outerGlow.addColorStop(0.5, "rgba(59, 130, 246, 0.2)");
+      outerGlow.addColorStop(1, "rgba(6, 182, 212, 0)");
+
+      ctx.fillStyle = outerGlow;
+      ctx.beginPath();
+      ctx.arc(missile.x, missile.y, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner glow
+      const innerGlow = ctx.createRadialGradient(
+        missile.x,
+        missile.y,
+        0,
+        missile.x,
+        missile.y,
+        headSize * 2
+      );
+      innerGlow.addColorStop(0, "rgba(6, 182, 212, 1)");
+      innerGlow.addColorStop(0.5, "rgba(59, 130, 246, 0.8)");
+      innerGlow.addColorStop(1, "rgba(139, 92, 246, 0.3)");
+
+      ctx.fillStyle = innerGlow;
+      ctx.beginPath();
+      ctx.arc(missile.x, missile.y, headSize * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(missile.x, missile.y, headSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Update active count if changed
+    if (activeCount !== activeMissileCountRef.current) {
+      activeMissileCountRef.current = activeCount;
+      setActiveMissileCount(activeCount);
+    }
   };
 
   // Animation loop using requestAnimationFrame
@@ -143,20 +264,39 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     const deltaTime = timestamp - lastTimeRef.current;
     lastTimeRef.current = timestamp;
 
-    // Update physics (cap at 60fps to prevent large delta spikes)
+    // Update physics and render (cap at 60fps to prevent large delta spikes)
     if (deltaTime < 100) {
-      updateMissiles(deltaTime);
+      updateAndRender(deltaTime);
     }
 
     animationFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Handle canvas resize
+  const resizeCanvas = () => {
+    if (!canvasRef.current || !containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const canvas = canvasRef.current;
+
+    // Set canvas size to match container
+    canvas.width = rect.width;
+    canvas.height = rect.height;
   };
 
   // Setup and cleanup
   useEffect(() => {
     if (!ENABLE_MISSILE_GAME || !containerRef.current) return;
 
+    // Initialize object pool
+    initializeMissilePool();
+
     const container = containerRef.current;
     container.addEventListener("click", handleClick);
+
+    // Setup canvas
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
     // Start animation loop
     animationFrameRef.current = requestAnimationFrame(animate);
@@ -164,10 +304,11 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     // Cleanup
     return () => {
       container.removeEventListener("click", handleClick);
+      window.removeEventListener("resize", resizeCanvas);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      missilesRef.current = [];
+      missilePoolRef.current = [];
     };
   }, []);
 
@@ -179,59 +320,21 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
       style={{ zIndex: 999 }}
       aria-hidden="true"
     >
-      {/* Render missiles */}
-      {missiles.map((missile) => (
-        <div key={missile.id}>
-          {/* Trail effect */}
-          {missile.trail.map((point, index) => {
-            const opacity = (index + 1) / missile.trail.length;
-            const scale = (index + 1) / missile.trail.length;
-            return (
-              <div
-                key={`${missile.id}-trail-${index}`}
-                className="absolute"
-                style={{
-                  left: `${point.x}px`,
-                  top: `${point.y}px`,
-                  width: `${4 * scale}px`,
-                  height: `${4 * scale}px`,
-                  transform: "translate(-50%, -50%)",
-                  background: `radial-gradient(circle, rgba(6, 182, 212, ${opacity}), rgba(59, 130, 246, ${opacity * 0.5}), transparent)`,
-                  borderRadius: "50%",
-                  pointerEvents: "none",
-                  willChange: "transform, opacity",
-                }}
-              />
-            );
-          })}
+      {/* Canvas for missile rendering */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ imageRendering: "auto" }}
+      />
 
-          {/* Missile head */}
-          <div
-            className="absolute"
-            style={{
-              left: `${missile.x}px`,
-              top: `${missile.y}px`,
-              width: "6px",
-              height: "6px",
-              transform: "translate(-50%, -50%)",
-              background: "radial-gradient(circle, #06b6d4, #3b82f6)",
-              boxShadow:
-                "0 0 10px #06b6d4, 0 0 20px #3b82f6, 0 0 30px #8b5cf6",
-              borderRadius: "50%",
-              pointerEvents: "none",
-              willChange: "transform",
-            }}
-          />
-        </div>
-      ))}
-
-      {/* Debug info (remove later) */}
+      {/* Debug info */}
       <div
         className="absolute top-4 right-4 bg-black/50 text-white text-xs p-2 rounded"
         style={{ pointerEvents: "auto" }}
       >
-        <div>Missiles: {missiles.length} / {MAX_MISSILES}</div>
+        <div>Missiles: {activeMissileCount} / {MAX_MISSILES}</div>
         <div className="text-cyan-400 text-[10px] mt-1">Click to launch!</div>
+        <div className="text-green-400 text-[10px]">Canvas optimized</div>
       </div>
     </div>
   );
