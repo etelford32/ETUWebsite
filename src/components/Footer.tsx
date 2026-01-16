@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-10 text-sm text-slate-300/80">
-        <div className="grid md:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-5 gap-6">
           <div>
             <Image
               src="/logo2.png"
@@ -30,37 +30,52 @@ export default function Footer() {
           </div>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Game</h4>
-            <Link className="block" href="/#features">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/#features">
               Features
             </Link>
-            <Link className="block" href="/#factions">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/#factions">
               Factions
             </Link>
-            <Link className="block" href="/#download">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/stats">
+              Stats
+            </Link>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/#download">
               Download
             </Link>
           </nav>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Community</h4>
-            <Link className="block" href="/leaderboard">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/leaderboard">
               Leaderboard
             </Link>
-            <Link className="block" href="/forum">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/forum">
               Forum
             </Link>
-            <Link className="block" href="/discord">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/discord">
               Discord
             </Link>
           </nav>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Company</h4>
-            <Link className="block" href="/press-kit">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/careers">
+              Careers
+            </Link>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/investors">
+              Investors
+            </Link>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/press-kit">
               Press Kit
             </Link>
-            <Link className="block" href="/privacy">
-              Privacy
+          </nav>
+          <nav className="space-y-2">
+            <h4 className="font-semibold text-slate-200">Legal</h4>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/privacy">
+              Privacy Policy
             </Link>
-            <Link className="block" href="/terms">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/health-warning">
+              Health Warning
+            </Link>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/terms">
               Terms
             </Link>
           </nav>
