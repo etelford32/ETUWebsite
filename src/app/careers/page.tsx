@@ -14,6 +14,7 @@ export default function CareersPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const positions = [
     "Game Developer",
@@ -28,12 +29,48 @@ export default function CareersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // TODO: Handle resume file upload to Supabase Storage
+      // For now, we'll just note the filename in metadata
+      const resumeMetadata = formData.resume
+        ? {
+            resume_filename: formData.resume.name,
+            resume_size: formData.resume.size,
+            resume_type: formData.resume.type,
+          }
+        : {};
 
-    setSubmitted(true);
-    setLoading(false);
+      const response = await fetch("/api/careers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          position: formData.position,
+          portfolio: formData.portfolio || null,
+          message: formData.message,
+          resume_url: null, // TODO: Upload file and get URL
+          metadata: resumeMetadata,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit application");
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message || "Failed to submit application. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (
@@ -242,6 +279,12 @@ export default function CareersPage() {
                 placeholder="Why do you want to join Telford Projects? What makes you a great fit for this position?"
               />
             </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
 
             <button
               type="submit"

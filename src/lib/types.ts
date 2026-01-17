@@ -202,6 +202,94 @@ export interface Database {
           created_at?: string
         }
       }
+      career_applications: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          position: 'Game Developer' | '3D Artist' | 'UI/UX Designer' | 'Sound Designer' | 'Community Manager' | 'QA Tester' | 'Other'
+          portfolio: string | null
+          message: string
+          resume_url: string | null
+          status: 'pending' | 'reviewing' | 'interviewed' | 'accepted' | 'rejected'
+          notes: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          position: 'Game Developer' | '3D Artist' | 'UI/UX Designer' | 'Sound Designer' | 'Community Manager' | 'QA Tester' | 'Other'
+          portfolio?: string | null
+          message: string
+          resume_url?: string | null
+          status?: 'pending' | 'reviewing' | 'interviewed' | 'accepted' | 'rejected'
+          notes?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          position?: 'Game Developer' | '3D Artist' | 'UI/UX Designer' | 'Sound Designer' | 'Community Manager' | 'QA Tester' | 'Other'
+          portfolio?: string | null
+          message?: string
+          resume_url?: string | null
+          status?: 'pending' | 'reviewing' | 'interviewed' | 'accepted' | 'rejected'
+          notes?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      investor_inquiries: {
+        Row: {
+          id: string
+          name: string
+          email: string
+          phone: string
+          company: string | null
+          investment_range: 'Less than $50K' | '$50K - $100K' | '$100K - $500K' | '$500K - $1M' | '$1M - $5M' | '$5M+' | 'Prefer not to say'
+          message: string
+          status: 'pending' | 'contacted' | 'meeting_scheduled' | 'interested' | 'not_interested'
+          notes: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          email: string
+          phone: string
+          company?: string | null
+          investment_range: 'Less than $50K' | '$50K - $100K' | '$100K - $500K' | '$500K - $1M' | '$1M - $5M' | '$5M+' | 'Prefer not to say'
+          message: string
+          status?: 'pending' | 'contacted' | 'meeting_scheduled' | 'interested' | 'not_interested'
+          notes?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string
+          phone?: string
+          company?: string | null
+          investment_range?: 'Less than $50K' | '$50K - $100K' | '$100K - $500K' | '$500K - $1M' | '$1M - $5M' | '$5M+' | 'Prefer not to say'
+          message?: string
+          status?: 'pending' | 'contacted' | 'meeting_scheduled' | 'interested' | 'not_interested'
+          notes?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -220,6 +308,8 @@ export type PlayerScore = Database['public']['Tables']['player_scores']['Row']
 export type ShipDesign = Database['public']['Tables']['ship_designs']['Row']
 export type BacklogItem = Database['public']['Tables']['backlog_items']['Row']
 export type BacklogVote = Database['public']['Tables']['backlog_votes']['Row']
+export type CareerApplication = Database['public']['Tables']['career_applications']['Row']
+export type InvestorInquiry = Database['public']['Tables']['investor_inquiries']['Row']
 
 export interface LeaderboardEntry extends PlayerScore {
   profile: Profile
