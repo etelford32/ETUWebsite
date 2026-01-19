@@ -15,13 +15,21 @@ interface MegabotProps {
   trackingTarget?: { x: number; y: number } | null;
   buttonBounds?: DOMRect | null;
   isButtonClicked?: boolean;
+  onLaserUpdate?: (data: {
+    leftStart: { x: number; y: number } | null;
+    leftEnd: { x: number; y: number } | null;
+    rightStart: { x: number; y: number } | null;
+    rightEnd: { x: number; y: number } | null;
+    visible: boolean;
+  }) => void;
 }
 
 export default function Megabot({
   quality = "medium",
   trackingTarget = null,
   buttonBounds = null,
-  isButtonClicked = false
+  isButtonClicked = false,
+  onLaserUpdate = undefined
 }: MegabotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const megabotRef = useRef<any>(null);
@@ -34,7 +42,7 @@ export default function Megabot({
 
     threeScript.onload = () => {
       if (containerRef.current && window.THREE) {
-        megabotRef.current = new MegabotScene(containerRef.current, quality);
+        megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate);
       }
     };
 
@@ -138,6 +146,15 @@ class MegabotScene {
   sparkParticles: any[] = [];
   sparkSpawnTimer: number = 0;
 
+  // Laser update callback for game integration
+  onLaserUpdate?: (data: {
+    leftStart: { x: number; y: number } | null;
+    leftEnd: { x: number; y: number } | null;
+    rightStart: { x: number; y: number } | null;
+    rightEnd: { x: number; y: number } | null;
+    visible: boolean;
+  }) => void;
+
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
   readonly SATELLITE_COUNT_LOW = 3;
@@ -147,8 +164,19 @@ class MegabotScene {
   readonly PARTICLE_COUNT_MED = 2000;
   readonly PARTICLE_COUNT_HIGH = 5000;
 
-  constructor(container: HTMLDivElement, quality: QualityLevel = "medium") {
+  constructor(
+    container: HTMLDivElement,
+    quality: QualityLevel = "medium",
+    onLaserUpdate?: (data: {
+      leftStart: { x: number; y: number } | null;
+      leftEnd: { x: number; y: number } | null;
+      rightStart: { x: number; y: number } | null;
+      rightEnd: { x: number; y: number } | null;
+      visible: boolean;
+    }) => void
+  ) {
     this.container = container;
+    this.onLaserUpdate = onLaserUpdate;
     if (!this.container) {
       console.warn("Container not found");
       return;
@@ -2714,6 +2742,58 @@ class MegabotScene {
         // Offset position so laser starts at eye
         this.leftLaser.position.add(leftScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
         this.rightLaser.position.add(rightScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
+      }
+
+      // Update laser data for game collision detection
+      if (this.onLaserUpdate) {
+        const leftEyeWorldPos = new THREE.Vector3();
+        const rightEyeWorldPos = new THREE.Vector3();
+        this.leftEye.getWorldPosition(leftEyeWorldPos);
+        this.rightEye.getWorldPosition(rightEyeWorldPos);
+
+        // Project 3D world positions to 2D screen coordinates
+        const project3DToScreen = (pos: any) => {
+          const vector = pos.clone().project(this.camera);
+          const x = (vector.x * 0.5 + 0.5) * this.container.offsetWidth;
+          const y = (-(vector.y * 0.5) + 0.5) * this.container.offsetHeight;
+          return { x, y };
+        };
+
+        // Calculate laser end points based on current mode
+        let leftEndWorldPos, rightEndWorldPos;
+
+        if (this.trackingTarget && this.targetPosition3D) {
+          // In tracking mode, endpoint is the target
+          leftEndWorldPos = this.targetPosition3D.clone();
+          rightEndWorldPos = this.targetPosition3D.clone();
+        } else {
+          // In scanning mode, calculate endpoint from direction and length
+          const headWorldQuat = new THREE.Quaternion();
+          this.headGroup.getWorldQuaternion(headWorldQuat);
+
+          const leftLaserWorldQuat = new THREE.Quaternion();
+          this.leftLaser.getWorldQuaternion(leftLaserWorldQuat);
+          const leftLaserDir = new THREE.Vector3(0, 1, 0).applyQuaternion(leftLaserWorldQuat);
+          leftEndWorldPos = leftEyeWorldPos.clone().add(leftLaserDir.multiplyScalar(this.MAIN_SIZE * 3));
+
+          const rightLaserWorldQuat = new THREE.Quaternion();
+          this.rightLaser.getWorldQuaternion(rightLaserWorldQuat);
+          const rightLaserDir = new THREE.Vector3(0, 1, 0).applyQuaternion(rightLaserWorldQuat);
+          rightEndWorldPos = rightEyeWorldPos.clone().add(rightLaserDir.multiplyScalar(this.MAIN_SIZE * 3));
+        }
+
+        const leftStart = project3DToScreen(leftEyeWorldPos);
+        const leftEnd = project3DToScreen(leftEndWorldPos);
+        const rightStart = project3DToScreen(rightEyeWorldPos);
+        const rightEnd = project3DToScreen(rightEndWorldPos);
+
+        this.onLaserUpdate({
+          leftStart,
+          leftEnd,
+          rightStart,
+          rightEnd,
+          visible: this.leftLaser.visible && this.rightLaser.visible
+        });
       }
     }
 

@@ -45,9 +45,16 @@ interface Explosion {
 
 interface HeroMissileGameProps {
   containerRef: React.RefObject<HTMLDivElement>;
+  laserData: {
+    leftStart: { x: number; y: number } | null;
+    leftEnd: { x: number; y: number } | null;
+    rightStart: { x: number; y: number } | null;
+    rightEnd: { x: number; y: number } | null;
+    visible: boolean;
+  };
 }
 
-export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) {
+export default function HeroMissileGame({ containerRef, laserData }: HeroMissileGameProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -66,11 +73,15 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
 
   // Game state
   const [score, setScore] = useState(0);
-  const [megabotHealth, setMegabotHealth] = useState(100);
+  const [megabotHealth, setMegabotHealth] = useState(10000);
   const scoreRef = useRef<number>(0);
-  const megabotHealthRef = useRef<number>(100);
+  const megabotHealthRef = useRef<number>(10000);
   const lastSpawnTimeRef = useRef<number>(0);
   const screenShakeRef = useRef<number>(0); // Screen shake intensity
+
+  // Fixed timestep accumulator for stable physics
+  const accumulatorRef = useRef<number>(0);
+  const FIXED_TIMESTEP = 1 / 60; // 60 Hz simulation
 
   // Physics constants
   const MISSILE_SPEED = 600;
@@ -306,6 +317,38 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     return distance < (r1 + r2);
   };
 
+  // Check if a point (ship) intersects with a line segment (laser)
+  const checkLaserCollision = (
+    lineStart: { x: number; y: number },
+    lineEnd: { x: number; y: number },
+    pointX: number,
+    pointY: number,
+    radius: number
+  ): boolean => {
+    // Calculate closest point on line segment to the point
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const lengthSquared = dx * dx + dy * dy;
+
+    if (lengthSquared === 0) {
+      // Line start and end are the same point
+      const dist = Math.sqrt((pointX - lineStart.x) ** 2 + (pointY - lineStart.y) ** 2);
+      return dist <= radius;
+    }
+
+    // Find projection parameter t
+    let t = ((pointX - lineStart.x) * dx + (pointY - lineStart.y) * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t)); // Clamp to [0,1] to stay on segment
+
+    // Find closest point on segment
+    const closestX = lineStart.x + t * dx;
+    const closestY = lineStart.y + t * dy;
+
+    // Check distance from point to closest point
+    const distance = Math.sqrt((pointX - closestX) ** 2 + (pointY - closestY) ** 2);
+    return distance <= radius;
+  };
+
   // Physics update and render loop
   const updateAndRender = (deltaTime: number, timestamp: number) => {
     const canvas = canvasRef.current;
@@ -534,6 +577,39 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
         continue;
       }
 
+      // Check collision with lasers
+      if (laserData.visible) {
+        let hitByLaser = false;
+
+        // Check left laser
+        if (laserData.leftStart && laserData.leftEnd) {
+          if (checkLaserCollision(laserData.leftStart, laserData.leftEnd, ship.x, ship.y, ship.size)) {
+            hitByLaser = true;
+          }
+        }
+
+        // Check right laser
+        if (!hitByLaser && laserData.rightStart && laserData.rightEnd) {
+          if (checkLaserCollision(laserData.rightStart, laserData.rightEnd, ship.x, ship.y, ship.size)) {
+            hitByLaser = true;
+          }
+        }
+
+        if (hitByLaser) {
+          // Laser damage per second (continuous damage while in beam)
+          const laserDamage = 5 * dt; // 5 damage per second
+          ship.health -= laserDamage;
+          ship.hitFlash = 1.0;
+
+          if (ship.health <= 0) {
+            ship.active = false;
+            createExplosion(ship.x, ship.y, ship.size * 2);
+            scoreRef.current += ship.maxHealth * 100;
+            setScore(scoreRef.current);
+          }
+        }
+      }
+
       // Remove if out of bounds (far out)
       if (
         ship.x < -100 ||
@@ -680,6 +756,81 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
       ctx.fill();
     }
 
+    // Render eye lasers as weapons
+    if (laserData.visible && laserData.leftStart && laserData.leftEnd && laserData.rightStart && laserData.rightEnd) {
+      // Left laser
+      ctx.save();
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ff0000';
+
+      // Outer glow
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(laserData.leftStart.x, laserData.leftStart.y);
+      ctx.lineTo(laserData.leftEnd.x, laserData.leftEnd.y);
+      ctx.stroke();
+
+      // Main beam
+      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(laserData.leftStart.x, laserData.leftStart.y);
+      ctx.lineTo(laserData.leftEnd.x, laserData.leftEnd.y);
+      ctx.stroke();
+
+      // Inner bright core
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffff00';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ffff00';
+      ctx.beginPath();
+      ctx.moveTo(laserData.leftStart.x, laserData.leftStart.y);
+      ctx.lineTo(laserData.leftEnd.x, laserData.leftEnd.y);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Right laser
+      ctx.save();
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ff0000';
+
+      // Outer glow
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(laserData.rightStart.x, laserData.rightStart.y);
+      ctx.lineTo(laserData.rightEnd.x, laserData.rightEnd.y);
+      ctx.stroke();
+
+      // Main beam
+      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(laserData.rightStart.x, laserData.rightStart.y);
+      ctx.lineTo(laserData.rightEnd.x, laserData.rightEnd.y);
+      ctx.stroke();
+
+      // Inner bright core
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffff00';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ffff00';
+      ctx.beginPath();
+      ctx.moveTo(laserData.rightStart.x, laserData.rightStart.y);
+      ctx.lineTo(laserData.rightEnd.x, laserData.rightEnd.y);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
     // Debug: Visualize collision boundaries
     if (DEBUG_COLLISION) {
       // Megabot collision circle
@@ -718,19 +869,26 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     ctx.restore();
   };
 
-  // Animation loop using requestAnimationFrame
+  // Animation loop using requestAnimationFrame with fixed timestep
   const animate = (timestamp: number) => {
     if (!lastTimeRef.current) {
       lastTimeRef.current = timestamp;
       lastSpawnTimeRef.current = timestamp;
     }
 
-    const deltaTime = timestamp - lastTimeRef.current;
+    const deltaTime = (timestamp - lastTimeRef.current) / 1000; // Convert to seconds
     lastTimeRef.current = timestamp;
 
-    // Update physics and render (cap at 60fps to prevent large delta spikes)
-    if (deltaTime < 100) {
-      updateAndRender(deltaTime, timestamp);
+    // Cap deltaTime to prevent spiral of death
+    const cappedDelta = Math.min(deltaTime, 0.1); // Max 100ms
+
+    // Add to accumulator
+    accumulatorRef.current += cappedDelta;
+
+    // Fixed timestep physics updates
+    while (accumulatorRef.current >= FIXED_TIMESTEP) {
+      updateAndRender(FIXED_TIMESTEP * 1000, timestamp); // Convert back to ms for compatibility
+      accumulatorRef.current -= FIXED_TIMESTEP;
     }
 
     animationFrameRef.current = requestAnimationFrame(animate);
@@ -782,7 +940,7 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
 
   if (!ENABLE_MISSILE_GAME) return null;
 
-  const healthPercent = megabotHealth / 100;
+  const healthPercent = megabotHealth / 10000;
 
   return (
     <div
@@ -823,7 +981,7 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
               style={{ width: `${healthPercent * 100}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-bold drop-shadow-lg">
-              {megabotHealth}%
+              {megabotHealth.toLocaleString()} / 10,000
             </div>
           </div>
         </div>
