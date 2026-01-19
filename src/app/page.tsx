@@ -27,6 +27,21 @@ export default function HomePage() {
   const steamButtonRef = useRef<HTMLAnchorElement>(null);
   const heroSectionRef = useRef<HTMLDivElement>(null);
 
+  // Laser positions for game collision detection
+  const [laserData, setLaserData] = useState<{
+    leftStart: { x: number; y: number } | null;
+    leftEnd: { x: number; y: number } | null;
+    rightStart: { x: number; y: number } | null;
+    rightEnd: { x: number; y: number } | null;
+    visible: boolean;
+  }>({
+    leftStart: null,
+    leftEnd: null,
+    rightStart: null,
+    rightEnd: null,
+    visible: false
+  });
+
   // Handle button hover for Megabot tracking (only Steam button)
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
     // Only track Steam button for Megabot laser eyes
@@ -156,12 +171,16 @@ export default function HomePage() {
             trackingTarget={mousePosition}
             buttonBounds={buttonBounds}
             isButtonClicked={isButtonClicked}
+            onLaserUpdate={setLaserData}
           />
         </Suspense>
 
         {/* Interactive Missile Game */}
         <Suspense fallback={<div />}>
-          <HeroMissileGame containerRef={heroSectionRef} />
+          <HeroMissileGame
+            containerRef={heroSectionRef}
+            laserData={laserData}
+          />
         </Suspense>
 
         {/* Quality Settings Control */}
