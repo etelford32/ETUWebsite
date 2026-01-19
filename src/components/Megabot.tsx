@@ -674,17 +674,17 @@ class MegabotScene {
     const THREE = window.THREE;
     this.mainMegabot = new THREE.Group();
 
-    // METALLIC ARMOR MATERIAL with advanced PBR shading
+    // METALLIC ARMOR MATERIAL with advanced PBR shading - ULTRA EVIL VERSION
     const mechaMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.02, 0.02, 0.03) }, // Sleek black metallic
+        baseColor: { value: new THREE.Color(0.01, 0.005, 0.01) }, // DARKER evil black metallic
         metalness: { value: 0.99 }, // Ultra metallic for glossy finish
-        roughness: { value: 0.08 }, // Very shiny, reflective armor
-        envIntensity: { value: 1.2 }, // Stronger reflections
-        emissiveColor: { value: new THREE.Color(0.8, 0.1, 0.1) }, // Evil red glow
-        emissiveIntensity: { value: 0.6 }, // More intense
-        panelLineColor: { value: new THREE.Color(0.02, 0.02, 0.05) }, // Deeper panel lines
+        roughness: { value: 0.06 }, // Even shinier, menacing reflective armor
+        envIntensity: { value: 1.4 }, // STRONGER reflections for menacing appearance
+        emissiveColor: { value: new THREE.Color(1.0, 0.05, 0.05) }, // INTENSE evil red glow
+        emissiveIntensity: { value: 0.9 }, // MAXIMUM EVIL intensity
+        panelLineColor: { value: new THREE.Color(0.01, 0.0, 0.02) }, // DEEPER evil panel lines
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -1305,14 +1305,19 @@ class MegabotScene {
       rightEyePos: rightEye.position
     });
 
-    // Eye glow lights - INTENSE red glow
-    const leftEyeLight = new THREE.PointLight(0xff0000, 8, 600); // Much brighter and wider range
+    // Eye glow lights - ULTRA INTENSE EVIL red glow
+    const leftEyeLight = new THREE.PointLight(0xff0000, 15, 800); // EVIL INTENSITY - Much brighter and wider range
     leftEyeLight.position.copy(leftEye.position);
     headGroup.add(leftEyeLight);
 
-    const rightEyeLight = new THREE.PointLight(0xff0000, 8, 600); // Much brighter and wider range
+    const rightEyeLight = new THREE.PointLight(0xff0000, 15, 800); // EVIL INTENSITY - Much brighter and wider range
     rightEyeLight.position.copy(rightEye.position);
     headGroup.add(rightEyeLight);
+
+    // Add additional evil ambient red glow around head
+    const evilHeadGlow = new THREE.PointLight(0xaa0000, 6, 400);
+    evilHeadGlow.position.set(0, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.15);
+    headGroup.add(evilHeadGlow);
 
     headGroup.position.y = this.MAIN_SIZE * 1.3;
     this.mainMegabot.add(headGroup);
@@ -2137,9 +2142,9 @@ class MegabotScene {
         group: satellite,
         orbitAngle: angle,
         orbitRadius: orbitRadius,
-        orbitSpeed: 0.0003 + Math.random() * 0.0005,
+        orbitSpeed: 0.0008 + Math.random() * 0.001, // 2.5x faster orbit speed for EVIL menacing movement
         yOffset: yOffset,
-        rotationSpeed: 0.01 + Math.random() * 0.01,
+        rotationSpeed: 0.025 + Math.random() * 0.025, // 2.5x faster rotation for aggressive appearance
       });
 
       this.scene.add(satellite);
@@ -2280,8 +2285,8 @@ class MegabotScene {
     if (this.mainMegabot) {
       // Body rotation - track target or idle rotation
       if (this.trackingTarget && this.targetPosition3D) {
-        // TRACKING MODE: Make the whole body turn to face the target!
-        const lerpSpeed = 0.08; // Slower for the massive body
+        // TRACKING MODE: EVIL AI body turns aggressively to face the target!
+        const lerpSpeed = 0.14; // FASTER - Evil tech AI moves with terrifying speed
 
         // Smoothly rotate body toward target
         this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
@@ -2299,12 +2304,12 @@ class MegabotScene {
 
       // Animate individual parts
       this.megabotParts.forEach((part) => {
-        // Animate evil laser eyes
+        // Animate evil laser eyes - FASTER and MORE INTENSE
         if (part.type === 'leftEye' || part.type === 'rightEye') {
           if (part.mesh.material.uniforms) {
             part.mesh.material.uniforms.time.value = this.time;
-            // Intensify the glow periodically
-            const intensity = 3.0 + Math.sin(this.time * 2.0) * 1.0;
+            // Intensify the glow periodically - EVIL PULSING (faster and stronger)
+            const intensity = 5.0 + Math.sin(this.time * 4.0) * 2.0; // Doubled speed and intensity
             part.mesh.material.uniforms.glowIntensity.value = intensity;
           }
         }
@@ -2337,8 +2342,8 @@ class MegabotScene {
         // Head movement (menacing scan or tracking)
         if (part.type === 'head') {
           if (this.trackingTarget && this.targetPosition3D) {
-            // TRACKING MODE: Head tilts to aim precisely at target
-            const headLerpSpeed = 0.12; // Faster than body for responsive feeling
+            // TRACKING MODE: ULTRA EVIL Head tilts to aim precisely at target
+            const headLerpSpeed = 0.22; // MUCH FASTER - Evil AI precision tracking!
 
             // Head pitch (X rotation) - vertical tilt
             this.currentRotation.x += (this.targetRotation.x - this.currentRotation.x) * headLerpSpeed;
@@ -2347,10 +2352,10 @@ class MegabotScene {
             // Head is already pointing forward due to body rotation, so minimal Y adjustment
             part.mesh.rotation.y = 0;
 
-            // Intensify eye glow when tracking
+            // Intensify eye glow when tracking - ULTRA EVIL LOCK-ON
             this.megabotParts.forEach((eyePart) => {
               if ((eyePart.type === 'leftEye' || eyePart.type === 'rightEye') && eyePart.mesh.material.uniforms) {
-                eyePart.mesh.material.uniforms.glowIntensity.value = 6.0; // MAXIMUM INTENSITY when locked on!
+                eyePart.mesh.material.uniforms.glowIntensity.value = 10.0; // ULTRA EVIL MAXIMUM INTENSITY when locked on!
               }
             });
           } else {
