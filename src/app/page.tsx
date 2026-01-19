@@ -43,7 +43,7 @@ export default function HomePage() {
 
   const handleButtonLeave = () => {
     setHoveredButton(null);
-    setMousePosition({ x: 0, y: 0 });
+    // Don't reset mousePosition here - let continuous tracking handle it
     setButtonBounds(null);
   };
 
@@ -51,6 +51,14 @@ export default function HomePage() {
     setIsButtonClicked(true);
     // Reset after animation
     setTimeout(() => setIsButtonClicked(false), 100);
+  };
+
+  // Handle continuous mouse tracking on hero section for eye following
+  const handleHeroMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    setMousePosition({
+      x: event.clientX,
+      y: event.clientY
+    });
   };
 
   useEffect(() => {
@@ -139,6 +147,7 @@ export default function HomePage() {
         ref={heroSectionRef}
         id="home"
         className="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas"
+        onMouseMove={handleHeroMouseMove}
       >
         {/* 3D Megabot Effect (WebGL) */}
         <Suspense fallback={<div />}>
