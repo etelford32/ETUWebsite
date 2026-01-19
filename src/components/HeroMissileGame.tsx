@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Feature flag - easy disable if needed
+// Feature flags
 const ENABLE_MISSILE_GAME = true;
+const DEBUG_COLLISION = false; // Set to true to visualize collision boundaries
 
 interface Missile {
   active: boolean; // For object pooling
@@ -30,6 +31,7 @@ interface EnemyShip {
   size: number;
   rotation: number;
   type: 'fighter' | 'bomber' | 'interceptor';
+  hitFlash: number; // Flash effect when hit
 }
 
 interface Explosion {
@@ -68,6 +70,7 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
   const scoreRef = useRef<number>(0);
   const megabotHealthRef = useRef<number>(100);
   const lastSpawnTimeRef = useRef<number>(0);
+  const screenShakeRef = useRef<number>(0); // Screen shake intensity
 
   // Physics constants
   const MISSILE_SPEED = 600;
@@ -113,6 +116,7 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
       size: 20,
       rotation: 0,
       type: 'fighter',
+      hitFlash: 0,
     }));
   };
 
@@ -244,6 +248,7 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     ship.size = size;
     ship.type = type;
     ship.rotation = Math.atan2(dy, dx);
+    ship.hitFlash = 0;
   };
 
   // Launch missile from Megabot's shoulder position
@@ -317,8 +322,22 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
     const megabotY = rect.height * 0.3;
     const megabotRadius = 40;
 
+    // Update screen shake
+    if (screenShakeRef.current > 0) {
+      screenShakeRef.current -= dt * 30; // Decay quickly
+      if (screenShakeRef.current < 0) screenShakeRef.current = 0;
+    }
+
+    // Apply screen shake transform
+    const shakeX = screenShakeRef.current > 0 ? (Math.random() - 0.5) * screenShakeRef.current : 0;
+    const shakeY = screenShakeRef.current > 0 ? (Math.random() - 0.5) * screenShakeRef.current : 0;
+
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Apply shake transform
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
 
     // Spawn enemy ships periodically
     if (timestamp - lastSpawnTimeRef.current > SHIP_SPAWN_INTERVAL) {
@@ -369,6 +388,9 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
         if (checkCollision(missile.x, missile.y, 5, ship.x, ship.y, ship.size)) {
           ship.health--;
           hitShip = true;
+
+          // Flash effect on hit
+          ship.hitFlash = 1.0;
 
           if (ship.health <= 0) {
             // Ship destroyed
@@ -491,6 +513,12 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
       ship.x += ship.vx * dt;
       ship.y += ship.vy * dt;
 
+      // Fade hit flash effect
+      if (ship.hitFlash > 0) {
+        ship.hitFlash -= dt * 3; // Fade over ~0.33 seconds
+        if (ship.hitFlash < 0) ship.hitFlash = 0;
+      }
+
       // Check collision with megabot
       if (checkCollision(ship.x, ship.y, ship.size, megabotX, megabotY, megabotRadius)) {
         ship.active = false;
@@ -499,6 +527,9 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
         // Damage megabot
         megabotHealthRef.current = Math.max(0, megabotHealthRef.current - 10);
         setMegabotHealth(megabotHealthRef.current);
+
+        // Screen shake on damage
+        screenShakeRef.current = 10;
 
         continue;
       }
@@ -533,8 +564,16 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
           break;
       }
 
+      // Apply hit flash effect (blend with white)
+      let renderColor = shipColor;
+      if (ship.hitFlash > 0) {
+        // Interpolate between ship color and white based on flash intensity
+        const flashAmount = ship.hitFlash;
+        renderColor = `rgba(255, 255, 255, ${flashAmount})`;
+      }
+
       // Ship body (triangle)
-      ctx.fillStyle = shipColor;
+      ctx.fillStyle = ship.hitFlash > 0 ? renderColor : shipColor;
       ctx.beginPath();
       ctx.moveTo(ship.size, 0);
       ctx.lineTo(-ship.size * 0.6, ship.size * 0.5);
@@ -640,6 +679,43 @@ export default function HeroMissileGame({ containerRef }: HeroMissileGameProps) 
       ctx.arc(explosion.x, explosion.y, size * 0.5, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // Debug: Visualize collision boundaries
+    if (DEBUG_COLLISION) {
+      // Megabot collision circle
+      ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(megabotX, megabotY, megabotRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Ship collision circles
+      for (let i = 0; i < shipPoolRef.current.length; i++) {
+        const ship = shipPoolRef.current[i];
+        if (!ship.active) continue;
+
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ship.x, ship.y, ship.size, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Missile collision circles
+      for (let i = 0; i < missilePoolRef.current.length; i++) {
+        const missile = missilePoolRef.current[i];
+        if (!missile.active) continue;
+
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(missile.x, missile.y, 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Restore transform (remove shake)
+    ctx.restore();
   };
 
   // Animation loop using requestAnimationFrame
