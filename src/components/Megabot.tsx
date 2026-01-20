@@ -43,6 +43,9 @@ export default function Megabot({
 
   useEffect(() => {
     // Load Three.js dynamically
+    // TODO: Migrate to ES modules - build/three.min.js is deprecated and will be removed in r160+
+    // See: https://threejs.org/docs/index.html#manual/en/introduction/Installation
+    // Future: import * as THREE from 'three' with npm package
     const threeScript = document.createElement("script");
     threeScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
     threeScript.async = true;
@@ -413,11 +416,9 @@ class MegabotScene {
       },
       vertexShader: `
         varying vec2 vUv;
-        varying vec3 vPosition;
 
         void main() {
           vUv = uv;
-          vPosition = position;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
@@ -427,7 +428,6 @@ class MegabotScene {
         uniform vec3 beamColor;
         uniform float intensity;
         varying vec2 vUv;
-        varying vec3 vPosition;
 
         void main() {
           // Beam intensity from center to edge
@@ -751,16 +751,11 @@ class MegabotScene {
       },
       vertexShader: `
         varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec3 vWorldPosition;
         varying vec3 vViewPosition;
         varying vec2 vUv;
 
         void main() {
           vNormal = normalize(normalMatrix * normal);
-          vPosition = position;
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPos.xyz;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           vViewPosition = -mvPosition.xyz;
 
@@ -781,8 +776,6 @@ class MegabotScene {
         uniform vec3 panelLineColor;
 
         varying vec3 vNormal;
-        varying vec3 vPosition;
-        varying vec3 vWorldPosition;
         varying vec3 vViewPosition;
         varying vec2 vUv;
 
