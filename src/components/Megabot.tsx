@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import * as THREE from 'three';
 
 export type QualityLevel = "low" | "medium" | "high";
-
-declare global {
-  interface Window {
-    THREE: any;
-  }
-}
 
 interface MegabotProps {
   quality?: QualityLevel;
@@ -42,34 +37,15 @@ export default function Megabot({
   const megabotRef = useRef<any>(null);
 
   useEffect(() => {
-    // Load Three.js dynamically
-    // TODO: Migrate to ES modules - build/three.min.js is deprecated and will be removed in r160+
-    // See: https://threejs.org/docs/index.html#manual/en/introduction/Installation
-    // Future: import * as THREE from 'three' with npm package
-    const threeScript = document.createElement("script");
-    threeScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
-    threeScript.async = true;
-
-    threeScript.onload = () => {
-      if (containerRef.current && window.THREE) {
-        megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate, onGameStateUpdate);
-      }
-    };
-
-    threeScript.onerror = () => {
-      console.error('❌ Failed to load Three.js library from CDN');
-      // Fallback: Could show a static image or retry with a different CDN
-    };
-
-    document.head.appendChild(threeScript);
+    // Initialize Megabot scene with Three.js ES modules
+    if (containerRef.current) {
+      megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate, onGameStateUpdate);
+    }
 
     return () => {
       if (megabotRef.current && megabotRef.current.destroy) {
         megabotRef.current.destroy();
       }
-      // Clean up script
-      const existingThree = document.querySelector(`script[src="${threeScript.src}"]`);
-      if (existingThree) document.head.removeChild(existingThree);
     };
   }, []);
 
@@ -112,6 +88,7 @@ export default function Megabot({
 }
 
 class MegabotScene {
+  THREE: typeof THREE;
   container: HTMLDivElement;
   scene: any;
   camera: any;
@@ -212,6 +189,7 @@ class MegabotScene {
       missileCount: number;
     }) => void
   ) {
+    this.THREE = THREE;
     this.container = container;
     this.onLaserUpdate = onLaserUpdate;
     this.onGameStateUpdate = onGameStateUpdate;
@@ -308,7 +286,7 @@ class MegabotScene {
   }
 
   setTrackingTarget(target: { x: number; y: number } | null) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (!THREE) return;
 
     this.trackingTarget = target;
@@ -399,7 +377,7 @@ class MegabotScene {
   }
 
   createBorderLasers() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (!THREE || !this.buttonBounds || !this.scene) return;
 
     // Clear existing border lasers
@@ -475,7 +453,7 @@ class MegabotScene {
   }
 
   createLaserSparks() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (!THREE || !this.targetPosition3D || !this.scene) return;
 
     // Create small spark bursts at laser impact point
@@ -544,7 +522,7 @@ class MegabotScene {
   }
 
   createBlastEffect() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (!THREE || !this.buttonBounds || !this.scene) return;
 
     // Create explosive particle effect
@@ -664,7 +642,7 @@ class MegabotScene {
   }
 
   init() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x000000, 0.0001);
@@ -697,7 +675,7 @@ class MegabotScene {
   }
 
   createStarField() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const starCount = this.settings.starCount || 5000;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
@@ -734,7 +712,7 @@ class MegabotScene {
   }
 
   createMainMegabot() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     this.mainMegabot = new THREE.Group();
 
     // METALLIC ARMOR MATERIAL with advanced PBR shading - ULTRA EVIL VERSION
@@ -2147,7 +2125,7 @@ class MegabotScene {
   }
 
   createSatellites() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const count = this.settings.satelliteCount;
 
     for (let i = 0; i < count; i++) {
@@ -2208,7 +2186,7 @@ class MegabotScene {
   }
 
   createEnergyParticles() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const particleCount = this.settings.particleCount;
 
     const geometry = new THREE.BufferGeometry();
@@ -2303,7 +2281,7 @@ class MegabotScene {
 
   // Create 3D ship geometry with detailed mesh designs
   create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor') {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const group = new THREE.Group();
 
     let size, health, color;
@@ -2661,7 +2639,7 @@ class MegabotScene {
 
   // Spawn enemy ship from random direction
   spawn3DShip() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
 
@@ -2708,7 +2686,7 @@ class MegabotScene {
 
   // Create 3D missile
   create3DMissile(startPos: any, targetPos: any) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     if (this.missiles3D.length >= this.MAX_MISSILES_3D) return;
 
@@ -2777,7 +2755,7 @@ class MegabotScene {
   launch3DMissileFromMegabot(targetScreenPos: { x: number; y: number }) {
     if (!this.mainMegabot) return;
 
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Get megabot shoulder position (launch point)
     const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
@@ -2811,7 +2789,7 @@ class MegabotScene {
 
   // Create 3D explosion effect
   create3DExplosion(position: any, size: number) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     if (this.explosions3D.length >= this.MAX_EXPLOSIONS_3D) return;
 
@@ -2866,7 +2844,7 @@ class MegabotScene {
 
   // Update 3D combat system
   update3DCombat(deltaTime: number) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const dt = deltaTime;
 
     // Spawn ships periodically
@@ -3462,7 +3440,7 @@ class MegabotScene {
 
     // Update laser raycasting to target the button
     if (this.leftLaser && this.rightLaser && this.leftEye && this.rightEye && this.headGroup) {
-      const THREE = window.THREE;
+      const THREE = this.THREE;
 
       if (this.trackingTarget && this.targetPosition3D) {
         // TRACKING MODE: Aim lasers at button (only if plane intersection succeeded)

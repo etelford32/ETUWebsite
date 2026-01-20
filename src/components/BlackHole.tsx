@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import * as THREE from 'three';
 
 export type QualityLevel = "low" | "medium" | "high";
-
-declare global {
-  interface Window {
-    THREE: any;
-  }
-}
 
 interface BlackHoleProps {
   quality?: QualityLevel;
@@ -19,27 +14,15 @@ export default function BlackHole({ quality = "medium" }: BlackHoleProps) {
   const blackHoleRef = useRef<any>(null);
 
   useEffect(() => {
-    // Load Three.js dynamically
-    // TODO: Migrate to ES modules - build/three.min.js is deprecated (will be removed in r160+)
-    const threeScript = document.createElement("script");
-    threeScript.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
-    threeScript.async = true;
-
-    threeScript.onload = () => {
-      if (containerRef.current && window.THREE) {
-        blackHoleRef.current = new BlackHoleEffect(containerRef.current, quality);
-      }
-    };
-
-    document.head.appendChild(threeScript);
+    // Initialize BlackHole effect with Three.js ES modules
+    if (containerRef.current) {
+      blackHoleRef.current = new BlackHoleEffect(containerRef.current, quality);
+    }
 
     return () => {
       if (blackHoleRef.current && blackHoleRef.current.destroy) {
         blackHoleRef.current.destroy();
       }
-      // Clean up script
-      const existingThree = document.querySelector(`script[src="${threeScript.src}"]`);
-      if (existingThree) document.head.removeChild(existingThree);
     };
   }, []);
 
@@ -61,6 +44,7 @@ export default function BlackHole({ quality = "medium" }: BlackHoleProps) {
 }
 
 class BlackHoleEffect {
+  THREE: typeof THREE;
   container: HTMLDivElement;
   mouse: any = { x: 0, y: 0, targetX: 0, targetY: 0 };
   time: number = 0;
@@ -147,6 +131,7 @@ class BlackHoleEffect {
   readonly MAX_GRAVITATIONAL_FORCE = 500; // Clamp maximum force to avoid infinities
 
   constructor(container: HTMLDivElement, quality: QualityLevel = "medium") {
+    this.THREE = THREE;
     this.container = container;
     if (!this.container) {
       console.warn("Container not found");
@@ -400,7 +385,7 @@ class BlackHoleEffect {
    * - Receding (v > 0): Redshift (lower frequency, redder color)
    */
   calculateDopplerShift(velocity: any, position: any): number {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Vector from particle to camera
     const toCamera = new THREE.Vector3()
@@ -428,7 +413,7 @@ class BlackHoleEffect {
    * This simulates the "headlight effect" in special relativity
    */
   calculateRelativisticBeaming(velocity: any, position: any): number {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Vector from particle to camera
     const toCamera = new THREE.Vector3()
@@ -511,7 +496,7 @@ class BlackHoleEffect {
   }
 
   init() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x000000, 0.0002);
@@ -547,7 +532,7 @@ class BlackHoleEffect {
   }
 
   createStarField() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const starCount = this.settings.starCount || 5000;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(starCount * 3);
@@ -676,7 +661,7 @@ class BlackHoleEffect {
   }
 
   createBlackHole() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Event horizon (black sphere with enhanced shader)
     const eventHorizonGeometry = new THREE.SphereGeometry(this.SCHWARZSCHILD_RADIUS, 64, 64);
@@ -725,7 +710,7 @@ class BlackHoleEffect {
   }
 
   createPhotonSphere() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const photonCount = this.settings.photonCount;
 
     // Create instanced mesh for thousands of photons with ENHANCED SHADER
@@ -884,7 +869,7 @@ class BlackHoleEffect {
   // PHASE 1: PHOTON RING - THE ICONIC BLACK HOLE FEATURE
   // ============================================================================
   createPhotonRing() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Create a thin, bright ring at exactly 1.5 * Schwarzschild radius
     // This is where photons can orbit the black hole in unstable circular orbits
@@ -962,7 +947,7 @@ class BlackHoleEffect {
   // PHASE 1: PHOTOREALISTIC ACCRETION DISK WITH DOPPLER SHIFT
   // ============================================================================
   createAccretionDisk() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     const diskGeometry = new THREE.RingGeometry(this.ISCO_RADIUS, 250, 128);
     const diskMaterial = new THREE.ShaderMaterial({
@@ -1088,7 +1073,7 @@ class BlackHoleEffect {
   }
 
   createOuterBoundary() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Create a torus boundary (donut shape) - particles orbit within this structure
     const boundaryGeometry = new THREE.TorusGeometry(
@@ -1157,7 +1142,7 @@ class BlackHoleEffect {
   }
 
   createParticles() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const particleCount = this.PARTICLE_COUNT; // 10,000 particles!
 
     console.log(`🌌 Creating ${particleCount} particles for accretion disk...`);
@@ -1582,7 +1567,7 @@ class BlackHoleEffect {
   // PHASE 1: ENHANCED TRAIL RENDERING WITH MOTION BLUR & RELATIVISTIC EFFECTS
   // ============================================================================
   updateParticleTrail(particle: any, trailIndex: number) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const trail = this.particleTrails[trailIndex];
     if (!trail) return;
 
@@ -1680,7 +1665,7 @@ class BlackHoleEffect {
   // PARTICLE SPAWNING ON DOUBLE-CLICK
   // ============================================================================
   spawnParticleAtPosition(x: number, y: number, z: number) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Create new particle with glow shader
     const geometry = new THREE.SphereGeometry(2, 8, 8); // Slightly larger for spawned particles
@@ -1879,7 +1864,7 @@ class BlackHoleEffect {
     const handleDoubleClick = (e: MouseEvent) => {
       if (!this.enableParticleSpawning) return;
 
-      const THREE = window.THREE;
+      const THREE = this.THREE;
 
       // Update raycaster with mouse position
       this.raycaster.setFromCamera(
@@ -1987,7 +1972,7 @@ class BlackHoleEffect {
     // Animate photon sphere with ENHANCED 3D orbital mechanics
     if (this.photonSphere) {
       const { mesh, data, dummy } = this.photonSphere;
-      const THREE = window.THREE;
+      const THREE = this.THREE;
 
       // Update shader uniforms for time-based effects
       if (mesh.material.uniforms) {

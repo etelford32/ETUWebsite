@@ -1,36 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-declare global {
-  interface Window {
-    THREE: any;
-  }
-}
+import * as THREE from 'three';
 
 export default function StarMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const starMapRef = useRef<any>(null);
 
   useEffect(() => {
-    // Load Three.js dynamically
-    // TODO: Migrate to ES modules - build/three.min.js is deprecated (will be removed in r160+)
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
-    script.async = true;
-    script.onload = () => {
-      if (containerRef.current && window.THREE) {
-        starMapRef.current = new StarMapHero(containerRef.current);
-      }
-    };
-    document.head.appendChild(script);
+    // Initialize StarMap with Three.js ES modules
+    if (containerRef.current) {
+      starMapRef.current = new StarMapHero(containerRef.current);
+    }
 
     return () => {
       if (starMapRef.current && starMapRef.current.destroy) {
         starMapRef.current.destroy();
       }
-      // Clean up script
-      document.head.removeChild(script);
     };
   }, []);
 
@@ -45,6 +31,7 @@ export default function StarMap() {
 }
 
 class StarMapHero {
+  THREE: typeof THREE;
   container: HTMLDivElement;
   settings: any;
   mouse: any = { x: 0, y: 0, targetX: 0, targetY: 0 };
@@ -60,6 +47,7 @@ class StarMapHero {
   shootingStars: any[] = [];
 
   constructor(container: HTMLDivElement) {
+    this.THREE = THREE;
     this.container = container;
     if (!this.container) {
       console.warn("Container not found");
@@ -139,7 +127,7 @@ class StarMapHero {
   }
 
   init() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
 
     // Scene
     this.scene = new THREE.Scene();
@@ -178,7 +166,7 @@ class StarMapHero {
   }
 
   createStars() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     const starCount = this.settings.starCount;
 
     // Create geometry for a single star (point)
@@ -248,7 +236,7 @@ class StarMapHero {
   }
 
   createNebulaClouds() {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (this.settings.nebulaCount === 0) return;
 
     const nebulaColors = [
@@ -339,7 +327,7 @@ class StarMapHero {
   }
 
   createShootingStar(clickX: number, clickY: number) {
-    const THREE = window.THREE;
+    const THREE = this.THREE;
     if (!THREE) return;
 
     // Convert screen coordinates to 3D space
