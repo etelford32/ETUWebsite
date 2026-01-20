@@ -42,6 +42,19 @@ export default function HomePage() {
     visible: false
   });
 
+  // 3D Game state from Megabot scene
+  const [gameState, setGameState] = useState<{
+    score: number;
+    health: number;
+    shipCount: number;
+    missileCount: number;
+  }>({
+    score: 0,
+    health: 10000,
+    shipCount: 0,
+    missileCount: 0
+  });
+
   // Handle button hover for Megabot tracking (only Steam button)
   const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
     // Only track Steam button for Megabot laser eyes
@@ -172,14 +185,14 @@ export default function HomePage() {
             buttonBounds={buttonBounds}
             isButtonClicked={isButtonClicked}
             onLaserUpdate={setLaserData}
+            onGameStateUpdate={setGameState}
           />
         </Suspense>
 
-        {/* Interactive Missile Game */}
+        {/* Interactive Missile Game - UI Overlay Only */}
         <Suspense fallback={<div />}>
           <HeroMissileGame
-            containerRef={heroSectionRef}
-            laserData={laserData}
+            gameState={gameState}
           />
         </Suspense>
 

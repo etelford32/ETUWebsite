@@ -22,6 +22,12 @@ interface MegabotProps {
     rightEnd: { x: number; y: number } | null;
     visible: boolean;
   }) => void;
+  onGameStateUpdate?: (state: {
+    score: number;
+    health: number;
+    shipCount: number;
+    missileCount: number;
+  }) => void;
 }
 
 export default function Megabot({
@@ -29,7 +35,8 @@ export default function Megabot({
   trackingTarget = null,
   buttonBounds = null,
   isButtonClicked = false,
-  onLaserUpdate = undefined
+  onLaserUpdate = undefined,
+  onGameStateUpdate = undefined
 }: MegabotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const megabotRef = useRef<any>(null);
@@ -42,7 +49,7 @@ export default function Megabot({
 
     threeScript.onload = () => {
       if (containerRef.current && window.THREE) {
-        megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate);
+        megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate, onGameStateUpdate);
       }
     };
 
@@ -155,6 +162,17 @@ class MegabotScene {
     visible: boolean;
   }) => void;
 
+  // 3D Combat System
+  enemyShips: any[] = []; // 3D ship objects
+  missiles3D: any[] = []; // 3D missile objects
+  explosions3D: any[] = []; // 3D explosion effects
+  lastShipSpawnTime: number = 0;
+
+  // Game state
+  gameScore: number = 0;
+  megabotHealth: number = 10000;
+  onGameStateUpdate?: (state: { score: number; health: number; shipCount: number; missileCount: number }) => void;
+
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
   readonly SATELLITE_COUNT_LOW = 3;
@@ -163,6 +181,16 @@ class MegabotScene {
   readonly PARTICLE_COUNT_LOW = 500;
   readonly PARTICLE_COUNT_MED = 2000;
   readonly PARTICLE_COUNT_HIGH = 5000;
+
+  // 3D Combat constants
+  readonly MAX_SHIPS_3D = 15;
+  readonly MAX_MISSILES_3D = 50;
+  readonly MAX_EXPLOSIONS_3D = 30;
+  readonly SHIP_SPAWN_INTERVAL = 2000; // ms
+  readonly SHIP_SPEED_MIN = 200;
+  readonly SHIP_SPEED_MAX = 400;
+  readonly MISSILE_SPEED_3D = 800;
+  readonly SHIP_SPAWN_RADIUS = 2000; // Distance from megabot where ships spawn
 
   constructor(
     container: HTMLDivElement,
@@ -173,10 +201,17 @@ class MegabotScene {
       rightStart: { x: number; y: number } | null;
       rightEnd: { x: number; y: number } | null;
       visible: boolean;
+    }) => void,
+    onGameStateUpdate?: (state: {
+      score: number;
+      health: number;
+      shipCount: number;
+      missileCount: number;
     }) => void
   ) {
     this.container = container;
     this.onLaserUpdate = onLaserUpdate;
+    this.onGameStateUpdate = onGameStateUpdate;
     if (!this.container) {
       console.warn("Container not found");
       return;
@@ -2273,11 +2308,491 @@ class MegabotScene {
     this.scene.add(particleSystem);
   }
 
+  // Create 3D ship geometry
+  create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor') {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+
+    let size, health, color;
+    switch (type) {
+      case 'fighter':
+        size = 20;
+        health = 1;
+        color = 0xff4444;
+        break;
+      case 'bomber':
+        size = 35;
+        health = 3;
+        color = 0xff8800;
+        break;
+      case 'interceptor':
+        size = 25;
+        health = 2;
+        color = 0xffff00;
+        break;
+    }
+
+    // Ship body (elongated tetrahedron for aggressive look)
+    const bodyGeometry = new THREE.ConeGeometry(size * 0.6, size * 1.5, 4);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.3,
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.x = Math.PI / 2; // Point forward
+    group.add(body);
+
+    // Wings
+    const wingGeometry = new THREE.BoxGeometry(size * 1.2, size * 0.1, size * 0.4);
+    const wing = new THREE.Mesh(wingGeometry, bodyMaterial);
+    wing.position.z = -size * 0.3;
+    group.add(wing);
+
+    // Engine glow
+    const engineGeometry = new THREE.SphereGeometry(size * 0.15, 8, 8);
+    const engineMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const leftEngine = new THREE.Mesh(engineGeometry, engineMaterial);
+    leftEngine.position.set(-size * 0.4, 0, -size * 0.5);
+    group.add(leftEngine);
+
+    const rightEngine = new THREE.Mesh(engineGeometry, engineMaterial);
+    rightEngine.position.set(size * 0.4, 0, -size * 0.5);
+    group.add(rightEngine);
+
+    // Add point light for ship glow
+    const shipLight = new THREE.PointLight(color, 2, size * 3);
+    shipLight.position.set(0, 0, 0);
+    group.add(shipLight);
+
+    return { group, size, health, maxHealth: health, type, hitFlash: 0 };
+  }
+
+  // Spawn enemy ship from random direction
+  spawn3DShip() {
+    const THREE = window.THREE;
+
+    if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
+
+    // Random ship type
+    const types: Array<'fighter' | 'bomber' | 'interceptor'> = ['fighter', 'bomber', 'interceptor'];
+    const type = types[Math.floor(Math.random() * types.length)];
+
+    const ship = this.create3DShipGeometry(type);
+
+    // Spawn in spherical coordinates around megabot
+    const theta = Math.random() * Math.PI * 2; // Azimuthal angle
+    const phi = Math.random() * Math.PI; // Polar angle (full sphere)
+
+    const spawnX = this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.cos(theta);
+    const spawnY = this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.sin(theta);
+    const spawnZ = this.SHIP_SPAWN_RADIUS * Math.cos(phi);
+
+    ship.group.position.set(spawnX, spawnY, spawnZ);
+
+    // Calculate velocity toward megabot (at origin)
+    const dirX = -spawnX;
+    const dirY = -spawnY;
+    const dirZ = -spawnZ;
+    const distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+    const speed = this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN);
+
+    const velocity = new THREE.Vector3(
+      (dirX / distance) * speed,
+      (dirY / distance) * speed,
+      (dirZ / distance) * speed
+    );
+
+    // Point ship in direction of travel
+    ship.group.lookAt(0, 0, 0);
+
+    this.enemyShips.push({
+      ...ship,
+      velocity,
+      active: true,
+    });
+
+    this.scene.add(ship.group);
+  }
+
+  // Create 3D missile
+  create3DMissile(startPos: any, targetPos: any) {
+    const THREE = window.THREE;
+
+    if (this.missiles3D.length >= this.MAX_MISSILES_3D) return;
+
+    const group = new THREE.Group();
+
+    // Missile body (cylinder)
+    const bodyGeometry = new THREE.CylinderGeometry(3, 3, 15, 8);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4a90e2,
+      metalness: 0.9,
+      roughness: 0.1,
+      emissive: new THREE.Color(0x4a90e2),
+      emissiveIntensity: 0.5,
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.z = Math.PI / 2;
+    group.add(body);
+
+    // Missile nose cone
+    const noseGeometry = new THREE.ConeGeometry(3, 8, 8);
+    const nose = new THREE.Mesh(noseGeometry, bodyMaterial);
+    nose.rotation.z = -Math.PI / 2;
+    nose.position.x = 7.5 + 4;
+    group.add(nose);
+
+    // Glow effect
+    const glowGeometry = new THREE.SphereGeometry(8, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    group.add(glow);
+
+    // Point light
+    const missileLight = new THREE.PointLight(0x4a90e2, 3, 100);
+    group.add(missileLight);
+
+    group.position.copy(startPos);
+
+    // Calculate velocity
+    const direction = new THREE.Vector3().subVectors(targetPos, startPos).normalize();
+    const velocity = direction.multiplyScalar(this.MISSILE_SPEED_3D);
+
+    // Point missile toward target
+    group.lookAt(targetPos);
+
+    const missile = {
+      group,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 3,
+      active: true,
+      startPos: startPos.clone(),
+      trail: [] as any[],
+    };
+
+    this.missiles3D.push(missile);
+    this.scene.add(group);
+
+    return missile;
+  }
+
+  // Launch missile from megabot toward target
+  launch3DMissileFromMegabot(targetScreenPos: { x: number; y: number }) {
+    if (!this.mainMegabot) return;
+
+    const THREE = window.THREE;
+
+    // Get megabot shoulder position (launch point)
+    const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
+    launchOffset.applyQuaternion(this.mainMegabot.quaternion);
+    const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
+
+    // Convert screen position to 3D world position
+    const vector = new THREE.Vector3(
+      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
+      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
+      0.5
+    );
+
+    vector.unproject(this.camera);
+    const dir = vector.sub(this.camera.position).normalize();
+    const distance = 2000;
+    const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
+
+    this.create3DMissile(launchPos, targetPos);
+  }
+
+  // 3D collision detection (sphere-sphere)
+  check3DCollision(pos1: any, radius1: number, pos2: any, radius2: number): boolean {
+    const dx = pos2.x - pos1.x;
+    const dy = pos2.y - pos1.y;
+    const dz = pos2.z - pos1.z;
+    const distSquared = dx * dx + dy * dy + dz * dz;
+    const radiusSum = radius1 + radius2;
+    return distSquared < radiusSum * radiusSum;
+  }
+
+  // Create 3D explosion effect
+  create3DExplosion(position: any, size: number) {
+    const THREE = window.THREE;
+
+    if (this.explosions3D.length >= this.MAX_EXPLOSIONS_3D) return;
+
+    // Create expanding sphere with particles
+    const particleCount = 50;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const velocities: any[] = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = position.x;
+      positions[i * 3 + 1] = position.y;
+      positions[i * 3 + 2] = position.z;
+
+      // Random outward velocity
+      const vel = new THREE.Vector3(
+        (Math.random() - 0.5) * size * 2,
+        (Math.random() - 0.5) * size * 2,
+        (Math.random() - 0.5) * size * 2
+      );
+      velocities.push(vel);
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0xff6600,
+      size: size * 0.5,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    this.scene.add(particles);
+
+    // Add bright flash
+    const flashLight = new THREE.PointLight(0xff6600, 20, size * 5);
+    flashLight.position.copy(position);
+    this.scene.add(flashLight);
+
+    this.explosions3D.push({
+      particles,
+      velocities,
+      light: flashLight,
+      lifetime: 0,
+      maxLifetime: 0.5,
+      active: true,
+      size,
+    });
+  }
+
+  // Update 3D combat system
+  update3DCombat(deltaTime: number) {
+    const THREE = window.THREE;
+    const dt = deltaTime;
+
+    // Spawn ships periodically
+    const currentTime = this.time * 1000;
+    if (currentTime - this.lastShipSpawnTime > this.SHIP_SPAWN_INTERVAL) {
+      this.spawn3DShip();
+      this.lastShipSpawnTime = currentTime;
+    }
+
+    // Update enemy ships
+    for (let i = this.enemyShips.length - 1; i >= 0; i--) {
+      const ship = this.enemyShips[i];
+      if (!ship.active) continue;
+
+      // Update position
+      ship.group.position.x += ship.velocity.x * dt;
+      ship.group.position.y += ship.velocity.y * dt;
+      ship.group.position.z += ship.velocity.z * dt;
+
+      // Rotate ship slightly for visual effect
+      ship.group.rotation.z += dt * 2;
+
+      // Fade hit flash
+      if (ship.hitFlash > 0) {
+        ship.hitFlash -= dt * 3;
+        if (ship.hitFlash < 0) ship.hitFlash = 0;
+
+        // Apply flash to material
+        const material = ship.group.children[0].material as any;
+        if (material && ship.hitFlash > 0) {
+          material.emissiveIntensity = 0.3 + ship.hitFlash * 0.7;
+        }
+      }
+
+      // Check collision with megabot
+      const distToMegabot = ship.group.position.length();
+      if (distToMegabot < this.MAIN_SIZE + ship.size) {
+        // Hit megabot
+        this.megabotHealth = Math.max(0, this.megabotHealth - 10);
+        this.create3DExplosion(ship.group.position, ship.size * 2);
+        this.scene.remove(ship.group);
+        this.enemyShips.splice(i, 1);
+        continue;
+      }
+
+      // Check collision with lasers (ray-sphere intersection)
+      if (this.leftLaser && this.rightLaser && this.leftLaser.visible) {
+        const leftEyePos = new THREE.Vector3();
+        this.leftEye.getWorldPosition(leftEyePos);
+
+        // Simple sphere check (approximate - within laser cone)
+        const distToLeftEye = new THREE.Vector3().subVectors(ship.group.position, leftEyePos).length();
+        if (distToLeftEye < 500) { // Within laser range
+          // Check if ship is roughly in laser direction
+          const laserDir = new THREE.Vector3(0, 1, 0);
+          laserDir.applyQuaternion(this.leftLaser.getWorldQuaternion(new THREE.Quaternion()));
+          const toShip = new THREE.Vector3().subVectors(ship.group.position, leftEyePos).normalize();
+          const angle = laserDir.dot(toShip);
+
+          if (angle > 0.95) { // Within ~18 degree cone
+            ship.health -= 5 * dt;
+            ship.hitFlash = 1.0;
+
+            if (ship.health <= 0) {
+              this.gameScore += ship.maxHealth * 100;
+              this.create3DExplosion(ship.group.position, ship.size * 2);
+              this.scene.remove(ship.group);
+              this.enemyShips.splice(i, 1);
+              continue;
+            }
+          }
+        }
+
+        // Check right laser too
+        const rightEyePos = new THREE.Vector3();
+        this.rightEye.getWorldPosition(rightEyePos);
+        const distToRightEye = new THREE.Vector3().subVectors(ship.group.position, rightEyePos).length();
+        if (distToRightEye < 500) {
+          const laserDir = new THREE.Vector3(0, 1, 0);
+          laserDir.applyQuaternion(this.rightLaser.getWorldQuaternion(new THREE.Quaternion()));
+          const toShip = new THREE.Vector3().subVectors(ship.group.position, rightEyePos).normalize();
+          const angle = laserDir.dot(toShip);
+
+          if (angle > 0.95) {
+            ship.health -= 5 * dt;
+            ship.hitFlash = 1.0;
+
+            if (ship.health <= 0) {
+              this.gameScore += ship.maxHealth * 100;
+              this.create3DExplosion(ship.group.position, ship.size * 2);
+              this.scene.remove(ship.group);
+              this.enemyShips.splice(i, 1);
+              continue;
+            }
+          }
+        }
+      }
+
+      // Remove if too far
+      if (distToMegabot > this.SHIP_SPAWN_RADIUS * 2) {
+        this.scene.remove(ship.group);
+        this.enemyShips.splice(i, 1);
+      }
+    }
+
+    // Update missiles
+    for (let i = this.missiles3D.length - 1; i >= 0; i--) {
+      const missile = this.missiles3D[i];
+      if (!missile.active) continue;
+
+      // Update position
+      missile.group.position.x += missile.velocity.x * dt;
+      missile.group.position.y += missile.velocity.y * dt;
+      missile.group.position.z += missile.velocity.z * dt;
+
+      // Update lifetime
+      missile.lifetime += dt;
+      if (missile.lifetime > missile.maxLifetime) {
+        this.scene.remove(missile.group);
+        this.missiles3D.splice(i, 1);
+        continue;
+      }
+
+      // Check collision with ships
+      let hitShip = false;
+      for (let j = 0; j < this.enemyShips.length; j++) {
+        const ship = this.enemyShips[j];
+        if (!ship.active) continue;
+
+        if (this.check3DCollision(missile.group.position, 5, ship.group.position, ship.size)) {
+          ship.health--;
+          ship.hitFlash = 1.0;
+          hitShip = true;
+
+          if (ship.health <= 0) {
+            this.gameScore += ship.maxHealth * 100;
+            this.create3DExplosion(ship.group.position, ship.size * 2);
+            this.scene.remove(ship.group);
+            this.enemyShips.splice(j, 1);
+          } else {
+            this.create3DExplosion(missile.group.position, 10);
+          }
+
+          this.scene.remove(missile.group);
+          this.missiles3D.splice(i, 1);
+          break;
+        }
+      }
+
+      if (hitShip) continue;
+
+      // Remove if out of range
+      if (missile.group.position.length() > 3000) {
+        this.scene.remove(missile.group);
+        this.missiles3D.splice(i, 1);
+      }
+    }
+
+    // Update explosions
+    for (let i = this.explosions3D.length - 1; i >= 0; i--) {
+      const explosion = this.explosions3D[i];
+      if (!explosion.active) continue;
+
+      explosion.lifetime += dt;
+
+      if (explosion.lifetime >= explosion.maxLifetime) {
+        this.scene.remove(explosion.particles);
+        this.scene.remove(explosion.light);
+        this.explosions3D.splice(i, 1);
+        continue;
+      }
+
+      // Update particles
+      const positions = explosion.particles.geometry.attributes.position.array as Float32Array;
+      for (let j = 0; j < explosion.velocities.length; j++) {
+        positions[j * 3] += explosion.velocities[j].x * dt;
+        positions[j * 3 + 1] += explosion.velocities[j].y * dt;
+        positions[j * 3 + 2] += explosion.velocities[j].z * dt;
+      }
+      explosion.particles.geometry.attributes.position.needsUpdate = true;
+
+      // Fade out
+      const progress = explosion.lifetime / explosion.maxLifetime;
+      explosion.particles.material.opacity = 1 - progress;
+      explosion.light.intensity = 20 * (1 - progress);
+    }
+
+    // Update game state callback
+    if (this.onGameStateUpdate) {
+      this.onGameStateUpdate({
+        score: this.gameScore,
+        health: this.megabotHealth,
+        shipCount: this.enemyShips.filter(s => s.active).length,
+        missileCount: this.missiles3D.filter(m => m.active).length,
+      });
+    }
+  }
+
   addEventListeners() {
     // Mouse movement for parallax
     document.addEventListener("mousemove", (e) => {
       this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
       this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    // Click to launch 3D missiles
+    this.container.addEventListener("click", (e) => {
+      const rect = this.container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      this.launch3DMissileFromMegabot({ x, y });
     });
 
     // Window resize
@@ -2299,6 +2814,9 @@ class MegabotScene {
 
     const deltaTime = 0.016;
     this.time += deltaTime;
+
+    // Update 3D combat system
+    this.update3DCombat(deltaTime);
 
     // Smooth camera movement based on mouse
     this.cameraAngle += this.mouse.x * 0.001;
