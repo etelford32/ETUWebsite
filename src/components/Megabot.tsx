@@ -2308,7 +2308,7 @@ class MegabotScene {
     this.scene.add(particleSystem);
   }
 
-  // Create 3D ship geometry
+  // Create 3D ship geometry with detailed mesh designs
   create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor') {
     const THREE = window.THREE;
     const group = new THREE.Group();
@@ -2319,59 +2319,351 @@ class MegabotScene {
         size = 20;
         health = 1;
         color = 0xff4444;
+        this.createFighterMesh(group, size, color, THREE);
         break;
       case 'bomber':
         size = 35;
         health = 3;
         color = 0xff8800;
+        this.createBomberMesh(group, size, color, THREE);
         break;
       case 'interceptor':
         size = 25;
         health = 2;
         color = 0xffff00;
+        this.createInterceptorMesh(group, size, color, THREE);
         break;
     }
 
-    // Ship body (elongated tetrahedron for aggressive look)
-    const bodyGeometry = new THREE.ConeGeometry(size * 0.6, size * 1.5, 4);
-    const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: color,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: new THREE.Color(color),
-      emissiveIntensity: 0.3,
-    });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.rotation.x = Math.PI / 2; // Point forward
-    group.add(body);
-
-    // Wings
-    const wingGeometry = new THREE.BoxGeometry(size * 1.2, size * 0.1, size * 0.4);
-    const wing = new THREE.Mesh(wingGeometry, bodyMaterial);
-    wing.position.z = -size * 0.3;
-    group.add(wing);
-
-    // Engine glow
-    const engineGeometry = new THREE.SphereGeometry(size * 0.15, 8, 8);
-    const engineMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.8,
-    });
-    const leftEngine = new THREE.Mesh(engineGeometry, engineMaterial);
-    leftEngine.position.set(-size * 0.4, 0, -size * 0.5);
-    group.add(leftEngine);
-
-    const rightEngine = new THREE.Mesh(engineGeometry, engineMaterial);
-    rightEngine.position.set(size * 0.4, 0, -size * 0.5);
-    group.add(rightEngine);
-
     // Add point light for ship glow
-    const shipLight = new THREE.PointLight(color, 2, size * 3);
+    const shipLight = new THREE.PointLight(color, 3, size * 4);
     shipLight.position.set(0, 0, 0);
     group.add(shipLight);
 
     return { group, size, health, maxHealth: health, type, hitFlash: 0 };
+  }
+
+  // FIGHTER - Sleek arrow-shaped strike craft
+  createFighterMesh(group: any, size: number, color: number, THREE: any) {
+    const primaryMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.4,
+    });
+
+    const darkMaterial = new THREE.MeshStandardMaterial({
+      color: 0x222222,
+      metalness: 0.95,
+      roughness: 0.1,
+    });
+
+    // Main fuselage (elongated octahedron for sleek look)
+    const fuselageGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.25, size * 1.5, 8);
+    const fuselage = new THREE.Mesh(fuselageGeometry, primaryMaterial);
+    fuselage.rotation.x = Math.PI / 2;
+    group.add(fuselage);
+
+    // Nose cone (sharp and aggressive)
+    const noseGeometry = new THREE.ConeGeometry(size * 0.15, size * 0.4, 8);
+    const nose = new THREE.Mesh(noseGeometry, darkMaterial);
+    nose.rotation.x = -Math.PI / 2;
+    nose.position.z = size * 0.95;
+    group.add(nose);
+
+    // Cockpit canopy (glossy sphere)
+    const cockpitGeometry = new THREE.SphereGeometry(size * 0.18, 12, 12);
+    const cockpitMaterial = new THREE.MeshStandardMaterial({
+      color: 0x00aaff,
+      metalness: 0.3,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.7,
+      emissive: new THREE.Color(0x0088cc),
+      emissiveIntensity: 0.5,
+    });
+    const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.z = size * 0.4;
+    cockpit.scale.set(1, 0.6, 1.2);
+    group.add(cockpit);
+
+    // Swept wings (delta wing configuration)
+    const wingGeometry = new THREE.BoxGeometry(size * 0.8, size * 0.08, size * 0.6);
+    for (let side = -1; side <= 1; side += 2) {
+      const wing = new THREE.Mesh(wingGeometry, primaryMaterial);
+      wing.position.set(side * size * 0.5, 0, -size * 0.1);
+      wing.rotation.y = side * 0.2;
+      group.add(wing);
+
+      // Wing tips (small fins)
+      const tipGeometry = new THREE.BoxGeometry(size * 0.15, size * 0.3, size * 0.08);
+      const tip = new THREE.Mesh(tipGeometry, darkMaterial);
+      tip.position.set(side * size * 0.85, 0, -size * 0.2);
+      group.add(tip);
+    }
+
+    // Twin engine nacelles
+    for (let side = -1; side <= 1; side += 2) {
+      const nacelleGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.15, size * 0.5, 8);
+      const nacelle = new THREE.Mesh(nacelleGeometry, darkMaterial);
+      nacelle.rotation.x = Math.PI / 2;
+      nacelle.position.set(side * size * 0.3, 0, -size * 0.3);
+      group.add(nacelle);
+
+      // Engine glow (cyan thrust)
+      const engineGlowGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 0.15, 8);
+      const engineGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.9,
+      });
+      const engineGlow = new THREE.Mesh(engineGlowGeometry, engineGlowMaterial);
+      engineGlow.rotation.x = Math.PI / 2;
+      engineGlow.position.set(side * size * 0.3, 0, -size * 0.6);
+      group.add(engineGlow);
+    }
+
+    // Weapon hardpoints (small laser cannons)
+    for (let side = -1; side <= 1; side += 2) {
+      const weaponGeometry = new THREE.CylinderGeometry(size * 0.04, size * 0.04, size * 0.3, 6);
+      const weapon = new THREE.Mesh(weaponGeometry, darkMaterial);
+      weapon.rotation.x = Math.PI / 2;
+      weapon.position.set(side * size * 0.25, 0, size * 0.2);
+      group.add(weapon);
+    }
+  }
+
+  // BOMBER - Heavy assault craft with armor and weapon pods
+  createBomberMesh(group: any, size: number, color: number, THREE: any) {
+    const primaryMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 0.85,
+      roughness: 0.3,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.3,
+    });
+
+    const armorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1a1a,
+      metalness: 0.9,
+      roughness: 0.4,
+    });
+
+    // Heavy main hull (box-like and bulky)
+    const hullGeometry = new THREE.BoxGeometry(size * 0.8, size * 0.6, size * 1.4);
+    const hull = new THREE.Mesh(hullGeometry, primaryMaterial);
+    group.add(hull);
+
+    // Armored nose section
+    const noseGeometry = new THREE.BoxGeometry(size * 0.6, size * 0.5, size * 0.4);
+    const nose = new THREE.Mesh(noseGeometry, armorMaterial);
+    nose.position.z = size * 0.9;
+    group.add(nose);
+
+    // Command bridge (raised structure)
+    const bridgeGeometry = new THREE.BoxGeometry(size * 0.5, size * 0.4, size * 0.6);
+    const bridge = new THREE.Mesh(bridgeGeometry, armorMaterial);
+    bridge.position.set(0, size * 0.5, size * 0.2);
+    group.add(bridge);
+
+    // Bridge windows
+    const windowGeometry = new THREE.BoxGeometry(size * 0.45, size * 0.15, size * 0.55);
+    const windowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const windows = new THREE.Mesh(windowGeometry, windowMaterial);
+    windows.position.set(0, size * 0.55, size * 0.2);
+    group.add(windows);
+
+    // Heavy armor plates (layered hull)
+    for (let i = 0; i < 3; i++) {
+      const plateGeometry = new THREE.BoxGeometry(size * 0.85, size * 0.12, size * 0.3);
+      const plate = new THREE.Mesh(plateGeometry, armorMaterial);
+      plate.position.z = -size * 0.2 - i * size * 0.3;
+      plate.position.y = size * 0.05;
+      group.add(plate);
+    }
+
+    // Massive weapon pods (underslung)
+    for (let side = -1; side <= 1; side += 2) {
+      const podGeometry = new THREE.BoxGeometry(size * 0.3, size * 0.4, size * 1.0);
+      const pod = new THREE.Mesh(podGeometry, armorMaterial);
+      pod.position.set(side * size * 0.6, -size * 0.3, 0);
+      group.add(pod);
+
+      // Missile tubes (visible warheads)
+      for (let i = 0; i < 3; i++) {
+        const missileGeometry = new THREE.CylinderGeometry(size * 0.05, size * 0.05, size * 0.2, 6);
+        const missile = new THREE.Mesh(missileGeometry, primaryMaterial);
+        missile.rotation.x = Math.PI / 2;
+        missile.position.set(side * size * 0.6, -size * 0.45, size * 0.2 - i * size * 0.3);
+        group.add(missile);
+      }
+    }
+
+    // Quad engine array (four large thrusters)
+    for (let x = -1; x <= 1; x += 2) {
+      for (let y = -1; y <= 1; y += 2) {
+        const engineGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.18, size * 0.4, 8);
+        const engine = new THREE.Mesh(engineGeometry, armorMaterial);
+        engine.rotation.x = Math.PI / 2;
+        engine.position.set(x * size * 0.3, y * size * 0.2, -size * 0.8);
+        group.add(engine);
+
+        // Engine glow (orange thrust)
+        const glowGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.12, size * 0.2, 8);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff6600,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        glow.rotation.x = Math.PI / 2;
+        glow.position.set(x * size * 0.3, y * size * 0.2, -size * 1.1);
+        group.add(glow);
+      }
+    }
+
+    // Sensor array (antenna on top)
+    const antennaGeometry = new THREE.CylinderGeometry(size * 0.02, size * 0.02, size * 0.3, 6);
+    const antenna = new THREE.Mesh(antennaGeometry, armorMaterial);
+    antenna.position.set(0, size * 0.8, 0);
+    group.add(antenna);
+
+    const dishGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.08, size * 0.05, 12);
+    const dish = new THREE.Mesh(dishGeometry, primaryMaterial);
+    dish.position.set(0, size * 0.95, 0);
+    group.add(dish);
+  }
+
+  // INTERCEPTOR - Blade-like speed demon
+  createInterceptorMesh(group: any, size: number, color: number, THREE: any) {
+    const primaryMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 0.95,
+      roughness: 0.15,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.5,
+    });
+
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: 0x000000,
+      metalness: 1.0,
+      roughness: 0.05,
+    });
+
+    // Streamlined main body (flattened blade shape)
+    const bodyGeometry = new THREE.BoxGeometry(size * 0.4, size * 0.2, size * 1.6);
+    const body = new THREE.Mesh(bodyGeometry, primaryMaterial);
+    group.add(body);
+
+    // Razor-sharp nose (double-edged blade)
+    const noseGeometry = new THREE.ConeGeometry(size * 0.2, size * 0.5, 3);
+    const nose = new THREE.Mesh(noseGeometry, accentMaterial);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.z = size * 1.05;
+    group.add(nose);
+
+    // Sleek cockpit (minimal canopy)
+    const cockpitGeometry = new THREE.SphereGeometry(size * 0.12, 12, 12);
+    const cockpitMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffaa00,
+      metalness: 0.2,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.8,
+      emissive: new THREE.Color(0xff8800),
+      emissiveIntensity: 0.6,
+    });
+    const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+    cockpit.position.set(0, size * 0.15, size * 0.5);
+    cockpit.scale.set(0.8, 0.6, 1.0);
+    group.add(cockpit);
+
+    // Angular razor wings (swept back aggressively)
+    for (let side = -1; side <= 1; side += 2) {
+      const wingGeometry = new THREE.BoxGeometry(size * 0.6, size * 0.05, size * 0.9);
+      const wing = new THREE.Mesh(wingGeometry, primaryMaterial);
+      wing.position.set(side * size * 0.5, 0, -size * 0.2);
+      wing.rotation.y = side * 0.3;
+      wing.rotation.z = side * -0.1;
+      group.add(wing);
+
+      // Wing blades (sharp edges)
+      const bladeGeometry = new THREE.BoxGeometry(size * 0.15, size * 0.4, size * 0.06);
+      const blade = new THREE.Mesh(bladeGeometry, accentMaterial);
+      blade.position.set(side * size * 0.75, 0, -size * 0.4);
+      blade.rotation.y = side * 0.2;
+      group.add(blade);
+    }
+
+    // Triple engine cluster (triangular formation)
+    const enginePositions = [
+      { x: 0, y: size * 0.15 },
+      { x: -size * 0.18, y: -size * 0.08 },
+      { x: size * 0.18, y: -size * 0.08 }
+    ];
+
+    enginePositions.forEach(pos => {
+      const engineGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.12, size * 0.4, 8);
+      const engine = new THREE.Mesh(engineGeometry, accentMaterial);
+      engine.rotation.x = Math.PI / 2;
+      engine.position.set(pos.x, pos.y, -size * 0.65);
+      group.add(engine);
+
+      // Plasma glow (yellow-white thrust)
+      const plasmaGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.05, size * 0.25, 8);
+      const plasmaMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        transparent: true,
+        opacity: 0.95,
+      });
+      const plasma = new THREE.Mesh(plasmaGeometry, plasmaMaterial);
+      plasma.rotation.x = Math.PI / 2;
+      plasma.position.set(pos.x, pos.y, -size * 0.95);
+      group.add(plasma);
+
+      // Inner core (bright white)
+      const coreGeometry = new THREE.CylinderGeometry(size * 0.05, size * 0.02, size * 0.2, 6);
+      const coreMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+      });
+      const core = new THREE.Mesh(coreGeometry, coreMaterial);
+      core.rotation.x = Math.PI / 2;
+      core.position.set(pos.x, pos.y, -size * 0.95);
+      group.add(core);
+    });
+
+    // Weapon rails (integrated pulse cannons)
+    for (let side = -1; side <= 1; side += 2) {
+      const railGeometry = new THREE.BoxGeometry(size * 0.08, size * 0.08, size * 0.8);
+      const rail = new THREE.Mesh(railGeometry, accentMaterial);
+      rail.position.set(side * size * 0.22, 0, size * 0.3);
+      group.add(rail);
+
+      // Barrel tip glow
+      const tipGeometry = new THREE.CylinderGeometry(size * 0.04, size * 0.04, size * 0.1, 6);
+      const tipMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const tip = new THREE.Mesh(tipGeometry, tipMaterial);
+      tip.rotation.x = Math.PI / 2;
+      tip.position.set(side * size * 0.22, 0, size * 0.75);
+      group.add(tip);
+    }
+
+    // Speed stabilizers (rear fins)
+    for (let side = -1; side <= 1; side += 2) {
+      const finGeometry = new THREE.BoxGeometry(size * 0.08, size * 0.3, size * 0.2);
+      const fin = new THREE.Mesh(finGeometry, accentMaterial);
+      fin.position.set(side * size * 0.15, size * 0.15, -size * 0.7);
+      group.add(fin);
+    }
   }
 
   // Spawn enemy ship from random direction
@@ -2601,8 +2893,30 @@ class MegabotScene {
       ship.group.position.y += ship.velocity.y * dt;
       ship.group.position.z += ship.velocity.z * dt;
 
-      // Rotate ship slightly for visual effect
-      ship.group.rotation.z += dt * 2;
+      // Dynamic rotation based on ship type
+      if (ship.type === 'fighter') {
+        // Fighters barrel roll slightly
+        ship.group.rotation.z += dt * 3;
+      } else if (ship.type === 'interceptor') {
+        // Interceptors wobble aggressively
+        ship.group.rotation.z = Math.sin(this.time * 4) * 0.2;
+        ship.group.rotation.x += dt * 0.5;
+      } else if (ship.type === 'bomber') {
+        // Bombers rotate slowly (heavy and stable)
+        ship.group.rotation.y += dt * 0.5;
+      }
+
+      // Animate engine glows (pulsing effect)
+      ship.group.children.forEach((child: any) => {
+        if (child.material && child.material.transparent && child.material.color) {
+          const isEngine = child.material.color.getHex() === 0x00ffff ||
+                          child.material.color.getHex() === 0xff6600 ||
+                          child.material.color.getHex() === 0xffff00;
+          if (isEngine) {
+            child.material.opacity = 0.7 + Math.sin(this.time * 10) * 0.2;
+          }
+        }
+      });
 
       // Fade hit flash
       if (ship.hitFlash > 0) {
