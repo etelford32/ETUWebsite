@@ -169,6 +169,14 @@ export const RateLimiters = {
   signup: (identifier: string) =>
     checkRateLimit(identifier, 3, 60 * 60 * 1000), // 3 attempts per hour
 
+  // Strict - for password reset requests
+  forgotPassword: (identifier: string) =>
+    checkRateLimit(identifier, 3, 60 * 60 * 1000), // 3 attempts per hour
+
+  // Strict - for magic link requests
+  magicLink: (identifier: string) =>
+    checkRateLimit(identifier, 3, 15 * 60 * 1000), // 3 attempts per 15 min
+
   // Moderate - for profile updates
   profileUpdate: (identifier: string) =>
     checkRateLimit(identifier, 20, 60 * 60 * 1000), // 20 updates per hour

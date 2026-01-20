@@ -290,6 +290,44 @@ export interface Database {
           updated_at?: string
         }
       }
+      auth_tokens: {
+        Row: {
+          id: string
+          user_id: string
+          token: string
+          token_type: 'password_reset' | 'magic_link'
+          email: string
+          expires_at: string
+          used_at: string | null
+          created_at: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          token: string
+          token_type: 'password_reset' | 'magic_link'
+          email: string
+          expires_at: string
+          used_at?: string | null
+          created_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          token?: string
+          token_type?: 'password_reset' | 'magic_link'
+          email?: string
+          expires_at?: string
+          used_at?: string | null
+          created_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

@@ -13,6 +13,9 @@ function LoginForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
 
   useEffect(() => {
     // Check if user is already logged in
@@ -22,6 +25,20 @@ function LoginForm() {
     const msg = searchParams?.get('message')
     if (msg === 'steam_linked') {
       setMessage({ type: 'success', text: 'Steam account linked successfully!' })
+    }
+
+    // Check for error messages from magic link callback
+    const error = searchParams?.get('error')
+    if (error === 'invalid_token') {
+      setMessage({ type: 'error', text: 'Invalid or expired magic link. Please request a new one.' })
+    } else if (error === 'expired_token') {
+      setMessage({ type: 'error', text: 'Magic link has expired. Please request a new one.' })
+    } else if (error === 'user_not_found') {
+      setMessage({ type: 'error', text: 'User not found. Please sign up first.' })
+    } else if (error === 'session_failed') {
+      setMessage({ type: 'error', text: 'Failed to create session. Please try again.' })
+    } else if (error === 'server_error') {
+      setMessage({ type: 'error', text: 'An error occurred. Please try again.' })
     }
   }, [searchParams])
 
@@ -111,9 +128,88 @@ function LoginForm() {
     }
   }
 
-  // TODO: Implement magic link and OAuth via server-side API
   async function handleMagicLink() {
-    setMessage({ type: 'error', text: 'Magic link not yet implemented in server-only mode' })
+    if (!email) {
+      setMessage({ type: 'error', text: 'Please enter your email address first' })
+      return
+    }
+
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setMessage({
+          type: 'success',
+          text: 'Magic sign-in link sent! Check your email inbox.'
+        })
+      } else {
+        setMessage({
+          type: 'error',
+          text: data.error || 'Failed to send magic link'
+        })
+      }
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'An error occurred'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleForgotPassword(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+
+    const emailToUse = forgotPasswordEmail || email
+
+    if (!emailToUse) {
+      setMessage({ type: 'error', text: 'Please enter your email address' })
+      return
+    }
+
+    setForgotPasswordLoading(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailToUse }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setMessage({
+          type: 'success',
+          text: 'Password reset instructions sent! Check your email inbox.'
+        })
+        setShowForgotPassword(false)
+        setForgotPasswordEmail('')
+      } else {
+        setMessage({
+          type: 'error',
+          text: data.error || 'Failed to send password reset email'
+        })
+      }
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'An error occurred'
+      })
+    } finally {
+      setForgotPasswordLoading(false)
+    }
   }
 
   async function handleOAuth(provider: 'google' | 'github' | 'apple') {
@@ -212,9 +308,23 @@ function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                  Password
+                </label>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(true)
+                      setForgotPasswordEmail(email)
+                    }}
+                    className="text-sm text-indigo-400 hover:text-indigo-300 transition"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 type="password"
@@ -327,8 +437,11 @@ function LoginForm() {
               disabled={loading || !email}
               className="text-sm text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              🔮 Send me a magic link instead
+              🔮 Send me a magic sign-in link instead
             </button>
+            <p className="text-xs text-slate-500 mt-2">
+              {!email ? 'Enter your email above first' : 'No password required'}
+            </p>
           </div>
         </div>
 
@@ -341,6 +454,79 @@ function LoginForm() {
             View Leaderboard 🏆
           </a>
         </div>
+
+        {/* Forgot Password Modal */}
+        {showForgotPassword && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setShowForgotPassword(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-slate-900 border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+            >
+              <h2 className="text-2xl font-bold text-white mb-4">Reset Your Password</h2>
+              <p className="text-slate-400 mb-6">
+                Enter your email address and we'll send you instructions to reset your password.
+              </p>
+
+              {message && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mb-4 p-4 rounded-lg ${
+                    message.type === 'success'
+                      ? 'bg-green-900/20 border border-green-500/30 text-green-400'
+                      : 'bg-rose-900/20 border border-rose-500/30 text-rose-400'
+                  }`}
+                >
+                  {message.text}
+                </motion.div>
+              )}
+
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label htmlFor="forgotPasswordEmail" className="block text-sm font-medium text-slate-300 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="forgotPasswordEmail"
+                    type="email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    required
+                    placeholder="commander@galaxy.com"
+                    className="w-full px-4 py-3 bg-slate-800/80 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(false)
+                      setMessage(null)
+                    }}
+                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {forgotPasswordLoading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )
