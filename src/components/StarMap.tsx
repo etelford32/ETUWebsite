@@ -14,6 +14,7 @@ export default function StarMap() {
 
   useEffect(() => {
     // Load Three.js dynamically
+    // TODO: Migrate to ES modules - build/three.min.js is deprecated (will be removed in r160+)
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js";
     script.async = true;

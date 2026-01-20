@@ -9,6 +9,7 @@ export function preloadCriticalAssets() {
   if (typeof window === "undefined") return;
 
   // Preload Three.js for hero animation
+  // TODO: Migrate to ES modules - build/three.min.js is deprecated (will be removed in r160+)
   const threeLink = document.createElement("link");
   threeLink.rel = "preload";
   threeLink.as = "script";
