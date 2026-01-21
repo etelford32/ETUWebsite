@@ -170,7 +170,7 @@ class MegabotScene {
   readonly SHIP_SPEED_MIN = 200;
   readonly SHIP_SPEED_MAX = 400;
   readonly MISSILE_SPEED_3D = 800;
-  readonly SHIP_SPAWN_RADIUS = 2000; // Distance from megabot where ships spawn
+  readonly SHIP_SPAWN_RADIUS = 1200; // Distance from megabot where ships spawn (reduced for better visibility)
 
   constructor(
     container: HTMLDivElement,
@@ -2287,27 +2287,27 @@ class MegabotScene {
     let size, health, color;
     switch (type) {
       case 'fighter':
-        size = 20;
+        size = 50; // Increased for better visibility in 3D space
         health = 1;
         color = 0xff4444;
         this.createFighterMesh(group, size, color, THREE);
         break;
       case 'bomber':
-        size = 35;
+        size = 80; // Increased for better visibility in 3D space
         health = 3;
         color = 0xff8800;
         this.createBomberMesh(group, size, color, THREE);
         break;
       case 'interceptor':
-        size = 25;
+        size = 60; // Increased for better visibility in 3D space
         health = 2;
         color = 0xffff00;
         this.createInterceptorMesh(group, size, color, THREE);
         break;
     }
 
-    // Add point light for ship glow
-    const shipLight = new THREE.PointLight(color, 3, size * 4);
+    // Add point light for ship glow - increased intensity for better visibility
+    const shipLight = new THREE.PointLight(color, 8, size * 6);
     shipLight.position.set(0, 0, 0);
     group.add(shipLight);
 
@@ -2648,6 +2648,7 @@ class MegabotScene {
     const type = types[Math.floor(Math.random() * types.length)];
 
     const ship = this.create3DShipGeometry(type);
+    console.log(`🚀 Spawning ${type} ship at radius ${this.SHIP_SPAWN_RADIUS}`);
 
     // Spawn in spherical coordinates around megabot
     const theta = Math.random() * Math.PI * 2; // Azimuthal angle
