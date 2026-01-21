@@ -145,6 +145,7 @@ class MegabotScene {
   // 3D Combat System
   enemyShips: any[] = []; // 3D ship objects
   missiles3D: any[] = []; // 3D missile objects
+  enemyLasers: any[] = []; // Enemy laser beams
   explosions3D: any[] = []; // 3D explosion effects
   lastShipSpawnTime: number = 0;
 
@@ -165,11 +166,14 @@ class MegabotScene {
   // 3D Combat constants
   readonly MAX_SHIPS_3D = 15;
   readonly MAX_MISSILES_3D = 50;
+  readonly MAX_ENEMY_LASERS = 30;
   readonly MAX_EXPLOSIONS_3D = 30;
   readonly SHIP_SPAWN_INTERVAL = 2000; // ms
   readonly SHIP_SPEED_MIN = 200;
   readonly SHIP_SPEED_MAX = 400;
   readonly MISSILE_SPEED_3D = 800;
+  readonly ENEMY_LASER_SPEED = 1200;
+  readonly ENEMY_LASER_RANGE = 800;
   readonly SHIP_SPAWN_RADIUS = 1200; // Distance from megabot where ships spawn (reduced for better visibility)
 
   constructor(
@@ -2314,94 +2318,129 @@ class MegabotScene {
     return { group, size, health, maxHealth: health, type, hitFlash: 0 };
   }
 
-  // FIGHTER - Sleek arrow-shaped strike craft
+  // FIGHTER - Ultra-sleek stealth-fighter inspired design
   createFighterMesh(group: any, size: number, color: number, THREE: any) {
+    // Sleek metallic materials with high polish
     const primaryMaterial = new THREE.MeshStandardMaterial({
       color: color,
-      metalness: 0.9,
-      roughness: 0.2,
+      metalness: 1.0,
+      roughness: 0.1,
       emissive: new THREE.Color(color),
-      emissiveIntensity: 0.4,
+      emissiveIntensity: 0.3,
     });
 
     const darkMaterial = new THREE.MeshStandardMaterial({
-      color: 0x222222,
-      metalness: 0.95,
-      roughness: 0.1,
+      color: 0x111111,
+      metalness: 1.0,
+      roughness: 0.05,
     });
 
-    // Main fuselage (elongated octahedron for sleek look)
-    const fuselageGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.25, size * 1.5, 8);
+    // Main fuselage - elongated diamond shape (very sleek)
+    const fuselageGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 1.8, 12);
     const fuselage = new THREE.Mesh(fuselageGeometry, primaryMaterial);
     fuselage.rotation.x = Math.PI / 2;
     group.add(fuselage);
 
-    // Nose cone (sharp and aggressive)
-    const noseGeometry = new THREE.ConeGeometry(size * 0.15, size * 0.4, 8);
+    // Sharp nose cone
+    const noseGeometry = new THREE.ConeGeometry(size * 0.12, size * 0.5, 12);
     const nose = new THREE.Mesh(noseGeometry, darkMaterial);
     nose.rotation.x = -Math.PI / 2;
-    nose.position.z = size * 0.95;
+    nose.position.z = size * 1.15;
     group.add(nose);
 
-    // Cockpit canopy (glossy sphere)
-    const cockpitGeometry = new THREE.SphereGeometry(size * 0.18, 12, 12);
+    // Sleek cockpit canopy (elongated teardrop)
+    const cockpitGeometry = new THREE.SphereGeometry(size * 0.15, 16, 16);
     const cockpitMaterial = new THREE.MeshStandardMaterial({
-      color: 0x00aaff,
-      metalness: 0.3,
-      roughness: 0.1,
+      color: 0x00d4ff,
+      metalness: 0.2,
+      roughness: 0.05,
       transparent: true,
-      opacity: 0.7,
-      emissive: new THREE.Color(0x0088cc),
-      emissiveIntensity: 0.5,
+      opacity: 0.8,
+      emissive: new THREE.Color(0x00aaff),
+      emissiveIntensity: 0.6,
     });
     const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
-    cockpit.position.z = size * 0.4;
-    cockpit.scale.set(1, 0.6, 1.2);
+    cockpit.position.z = size * 0.5;
+    cockpit.scale.set(1, 0.5, 1.5);
     group.add(cockpit);
 
-    // Swept wings (delta wing configuration)
-    const wingGeometry = new THREE.BoxGeometry(size * 0.8, size * 0.08, size * 0.6);
+    // Razor-thin wings (stealth design)
+    const wingGeometry = new THREE.BoxGeometry(size * 1.2, size * 0.04, size * 0.5);
     for (let side = -1; side <= 1; side += 2) {
       const wing = new THREE.Mesh(wingGeometry, primaryMaterial);
-      wing.position.set(side * size * 0.5, 0, -size * 0.1);
-      wing.rotation.y = side * 0.2;
+      wing.position.set(side * size * 0.6, 0, 0);
+      wing.rotation.y = side * 0.15;
       group.add(wing);
 
-      // Wing tips (small fins)
-      const tipGeometry = new THREE.BoxGeometry(size * 0.15, size * 0.3, size * 0.08);
-      const tip = new THREE.Mesh(tipGeometry, darkMaterial);
-      tip.position.set(side * size * 0.85, 0, -size * 0.2);
-      group.add(tip);
-    }
-
-    // Twin engine nacelles
-    for (let side = -1; side <= 1; side += 2) {
-      const nacelleGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.15, size * 0.5, 8);
-      const nacelle = new THREE.Mesh(nacelleGeometry, darkMaterial);
-      nacelle.rotation.x = Math.PI / 2;
-      nacelle.position.set(side * size * 0.3, 0, -size * 0.3);
-      group.add(nacelle);
-
-      // Engine glow (cyan thrust)
-      const engineGlowGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 0.15, 8);
-      const engineGlowMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
+      // Wing edge lights (neon strips)
+      const edgeLightGeometry = new THREE.BoxGeometry(size * 1.2, size * 0.02, size * 0.02);
+      const edgeLightMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
         transparent: true,
         opacity: 0.9,
       });
-      const engineGlow = new THREE.Mesh(engineGlowGeometry, engineGlowMaterial);
-      engineGlow.rotation.x = Math.PI / 2;
-      engineGlow.position.set(side * size * 0.3, 0, -size * 0.6);
-      group.add(engineGlow);
+      const edgeLight = new THREE.Mesh(edgeLightGeometry, edgeLightMaterial);
+      edgeLight.position.set(side * size * 0.6, 0, -size * 0.25);
+      edgeLight.rotation.y = side * 0.15;
+      group.add(edgeLight);
     }
 
-    // Weapon hardpoints (small laser cannons)
+    // Twin engine nacelles (compact and sleek)
     for (let side = -1; side <= 1; side += 2) {
-      const weaponGeometry = new THREE.CylinderGeometry(size * 0.04, size * 0.04, size * 0.3, 6);
+      const nacelleGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.12, size * 0.6, 12);
+      const nacelle = new THREE.Mesh(nacelleGeometry, darkMaterial);
+      nacelle.rotation.x = Math.PI / 2;
+      nacelle.position.set(side * size * 0.25, 0, -size * 0.4);
+      group.add(nacelle);
+
+      // Beautiful thruster glow (cyan/blue plasma effect)
+      const thrusterGlowGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.15, size * 0.3, 12);
+      const thrusterGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.95,
+      });
+      const thrusterGlow = new THREE.Mesh(thrusterGlowGeometry, thrusterGlowMaterial);
+      thrusterGlow.rotation.x = Math.PI / 2;
+      thrusterGlow.position.set(side * size * 0.25, 0, -size * 0.85);
+      group.add(thrusterGlow);
+
+      // Thruster outer glow (volumetric effect)
+      const outerGlowGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.25, size * 0.4, 12);
+      const outerGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0088ff,
+        transparent: true,
+        opacity: 0.4,
+      });
+      const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+      outerGlow.rotation.x = Math.PI / 2;
+      outerGlow.position.set(side * size * 0.25, 0, -size * 1.0);
+      group.add(outerGlow);
+
+      // Thruster point light for illumination
+      const thrusterLight = new THREE.PointLight(0x00ffff, 4, size * 2);
+      thrusterLight.position.set(side * size * 0.25, 0, -size * 0.85);
+      group.add(thrusterLight);
+    }
+
+    // Sleek laser cannons (integrated into wings)
+    for (let side = -1; side <= 1; side += 2) {
+      const weaponGeometry = new THREE.CylinderGeometry(size * 0.03, size * 0.03, size * 0.4, 8);
       const weapon = new THREE.Mesh(weaponGeometry, darkMaterial);
       weapon.rotation.x = Math.PI / 2;
-      weapon.position.set(side * size * 0.25, 0, size * 0.2);
+      weapon.position.set(side * size * 0.35, 0, size * 0.3);
       group.add(weapon);
+
+      // Weapon glow tip (red laser emitter)
+      const weaponGlowGeometry = new THREE.SphereGeometry(size * 0.04, 8, 8);
+      const weaponGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.9,
+      });
+      const weaponGlow = new THREE.Mesh(weaponGlowGeometry, weaponGlowMaterial);
+      weaponGlow.position.set(side * size * 0.35, 0, size * 0.5);
+      group.add(weaponGlow);
     }
   }
 
@@ -2475,26 +2514,55 @@ class MegabotScene {
       }
     }
 
-    // Quad engine array (four large thrusters)
+    // Quad engine array (four large thrusters with beautiful glow)
     for (let x = -1; x <= 1; x += 2) {
       for (let y = -1; y <= 1; y += 2) {
-        const engineGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.18, size * 0.4, 8);
+        const engineGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.18, size * 0.4, 12);
         const engine = new THREE.Mesh(engineGeometry, armorMaterial);
         engine.rotation.x = Math.PI / 2;
         engine.position.set(x * size * 0.3, y * size * 0.2, -size * 0.8);
         group.add(engine);
 
-        // Engine glow (orange thrust)
-        const glowGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.12, size * 0.2, 8);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff6600,
+        // Inner thruster glow (bright orange plasma core)
+        const innerGlowGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.1, size * 0.25, 12);
+        const innerGlowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffaa00,
           transparent: true,
-          opacity: 0.9,
+          opacity: 1.0,
         });
-        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-        glow.rotation.x = Math.PI / 2;
-        glow.position.set(x * size * 0.3, y * size * 0.2, -size * 1.1);
-        group.add(glow);
+        const innerGlow = new THREE.Mesh(innerGlowGeometry, innerGlowMaterial);
+        innerGlow.rotation.x = Math.PI / 2;
+        innerGlow.position.set(x * size * 0.3, y * size * 0.2, -size * 1.05);
+        group.add(innerGlow);
+
+        // Outer thruster glow (volumetric orange plume)
+        const outerGlowGeometry = new THREE.CylinderGeometry(size * 0.18, size * 0.28, size * 0.5, 12);
+        const outerGlowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff4400,
+          transparent: true,
+          opacity: 0.5,
+        });
+        const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+        outerGlow.rotation.x = Math.PI / 2;
+        outerGlow.position.set(x * size * 0.3, y * size * 0.2, -size * 1.2);
+        group.add(outerGlow);
+
+        // Extended thruster trail (fading plasma)
+        const trailGeometry = new THREE.CylinderGeometry(size * 0.22, size * 0.35, size * 0.6, 12);
+        const trailMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff2200,
+          transparent: true,
+          opacity: 0.25,
+        });
+        const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+        trail.rotation.x = Math.PI / 2;
+        trail.position.set(x * size * 0.3, y * size * 0.2, -size * 1.5);
+        group.add(trail);
+
+        // Thruster point light for illumination
+        const thrusterLight = new THREE.PointLight(0xff6600, 5, size * 2.5);
+        thrusterLight.position.set(x * size * 0.3, y * size * 0.2, -size * 1.05);
+        group.add(thrusterLight);
       }
     }
 
@@ -2579,33 +2647,64 @@ class MegabotScene {
     ];
 
     enginePositions.forEach(pos => {
-      const engineGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.12, size * 0.4, 8);
+      const engineGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.12, size * 0.4, 12);
       const engine = new THREE.Mesh(engineGeometry, accentMaterial);
       engine.rotation.x = Math.PI / 2;
       engine.position.set(pos.x, pos.y, -size * 0.65);
       group.add(engine);
 
-      // Plasma glow (yellow-white thrust)
-      const plasmaGeometry = new THREE.CylinderGeometry(size * 0.1, size * 0.05, size * 0.25, 8);
-      const plasmaMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffff00,
-        transparent: true,
-        opacity: 0.95,
-      });
-      const plasma = new THREE.Mesh(plasmaGeometry, plasmaMaterial);
-      plasma.rotation.x = Math.PI / 2;
-      plasma.position.set(pos.x, pos.y, -size * 0.95);
-      group.add(plasma);
-
-      // Inner core (bright white)
-      const coreGeometry = new THREE.CylinderGeometry(size * 0.05, size * 0.02, size * 0.2, 6);
+      // Inner core (brilliant white plasma)
+      const coreGeometry = new THREE.CylinderGeometry(size * 0.08, size * 0.04, size * 0.2, 12);
       const coreMaterial = new THREE.MeshBasicMaterial({
         color: 0xffffff,
+        transparent: true,
+        opacity: 1.0,
       });
       const core = new THREE.Mesh(coreGeometry, coreMaterial);
       core.rotation.x = Math.PI / 2;
-      core.position.set(pos.x, pos.y, -size * 0.95);
+      core.position.set(pos.x, pos.y, -size * 0.92);
       group.add(core);
+
+      // Middle plasma glow (yellow-white thrust)
+      const plasmaGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 0.35, 12);
+      const plasmaMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffaa,
+        transparent: true,
+        opacity: 0.9,
+      });
+      const plasma = new THREE.Mesh(plasmaGeometry, plasmaMaterial);
+      plasma.rotation.x = Math.PI / 2;
+      plasma.position.set(pos.x, pos.y, -size * 1.05);
+      group.add(plasma);
+
+      // Outer thruster glow (yellow-orange plume)
+      const outerGlowGeometry = new THREE.CylinderGeometry(size * 0.15, size * 0.22, size * 0.5, 12);
+      const outerGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffdd00,
+        transparent: true,
+        opacity: 0.6,
+      });
+      const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+      outerGlow.rotation.x = Math.PI / 2;
+      outerGlow.position.set(pos.x, pos.y, -size * 1.25);
+      group.add(outerGlow);
+
+      // Extended thruster trail (fading yellow plasma)
+      const trailGeometry = new THREE.CylinderGeometry(size * 0.18, size * 0.28, size * 0.6, 12);
+      const trailMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.3,
+      });
+      const trail = new THREE.Mesh(trailGeometry, trailMaterial);
+      trail.rotation.x = Math.PI / 2;
+      trail.position.set(pos.x, pos.y, -size * 1.5);
+      group.add(trail);
+
+      // Thruster point light for illumination
+      const thrusterLight = new THREE.PointLight(0xffffaa, 4.5, size * 2);
+      thrusterLight.position.set(pos.x, pos.y, -size * 0.92);
+      group.add(thrusterLight);
     });
 
     // Weapon rails (integrated pulse cannons)
@@ -2680,6 +2779,7 @@ class MegabotScene {
       ...ship,
       velocity,
       active: true,
+      lastLaserTime: 0, // Track when ship last fired laser
     });
 
     this.scene.add(ship.group);
@@ -2786,6 +2886,70 @@ class MegabotScene {
     const distSquared = dx * dx + dy * dy + dz * dz;
     const radiusSum = radius1 + radius2;
     return distSquared < radiusSum * radiusSum;
+  }
+
+  // Create enemy laser beam
+  createEnemyLaser(ship: any) {
+    const THREE = this.THREE;
+
+    if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
+
+    // Get ship's weapon position (front of ship)
+    const shipPos = ship.group.position;
+    const shipDir = new THREE.Vector3(0, 0, 1);
+    shipDir.applyQuaternion(ship.group.quaternion);
+
+    // Laser shoots toward megabot
+    const megabotPos = new THREE.Vector3(0, 0, 0); // Megabot is at origin
+    const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
+
+    // Create laser beam geometry (thin cylinder)
+    const laserLength = 50;
+    const laserGeometry = new THREE.CylinderGeometry(0.8, 0.8, laserLength, 8);
+    const laserMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
+
+    // Create laser glow
+    const glowGeometry = new THREE.CylinderGeometry(2, 2, laserLength, 8);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff3300,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+
+    const laserGroup = new THREE.Group();
+    laserGroup.add(laserMesh);
+    laserGroup.add(glowMesh);
+
+    // Position laser at ship's weapon
+    laserGroup.position.copy(shipPos);
+    laserGroup.position.add(shipDir.clone().multiplyScalar(ship.size * 0.3));
+
+    // Orient laser toward megabot
+    laserGroup.lookAt(megabotPos);
+    laserGroup.rotateX(Math.PI / 2); // Adjust for cylinder orientation
+
+    // Laser velocity
+    const velocity = toMegabot.multiplyScalar(this.ENEMY_LASER_SPEED);
+
+    const laser = {
+      group: laserGroup,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 2,
+      active: true,
+      damage: 5,
+    };
+
+    this.enemyLasers.push(laser);
+    this.scene.add(laserGroup);
+
+    return laser;
   }
 
   // Create 3D explosion effect
@@ -2902,8 +3066,23 @@ class MegabotScene {
         }
       }
 
-      // Check collision with megabot
+      // Ship laser shooting logic
       const distToMegabot = ship.group.position.length();
+      const currentTimeMs = this.time * 1000;
+
+      // Ships fire lasers when in range (different rates for different types)
+      let laserCooldown = 2000; // Default cooldown in ms
+      if (ship.type === 'fighter') laserCooldown = 1500; // Fighters shoot faster
+      else if (ship.type === 'interceptor') laserCooldown = 1200; // Interceptors even faster
+      else if (ship.type === 'bomber') laserCooldown = 2500; // Bombers slower but more damage
+
+      if (distToMegabot < this.ENEMY_LASER_RANGE &&
+          currentTimeMs - ship.lastLaserTime > laserCooldown) {
+        this.createEnemyLaser(ship);
+        ship.lastLaserTime = currentTimeMs;
+      }
+
+      // Check collision with megabot
       if (distToMegabot < this.MAIN_SIZE + ship.size) {
         // Hit megabot
         this.megabotHealth = Math.max(0, this.megabotHealth - 10);
@@ -3023,6 +3202,45 @@ class MegabotScene {
       if (missile.group.position.length() > 3000) {
         this.scene.remove(missile.group);
         this.missiles3D.splice(i, 1);
+      }
+    }
+
+    // Update enemy lasers
+    for (let i = this.enemyLasers.length - 1; i >= 0; i--) {
+      const laser = this.enemyLasers[i];
+      if (!laser.active) continue;
+
+      laser.lifetime += dt;
+
+      // Update position
+      laser.group.position.x += laser.velocity.x * dt;
+      laser.group.position.y += laser.velocity.y * dt;
+      laser.group.position.z += laser.velocity.z * dt;
+
+      // Fade out over lifetime
+      const fadeProgress = laser.lifetime / laser.maxLifetime;
+      laser.group.children.forEach((child: any) => {
+        if (child.material && child.material.transparent) {
+          child.material.opacity = (1 - fadeProgress) * 0.9;
+        }
+      });
+
+      // Check if laser hit megabot (sphere collision)
+      const distToMegabot = laser.group.position.length();
+      if (distToMegabot < this.MAIN_SIZE) {
+        // Hit megabot!
+        this.megabotHealth = Math.max(0, this.megabotHealth - laser.damage);
+        this.create3DExplosion(laser.group.position, 15);
+        this.scene.remove(laser.group);
+        this.enemyLasers.splice(i, 1);
+        console.log(`💥 Megabot hit by laser! Health: ${this.megabotHealth}`);
+        continue;
+      }
+
+      // Remove if expired or out of range
+      if (laser.lifetime >= laser.maxLifetime || distToMegabot > this.SHIP_SPAWN_RADIUS * 2) {
+        this.scene.remove(laser.group);
+        this.enemyLasers.splice(i, 1);
       }
     }
 
@@ -3646,6 +3864,10 @@ class MegabotScene {
     this.satellites = [];
     this.energyParticles = [];
     this.starField = null;
+    this.enemyShips = [];
+    this.missiles3D = [];
+    this.enemyLasers = [];
+    this.explosions3D = [];
 
     console.log("✅ Megabot scene destroyed and cleaned up");
   }
