@@ -123,69 +123,21 @@
   animation: shimmer 2s infinite;
 }
 
-/* Neon Outline Hero Title with Purple/Blue Gradient */
+/* Neon Outline Hero Title with Neon Blue Edges (NO GLOW) */
 .black-metal-title {
   /* Transparent fill - see through the text */
   color: transparent;
   -webkit-text-fill-color: transparent;
 
-  /* Neon gradient stroke outline */
-  -webkit-text-stroke: 3px transparent;
-  background: linear-gradient(
-    135deg,
-    #a855f7 0%,
-    #8b5cf6 15%,
-    #6366f1 30%,
-    #3b82f6 45%,
-    #06b6d4 60%,
-    #3b82f6 75%,
-    #6366f1 85%,
-    #a855f7 100%
-  );
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
+  /* Neon blue stroke outline - solid, no glow */
+  -webkit-text-stroke: 3px #06b6d4;
 
   font-weight: 900;
   letter-spacing: 0.02em;
   position: relative;
   display: inline-block;
-
-  /* Animated gradient flow */
-  animation: gradient-flow 4s ease infinite, neon-pulse 2s ease-in-out infinite;
-
-  /* Multi-layer neon glow on the stroke */
-  filter:
-    drop-shadow(0 0 10px rgba(168, 85, 247, 0.8))
-    drop-shadow(0 0 20px rgba(99, 102, 241, 0.6))
-    drop-shadow(0 0 30px rgba(59, 130, 246, 0.4));
 }
 
-/* Gradient animation */
-@keyframes gradient-flow {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* Neon pulse effect */
-@keyframes neon-pulse {
-  0%, 100% {
-    filter:
-      drop-shadow(0 0 10px rgba(168, 85, 247, 0.8))
-      drop-shadow(0 0 20px rgba(99, 102, 241, 0.6))
-      drop-shadow(0 0 30px rgba(59, 130, 246, 0.4));
-  }
-  50% {
-    filter:
-      drop-shadow(0 0 15px rgba(168, 85, 247, 1))
-      drop-shadow(0 0 30px rgba(99, 102, 241, 0.8))
-      drop-shadow(0 0 45px rgba(59, 130, 246, 0.6));
-  }
-}
 
 /* Old animation kept for compatibility */
 @keyframes border-spark-glow {
