@@ -75,10 +75,13 @@ export default function FeedbackPage() {
     setSuccess(false)
 
     try {
-      const { data, error: submitError } = await (supabase
-        .from('feedback') as any)
-        .insert({
-          user_id: user.id,
+      // Submit via API route
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           type,
           title: title.trim(),
           description: description.trim(),
@@ -89,10 +92,13 @@ export default function FeedbackPage() {
             url: typeof window !== 'undefined' ? window.location.href : null,
           }
         })
-        .select()
-        .single()
+      })
 
-      if (submitError) throw submitError
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback')
+      }
 
       // Success!
       setSuccess(true)
