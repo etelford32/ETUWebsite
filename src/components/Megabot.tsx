@@ -3054,17 +3054,46 @@ class MegabotScene {
         }
       });
 
-      // Fade hit flash
+      // Enhanced damage visual feedback
       if (ship.hitFlash > 0) {
         ship.hitFlash -= dt * 3;
         if (ship.hitFlash < 0) ship.hitFlash = 0;
 
-        // Apply flash to material
-        const material = ship.group.children[0].material as any;
-        if (material && ship.hitFlash > 0) {
-          material.emissiveIntensity = 0.3 + ship.hitFlash * 0.7;
-        }
+        // Apply intense flash to all ship materials when hit
+        ship.group.children.forEach((child: any) => {
+          if (child.material && child.material.emissiveIntensity !== undefined) {
+            // Bright white flash on hit
+            child.material.emissiveIntensity = 0.3 + ship.hitFlash * 1.5;
+
+            // Add damage sparks effect
+            if (ship.hitFlash > 0.8) {
+              child.material.emissive = new THREE.Color(0xffffff); // White flash
+            } else if (ship.hitFlash > 0.3) {
+              child.material.emissive = new THREE.Color(0xff9900); // Orange damage glow
+            }
+          }
+        });
       }
+
+      // Show damage state based on health percentage
+      const healthPercent = ship.health / ship.maxHealth;
+      ship.group.children.forEach((child: any, index: number) => {
+        if (child.material && index === 0) { // Main hull material
+          // Smoke/damage effect at low health
+          if (healthPercent < 0.3) {
+            child.material.emissiveIntensity = Math.max(child.material.emissiveIntensity || 0.3, 0.5 + Math.random() * 0.3);
+            // Flickering damage at critical health
+            if (Math.random() > 0.7) {
+              child.material.emissive = new THREE.Color(0xff4400); // Orange damage flicker
+            }
+          } else if (healthPercent < 0.6) {
+            // Moderate damage - slight smoke
+            if (Math.random() > 0.9) {
+              child.material.emissive = new THREE.Color(0xff6600);
+            }
+          }
+        }
+      });
 
       // Ship laser shooting logic
       const distToMegabot = ship.group.position.length();
@@ -3084,11 +3113,13 @@ class MegabotScene {
 
       // Check collision with megabot
       if (distToMegabot < this.MAIN_SIZE + ship.size) {
-        // Hit megabot
+        // Hit megabot - apply damage and score penalty
         this.megabotHealth = Math.max(0, this.megabotHealth - 10);
+        this.gameScore = Math.max(0, this.gameScore - 5); // Penalty for letting ship hit megabot
         this.create3DExplosion(ship.group.position, ship.size * 2);
         this.scene.remove(ship.group);
         this.enemyShips.splice(i, 1);
+        console.log(`💥 Ship collision! Score: ${this.gameScore}, Health: ${this.megabotHealth}`);
         continue;
       }
 
@@ -3097,24 +3128,34 @@ class MegabotScene {
         const leftEyePos = new THREE.Vector3();
         this.leftEye.getWorldPosition(leftEyePos);
 
-        // Simple sphere check (approximate - within laser cone)
-        const distToLeftEye = new THREE.Vector3().subVectors(ship.group.position, leftEyePos).length();
-        if (distToLeftEye < 500) { // Within laser range
-          // Check if ship is roughly in laser direction
+        // Improved sphere check - within laser cone
+        const toShipVec = new THREE.Vector3().subVectors(ship.group.position, leftEyePos);
+        const distToLeftEye = toShipVec.length();
+        if (distToLeftEye < 800) { // Increased laser range for better coverage
+          // Check if ship is in laser direction
           const laserDir = new THREE.Vector3(0, 1, 0);
           laserDir.applyQuaternion(this.leftLaser.getWorldQuaternion(new THREE.Quaternion()));
-          const toShip = new THREE.Vector3().subVectors(ship.group.position, leftEyePos).normalize();
+          const toShip = toShipVec.clone().normalize();
           const angle = laserDir.dot(toShip);
 
-          if (angle > 0.95) { // Within ~18 degree cone
+          // More forgiving cone angle for better hit detection
+          if (angle > 0.92) { // Within ~23 degree cone (more forgiving)
             ship.health -= 5 * dt;
             ship.hitFlash = 1.0;
 
+            // Small damage sparks when hit but not destroyed
+            if (Math.random() > 0.8) {
+              this.create3DExplosion(ship.group.position, ship.size * 0.5); // Small spark effect
+            }
+
             if (ship.health <= 0) {
-              this.gameScore += ship.maxHealth * 100;
-              this.create3DExplosion(ship.group.position, ship.size * 2);
+              // Score based on ship type
+              const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+              this.gameScore += scoreBonus;
+              this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
+              console.log(`🎯 Destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
               continue;
             }
           }
@@ -3123,22 +3164,31 @@ class MegabotScene {
         // Check right laser too
         const rightEyePos = new THREE.Vector3();
         this.rightEye.getWorldPosition(rightEyePos);
-        const distToRightEye = new THREE.Vector3().subVectors(ship.group.position, rightEyePos).length();
-        if (distToRightEye < 500) {
+        const toShipVecRight = new THREE.Vector3().subVectors(ship.group.position, rightEyePos);
+        const distToRightEye = toShipVecRight.length();
+        if (distToRightEye < 800) {
           const laserDir = new THREE.Vector3(0, 1, 0);
           laserDir.applyQuaternion(this.rightLaser.getWorldQuaternion(new THREE.Quaternion()));
-          const toShip = new THREE.Vector3().subVectors(ship.group.position, rightEyePos).normalize();
+          const toShip = toShipVecRight.clone().normalize();
           const angle = laserDir.dot(toShip);
 
-          if (angle > 0.95) {
+          if (angle > 0.92) {
             ship.health -= 5 * dt;
             ship.hitFlash = 1.0;
 
+            // Small damage sparks when hit but not destroyed
+            if (Math.random() > 0.8) {
+              this.create3DExplosion(ship.group.position, ship.size * 0.5); // Small spark effect
+            }
+
             if (ship.health <= 0) {
-              this.gameScore += ship.maxHealth * 100;
-              this.create3DExplosion(ship.group.position, ship.size * 2);
+              // Score based on ship type
+              const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+              this.gameScore += scoreBonus;
+              this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
+              console.log(`🎯 Destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
               continue;
             }
           }
@@ -3182,12 +3232,16 @@ class MegabotScene {
           hitShip = true;
 
           if (ship.health <= 0) {
-            this.gameScore += ship.maxHealth * 100;
-            this.create3DExplosion(ship.group.position, ship.size * 2);
+            // Score based on ship type (same as laser kills)
+            const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+            this.gameScore += scoreBonus;
+            this.create3DExplosion(ship.group.position, ship.size * 2.5);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
+            console.log(`🚀 Missile destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
           } else {
-            this.create3DExplosion(missile.group.position, 10);
+            // Hit but not destroyed - small spark
+            this.create3DExplosion(missile.group.position, 15);
           }
 
           this.scene.remove(missile.group);
