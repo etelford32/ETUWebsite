@@ -29,6 +29,7 @@ export interface Database {
           total_playtime?: number
           highest_score?: number
           ship_class?: string | null
+          is_alpha_tester?: boolean
         }
         Insert: {
           id: string
@@ -49,6 +50,7 @@ export interface Database {
           total_playtime?: number
           highest_score?: number
           ship_class?: string | null
+          is_alpha_tester?: boolean
         }
         Update: {
           id?: string
@@ -69,6 +71,7 @@ export interface Database {
           total_playtime?: number
           highest_score?: number
           ship_class?: string | null
+          is_alpha_tester?: boolean
         }
       }
       player_scores: {

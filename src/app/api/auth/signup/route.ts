@@ -7,7 +7,7 @@ import { validatePassword } from '@/lib/passwordValidation'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, username } = body
+    const { email, password, username, isAlphaApplicant } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -81,6 +81,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     const role = (profile as any)?.role || 'user'
+
+    // If signing up from alpha testing flow, mark as alpha tester
+    if (isAlphaApplicant) {
+      await supabase
+        .from('profiles')
+        .update({ is_alpha_tester: true })
+        .eq('id', authData.user.id)
+    }
 
     // Create session cookie
     const response = NextResponse.json({
