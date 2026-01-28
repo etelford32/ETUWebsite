@@ -257,6 +257,10 @@ GRANT ALL ON public.backlog_items TO anon, authenticated;
 GRANT ALL ON public.backlog_votes TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
+-- Alpha tester column (run this migration if you have an existing database)
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_alpha_tester BOOLEAN DEFAULT false;
+-- CREATE INDEX IF NOT EXISTS idx_profiles_alpha_tester ON public.profiles(is_alpha_tester) WHERE is_alpha_tester = true;
+
 -- Success message
 DO $$
 BEGIN
@@ -265,4 +269,5 @@ BEGIN
   RAISE NOTICE '1. Test the API routes: /api/leaderboard and /api/submit-score';
   RAISE NOTICE '2. Update your .env.local with SUPABASE_SERVICE_ROLE_KEY';
   RAISE NOTICE '3. Configure Steam OAuth in Supabase dashboard';
+  RAISE NOTICE '4. Run the alpha tester migration if updating existing database';
 END $$;

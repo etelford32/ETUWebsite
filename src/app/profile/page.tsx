@@ -17,6 +17,7 @@ interface PlayerProfile {
   created_at: string
   updated_at: string
   is_public: boolean
+  is_alpha_tester: boolean
   // Stats - always populated (from DB or defaults)
   level: number
   xp: number
@@ -180,6 +181,7 @@ export default function ProfilePage() {
           created_at: dbProfile.created_at || new Date().toISOString(),
           updated_at: dbProfile.updated_at || new Date().toISOString(),
           is_public: dbProfile.is_public ?? true,
+          is_alpha_tester: dbProfile.is_alpha_tester ?? false,
           // Stats - use DB values or defaults
           level: dbProfile.level ?? 1,
           xp: dbProfile.xp ?? 0,
@@ -345,6 +347,26 @@ export default function ProfilePage() {
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
                       {profile.username}
                     </h1>
+                    {/* Alpha Tester Badge */}
+                    {profile.is_alpha_tester && (
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.2, type: 'spring' }}
+                        className="inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-900/60 to-emerald-900/60 border border-green-500/50 shadow-lg shadow-green-500/20"
+                      >
+                        <span className="relative flex items-center justify-center w-6 h-6">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-40"></span>
+                          <span className="relative text-lg">☢️</span>
+                        </span>
+                        <span className="font-bold text-green-400 tracking-wide uppercase text-sm">
+                          Alpha Tester
+                        </span>
+                        <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </motion.div>
+                    )}
                     <div className="flex items-center gap-4 mt-2 text-slate-300">
                       <span className="flex items-center gap-2">
                         <span className="text-indigo-400">⚔️</span>

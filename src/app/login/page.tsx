@@ -7,7 +7,9 @@ import { motion } from 'framer-motion'
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const redirectTo = searchParams?.get('redirect') || '/dashboard'
+  const isAlphaRedirect = redirectTo === '/alpha-testing'
+  const [mode, setMode] = useState<'login' | 'signup'>(isAlphaRedirect ? 'signup' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -61,6 +63,7 @@ function LoginForm() {
             email,
             password,
             username: email.split('@')[0],
+            isAlphaApplicant: isAlphaRedirect,
           }),
         })
 
@@ -72,11 +75,14 @@ function LoginForm() {
 
         setMessage({
           type: 'success',
-          text: 'Account created successfully! Redirecting...'
+          text: isAlphaRedirect
+            ? 'Account created! Welcome to the Alpha Program! Redirecting to your profile...'
+            : 'Account created successfully! Redirecting...'
         })
 
+        // Redirect to profile page after signup (especially for alpha testers)
         setTimeout(() => {
-          router.push('/dashboard')
+          router.push('/profile')
         }, 1000)
       } else {
         // Sign in via API
@@ -98,7 +104,7 @@ function LoginForm() {
         })
 
         setTimeout(() => {
-          router.push('/dashboard')
+          router.push(redirectTo)
         }, 1000)
       }
     } catch (error: any) {
@@ -133,6 +139,27 @@ function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         className="relative w-full max-w-md"
       >
+        {/* Alpha Testing Banner - shown when redirected from alpha-testing */}
+        {isAlphaRedirect && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-500/50 backdrop-blur-sm"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center animate-pulse">
+                <span className="text-xl">☢️</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-green-400">Alpha Testing Access</h3>
+                <p className="text-sm text-green-300/80">
+                  {mode === 'signup' ? 'Create an account to apply for alpha testing' : 'Log in to continue your alpha application'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Logo and title */}
         <div className="text-center mb-8">
           <motion.div
