@@ -70,24 +70,45 @@ export async function POST(request: NextRequest) {
     }
 
     // Profile is auto-created by database trigger (handle_new_user)
-    // Wait a moment for trigger to complete
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Poll for profile creation with retry logic to handle race condition
+    let profile = null
+    let attempts = 0
+    const maxAttempts = 10
+    const delayMs = 200
 
-    // Get the created profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', authData.user.id)
-      .single()
+    while (!profile && attempts < maxAttempts) {
+      attempts++
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single()
+
+      if (data) {
+        profile = data
+        break
+      }
+    }
+
+    if (!profile) {
+      console.warn(`Profile not created after ${maxAttempts} attempts for user ${authData.user.id}`)
+    }
 
     const role = (profile as any)?.role || 'user'
 
     // If signing up from alpha testing flow, mark as alpha tester
-    if (isAlphaApplicant) {
-      await supabase
+    if (isAlphaApplicant && profile) {
+      const { error: alphaError } = await supabase
         .from('profiles')
         .update({ is_alpha_tester: true })
         .eq('id', authData.user.id)
+
+      if (alphaError) {
+        // Log but don't fail - the is_alpha_tester column may not exist yet
+        console.warn('Failed to set is_alpha_tester:', alphaError.message)
+      }
     }
 
     // Create session cookie

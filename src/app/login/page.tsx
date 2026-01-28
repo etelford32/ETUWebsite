@@ -7,32 +7,55 @@ import { motion } from 'framer-motion'
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams?.get('redirect') || '/dashboard'
-  const isAlphaRedirect = redirectTo === '/alpha-testing'
-  const [mode, setMode] = useState<'login' | 'signup'>(isAlphaRedirect ? 'signup' : 'login')
+  const [redirectTo, setRedirectTo] = useState('/dashboard')
+  const [isAlphaRedirect, setIsAlphaRedirect] = useState(false)
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
+  // Handle searchParams changes (fixes timing issue with Suspense)
   useEffect(() => {
-    // Check if user is already logged in
-    checkUser()
+    const redirect = searchParams?.get('redirect') || '/dashboard'
+    const isAlpha = redirect === '/alpha-testing'
+
+    setRedirectTo(redirect)
+    setIsAlphaRedirect(isAlpha)
+
+    // Auto-select signup mode when coming from alpha testing
+    if (isAlpha) {
+      setMode('signup')
+    }
 
     // Check for message from URL params
     const msg = searchParams?.get('message')
+    const err = searchParams?.get('error')
+
     if (msg === 'steam_linked') {
       setMessage({ type: 'success', text: 'Steam account linked successfully!' })
+    } else if (err === 'invalid_magic_link') {
+      setMessage({ type: 'error', text: 'Invalid magic link. Please request a new one.' })
+    } else if (err === 'magic_link_expired') {
+      setMessage({ type: 'error', text: 'Magic link expired. Please request a new one.' })
+    } else if (err === 'magic_link_failed') {
+      setMessage({ type: 'error', text: 'Magic link authentication failed. Please try again.' })
     }
   }, [searchParams])
+
+  useEffect(() => {
+    // Check if user is already logged in
+    checkUser()
+  }, [redirectTo]) // Re-check when redirectTo changes
 
   async function checkUser() {
     try {
       const response = await fetch('/api/auth/session')
       const data = await response.json()
       if (data.authenticated) {
-        router.push('/dashboard')
+        // Redirect to original destination or dashboard
+        router.push(redirectTo)
       }
     } catch (error) {
       // Not logged in, stay on page
@@ -76,13 +99,13 @@ function LoginForm() {
         setMessage({
           type: 'success',
           text: isAlphaRedirect
-            ? 'Account created! Welcome to the Alpha Program! Redirecting to your profile...'
+            ? 'Account created! Redirecting to complete your alpha application...'
             : 'Account created successfully! Redirecting...'
         })
 
-        // Redirect to profile page after signup (especially for alpha testers)
+        // After signup, redirect to the original destination (alpha-testing form or dashboard)
         setTimeout(() => {
-          router.push('/profile')
+          router.push(redirectTo)
         }, 1000)
       } else {
         // Sign in via API
@@ -117,9 +140,43 @@ function LoginForm() {
     }
   }
 
-  // TODO: Implement magic link and OAuth via server-side API
   async function handleMagicLink() {
-    setMessage({ type: 'error', text: 'Magic link not yet implemented in server-only mode' })
+    if (!email) {
+      setMessage({ type: 'error', text: 'Please enter your email address first' })
+      return
+    }
+
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          redirectTo,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send magic link')
+      }
+
+      setMessage({
+        type: 'success',
+        text: 'Magic link sent! Check your email inbox and click the link to log in.'
+      })
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'Failed to send magic link'
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleOAuth(provider: 'google' | 'github' | 'apple') {

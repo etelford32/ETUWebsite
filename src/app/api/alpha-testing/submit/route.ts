@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
+import { getSessionFromRequest } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
       aiDifficultyFeedback,
       bugTestingExperience
     } = body
+
+    // Check if user is logged in
+    const session = getSessionFromRequest(request)
 
     // Validation
     if (!username || !email || !interests || interests.length === 0 || !motivation) {
@@ -256,6 +260,21 @@ export async function POST(request: NextRequest) {
     } catch (discordError) {
       console.error('Discord webhook error:', discordError)
       // Don't fail the request if Discord fails
+    }
+
+    // If user is logged in, mark them as an alpha tester
+    if (session) {
+      const { error: alphaError } = await supabase
+        .from('profiles')
+        .update({ is_alpha_tester: true })
+        .eq('id', session.userId)
+
+      if (alphaError) {
+        // Log but don't fail - the is_alpha_tester column may not exist yet
+        console.warn('Failed to set is_alpha_tester:', alphaError.message)
+      } else {
+        console.log('User marked as alpha tester:', session.userId)
+      }
     }
 
     // Try to send email if Resend is configured

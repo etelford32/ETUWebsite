@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, avatar_url, faction_choice, is_public } = body
+    const { username, avatar_url, faction_choice, is_public, is_alpha_tester } = body
 
     // Validate and build update object
     const updates: Record<string, any> = {}
@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest) {
     if (avatar_url !== undefined) updates.avatar_url = avatar_url
     if (faction_choice !== undefined) updates.faction_choice = faction_choice
     if (is_public !== undefined) updates.is_public = Boolean(is_public)
+    if (is_alpha_tester !== undefined) updates.is_alpha_tester = Boolean(is_alpha_tester)
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
