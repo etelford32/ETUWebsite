@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Rocket,
@@ -15,24 +16,6 @@ import {
   Sparkles,
   GamepadIcon
 } from 'lucide-react'
-
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  auth: {
-    getUser: () => Promise.resolve({ data: { user: null } })
-  },
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-}
 
 interface FormData {
   // Profile data
@@ -51,10 +34,12 @@ interface FormData {
 }
 
 export default function AlphaTestingPage() {
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -77,27 +62,37 @@ export default function AlphaTestingPage() {
   }, [])
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      // Check session via API
+      const sessionRes = await fetch('/api/auth/session')
+      const sessionData = await sessionRes.json()
 
-    if (user) {
-      setIsLoggedIn(true)
-      setUserEmail(user.email || '')
-      setFormData(prev => ({ ...prev, email: user.email || '' }))
-
-      // Try to get profile data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profile && typeof profile === 'object') {
+      if (sessionData.authenticated && sessionData.user) {
+        setIsLoggedIn(true)
+        setUserEmail(sessionData.user.email || '')
         setFormData(prev => ({
           ...prev,
-          username: (profile as any).username || '',
-          discord: (profile as any).discord || ''
+          email: sessionData.user.email || '',
+          username: sessionData.user.username || ''
         }))
+
+        // Fetch full profile data
+        const profileRes = await fetch('/api/profile')
+        if (profileRes.ok) {
+          const profileData = await profileRes.json()
+          if (profileData.profile) {
+            setFormData(prev => ({
+              ...prev,
+              username: profileData.profile.username || prev.username,
+              discord: profileData.profile.discord || ''
+            }))
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error checking user:', error)
+    } finally {
+      setInitialLoading(false)
     }
   }
 
@@ -155,27 +150,39 @@ export default function AlphaTestingPage() {
         throw new Error(result.error || 'Failed to submit application')
       }
 
-      setSuccess('Application submitted successfully! We\'ll be in touch soon.')
-      setSubmitted(true)
+      // If user is logged in, redirect to profile to see their alpha tester badge
+      // (The submit API automatically marks logged-in users as alpha testers)
+      if (isLoggedIn) {
+        setSuccess('Application submitted! Welcome to the Alpha Program! Redirecting to your profile...')
+        setSubmitted(true)
 
-      // Reset form
-      setTimeout(() => {
-        setFormData({
-          username: userEmail ? formData.username : '',
-          email: userEmail || '',
-          discord: '',
-          interests: [],
-          experience: 'beginner',
-          availability: '',
-          motivation: '',
-          balancingInterest: '',
-          aiDifficultyFeedback: '',
-          bugTestingExperience: ''
-        })
-        setStep(1)
-        setSubmitted(false)
-        setSuccess('')
-      }, 5000)
+        // Redirect to profile page to see their alpha tester badge
+        setTimeout(() => {
+          router.push('/profile')
+        }, 2000)
+      } else {
+        setSuccess('Application submitted successfully! Create an account to track your application status.')
+        setSubmitted(true)
+
+        // Reset form after delay for non-logged-in users
+        setTimeout(() => {
+          setFormData({
+            username: '',
+            email: '',
+            discord: '',
+            interests: [],
+            experience: 'beginner',
+            availability: '',
+            motivation: '',
+            balancingInterest: '',
+            aiDifficultyFeedback: '',
+            bugTestingExperience: ''
+          })
+          setStep(1)
+          setSubmitted(false)
+          setSuccess('')
+        }, 5000)
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit application')
