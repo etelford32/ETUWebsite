@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
 
     // If signing up from alpha testing flow, mark as alpha tester
     if (isAlphaApplicant && profile) {
-      const { error: alphaError } = await supabase
-        .from('profiles')
+      const { error: alphaError } = await (supabase
+        .from('profiles') as any)
         .update({ is_alpha_tester: true })
         .eq('id', authData.user.id)
 

@@ -264,8 +264,8 @@ export async function POST(request: NextRequest) {
 
     // If user is logged in, mark them as an alpha tester
     if (session) {
-      const { error: alphaError } = await supabase
-        .from('profiles')
+      const { error: alphaError } = await (supabase
+        .from('profiles') as any)
         .update({ is_alpha_tester: true })
         .eq('id', session.userId)
 
