@@ -149,6 +149,13 @@ class MegabotScene {
   explosions3D: any[] = []; // 3D explosion effects
   lastShipSpawnTime: number = 0;
 
+  // Formation System
+  formations: any[] = []; // Active formations
+  lastFormationSpawnTime: number = 0;
+  formationIdCounter: number = 0;
+  readonly FORMATION_SPAWN_INTERVAL = 5000; // Spawn formation every 5 seconds
+  readonly FORMATION_TYPES = ['v-formation', 'pincer', 'bomber-escort', 'orbit-strafe'] as const;
+
   // Game state
   gameScore: number = 0;
   megabotHealth: number = 10000;
@@ -2785,6 +2792,303 @@ class MegabotScene {
     this.scene.add(ship.group);
   }
 
+  // Spawn a formation of ships with coordinated AI behavior
+  spawnFormation() {
+    const THREE = this.THREE;
+
+    // Don't spawn if we have too many ships already
+    if (this.enemyShips.length >= this.MAX_SHIPS_3D - 3) return;
+
+    // Pick a random formation type
+    const formationType = this.FORMATION_TYPES[Math.floor(Math.random() * this.FORMATION_TYPES.length)];
+    const formationId = this.formationIdCounter++;
+
+    console.log(`🎯 Spawning ${formationType} formation #${formationId}`);
+
+    switch (formationType) {
+      case 'v-formation':
+        this.spawnVFormation(formationId);
+        break;
+      case 'pincer':
+        this.spawnPincerFormation(formationId);
+        break;
+      case 'bomber-escort':
+        this.spawnBomberEscort(formationId);
+        break;
+      case 'orbit-strafe':
+        this.spawnOrbitStrafe(formationId);
+        break;
+    }
+
+    // Track formation
+    this.formations.push({
+      id: formationId,
+      type: formationType,
+      createdAt: this.time,
+    });
+  }
+
+  // V-Formation: Fighters fly in V-shape, coordinated attacks
+  spawnVFormation(formationId: number) {
+    const THREE = this.THREE;
+
+    // Pick a random approach direction
+    const baseTheta = Math.random() * Math.PI * 2;
+    const basePhi = Math.PI * 0.3 + Math.random() * Math.PI * 0.4; // Keep in visible range
+
+    // Leader position
+    const leaderX = this.SHIP_SPAWN_RADIUS * Math.sin(basePhi) * Math.cos(baseTheta);
+    const leaderY = this.SHIP_SPAWN_RADIUS * Math.sin(basePhi) * Math.sin(baseTheta);
+    const leaderZ = this.SHIP_SPAWN_RADIUS * Math.cos(basePhi);
+
+    // Spawn 5 fighters in V shape
+    const vOffsets = [
+      { x: 0, y: 0 },      // Leader
+      { x: -80, y: -60 },  // Left wing 1
+      { x: 80, y: -60 },   // Right wing 1
+      { x: -160, y: -120 }, // Left wing 2
+      { x: 160, y: -120 },  // Right wing 2
+    ];
+
+    vOffsets.forEach((offset, index) => {
+      if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
+
+      const ship = this.create3DShipGeometry('fighter');
+
+      // Calculate perpendicular offset vectors
+      const toCenter = new THREE.Vector3(-leaderX, -leaderY, -leaderZ).normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(toCenter, up).normalize();
+      const realUp = new THREE.Vector3().crossVectors(right, toCenter).normalize();
+
+      // Apply offset
+      const spawnPos = new THREE.Vector3(leaderX, leaderY, leaderZ);
+      spawnPos.add(right.clone().multiplyScalar(offset.x));
+      spawnPos.add(realUp.clone().multiplyScalar(offset.y));
+
+      ship.group.position.copy(spawnPos);
+
+      // Slower, coordinated movement toward center
+      const speed = 150; // Slower than normal for coordinated attack
+      const velocity = toCenter.clone().multiplyScalar(speed);
+
+      ship.group.lookAt(0, 0, 0);
+
+      this.enemyShips.push({
+        ...ship,
+        velocity,
+        active: true,
+        lastLaserTime: 0,
+        formationId,
+        formationType: 'v-formation',
+        formationRole: index === 0 ? 'leader' : 'wingman',
+        behavior: 'formation-attack', // New behavior type
+      });
+
+      this.scene.add(ship.group);
+    });
+  }
+
+  // Pincer Maneuver: Two groups approach from opposite sides
+  spawnPincerFormation(formationId: number) {
+    const THREE = this.THREE;
+
+    // Pick a random approach axis
+    const baseTheta = Math.random() * Math.PI * 2;
+    const basePhi = Math.PI * 0.5; // Approach from sides
+
+    // Spawn two groups from opposite directions
+    [-1, 1].forEach((side, groupIndex) => {
+      const groupTheta = baseTheta + side * Math.PI; // Opposite directions
+
+      // 2-3 ships per group
+      const shipCount = 2 + Math.floor(Math.random() * 2);
+
+      for (let i = 0; i < shipCount; i++) {
+        if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
+
+        const ship = this.create3DShipGeometry('interceptor');
+
+        // Slight spread within group
+        const spreadTheta = groupTheta + (i - shipCount/2) * 0.15;
+        const spreadPhi = basePhi + (Math.random() - 0.5) * 0.3;
+
+        const spawnX = this.SHIP_SPAWN_RADIUS * Math.sin(spreadPhi) * Math.cos(spreadTheta);
+        const spawnY = this.SHIP_SPAWN_RADIUS * Math.sin(spreadPhi) * Math.sin(spreadTheta);
+        const spawnZ = this.SHIP_SPAWN_RADIUS * Math.cos(spreadPhi);
+
+        ship.group.position.set(spawnX, spawnY, spawnZ);
+
+        // Fast interceptors
+        const speed = 300 + Math.random() * 100;
+        const toCenter = new THREE.Vector3(-spawnX, -spawnY, -spawnZ).normalize();
+        const velocity = toCenter.multiplyScalar(speed);
+
+        ship.group.lookAt(0, 0, 0);
+
+        this.enemyShips.push({
+          ...ship,
+          velocity,
+          active: true,
+          lastLaserTime: 0,
+          formationId,
+          formationType: 'pincer',
+          formationRole: `group-${groupIndex}`,
+          behavior: 'pincer-attack',
+          pincerPhase: 'approach', // approach -> strafe -> retreat
+        });
+
+        this.scene.add(ship.group);
+      }
+    });
+  }
+
+  // Bomber Escort: Interceptors protect slower bombers
+  spawnBomberEscort(formationId: number) {
+    const THREE = this.THREE;
+
+    // Pick approach direction
+    const baseTheta = Math.random() * Math.PI * 2;
+    const basePhi = Math.PI * 0.3 + Math.random() * Math.PI * 0.4;
+
+    const baseX = this.SHIP_SPAWN_RADIUS * Math.sin(basePhi) * Math.cos(baseTheta);
+    const baseY = this.SHIP_SPAWN_RADIUS * Math.sin(basePhi) * Math.sin(baseTheta);
+    const baseZ = this.SHIP_SPAWN_RADIUS * Math.cos(basePhi);
+
+    const toCenter = new THREE.Vector3(-baseX, -baseY, -baseZ).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3().crossVectors(toCenter, up).normalize();
+    const realUp = new THREE.Vector3().crossVectors(right, toCenter).normalize();
+
+    // Spawn 1 bomber in center
+    if (this.enemyShips.length < this.MAX_SHIPS_3D) {
+      const bomber = this.create3DShipGeometry('bomber');
+      bomber.group.position.set(baseX, baseY, baseZ);
+
+      const bomberSpeed = 100; // Slow bomber
+      const bomberVelocity = toCenter.clone().multiplyScalar(bomberSpeed);
+
+      bomber.group.lookAt(0, 0, 0);
+
+      this.enemyShips.push({
+        ...bomber,
+        velocity: bomberVelocity,
+        active: true,
+        lastLaserTime: 0,
+        formationId,
+        formationType: 'bomber-escort',
+        formationRole: 'bomber',
+        behavior: 'bomber-advance',
+      });
+
+      this.scene.add(bomber.group);
+    }
+
+    // Spawn 2-4 interceptor escorts
+    const escortCount = 2 + Math.floor(Math.random() * 3);
+    const escortOffsets = [
+      { x: -100, y: 50 },
+      { x: 100, y: 50 },
+      { x: -100, y: -50 },
+      { x: 100, y: -50 },
+    ];
+
+    for (let i = 0; i < escortCount && i < escortOffsets.length; i++) {
+      if (this.enemyShips.length >= this.MAX_SHIPS_3D) break;
+
+      const escort = this.create3DShipGeometry('interceptor');
+
+      const offset = escortOffsets[i];
+      const escortPos = new THREE.Vector3(baseX, baseY, baseZ);
+      escortPos.add(right.clone().multiplyScalar(offset.x));
+      escortPos.add(realUp.clone().multiplyScalar(offset.y));
+
+      escort.group.position.copy(escortPos);
+
+      // Escorts match bomber speed but orbit around it
+      const escortSpeed = 120;
+      const escortVelocity = toCenter.clone().multiplyScalar(escortSpeed);
+
+      escort.group.lookAt(0, 0, 0);
+
+      this.enemyShips.push({
+        ...escort,
+        velocity: escortVelocity,
+        active: true,
+        lastLaserTime: 0,
+        formationId,
+        formationType: 'bomber-escort',
+        formationRole: 'escort',
+        behavior: 'escort-protect',
+        escortTarget: formationId, // Reference to bomber's formation
+        orbitAngle: (i / escortCount) * Math.PI * 2,
+      });
+
+      this.scene.add(escort.group);
+    }
+  }
+
+  // Orbit & Strafe: Ships circle at distance, firing, instead of kamikaze
+  spawnOrbitStrafe(formationId: number) {
+    const THREE = this.THREE;
+
+    // Pick orbit plane
+    const orbitRadius = 600; // Distance to orbit at
+    const baseTheta = Math.random() * Math.PI * 2;
+
+    // Spawn 3-4 ships that will orbit
+    const shipCount = 3 + Math.floor(Math.random() * 2);
+
+    for (let i = 0; i < shipCount; i++) {
+      if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
+
+      const ship = this.create3DShipGeometry('fighter');
+
+      // Start from spawn radius, they'll move to orbit radius
+      const startTheta = baseTheta + (i / shipCount) * Math.PI * 2;
+      const startPhi = Math.PI * 0.5; // Equatorial plane
+
+      const spawnX = this.SHIP_SPAWN_RADIUS * Math.sin(startPhi) * Math.cos(startTheta);
+      const spawnY = this.SHIP_SPAWN_RADIUS * Math.sin(startPhi) * Math.sin(startTheta);
+      const spawnZ = this.SHIP_SPAWN_RADIUS * Math.cos(startPhi);
+
+      ship.group.position.set(spawnX, spawnY, spawnZ);
+
+      // Initial velocity toward orbit position (not center)
+      const targetOrbitX = orbitRadius * Math.cos(startTheta);
+      const targetOrbitY = 0;
+      const targetOrbitZ = orbitRadius * Math.sin(startTheta);
+
+      const toOrbit = new THREE.Vector3(
+        targetOrbitX - spawnX,
+        targetOrbitY - spawnY,
+        targetOrbitZ - spawnZ
+      ).normalize();
+
+      const speed = 250;
+      const velocity = toOrbit.multiplyScalar(speed);
+
+      ship.group.lookAt(0, 0, 0);
+
+      this.enemyShips.push({
+        ...ship,
+        velocity,
+        active: true,
+        lastLaserTime: 0,
+        formationId,
+        formationType: 'orbit-strafe',
+        formationRole: 'orbiter',
+        behavior: 'orbit-strafe',
+        orbitPhase: 'approach', // approach -> orbit -> strafe
+        orbitRadius,
+        orbitAngle: startTheta,
+        orbitSpeed: 0.8 + Math.random() * 0.4, // Radians per second
+      });
+
+      this.scene.add(ship.group);
+    }
+  }
+
   // Create 3D missile
   create3DMissile(startPos: any, targetPos: any) {
     const THREE = this.THREE;
@@ -3007,16 +3311,213 @@ class MegabotScene {
     });
   }
 
+  // Update Orbit & Strafe behavior
+  updateOrbitStrafeBehavior(ship: any, dt: number, distToMegabot: number) {
+    const THREE = this.THREE;
+
+    if (ship.orbitPhase === 'approach') {
+      // Move toward orbit radius
+      if (distToMegabot > ship.orbitRadius + 50) {
+        // Still approaching
+        ship.group.position.x += ship.velocity.x * dt;
+        ship.group.position.y += ship.velocity.y * dt;
+        ship.group.position.z += ship.velocity.z * dt;
+      } else {
+        // Reached orbit, switch to orbiting
+        ship.orbitPhase = 'orbit';
+        console.log(`🛸 Ship entering orbit phase`);
+      }
+    } else if (ship.orbitPhase === 'orbit') {
+      // Orbit around megabot
+      ship.orbitAngle += ship.orbitSpeed * dt;
+
+      // Calculate new position on orbit
+      const newX = ship.orbitRadius * Math.cos(ship.orbitAngle);
+      const newZ = ship.orbitRadius * Math.sin(ship.orbitAngle);
+
+      // Smooth transition to orbit position
+      ship.group.position.x += (newX - ship.group.position.x) * dt * 2;
+      ship.group.position.z += (newZ - ship.group.position.z) * dt * 2;
+      ship.group.position.y += (0 - ship.group.position.y) * dt * 2; // Level out
+
+      // Face the center (Megabot)
+      ship.group.lookAt(0, 0, 0);
+
+      // Occasionally strafe closer
+      if (Math.random() < 0.002) {
+        ship.orbitPhase = 'strafe';
+        ship.strafeTarget = ship.orbitRadius * 0.5; // Move to half orbit radius
+        console.log(`🎯 Ship starting strafe run!`);
+      }
+    } else if (ship.orbitPhase === 'strafe') {
+      // Strafe run - move closer while orbiting
+      ship.orbitAngle += ship.orbitSpeed * 1.5 * dt; // Faster during strafe
+
+      const currentRadius = Math.sqrt(ship.group.position.x ** 2 + ship.group.position.z ** 2);
+      const targetRadius = ship.strafeTarget;
+
+      // Spiral inward
+      const newRadius = currentRadius + (targetRadius - currentRadius) * dt * 2;
+      const newX = newRadius * Math.cos(ship.orbitAngle);
+      const newZ = newRadius * Math.sin(ship.orbitAngle);
+
+      ship.group.position.x = newX;
+      ship.group.position.z = newZ;
+      ship.group.lookAt(0, 0, 0);
+
+      // After strafe, return to orbit
+      if (currentRadius < targetRadius + 20) {
+        ship.orbitPhase = 'retreat';
+        console.log(`🔄 Ship retreating to orbit`);
+      }
+    } else if (ship.orbitPhase === 'retreat') {
+      // Return to orbit radius
+      ship.orbitAngle += ship.orbitSpeed * dt;
+
+      const currentRadius = Math.sqrt(ship.group.position.x ** 2 + ship.group.position.z ** 2);
+
+      // Spiral outward
+      const newRadius = currentRadius + (ship.orbitRadius - currentRadius) * dt * 1.5;
+      const newX = newRadius * Math.cos(ship.orbitAngle);
+      const newZ = newRadius * Math.sin(ship.orbitAngle);
+
+      ship.group.position.x = newX;
+      ship.group.position.z = newZ;
+      ship.group.lookAt(0, 0, 0);
+
+      if (currentRadius > ship.orbitRadius - 30) {
+        ship.orbitPhase = 'orbit';
+      }
+    }
+  }
+
+  // Update Pincer attack behavior
+  updatePincerBehavior(ship: any, dt: number, distToMegabot: number) {
+    const THREE = this.THREE;
+
+    if (ship.pincerPhase === 'approach') {
+      // Move toward megabot until close enough
+      ship.group.position.x += ship.velocity.x * dt;
+      ship.group.position.y += ship.velocity.y * dt;
+      ship.group.position.z += ship.velocity.z * dt;
+
+      // Switch to strafe when close
+      if (distToMegabot < 500) {
+        ship.pincerPhase = 'strafe';
+        // Calculate perpendicular velocity for strafing
+        const pos = ship.group.position;
+        const perpX = -pos.z;
+        const perpZ = pos.x;
+        const perpLen = Math.sqrt(perpX * perpX + perpZ * perpZ);
+
+        ship.strafeVelocity = new THREE.Vector3(
+          (perpX / perpLen) * 200,
+          0,
+          (perpZ / perpLen) * 200
+        );
+        ship.strafeTime = 0;
+        console.log(`⚔️ Pincer ship entering strafe phase`);
+      }
+    } else if (ship.pincerPhase === 'strafe') {
+      // Strafe perpendicular to megabot
+      ship.group.position.x += ship.strafeVelocity.x * dt;
+      ship.group.position.z += ship.strafeVelocity.z * dt;
+
+      // Keep facing megabot
+      ship.group.lookAt(0, 0, 0);
+
+      ship.strafeTime += dt;
+
+      // After strafing, retreat
+      if (ship.strafeTime > 2) {
+        ship.pincerPhase = 'retreat';
+        // Velocity away from megabot
+        const pos = ship.group.position;
+        const dist = pos.length();
+        ship.velocity = new THREE.Vector3(
+          (pos.x / dist) * 150,
+          (pos.y / dist) * 150,
+          (pos.z / dist) * 150
+        );
+        console.log(`🔙 Pincer ship retreating`);
+      }
+    } else if (ship.pincerPhase === 'retreat') {
+      // Move away from megabot
+      ship.group.position.x += ship.velocity.x * dt;
+      ship.group.position.y += ship.velocity.y * dt;
+      ship.group.position.z += ship.velocity.z * dt;
+
+      // Re-engage after retreating far enough
+      if (distToMegabot > 800) {
+        ship.pincerPhase = 'approach';
+        // Turn around
+        const pos = ship.group.position;
+        const dist = pos.length();
+        ship.velocity = new THREE.Vector3(
+          (-pos.x / dist) * 300,
+          (-pos.y / dist) * 300,
+          (-pos.z / dist) * 300
+        );
+      }
+    }
+  }
+
+  // Update Escort protection behavior
+  updateEscortBehavior(ship: any, dt: number) {
+    const THREE = this.THREE;
+
+    // Find the bomber we're escorting
+    const bomber = this.enemyShips.find(
+      (s: any) => s.formationId === ship.escortTarget && s.formationRole === 'bomber'
+    );
+
+    if (bomber && bomber.active) {
+      // Orbit around the bomber
+      ship.orbitAngle += 1.5 * dt;
+
+      const orbitDist = 80; // Distance from bomber
+      const targetX = bomber.group.position.x + Math.cos(ship.orbitAngle) * orbitDist;
+      const targetY = bomber.group.position.y + Math.sin(ship.orbitAngle * 0.5) * 30;
+      const targetZ = bomber.group.position.z + Math.sin(ship.orbitAngle) * orbitDist;
+
+      // Smooth movement to target position
+      ship.group.position.x += (targetX - ship.group.position.x) * dt * 3;
+      ship.group.position.y += (targetY - ship.group.position.y) * dt * 3;
+      ship.group.position.z += (targetZ - ship.group.position.z) * dt * 3;
+
+      // Face megabot (threat direction)
+      ship.group.lookAt(0, 0, 0);
+    } else {
+      // Bomber destroyed, go aggressive
+      ship.behavior = undefined; // Default kamikaze
+      const pos = ship.group.position;
+      const dist = pos.length();
+      const speed = 400; // Angry escort
+      ship.velocity = new THREE.Vector3(
+        (-pos.x / dist) * speed,
+        (-pos.y / dist) * speed,
+        (-pos.z / dist) * speed
+      );
+      console.log(`😡 Escort's bomber destroyed! Going aggressive!`);
+    }
+  }
+
   // Update 3D combat system
   update3DCombat(deltaTime: number) {
     const THREE = this.THREE;
     const dt = deltaTime;
 
-    // Spawn ships periodically
+    // Spawn ships periodically (solo ships)
     const currentTime = this.time * 1000;
     if (currentTime - this.lastShipSpawnTime > this.SHIP_SPAWN_INTERVAL) {
       this.spawn3DShip();
       this.lastShipSpawnTime = currentTime;
+    }
+
+    // Spawn formations periodically
+    if (currentTime - this.lastFormationSpawnTime > this.FORMATION_SPAWN_INTERVAL) {
+      this.spawnFormation();
+      this.lastFormationSpawnTime = currentTime;
     }
 
     // Update enemy ships
@@ -3024,10 +3525,24 @@ class MegabotScene {
       const ship = this.enemyShips[i];
       if (!ship.active) continue;
 
-      // Update position
-      ship.group.position.x += ship.velocity.x * dt;
-      ship.group.position.y += ship.velocity.y * dt;
-      ship.group.position.z += ship.velocity.z * dt;
+      const distToMegabot = ship.group.position.length();
+
+      // Update position based on behavior type
+      if (ship.behavior === 'orbit-strafe') {
+        // Orbit & Strafe behavior
+        this.updateOrbitStrafeBehavior(ship, dt, distToMegabot);
+      } else if (ship.behavior === 'pincer-attack') {
+        // Pincer attack behavior
+        this.updatePincerBehavior(ship, dt, distToMegabot);
+      } else if (ship.behavior === 'escort-protect') {
+        // Escort protection behavior
+        this.updateEscortBehavior(ship, dt);
+      } else {
+        // Default behavior: move toward target
+        ship.group.position.x += ship.velocity.x * dt;
+        ship.group.position.y += ship.velocity.y * dt;
+        ship.group.position.z += ship.velocity.z * dt;
+      }
 
       // Dynamic rotation based on ship type
       if (ship.type === 'fighter') {
@@ -3095,8 +3610,7 @@ class MegabotScene {
         }
       });
 
-      // Ship laser shooting logic
-      const distToMegabot = ship.group.position.length();
+      // Ship laser shooting logic (distToMegabot already calculated above)
       const currentTimeMs = this.time * 1000;
 
       // Ships fire lasers when in range (different rates for different types)
@@ -3922,6 +4436,7 @@ class MegabotScene {
     this.missiles3D = [];
     this.enemyLasers = [];
     this.explosions3D = [];
+    this.formations = [];
 
     console.log("✅ Megabot scene destroyed and cleaned up");
   }
