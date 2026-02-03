@@ -1,5 +1,9 @@
+/* Import Orbitron font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
 /* ETU theme tokens */
 :root {
+  --font-orbitron: 'Orbitron', sans-serif;
   --etu-accent: #7c3aed; /* neon indigo/violet */
   --etu-space-1: #0a0614;
   --etu-space-2: #0b1023;
@@ -123,8 +127,16 @@
   animation: shimmer 2s infinite;
 }
 
+/* Orbitron font for hero titles */
+.font-orbitron {
+  font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+}
+
 /* Neon Outline Hero Title with Neon Blue Edges (NO GLOW) */
 .black-metal-title {
+  /* Apply Orbitron font */
+  font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+
   /* Transparent fill - see through the text */
   color: transparent;
   -webkit-text-fill-color: transparent;
@@ -133,7 +145,8 @@
   -webkit-text-stroke: 3px #06b6d4;
 
   font-weight: 900;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   position: relative;
   display: inline-block;
 }

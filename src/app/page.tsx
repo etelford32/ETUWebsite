@@ -294,14 +294,14 @@ export default function HomePage() {
                   EXPLORE THE UNIVERSE 2175
                 </h2>
                 <p className="text-base sm:text-lg md:text-2xl mt-3 font-bold tracking-wide metallic-subtitle drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-                  The First Space RPG Where Your Enemy Learns From You
+                  The First Real Time Space RPG with Adaptive AI
                 </p>
               </div>
 
               <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8 relative">
                 <span className="black-metal-title">
-                  Create Star Fleets.<br />
-                  Outsmart Megabot.
+                  Explore. Survive. Evolve.<br />
+                  Outsmart MegaBot.
                 </span>
                 {/* Animated golden sparks around the text */}
                 <span className="golden-spark golden-spark-1" aria-hidden="true"></span>
