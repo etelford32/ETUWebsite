@@ -37,7 +37,7 @@ export default function Header() {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-lg opacity-0 group-hover:opacity-60 transition-opacity duration-300"></div>
                 <Image
-                  src="/logo2.png"
+                  src="/Explore the Universe Logo Official.png"
                   alt="Explore the Universe 2175 logo"
                   width={40}
                   height={40}
