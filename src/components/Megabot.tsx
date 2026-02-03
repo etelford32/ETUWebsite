@@ -3180,6 +3180,67 @@ class MegabotScene {
     const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
 
     this.create3DMissile(launchPos, targetPos);
+    console.log(`🚀 Missile launched!`);
+  }
+
+  // Launch cluster missiles (3 missiles in spread pattern) - Shift+Click
+  launchClusterMissiles(targetScreenPos: { x: number; y: number }) {
+    if (!this.mainMegabot) return;
+
+    const THREE = this.THREE;
+
+    // Get megabot shoulder position (launch point)
+    const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
+    launchOffset.applyQuaternion(this.mainMegabot.quaternion);
+    const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
+
+    // Convert screen position to 3D world position
+    const vector = new THREE.Vector3(
+      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
+      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
+      0.5
+    );
+
+    vector.unproject(this.camera);
+    const dir = vector.sub(this.camera.position).normalize();
+    const distance = 2000;
+    const centerTarget = this.camera.position.clone().add(dir.clone().multiplyScalar(distance));
+
+    // Calculate spread vectors perpendicular to the direction
+    const up = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3().crossVectors(dir, up).normalize();
+    const spreadUp = new THREE.Vector3().crossVectors(right, dir).normalize();
+
+    const spreadAmount = 300; // Spread distance at target
+
+    // Fire 3 missiles in a spread pattern
+    const spreadOffsets = [
+      { x: 0, y: 0 },           // Center
+      { x: -spreadAmount, y: spreadAmount * 0.5 },  // Upper left
+      { x: spreadAmount, y: spreadAmount * 0.5 },   // Upper right
+    ];
+
+    spreadOffsets.forEach((offset, index) => {
+      const targetPos = centerTarget.clone();
+      targetPos.add(right.clone().multiplyScalar(offset.x));
+      targetPos.add(spreadUp.clone().multiplyScalar(offset.y));
+
+      // Slight delay between missiles for visual effect
+      setTimeout(() => {
+        // Alternate launch positions (left and right shoulders)
+        const shoulderOffset = new THREE.Vector3(
+          (index === 1 ? -1 : index === 2 ? 1 : 0) * this.MAIN_SIZE * 0.3,
+          this.MAIN_SIZE * 0.7,
+          this.MAIN_SIZE * 0.2
+        );
+        shoulderOffset.applyQuaternion(this.mainMegabot.quaternion);
+        const missileStart = new THREE.Vector3().addVectors(this.mainMegabot.position, shoulderOffset);
+
+        this.create3DMissile(missileStart, targetPos);
+      }, index * 50);
+    });
+
+    console.log(`🚀🚀🚀 Cluster missiles launched!`);
   }
 
   // 3D collision detection (sphere-sphere)
@@ -3254,6 +3315,143 @@ class MegabotScene {
     this.scene.add(laserGroup);
 
     return laser;
+  }
+
+  // Create Rapid Laser for Interceptors - fast, low-damage cyan bursts
+  createRapidLaser(ship: any) {
+    const THREE = this.THREE;
+
+    if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
+
+    const shipPos = ship.group.position;
+    const megabotPos = new THREE.Vector3(0, 0, 0);
+    const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
+
+    // Thin, fast cyan laser
+    const laserLength = 30;
+    const laserGeometry = new THREE.CylinderGeometry(0.4, 0.4, laserLength, 6);
+    const laserMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
+
+    // Bright cyan glow
+    const glowGeometry = new THREE.CylinderGeometry(1.5, 1.5, laserLength, 6);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ccff,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+
+    const laserGroup = new THREE.Group();
+    laserGroup.add(laserMesh);
+    laserGroup.add(glowMesh);
+
+    laserGroup.position.copy(shipPos);
+    laserGroup.lookAt(megabotPos);
+    laserGroup.rotateX(Math.PI / 2);
+
+    // Faster velocity for rapid lasers
+    const velocity = toMegabot.multiplyScalar(this.ENEMY_LASER_SPEED * 1.5);
+
+    const laser = {
+      group: laserGroup,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 1.5,
+      active: true,
+      damage: 2, // Lower damage per hit
+      type: 'rapid',
+    };
+
+    this.enemyLasers.push(laser);
+    this.scene.add(laserGroup);
+
+    return laser;
+  }
+
+  // Create Plasma Cannon for Bombers - slow charge, high damage green plasma
+  createPlasmaCannon(ship: any) {
+    const THREE = this.THREE;
+
+    if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
+
+    const shipPos = ship.group.position;
+    const megabotPos = new THREE.Vector3(0, 0, 0);
+    const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
+
+    // Large plasma ball
+    const plasmaGeometry = new THREE.SphereGeometry(8, 16, 16);
+    const plasmaMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const plasmaMesh = new THREE.Mesh(plasmaGeometry, plasmaMaterial);
+
+    // Outer glow
+    const glowGeometry = new THREE.SphereGeometry(15, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: 0x44ff44,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+
+    // Inner core
+    const coreGeometry = new THREE.SphereGeometry(4, 12, 12);
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+
+    const plasmaGroup = new THREE.Group();
+    plasmaGroup.add(glowMesh);
+    plasmaGroup.add(plasmaMesh);
+    plasmaGroup.add(coreMesh);
+
+    // Add point light for dramatic effect
+    const plasmaLight = new THREE.PointLight(0x00ff00, 2, 150);
+    plasmaGroup.add(plasmaLight);
+
+    plasmaGroup.position.copy(shipPos);
+
+    // Slower velocity for heavy plasma
+    const velocity = toMegabot.multiplyScalar(this.ENEMY_LASER_SPEED * 0.6);
+
+    const plasma = {
+      group: plasmaGroup,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 4, // Longer range
+      active: true,
+      damage: 25, // High damage!
+      type: 'plasma',
+      pulsePhase: 0, // For pulsing animation
+    };
+
+    this.enemyLasers.push(plasma);
+    this.scene.add(plasmaGroup);
+
+    console.log(`💚 Bomber fired plasma cannon!`);
+    return plasma;
+  }
+
+  // Fire rapid burst (3 shots in quick succession)
+  fireRapidBurst(ship: any) {
+    // Fire 3 rapid lasers with slight delay simulation via offset
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        if (ship.active) {
+          this.createRapidLaser(ship);
+        }
+      }, i * 80); // 80ms between shots
+    }
   }
 
   // Create 3D explosion effect
@@ -3610,18 +3808,46 @@ class MegabotScene {
         }
       });
 
-      // Ship laser shooting logic (distToMegabot already calculated above)
+      // Ship weapon firing logic (distToMegabot already calculated above)
       const currentTimeMs = this.time * 1000;
 
-      // Ships fire lasers when in range (different rates for different types)
-      let laserCooldown = 2000; // Default cooldown in ms
-      if (ship.type === 'fighter') laserCooldown = 1500; // Fighters shoot faster
-      else if (ship.type === 'interceptor') laserCooldown = 1200; // Interceptors even faster
-      else if (ship.type === 'bomber') laserCooldown = 2500; // Bombers slower but more damage
+      // Different weapons and cooldowns based on ship type and behavior
+      let weaponCooldown = 2000; // Default cooldown in ms
+      let weaponRange = this.ENEMY_LASER_RANGE;
 
-      if (distToMegabot < this.ENEMY_LASER_RANGE &&
-          currentTimeMs - ship.lastLaserTime > laserCooldown) {
-        this.createEnemyLaser(ship);
+      if (ship.type === 'fighter') {
+        weaponCooldown = 1500; // Fighters shoot faster
+      } else if (ship.type === 'interceptor') {
+        weaponCooldown = 600; // Interceptors fire rapid bursts more often
+      } else if (ship.type === 'bomber') {
+        weaponCooldown = 3500; // Bombers charge plasma cannon slowly
+        weaponRange = this.ENEMY_LASER_RANGE * 1.2; // Longer range for plasma
+      }
+
+      // Formation-specific behavior modifiers
+      if (ship.behavior === 'orbit-strafe' && ship.orbitPhase === 'strafe') {
+        weaponCooldown *= 0.5; // Fire faster during strafe runs
+      } else if (ship.behavior === 'pincer-attack' && ship.pincerPhase === 'strafe') {
+        weaponCooldown *= 0.6; // Aggressive fire during pincer strafe
+      } else if (ship.behavior === 'escort-protect') {
+        weaponCooldown *= 0.8; // Escorts are vigilant
+      }
+
+      if (distToMegabot < weaponRange &&
+          currentTimeMs - ship.lastLaserTime > weaponCooldown) {
+
+        // Fire appropriate weapon based on ship type
+        if (ship.type === 'interceptor') {
+          // Interceptors fire rapid laser bursts
+          this.fireRapidBurst(ship);
+        } else if (ship.type === 'bomber') {
+          // Bombers fire slow but devastating plasma cannons
+          this.createPlasmaCannon(ship);
+        } else {
+          // Fighters use standard lasers
+          this.createEnemyLaser(ship);
+        }
+
         ship.lastLaserTime = currentTimeMs;
       }
 
@@ -3773,7 +3999,7 @@ class MegabotScene {
       }
     }
 
-    // Update enemy lasers
+    // Update enemy lasers/projectiles
     for (let i = this.enemyLasers.length - 1; i >= 0; i--) {
       const laser = this.enemyLasers[i];
       if (!laser.active) continue;
@@ -3785,23 +4011,53 @@ class MegabotScene {
       laser.group.position.y += laser.velocity.y * dt;
       laser.group.position.z += laser.velocity.z * dt;
 
-      // Fade out over lifetime
-      const fadeProgress = laser.lifetime / laser.maxLifetime;
-      laser.group.children.forEach((child: any) => {
-        if (child.material && child.material.transparent) {
-          child.material.opacity = (1 - fadeProgress) * 0.9;
-        }
-      });
+      // Different visual effects based on projectile type
+      if (laser.type === 'plasma') {
+        // Plasma cannon pulsing effect
+        laser.pulsePhase = (laser.pulsePhase || 0) + dt * 8;
+        const pulseScale = 1 + Math.sin(laser.pulsePhase) * 0.2;
+        laser.group.scale.setScalar(pulseScale);
+
+        // Rotate plasma ball
+        laser.group.rotation.y += dt * 3;
+        laser.group.rotation.x += dt * 2;
+
+        // Update point light intensity
+        laser.group.children.forEach((child: any) => {
+          if (child.isPointLight) {
+            child.intensity = 2 + Math.sin(laser.pulsePhase * 2) * 1;
+          }
+        });
+      } else if (laser.type === 'rapid') {
+        // Rapid laser streaking effect - slight trail
+        laser.group.scale.z = 1 + laser.lifetime * 2; // Stretch as it flies
+      } else {
+        // Standard laser fade out over lifetime
+        const fadeProgress = laser.lifetime / laser.maxLifetime;
+        laser.group.children.forEach((child: any) => {
+          if (child.material && child.material.transparent) {
+            child.material.opacity = (1 - fadeProgress) * 0.9;
+          }
+        });
+      }
 
       // Check if laser hit megabot (sphere collision)
       const distToMegabot = laser.group.position.length();
-      if (distToMegabot < this.MAIN_SIZE) {
+      const hitRadius = laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 : this.MAIN_SIZE;
+
+      if (distToMegabot < hitRadius) {
         // Hit megabot!
         this.megabotHealth = Math.max(0, this.megabotHealth - laser.damage);
-        this.create3DExplosion(laser.group.position, 15);
+
+        // Different explosion sizes based on weapon type
+        const explosionSize = laser.type === 'plasma' ? 40 : laser.type === 'rapid' ? 8 : 15;
+        this.create3DExplosion(laser.group.position, explosionSize);
+
         this.scene.remove(laser.group);
         this.enemyLasers.splice(i, 1);
-        console.log(`💥 Megabot hit by laser! Health: ${this.megabotHealth}`);
+
+        const hitType = laser.type === 'plasma' ? '💚 PLASMA' : laser.type === 'rapid' ? '💠 Rapid' : '🔴 Laser';
+        console.log(`${hitType} hit Megabot! -${laser.damage} HP | Health: ${this.megabotHealth}`);
         continue;
       }
 
@@ -3859,12 +4115,19 @@ class MegabotScene {
       this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
     });
 
-    // Click to launch 3D missiles
+    // Click to launch 3D missiles (Shift+click for cluster missiles)
     this.container.addEventListener("click", (e) => {
       const rect = this.container.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      this.launch3DMissileFromMegabot({ x, y });
+
+      if (e.shiftKey) {
+        // Cluster missiles - fire 3 in a spread pattern
+        this.launchClusterMissiles({ x, y });
+      } else {
+        // Single missile
+        this.launch3DMissileFromMegabot({ x, y });
+      }
     });
 
     // Window resize
