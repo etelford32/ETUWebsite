@@ -288,73 +288,79 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* Branding */}
-              <div className="reveal mb-6">
-                <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-wider metallic-text drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                  EXPLORE THE UNIVERSE 2175
-                </h2>
-                <p className="text-base sm:text-lg md:text-2xl mt-3 font-bold tracking-wide metallic-subtitle drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-                  The First Real Time Space RPG with Adaptive AI
+              {/* Cinematic Hero Title */}
+              <div className="reveal mb-8">
+                <div className="cinematic-title-container">
+                  {/* Glowing border frame */}
+                  <div className="cinematic-title-frame"></div>
+
+                  {/* Main title with 3D depth */}
+                  <h1 className="cinematic-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-relaxed">
+                    Explore the Universe
+                    <br />
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl opacity-90">
+                      is now in Alpha Testing
+                    </span>
+                  </h1>
+
+                  {/* Animated sparks on edges */}
+                  <span className="title-spark title-spark-1" aria-hidden="true"></span>
+                  <span className="title-spark title-spark-2" aria-hidden="true"></span>
+                  <span className="title-spark title-spark-3" aria-hidden="true"></span>
+                  <span className="title-spark title-spark-4" aria-hidden="true"></span>
+                  <span className="title-spark title-spark-5" aria-hidden="true"></span>
+                  <span className="title-spark title-spark-6" aria-hidden="true"></span>
+                </div>
+
+                {/* Subtitle */}
+                <p className="cinematic-subtitle text-xs sm:text-sm md:text-base mt-4">
+                  The First Real-Time Space RPG with Adaptive AI
                 </p>
               </div>
 
-              <h1 className="reveal hero-title text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold leading-tight mb-8 relative">
-                <span className="black-metal-title">
-                  Explore. Survive. Evolve.<br />
-                  Outsmart MegaBot.
-                </span>
-                {/* Animated golden sparks around the text */}
-                <span className="golden-spark golden-spark-1" aria-hidden="true"></span>
-                <span className="golden-spark golden-spark-2" aria-hidden="true"></span>
-                <span className="golden-spark golden-spark-3" aria-hidden="true"></span>
-                <span className="golden-spark golden-spark-4" aria-hidden="true"></span>
-                <span className="golden-spark golden-spark-5" aria-hidden="true"></span>
-                <span className="golden-spark golden-spark-6" aria-hidden="true"></span>
-              </h1>
-
-              {/* Primary CTA - Simplified & Optimized for Conversions */}
-              <div className="reveal mt-8 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto">
-                {/* Alpha Testing Application (Primary - LARGE & PROMINENT) */}
+              {/* Primary CTA - 3D Beveled Buttons */}
+              <div className="reveal mt-8 flex flex-col items-center justify-center gap-5 max-w-2xl mx-auto">
+                {/* Wishlist / Alpha Testing Button - Steam Blue */}
                 <Link
                   href="/alpha-testing"
                   ref={steamButtonRef}
-                  className="steam-btn group relative inline-flex items-center justify-center gap-3 px-8 py-6 rounded-2xl font-bold text-xl md:text-2xl transition-all duration-300 shadow-2xl hover:shadow-[0_0_60px_rgba(102,192,244,0.8)] hover:scale-105 overflow-hidden w-full max-w-xl"
+                  className="btn-3d btn-3d-steam group relative w-full max-w-md text-lg"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
                   onClick={handleButtonClick}
                 >
-                  {/* Red scanning line */}
-                  {hoveredButton === 'steam' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-scan-line" />
-                    </div>
-                  )}
-                  {/* Welding sparks */}
-                  {hoveredButton === 'steam' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="spark spark-tl" />
-                      <div className="spark spark-tr" />
-                      <div className="spark spark-bl" />
-                      <div className="spark spark-br" />
-                    </div>
-                  )}
-
-                  {/* FREE Badge - Smaller to fit inside button */}
-                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[0.6rem] font-black px-2 py-1 rounded-full shadow-lg animate-pulse ring-1 ring-white z-20">
+                  {/* FREE Badge */}
+                  <div className="absolute -top-3 -right-3 bg-green-500 text-white text-[0.65rem] font-black px-2.5 py-1 rounded-full shadow-lg animate-pulse ring-2 ring-white z-20">
                     FREE!
                   </div>
 
                   <svg
-                    className="w-8 h-8 transition-transform group-hover:scale-110 relative z-10"
+                    className="w-6 h-6 transition-transform group-hover:scale-110"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span className="relative z-10">✨ APPLY FOR ALPHA TESTING</span>
+                  <span>Apply for Alpha Testing</span>
                 </Link>
 
+                {/* Learn More Button - Red */}
+                <a
+                  href="#features"
+                  className="btn-3d btn-3d-red group w-full max-w-md text-lg"
+                >
+                  <svg
+                    className="w-5 h-5 transition-transform group-hover:scale-110"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Learn More</span>
+                </a>
               </div>
 
               {/* Secondary Action Buttons - Placed Lower */}
