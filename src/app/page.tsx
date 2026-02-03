@@ -263,95 +263,57 @@ export default function HomePage() {
           <div className="hero-gradient-overlay"></div>
         </div>
 
-        {/* Animated particles for depth (keeping for extra sparkle) */}
-        <div className="hero-particles" aria-hidden="true"></div>
-
-        {/* Floating light orbs */}
-        <div className="hero-light-orbs" aria-hidden="true">
-          <div className="light-orb orb-1"></div>
-          <div className="light-orb orb-2"></div>
-          <div className="light-orb orb-3"></div>
-          <div className="light-orb orb-4"></div>
-        </div>
-
+        {/* Minimal hero - lots of space for the mini-game canvas */}
         <div className="relative w-full z-10">
           <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Hero badge */}
-              <div className="hero-badge reveal inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-400/30 backdrop-blur-sm mb-6">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
-                <span className="text-sm font-medium text-amber-100">
-                  ✨ Closed Alpha Playtesting - Applications Open!
-                </span>
-              </div>
-
-              {/* Cinematic Hero Title */}
-              <div className="reveal mb-8">
+            <div className="max-w-4xl mx-auto text-center pt-4">
+              {/* Cinematic Hero Title - Minimal silvery blue */}
+              <div className="reveal">
                 <div className="cinematic-title-container">
-                  {/* Glowing border frame */}
-                  <div className="cinematic-title-frame"></div>
-
-                  {/* Main title with 3D depth */}
-                  <h1 className="cinematic-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-relaxed">
+                  <h1 className="cinematic-title text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-relaxed">
                     Explore the Universe
                     <br />
-                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl opacity-90">
+                    <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl opacity-80">
                       is now in Alpha Testing
                     </span>
                   </h1>
-
-                  {/* Animated sparks on edges */}
-                  <span className="title-spark title-spark-1" aria-hidden="true"></span>
-                  <span className="title-spark title-spark-2" aria-hidden="true"></span>
-                  <span className="title-spark title-spark-3" aria-hidden="true"></span>
-                  <span className="title-spark title-spark-4" aria-hidden="true"></span>
-                  <span className="title-spark title-spark-5" aria-hidden="true"></span>
-                  <span className="title-spark title-spark-6" aria-hidden="true"></span>
                 </div>
 
                 {/* Subtitle */}
-                <p className="cinematic-subtitle text-xs sm:text-sm md:text-base mt-4">
+                <p className="cinematic-subtitle text-[10px] sm:text-xs md:text-sm mt-2 opacity-70">
                   The First Real-Time Space RPG with Adaptive AI
                 </p>
               </div>
 
-              {/* Primary CTA - 3D Beveled Buttons */}
-              <div className="reveal mt-8 flex flex-col items-center justify-center gap-5 max-w-2xl mx-auto">
-                {/* Wishlist / Alpha Testing Button - Steam Blue */}
+              {/* Primary CTA - Buttons pushed down for canvas space */}
+              <div className="reveal mt-[100px] flex flex-row items-center justify-center gap-4 max-w-xl mx-auto">
+                {/* Alpha Testing Button - Steam Blue */}
                 <Link
                   href="/alpha-testing"
                   ref={steamButtonRef}
-                  className="btn-3d btn-3d-steam group relative w-full max-w-md text-lg"
+                  className="btn-3d btn-3d-steam group text-sm px-6 py-3"
                   onMouseEnter={(e) => handleButtonHover('steam', e)}
                   onMouseMove={(e) => handleButtonHover('steam', e)}
                   onMouseLeave={handleButtonLeave}
                   onClick={handleButtonClick}
                 >
-                  {/* FREE Badge */}
-                  <div className="absolute -top-3 -right-3 bg-green-500 text-white text-[0.65rem] font-black px-2.5 py-1 rounded-full shadow-lg animate-pulse ring-2 ring-white z-20">
-                    FREE!
-                  </div>
-
                   <svg
-                    className="w-6 h-6 transition-transform group-hover:scale-110"
+                    className="w-5 h-5 transition-transform group-hover:scale-110"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
                     <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
                   </svg>
-                  <span>Apply for Alpha Testing</span>
+                  <span>Alpha Testing</span>
                 </Link>
 
                 {/* Learn More Button - Red */}
                 <a
                   href="#features"
-                  className="btn-3d btn-3d-red group w-full max-w-md text-lg"
+                  className="btn-3d btn-3d-red group text-sm px-6 py-3"
                 >
                   <svg
-                    className="w-5 h-5 transition-transform group-hover:scale-110"
+                    className="w-4 h-4 transition-transform group-hover:scale-110"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -363,74 +325,11 @@ export default function HomePage() {
                 </a>
               </div>
 
-              {/* Secondary Action Buttons - Placed Lower */}
-              <div className="reveal mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/leaderboard"
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 hover:from-purple-600/30 hover:to-indigo-600/30 border border-purple-500/30 hover:border-purple-400/50 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M16 11V3H8v6H2v12h20V11h-6zM10 5h4v14h-4V5zm-6 8h4v6H4v-6zm16 6h-4v-6h4v6z" />
-                  </svg>
-                  See Live Leaderboard
-                </Link>
-                <a
-                  href="#trailer"
-                  className="px-6 py-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/30 hover:to-blue-600/30 border border-cyan-500/30 hover:border-cyan-400/50 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  Watch Trailer
-                </a>
-              </div>
-
-              {/* Platform info */}
-              <div className="reveal mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-300/80">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
-                  </svg>
-                  <span>Windows / macOS / Linux</span>
-                </div>
-                <span className="text-slate-500">•</span>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 2h6v2h-6zm6.5 8c0 1.11-.89 2-2 2h-3c-1.11 0-2-.89-2-2V9h7m3.5 6c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1M6 9h12V4H6m13 8c-1.1 0-2 .9-2 2v5c0 1.1.9 2 2 2s2-.9 2-2v-5c0-1.1-.9-2-2-2m-14 0c-1.1 0-2 .9-2 2v5c0 1.1.9 2 2 2s2-.9 2-2v-5c0-1.1-.9-2-2-2z" />
-                  </svg>
-                  <span>Controller + KB/M</span>
-                </div>
-                <span className="text-slate-500">•</span>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-                  </svg>
-                  <span>Single-player + Online Stats</span>
-                </div>
-              </div>
-
-              {/* Scroll indicator */}
-              <div className="reveal mt-12">
-                <a
-                  href="#features"
-                  className="scroll-indicator inline-flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
-                  aria-label="Scroll to features"
-                >
-                  <span className="text-xs uppercase tracking-wider">
-                    Scroll to explore
-                  </span>
-                  <svg
-                    className="w-6 h-6 animate-bounce"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
+              {/* Minimal scroll indicator */}
+              <div className="reveal mt-8 opacity-40 hover:opacity-70 transition-opacity">
+                <a href="#features" aria-label="Scroll to features">
+                  <svg className="w-5 h-5 animate-bounce mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                   </svg>
                 </a>
               </div>
