@@ -22,6 +22,11 @@ interface MegabotProps {
     health: number;
     shipCount: number;
     missileCount: number;
+    wave: number;
+    waveState: string;
+    shieldHP: number;
+    maxShieldHP: number;
+    upgradeLevel: number;
   }) => void;
 }
 
@@ -159,7 +164,17 @@ class MegabotScene {
   // Game state
   gameScore: number = 0;
   megabotHealth: number = 10000;
-  onGameStateUpdate?: (state: { score: number; health: number; shipCount: number; missileCount: number }) => void;
+  onGameStateUpdate?: (state: {
+    score: number;
+    health: number;
+    shipCount: number;
+    missileCount: number;
+    wave: number;
+    waveState: string;
+    shieldHP: number;
+    maxShieldHP: number;
+    upgradeLevel: number;
+  }) => void;
 
   // Performance: real delta time tracking
   lastFrameTime: number = 0;
@@ -174,12 +189,47 @@ class MegabotScene {
   private _boundMouseMove: ((e: MouseEvent) => void) | null = null;
   private _boundClick: ((e: MouseEvent) => void) | null = null;
   private _boundResize: (() => void) | null = null;
+  private _boundKeyDown: ((e: KeyboardEvent) => void) | null = null;
+  private _boundKeyUp: ((e: KeyboardEvent) => void) | null = null;
 
   // City / Buildings system
   buildings: any[] = [];
   readonly BUILDING_COUNT = 24;
   readonly CITY_RADIUS = 600; // How far buildings spread from center
   readonly CITY_INNER_RADIUS = 200; // Keep clear around megabot's feet
+
+  // Megabot movement (WASD / arrow keys)
+  keysPressed: Set<string> = new Set();
+  megabotWorldPos = new THREE.Vector3(0, 0, 0); // Cached position updated per frame
+  readonly MEGABOT_MOVE_SPEED = 250; // Units per second
+  readonly MEGABOT_STOMP_RADIUS = 120; // How close to a building before stomping
+
+  // Wave system
+  currentWave: number = 0;
+  waveState: 'intermission' | 'active' | 'boss' = 'intermission';
+  waveTimer: number = 0;
+  waveShipsRemaining: number = 0; // Ships left to spawn this wave
+  waveShipsAlive: number = 0; // Ships currently alive from this wave
+  readonly WAVE_INTERMISSION_TIME = 4; // seconds between waves
+  readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
+
+  // Shield system
+  shieldHP: number = 3000;
+  readonly MAX_SHIELD_HP = 3000;
+  readonly SHIELD_RECHARGE_DELAY = 3; // seconds after last hit before recharge
+  readonly SHIELD_RECHARGE_RATE = 400; // HP per second
+  lastDamageTime: number = 0;
+  shieldMesh: any = null; // Visual shield bubble
+
+  // Weapon upgrade system
+  upgradeLevel: number = 0;
+  readonly UPGRADE_THRESHOLDS = [1000, 3000, 6000, 10000];
+  // Level 1: Homing missiles
+  // Level 2: Wider laser beam
+  // Level 3: Missile barrage ability (Q key)
+  // Level 4: All weapons enhanced
+  barrageCooldown: number = 0;
+  readonly BARRAGE_COOLDOWN_TIME = 8; // seconds
 
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
@@ -218,6 +268,11 @@ class MegabotScene {
       health: number;
       shipCount: number;
       missileCount: number;
+      wave: number;
+      waveState: string;
+      shieldHP: number;
+      maxShieldHP: number;
+      upgradeLevel: number;
     }) => void
   ) {
     this.THREE = THREE;
@@ -240,6 +295,7 @@ class MegabotScene {
     this.createStarField();
     this.createMainMegabot();
     this.createCity();
+    this.createShieldBubble();
     this.createSatellites();
     this.createEnergyParticles();
     this.addEventListeners();
@@ -305,6 +361,7 @@ class MegabotScene {
       this.createStarField();
       this.createMainMegabot();
       this.createCity();
+      this.createShieldBubble();
       this.createSatellites();
       this.createEnergyParticles();
       this.addEventListeners();
@@ -3164,20 +3221,21 @@ class MegabotScene {
 
     const ship = this.create3DShipGeometry(type);
 
-    // Spawn in spherical coordinates around megabot
-    const theta = Math.random() * Math.PI * 2; // Azimuthal angle
-    const phi = Math.random() * Math.PI; // Polar angle (full sphere)
+    // Spawn in spherical coordinates around megabot's current position
+    const mp = this.megabotWorldPos;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
 
-    const spawnX = this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.cos(theta);
-    const spawnY = this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.sin(theta);
-    const spawnZ = this.SHIP_SPAWN_RADIUS * Math.cos(phi);
+    const spawnX = mp.x + this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.cos(theta);
+    const spawnY = mp.y + this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.sin(theta);
+    const spawnZ = mp.z + this.SHIP_SPAWN_RADIUS * Math.cos(phi);
 
     ship.group.position.set(spawnX, spawnY, spawnZ);
 
-    // Calculate velocity toward megabot (at origin)
-    const dirX = -spawnX;
-    const dirY = -spawnY;
-    const dirZ = -spawnZ;
+    // Calculate velocity toward megabot
+    const dirX = mp.x - spawnX;
+    const dirY = mp.y - spawnY;
+    const dirZ = mp.z - spawnZ;
     const distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
     const speed = this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN);
 
@@ -3188,7 +3246,7 @@ class MegabotScene {
     );
 
     // Point ship in direction of travel
-    ship.group.lookAt(0, 0, 0);
+    ship.group.lookAt(mp.x, mp.y, mp.z);
 
     this.enemyShips.push({
       ...ship,
@@ -3279,7 +3337,7 @@ class MegabotScene {
       const speed = 150; // Slower than normal for coordinated attack
       const velocity = toCenter.clone().multiplyScalar(speed);
 
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       this.enemyShips.push({
         ...ship,
@@ -3331,7 +3389,7 @@ class MegabotScene {
         const toCenter = new THREE.Vector3(-spawnX, -spawnY, -spawnZ).normalize();
         const velocity = toCenter.multiplyScalar(speed);
 
-        ship.group.lookAt(0, 0, 0);
+        ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
         this.enemyShips.push({
           ...ship,
@@ -3375,7 +3433,7 @@ class MegabotScene {
       const bomberSpeed = 100; // Slow bomber
       const bomberVelocity = toCenter.clone().multiplyScalar(bomberSpeed);
 
-      bomber.group.lookAt(0, 0, 0);
+      bomber.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       this.enemyShips.push({
         ...bomber,
@@ -3416,7 +3474,7 @@ class MegabotScene {
       const escortSpeed = 120;
       const escortVelocity = toCenter.clone().multiplyScalar(escortSpeed);
 
-      escort.group.lookAt(0, 0, 0);
+      escort.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       this.enemyShips.push({
         ...escort,
@@ -3475,7 +3533,7 @@ class MegabotScene {
       const speed = 250;
       const velocity = toOrbit.multiplyScalar(speed);
 
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       this.enemyShips.push({
         ...ship,
@@ -3586,7 +3644,11 @@ class MegabotScene {
     const distance = 2000;
     const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
 
-    this.create3DMissile(launchPos, targetPos);
+    const missile = this.create3DMissile(launchPos, targetPos);
+    // Apply homing at upgrade level 1+
+    if (missile && this.upgradeLevel >= 1) {
+      (missile as any).homing = true;
+    }
   }
 
   // Launch cluster missiles (3 missiles in spread pattern) - Shift+Click
@@ -3670,7 +3732,7 @@ class MegabotScene {
     shipDir.applyQuaternion(ship.group.quaternion);
 
     // Laser shoots toward megabot
-    const megabotPos = new THREE.Vector3(0, 0, 0); // Megabot is at origin
+    const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
     // Create laser beam geometry (thin cylinder)
@@ -3729,7 +3791,7 @@ class MegabotScene {
     if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
 
     const shipPos = ship.group.position;
-    const megabotPos = new THREE.Vector3(0, 0, 0);
+    const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
     // Thin, fast cyan laser
@@ -3785,7 +3847,7 @@ class MegabotScene {
     if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
 
     const shipPos = ship.group.position;
-    const megabotPos = new THREE.Vector3(0, 0, 0);
+    const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
     // Large plasma ball
@@ -3942,7 +4004,7 @@ class MegabotScene {
       ship.group.position.y += (0 - ship.group.position.y) * dt * 2; // Level out
 
       // Face the center (Megabot)
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       // Occasionally strafe closer
       if (Math.random() < 0.002) {
@@ -3963,7 +4025,7 @@ class MegabotScene {
 
       ship.group.position.x = newX;
       ship.group.position.z = newZ;
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       // After strafe, return to orbit
       if (currentRadius < targetRadius + 20) {
@@ -3982,7 +4044,7 @@ class MegabotScene {
 
       ship.group.position.x = newX;
       ship.group.position.z = newZ;
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       if (currentRadius > ship.orbitRadius - 30) {
         ship.orbitPhase = 'orbit';
@@ -4022,7 +4084,7 @@ class MegabotScene {
       ship.group.position.z += ship.strafeVelocity.z * dt;
 
       // Keep facing megabot
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
       ship.strafeTime += dt;
 
@@ -4047,13 +4109,12 @@ class MegabotScene {
       // Re-engage after retreating far enough
       if (distToMegabot > 800) {
         ship.pincerPhase = 'approach';
-        // Turn around
-        const pos = ship.group.position;
-        const dist = pos.length();
+        // Turn around toward megabot
+        const toMega = this._tmpVec3A.copy(this.megabotWorldPos).sub(ship.group.position).normalize();
         ship.velocity = new THREE.Vector3(
-          (-pos.x / dist) * 300,
-          (-pos.y / dist) * 300,
-          (-pos.z / dist) * 300
+          toMega.x * 300,
+          toMega.y * 300,
+          toMega.z * 300
         );
       }
     }
@@ -4083,18 +4144,288 @@ class MegabotScene {
       ship.group.position.z += (targetZ - ship.group.position.z) * dt * 3;
 
       // Face megabot (threat direction)
-      ship.group.lookAt(0, 0, 0);
+      ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
     } else {
-      // Bomber destroyed, go aggressive
+      // Bomber destroyed, go aggressive toward megabot
       ship.behavior = undefined; // Default kamikaze
-      const pos = ship.group.position;
-      const dist = pos.length();
+      const toMega = this._tmpVec3A.copy(this.megabotWorldPos).sub(ship.group.position).normalize();
       const speed = 400; // Angry escort
       ship.velocity = new THREE.Vector3(
-        (-pos.x / dist) * speed,
-        (-pos.y / dist) * speed,
-        (-pos.z / dist) * speed
+        toMega.x * speed,
+        toMega.y * speed,
+        toMega.z * speed
       );
+    }
+  }
+
+  // WASD / Arrow key movement for Megabot
+  updateMegabotMovement(dt: number) {
+    if (!this.mainMegabot) return;
+
+    let moveX = 0;
+    let moveZ = 0;
+
+    if (this.keysPressed.has('w') || this.keysPressed.has('arrowup')) moveZ -= 1;
+    if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) moveZ += 1;
+    if (this.keysPressed.has('a') || this.keysPressed.has('arrowleft')) moveX -= 1;
+    if (this.keysPressed.has('d') || this.keysPressed.has('arrowright')) moveX += 1;
+
+    if (moveX === 0 && moveZ === 0) return;
+
+    // Normalize diagonal movement
+    const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
+    moveX /= len;
+    moveZ /= len;
+
+    // Apply movement relative to camera angle so "forward" is always screen-up
+    const cosA = Math.cos(this.cameraAngle);
+    const sinA = Math.sin(this.cameraAngle);
+    const worldX = moveX * cosA - moveZ * sinA;
+    const worldZ = moveX * sinA + moveZ * cosA;
+
+    const speed = this.MEGABOT_MOVE_SPEED * dt;
+    this.mainMegabot.position.x += worldX * speed;
+    this.mainMegabot.position.z += worldZ * speed;
+
+    // Walking animation - slight bob
+    this.mainMegabot.position.y = Math.sin(this.time * 6) * 8;
+
+    // Turn megabot to face movement direction (blend with tracking)
+    if (!this.trackingTarget) {
+      const targetAngle = Math.atan2(worldX, worldZ);
+      const angleDiff = targetAngle - this.mainMegabot.rotation.y;
+      // Normalize angle
+      const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+      this.mainMegabot.rotation.y += normalizedDiff * 0.1;
+    }
+
+    // Stomp buildings!
+    for (let i = this.buildings.length - 1; i >= 0; i--) {
+      const building = this.buildings[i];
+      if (!building.active) continue;
+
+      const dx = this.mainMegabot.position.x - building.group.position.x;
+      const dz = this.mainMegabot.position.z - building.group.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < this.MEGABOT_STOMP_RADIUS) {
+        this.destroyBuilding(building, i);
+      }
+    }
+  }
+
+  // Shield system: recharges after not taking damage
+  updateShield(dt: number) {
+    const timeSinceHit = this.time - this.lastDamageTime;
+    if (timeSinceHit > this.SHIELD_RECHARGE_DELAY && this.shieldHP < this.MAX_SHIELD_HP) {
+      this.shieldHP = Math.min(this.MAX_SHIELD_HP, this.shieldHP + this.SHIELD_RECHARGE_RATE * dt);
+    }
+
+    // Update shield visual
+    if (this.shieldMesh && this.mainMegabot) {
+      this.shieldMesh.position.copy(this.mainMegabot.position);
+      this.shieldMesh.position.y += this.MAIN_SIZE * 0.3;
+
+      const shieldRatio = this.shieldHP / this.MAX_SHIELD_HP;
+      this.shieldMesh.material.opacity = shieldRatio * 0.15 + 0.02;
+      this.shieldMesh.material.color.setHex(shieldRatio > 0.5 ? 0x4488ff : shieldRatio > 0.2 ? 0xffaa00 : 0xff4444);
+      // Pulsing effect
+      const pulse = 1.0 + Math.sin(this.time * 3) * 0.02;
+      this.shieldMesh.scale.setScalar(pulse);
+      this.shieldMesh.visible = this.shieldHP > 0;
+    }
+  }
+
+  // Apply damage with shield absorption
+  applyDamageToMegabot(damage: number) {
+    this.lastDamageTime = this.time;
+
+    if (this.shieldHP > 0) {
+      const absorbed = Math.min(damage, this.shieldHP);
+      this.shieldHP -= absorbed;
+      damage -= absorbed;
+    }
+
+    if (damage > 0) {
+      this.megabotHealth = Math.max(0, this.megabotHealth - damage);
+    }
+  }
+
+  // Create the shield bubble visual
+  createShieldBubble() {
+    const THREE = this.THREE;
+    const shieldGeo = new THREE.SphereGeometry(this.MAIN_SIZE * 1.3, 32, 32);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x4488ff,
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+    this.shieldMesh.position.y = this.MAIN_SIZE * 0.3;
+    this.scene.add(this.shieldMesh);
+  }
+
+  // Check and apply weapon upgrades based on score
+  checkUpgrades() {
+    let newLevel = 0;
+    for (let i = 0; i < this.UPGRADE_THRESHOLDS.length; i++) {
+      if (this.gameScore >= this.UPGRADE_THRESHOLDS[i]) {
+        newLevel = i + 1;
+      }
+    }
+    this.upgradeLevel = newLevel;
+  }
+
+  // Missile barrage - fire missiles in all directions (Level 3 ability)
+  launchMissileBarrage() {
+    if (!this.mainMegabot) return;
+    const THREE = this.THREE;
+
+    const count = this.upgradeLevel >= 4 ? 12 : 8;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const launchPos = this.mainMegabot.position.clone();
+      launchPos.y += this.MAIN_SIZE * 0.7;
+
+      const targetPos = launchPos.clone().add(
+        new THREE.Vector3(
+          Math.cos(angle) * 1500,
+          (Math.random() - 0.3) * 400,
+          Math.sin(angle) * 1500
+        )
+      );
+
+      setTimeout(() => {
+        const missile = this.create3DMissile(launchPos.clone(), targetPos);
+        // If upgrade level 1+, make missiles homing
+        if (missile && this.upgradeLevel >= 1) {
+          (missile as any).homing = true;
+        }
+      }, i * 40);
+    }
+  }
+
+  // Wave system logic
+  updateWaveSystem(dt: number) {
+    const currentTime = this.time * 1000;
+
+    switch (this.waveState) {
+      case 'intermission':
+        this.waveTimer += dt;
+        if (this.waveTimer >= this.WAVE_INTERMISSION_TIME) {
+          // Start next wave
+          this.currentWave++;
+          this.waveTimer = 0;
+
+          const isBossWave = this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
+          this.waveState = isBossWave ? 'boss' : 'active';
+
+          // Calculate ships for this wave
+          if (isBossWave) {
+            // Boss wave: fewer but tougher ships + a boss formation
+            this.waveShipsRemaining = 3 + Math.floor(this.currentWave / 5);
+            this.spawnBossWave();
+          } else {
+            // Normal wave: escalating ship count
+            this.waveShipsRemaining = 4 + this.currentWave * 2;
+          }
+          this.waveShipsAlive = 0;
+          this.lastShipSpawnTime = currentTime;
+          this.lastFormationSpawnTime = currentTime;
+        }
+        break;
+
+      case 'active':
+      case 'boss': {
+        // Spawn ships with increasing frequency per wave
+        const spawnInterval = Math.max(800, this.SHIP_SPAWN_INTERVAL - this.currentWave * 100);
+        if (this.waveShipsRemaining > 0 && currentTime - this.lastShipSpawnTime > spawnInterval) {
+          this.spawn3DShip();
+          this.waveShipsRemaining--;
+          this.waveShipsAlive++;
+          this.lastShipSpawnTime = currentTime;
+        }
+
+        // Spawn formations during waves
+        const formInterval = Math.max(3000, this.FORMATION_SPAWN_INTERVAL - this.currentWave * 200);
+        if (this.waveShipsRemaining > 3 && currentTime - this.lastFormationSpawnTime > formInterval) {
+          this.spawnFormation();
+          this.waveShipsRemaining -= 3;
+          this.waveShipsAlive += 3;
+          this.lastFormationSpawnTime = currentTime;
+        }
+
+        // Check if wave is complete (all spawned and all destroyed)
+        const shipsLeft = this.enemyShips.filter(s => s.active).length;
+        if (this.waveShipsRemaining <= 0 && shipsLeft === 0) {
+          this.waveState = 'intermission';
+          this.waveTimer = 0;
+          // Wave completion bonus
+          this.gameScore += this.currentWave * 100;
+        }
+        break;
+      }
+    }
+  }
+
+  // Boss wave: spawn a large cruiser escort formation
+  spawnBossWave() {
+    const THREE = this.THREE;
+    const bossFormId = this.formationIdCounter++;
+    const baseAngle = Math.random() * Math.PI * 2;
+    const bossPos = new THREE.Vector3(
+      Math.cos(baseAngle) * this.SHIP_SPAWN_RADIUS,
+      100 + Math.random() * 200,
+      Math.sin(baseAngle) * this.SHIP_SPAWN_RADIUS
+    );
+
+    // Spawn boss cruiser
+    const bossShip = this.create3DShipGeometry('cruiser');
+    bossShip.group.position.copy(bossPos);
+    bossShip.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+
+    // Boss has scaled-up health based on wave
+    const bossHealth = 15 + this.currentWave * 2;
+    const dir = this._tmpVec3A.copy(this.megabotWorldPos).sub(bossPos).normalize();
+    const speed = 120;
+
+    this.enemyShips.push({
+      ...bossShip,
+      health: bossHealth,
+      maxHealth: bossHealth,
+      velocity: new THREE.Vector3(dir.x * speed, dir.y * speed, dir.z * speed),
+      active: true,
+      lastLaserTime: 0,
+      formationId: bossFormId,
+      formationRole: 'boss',
+    });
+    this.scene.add(bossShip.group);
+
+    // Spawn 2-4 escort fighters
+    const escortCount = 2 + Math.floor(this.currentWave / 5);
+    for (let i = 0; i < escortCount; i++) {
+      const escortAngle = baseAngle + ((i + 1) / (escortCount + 1)) * 0.6 - 0.3;
+      const escortShip = this.create3DShipGeometry('fighter');
+      escortShip.group.position.set(
+        Math.cos(escortAngle) * this.SHIP_SPAWN_RADIUS,
+        bossPos.y + (i % 2 === 0 ? 50 : -50),
+        Math.sin(escortAngle) * this.SHIP_SPAWN_RADIUS
+      );
+      escortShip.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+
+      const escortDir = this._tmpVec3B.copy(this.megabotWorldPos).sub(escortShip.group.position).normalize();
+      this.enemyShips.push({
+        ...escortShip,
+        velocity: new THREE.Vector3(escortDir.x * 280, escortDir.y * 280, escortDir.z * 280),
+        active: true,
+        lastLaserTime: 0,
+        formationId: bossFormId,
+        behavior: 'escort-protect',
+        escortTarget: bossFormId,
+      });
+      this.scene.add(escortShip.group);
     }
   }
 
@@ -4103,25 +4434,15 @@ class MegabotScene {
     const THREE = this.THREE;
     const dt = deltaTime;
 
-    // Spawn ships periodically (solo ships)
-    const currentTime = this.time * 1000;
-    if (currentTime - this.lastShipSpawnTime > this.SHIP_SPAWN_INTERVAL) {
-      this.spawn3DShip();
-      this.lastShipSpawnTime = currentTime;
-    }
-
-    // Spawn formations periodically
-    if (currentTime - this.lastFormationSpawnTime > this.FORMATION_SPAWN_INTERVAL) {
-      this.spawnFormation();
-      this.lastFormationSpawnTime = currentTime;
-    }
+    // Wave-based spawning instead of constant
+    this.updateWaveSystem(dt);
 
     // Update enemy ships
     for (let i = this.enemyShips.length - 1; i >= 0; i--) {
       const ship = this.enemyShips[i];
       if (!ship.active) continue;
 
-      const distToMegabot = ship.group.position.length();
+      const distToMegabot = ship.group.position.distanceTo(this.megabotWorldPos);
 
       // Update position based on behavior type
       if (ship.behavior === 'orbit-strafe') {
@@ -4264,9 +4585,9 @@ class MegabotScene {
 
       // Check collision with megabot
       if (distToMegabot < this.MAIN_SIZE + ship.size) {
-        // Hit megabot - apply damage and score penalty
-        this.megabotHealth = Math.max(0, this.megabotHealth - 10);
-        this.gameScore = Math.max(0, this.gameScore - 5); // Penalty for letting ship hit megabot
+        // Hit megabot - apply damage through shield and score penalty
+        this.applyDamageToMegabot(10);
+        this.gameScore = Math.max(0, this.gameScore - 5);
         this.create3DExplosion(ship.group.position, ship.size * 2);
         this.scene.remove(ship.group);
         this.enemyShips.splice(i, 1);
@@ -4289,8 +4610,9 @@ class MegabotScene {
           const angle = laserDir.dot(toShip);
 
           // More forgiving cone angle for better hit detection
-          if (angle > 0.92) { // Within ~23 degree cone (more forgiving)
-            ship.health -= 5 * dt;
+          const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92; // Wider beam at upgrade 2+
+          if (angle > laserConeThreshold) {
+            ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
             ship.hitFlash = 1.0;
 
             // Small damage sparks when hit but not destroyed
@@ -4321,8 +4643,8 @@ class MegabotScene {
           const toShip = toShipVecRight.clone().normalize();
           const angle = laserDir.dot(toShip);
 
-          if (angle > 0.92) {
-            ship.health -= 5 * dt;
+          if (angle > (this.upgradeLevel >= 2 ? 0.82 : 0.92)) {
+            ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
             ship.hitFlash = 1.0;
 
             // Small damage sparks when hit but not destroyed
@@ -4354,6 +4676,34 @@ class MegabotScene {
     for (let i = this.missiles3D.length - 1; i >= 0; i--) {
       const missile = this.missiles3D[i];
       if (!missile.active) continue;
+
+      // Homing missile logic (upgrade level 1+)
+      if ((missile as any).homing && this.enemyShips.length > 0) {
+        // Find nearest ship
+        let nearestDist = Infinity;
+        let nearestShip: any = null;
+        for (const ship of this.enemyShips) {
+          if (!ship.active) continue;
+          const d = missile.group.position.distanceToSquared(ship.group.position);
+          if (d < nearestDist) {
+            nearestDist = d;
+            nearestShip = ship;
+          }
+        }
+        if (nearestShip) {
+          // Steer toward target
+          const toTarget = this._tmpVec3A.subVectors(nearestShip.group.position, missile.group.position).normalize();
+          const currentDir = this._tmpVec3B.copy(missile.velocity).normalize();
+          // Blend: 80% current direction + 20% homing
+          const homingStrength = this.upgradeLevel >= 4 ? 0.06 : 0.03;
+          missile.velocity.x += (toTarget.x - currentDir.x) * this.MISSILE_SPEED_3D * homingStrength;
+          missile.velocity.y += (toTarget.y - currentDir.y) * this.MISSILE_SPEED_3D * homingStrength;
+          missile.velocity.z += (toTarget.z - currentDir.z) * this.MISSILE_SPEED_3D * homingStrength;
+          // Re-normalize to missile speed
+          missile.velocity.normalize().multiplyScalar(this.MISSILE_SPEED_3D);
+          missile.group.lookAt(nearestShip.group.position);
+        }
+      }
 
       // Update position
       missile.group.position.x += missile.velocity.x * dt;
@@ -4400,7 +4750,7 @@ class MegabotScene {
       if (hitShip) continue;
 
       // Remove if out of range
-      if (missile.group.position.length() > 3000) {
+      if (missile.group.position.distanceTo(this.megabotWorldPos) > 3000) {
         this.scene.remove(missile.group);
         this.missiles3D.splice(i, 1);
       }
@@ -4449,12 +4799,12 @@ class MegabotScene {
       }
 
       // Check if laser hit megabot (sphere collision)
-      const distToMegabot = laser.group.position.length();
+      const distToMegabot = laser.group.position.distanceTo(this.megabotWorldPos);
       const hitRadius = laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 : this.MAIN_SIZE;
 
       if (distToMegabot < hitRadius) {
-        // Hit megabot!
-        this.megabotHealth = Math.max(0, this.megabotHealth - laser.damage);
+        // Hit megabot! (through shield)
+        this.applyDamageToMegabot(laser.damage);
 
         // Different explosion sizes based on weapon type
         const explosionSize = laser.type === 'plasma' ? 40 : laser.type === 'rapid' ? 8 : 15;
@@ -4519,6 +4869,11 @@ class MegabotScene {
         health: this.megabotHealth,
         shipCount: activeShips,
         missileCount: activeMissiles,
+        wave: this.currentWave,
+        waveState: this.waveState,
+        shieldHP: Math.floor(this.shieldHP),
+        maxShieldHP: this.MAX_SHIELD_HP,
+        upgradeLevel: this.upgradeLevel,
       });
     }
   }
@@ -4557,6 +4912,21 @@ class MegabotScene {
     };
     document.addEventListener("click", this._boundClick);
 
+    // Keyboard: WASD / Arrow keys for movement, Q for barrage
+    this._boundKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      // Only capture game keys, don't interfere with page interaction
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q'].includes(key)) {
+        e.preventDefault();
+        this.keysPressed.add(key);
+      }
+    };
+    this._boundKeyUp = (e: KeyboardEvent) => {
+      this.keysPressed.delete(e.key.toLowerCase());
+    };
+    document.addEventListener("keydown", this._boundKeyDown);
+    document.addEventListener("keyup", this._boundKeyUp);
+
     // Window resize
     this._boundResize = () => this.onWindowResize();
     window.addEventListener("resize", this._boundResize, false);
@@ -4583,36 +4953,56 @@ class MegabotScene {
     const deltaTime = Math.min(rawDelta, 0.05);
     this.time += deltaTime;
 
-    // Update 3D combat system
+    // WASD / Arrow key movement
+    this.updateMegabotMovement(deltaTime);
+
+    // Update 3D combat system (wave-based)
     this.update3DCombat(deltaTime);
 
-    // Smooth camera movement based on mouse
+    // Update shield recharge
+    this.updateShield(deltaTime);
+
+    // Check weapon upgrades
+    this.checkUpgrades();
+
+    // Update barrage cooldown
+    if (this.barrageCooldown > 0) this.barrageCooldown -= deltaTime;
+
+    // Handle Q key for missile barrage
+    if (this.keysPressed.has('q') && this.upgradeLevel >= 3 && this.barrageCooldown <= 0) {
+      this.launchMissileBarrage();
+      this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
+    }
+
+    // Smooth camera movement based on mouse, following megabot
+    const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, 0, 0);
     this.cameraAngle += this.mouse.x * 0.001;
-    const targetCameraY = 300 + this.mouse.y * 100;
+    const targetCameraY = megaPos.y + 300 + this.mouse.y * 100;
     this.camera.position.y += (targetCameraY - this.camera.position.y) * 0.05;
 
-    this.camera.position.x = Math.sin(this.cameraAngle) * this.cameraDistance;
-    this.camera.position.z = Math.cos(this.cameraAngle) * this.cameraDistance;
-    this.camera.lookAt(0, 0, 0);
+    this.camera.position.x = megaPos.x + Math.sin(this.cameraAngle) * this.cameraDistance;
+    this.camera.position.z = megaPos.z + Math.cos(this.cameraAngle) * this.cameraDistance;
+    this.camera.lookAt(megaPos.x, megaPos.y, megaPos.z);
 
     // Animate main Megabot
     if (this.mainMegabot) {
+      // Cache world pos for combat checks
+      this.megabotWorldPos.copy(this.mainMegabot.position);
+
       // Body rotation - track target or idle rotation
       if (this.trackingTarget && this.targetPosition3D) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
-        const lerpSpeed = 0.14; // FASTER - Evil tech AI moves with terrifying speed
+        const lerpSpeed = 0.14;
 
         // Smoothly rotate body toward target
         this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
         this.mainMegabot.rotation.y = this.currentRotation.y;
       } else {
         // IDLE MODE: Slow menacing rotation
-        // Smoothly return to neutral rotation when not tracking
         const returnSpeed = 0.05;
         this.currentRotation.y += (0 - this.currentRotation.y) * returnSpeed;
         this.currentRotation.x += (0 - this.currentRotation.x) * returnSpeed;
 
-        // Apply slow idle rotation on top of neutral position
         this.mainMegabot.rotation.y += 0.001;
       }
 
@@ -5101,6 +5491,14 @@ class MegabotScene {
       document.removeEventListener("click", this._boundClick);
       this._boundClick = null;
     }
+    if (this._boundKeyDown) {
+      document.removeEventListener("keydown", this._boundKeyDown);
+      this._boundKeyDown = null;
+    }
+    if (this._boundKeyUp) {
+      document.removeEventListener("keyup", this._boundKeyUp);
+      this._boundKeyUp = null;
+    }
     if (this._boundResize) {
       window.removeEventListener("resize", this._boundResize);
       this._boundResize = null;
@@ -5149,5 +5547,14 @@ class MegabotScene {
     this.formations = [];
     this.buildings = [];
     this.lastFrameTime = 0;
+    this.keysPressed.clear();
+    this.megabotWorldPos.set(0, 0, 0);
+    this.currentWave = 0;
+    this.waveState = 'intermission';
+    this.waveTimer = 0;
+    this.shieldHP = this.MAX_SHIELD_HP;
+    this.upgradeLevel = 0;
+    this.barrageCooldown = 0;
+    this.shieldMesh = null;
   }
 }

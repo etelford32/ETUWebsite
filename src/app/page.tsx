@@ -48,11 +48,21 @@ export default function HomePage() {
     health: number;
     shipCount: number;
     missileCount: number;
+    wave: number;
+    waveState: string;
+    shieldHP: number;
+    maxShieldHP: number;
+    upgradeLevel: number;
   }>({
     score: 0,
     health: 10000,
     shipCount: 0,
-    missileCount: 0
+    missileCount: 0,
+    wave: 0,
+    waveState: 'intermission',
+    shieldHP: 3000,
+    maxShieldHP: 3000,
+    upgradeLevel: 0,
   });
 
   // Handle button hover for Megabot tracking (only Steam button)
