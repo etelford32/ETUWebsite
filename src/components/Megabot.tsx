@@ -161,6 +161,26 @@ class MegabotScene {
   megabotHealth: number = 10000;
   onGameStateUpdate?: (state: { score: number; health: number; shipCount: number; missileCount: number }) => void;
 
+  // Performance: real delta time tracking
+  lastFrameTime: number = 0;
+
+  // Performance: pre-allocated reusable objects to reduce GC pressure
+  private _tmpVec3A = new THREE.Vector3();
+  private _tmpVec3B = new THREE.Vector3();
+  private _tmpVec3C = new THREE.Vector3();
+  private _tmpQuat = new THREE.Quaternion();
+
+  // Bound event handlers for proper cleanup
+  private _boundMouseMove: ((e: MouseEvent) => void) | null = null;
+  private _boundClick: ((e: MouseEvent) => void) | null = null;
+  private _boundResize: (() => void) | null = null;
+
+  // City / Buildings system
+  buildings: any[] = [];
+  readonly BUILDING_COUNT = 24;
+  readonly CITY_RADIUS = 600; // How far buildings spread from center
+  readonly CITY_INNER_RADIUS = 200; // Keep clear around megabot's feet
+
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
   readonly SATELLITE_COUNT_LOW = 3;
@@ -219,12 +239,11 @@ class MegabotScene {
     this.init();
     this.createStarField();
     this.createMainMegabot();
+    this.createCity();
     this.createSatellites();
     this.createEnergyParticles();
     this.addEventListeners();
     this.animate();
-
-    console.log("🤖 Megabot scene initialized!");
   }
 
   detectCapabilities(quality: QualityLevel = "medium") {
@@ -285,11 +304,11 @@ class MegabotScene {
       this.init();
       this.createStarField();
       this.createMainMegabot();
+      this.createCity();
       this.createSatellites();
       this.createEnergyParticles();
       this.addEventListeners();
       this.animate();
-      console.log(`✅ Scene recreated with ${quality} quality`);
     } catch (error) {
       console.error("❌ Error recreating scene:", error);
       this.showFallback();
@@ -347,15 +366,7 @@ class MegabotScene {
         // Store target rotations (limited for natural movement)
         this.targetRotation.y = THREE.MathUtils.clamp(targetYaw, -0.5, 0.5); // Limit horizontal turn
         this.targetRotation.x = THREE.MathUtils.clamp(targetPitch, -0.3, 0.3); // Limit vertical tilt
-
-        console.log('🎯 Tracking target set:', {
-          screen: `(${target.x}, ${target.y})`,
-          world3D: `(${targetPos.x.toFixed(0)}, ${targetPos.y.toFixed(0)}, ${targetPos.z.toFixed(0)})`,
-          rotation: `yaw: ${(targetYaw * 180 / Math.PI).toFixed(1)}°, pitch: ${(targetPitch * 180 / Math.PI).toFixed(1)}°`,
-          hasLasers: !!(this.leftLaser && this.rightLaser)
-        });
       } else {
-        console.warn('⚠️ Ray-plane intersection failed, falling back to scanning mode');
         this.targetPosition3D = null;
         this.targetRotation.x = 0;
         this.targetRotation.y = 0;
@@ -365,7 +376,6 @@ class MegabotScene {
       this.targetRotation.x = 0;
       this.targetRotation.y = 0;
       this.targetPosition3D = null;
-      console.log('🎯 Tracking target cleared');
     }
   }
 
@@ -1345,11 +1355,6 @@ class MegabotScene {
     this.megabotParts.push({ mesh: leftLaser, type: 'leftLaser' });
     this.megabotParts.push({ mesh: rightLaser, type: 'rightLaser' });
 
-    console.log('🔴 Lasers created at eye positions:', {
-      leftEyePos: leftEye.position,
-      rightEyePos: rightEye.position
-    });
-
     // Eye glow lights - ULTRA INTENSE EVIL red glow
     const leftEyeLight = new THREE.PointLight(0xff0000, 15, 800); // EVIL INTENSITY - Much brighter and wider range
     leftEyeLight.position.copy(leftEye.position);
@@ -2135,6 +2140,289 @@ class MegabotScene {
     console.log("🤖 Gundam-style Megabot created with evil laser eyes!");
   }
 
+  // Create a destructible cityscape around Megabot's feet
+  createCity() {
+    const THREE = this.THREE;
+    this.buildings = [];
+
+    // Building color palettes - cyberpunk neon city
+    const buildingColors = [
+      { base: 0x1a1a2e, accent: 0x00d4ff, window: 0x00aaff },
+      { base: 0x16213e, accent: 0xff6b9d, window: 0xff4488 },
+      { base: 0x0f3460, accent: 0x53d769, window: 0x33ff66 },
+      { base: 0x1a1a3e, accent: 0xffa500, window: 0xffcc00 },
+      { base: 0x2d132c, accent: 0xe94560, window: 0xff2244 },
+      { base: 0x222244, accent: 0xaa66ff, window: 0x8844dd },
+    ];
+
+    for (let i = 0; i < this.BUILDING_COUNT; i++) {
+      // Place buildings in a ring around megabot
+      const angle = (i / this.BUILDING_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const radius = this.CITY_INNER_RADIUS + Math.random() * (this.CITY_RADIUS - this.CITY_INNER_RADIUS);
+
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      // Vary building dimensions
+      const width = 30 + Math.random() * 50;
+      const depth = 30 + Math.random() * 50;
+      const height = 60 + Math.random() * 200;
+
+      const palette = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+      const group = new THREE.Group();
+
+      // Main building body
+      const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: palette.base,
+        metalness: 0.7,
+        roughness: 0.3,
+        emissive: new THREE.Color(palette.base),
+        emissiveIntensity: 0.1,
+      });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = height / 2;
+      group.add(body);
+
+      // Window rows - glowing strips on the front faces
+      const windowRows = Math.floor(height / 20);
+      const windowMat = new THREE.MeshBasicMaterial({
+        color: palette.window,
+        transparent: true,
+        opacity: 0.6 + Math.random() * 0.3,
+      });
+
+      for (let row = 0; row < windowRows; row++) {
+        // Only add windows to ~60% of rows (some are dark floors)
+        if (Math.random() > 0.6) continue;
+
+        const windowHeight = 4;
+        const windowWidth = width * 0.8;
+        const windowGeo = new THREE.BoxGeometry(windowWidth, windowHeight, 0.5);
+
+        // Front face windows
+        const windowFront = new THREE.Mesh(windowGeo, windowMat);
+        windowFront.position.set(0, 10 + row * 20, depth / 2 + 0.3);
+        group.add(windowFront);
+
+        // Back face windows
+        const windowBack = new THREE.Mesh(windowGeo, windowMat);
+        windowBack.position.set(0, 10 + row * 20, -depth / 2 - 0.3);
+        group.add(windowBack);
+
+        // Side windows
+        const sideWindowGeo = new THREE.BoxGeometry(0.5, windowHeight, depth * 0.8);
+        const windowLeft = new THREE.Mesh(sideWindowGeo, windowMat);
+        windowLeft.position.set(-width / 2 - 0.3, 10 + row * 20, 0);
+        group.add(windowLeft);
+
+        const windowRight = new THREE.Mesh(sideWindowGeo, windowMat);
+        windowRight.position.set(width / 2 + 0.3, 10 + row * 20, 0);
+        group.add(windowRight);
+      }
+
+      // Rooftop accent light
+      const accentGeo = new THREE.BoxGeometry(width * 0.3, 3, depth * 0.3);
+      const accentMat = new THREE.MeshBasicMaterial({
+        color: palette.accent,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const accent = new THREE.Mesh(accentGeo, accentMat);
+      accent.position.y = height + 1.5;
+      group.add(accent);
+
+      // Rooftop antenna/spire on taller buildings
+      if (height > 150) {
+        const spireGeo = new THREE.CylinderGeometry(1, 2, 40, 6);
+        const spireMat = new THREE.MeshStandardMaterial({
+          color: 0x444466,
+          metalness: 0.9,
+          roughness: 0.1,
+        });
+        const spire = new THREE.Mesh(spireGeo, spireMat);
+        spire.position.y = height + 20;
+        group.add(spire);
+
+        // Blinking light on top
+        const blinkLight = new THREE.PointLight(palette.accent, 2, 60);
+        blinkLight.position.y = height + 42;
+        group.add(blinkLight);
+      }
+
+      // Small point light at building base for ambient glow
+      const baseLight = new THREE.PointLight(palette.accent, 1, width * 2);
+      baseLight.position.y = 5;
+      group.add(baseLight);
+
+      group.position.set(x, -this.MAIN_SIZE * 0.5, z);
+
+      this.scene.add(group);
+
+      this.buildings.push({
+        group,
+        health: Math.ceil(height / 30), // Taller buildings take more hits
+        maxHealth: Math.ceil(height / 30),
+        width,
+        height,
+        depth,
+        active: true,
+        palette,
+        damageLevel: 0, // 0 = pristine, increases with damage
+      });
+    }
+  }
+
+  // Update buildings - check for damage from ship crashes and enemy fire
+  updateBuildings(dt: number) {
+    const THREE = this.THREE;
+
+    for (let i = this.buildings.length - 1; i >= 0; i--) {
+      const building = this.buildings[i];
+      if (!building.active) continue;
+
+      const buildingWorldPos = building.group.position;
+
+      // Visual damage feedback - make buildings glow when damaged
+      if (building.damageLevel > 0) {
+        const damageRatio = building.damageLevel / building.maxHealth;
+
+        // Fire flicker on damaged buildings
+        building.group.children.forEach((child: any) => {
+          if (child.isPointLight && child.position.y < 10) {
+            child.color.setHex(damageRatio > 0.5 ? 0xff4400 : 0xff8800);
+            child.intensity = 2 + Math.sin(this.time * 8 + i) * 1.5;
+          }
+        });
+      }
+
+      // Check collision with enemy ships that crash into buildings
+      for (let j = this.enemyShips.length - 1; j >= 0; j--) {
+        const ship = this.enemyShips[j];
+        if (!ship.active) continue;
+
+        const dx = ship.group.position.x - buildingWorldPos.x;
+        const dz = ship.group.position.z - buildingWorldPos.z;
+        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const shipY = ship.group.position.y;
+        const buildingTop = buildingWorldPos.y + building.height;
+
+        if (horizontalDist < (building.width / 2 + ship.size) &&
+            shipY > buildingWorldPos.y && shipY < buildingTop) {
+          // Ship crashed into building!
+          building.health--;
+          building.damageLevel++;
+
+          this.create3DExplosion(ship.group.position, ship.size * 1.5);
+
+          // Destroy the ship on impact
+          this.scene.remove(ship.group);
+          this.enemyShips.splice(j, 1);
+
+          if (building.health <= 0) {
+            this.destroyBuilding(building, i);
+            break;
+          } else {
+            // Partial damage - shrink the building slightly
+            const shrink = 1 - (building.damageLevel / building.maxHealth) * 0.3;
+            building.group.scale.y = shrink;
+          }
+        }
+      }
+
+      if (!building.active) continue;
+
+      // Check if enemy lasers/plasma hit buildings
+      for (let j = this.enemyLasers.length - 1; j >= 0; j--) {
+        const laser = this.enemyLasers[j];
+        if (!laser.active) continue;
+
+        const dx = laser.group.position.x - buildingWorldPos.x;
+        const dz = laser.group.position.z - buildingWorldPos.z;
+        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const laserY = laser.group.position.y;
+
+        if (horizontalDist < building.width / 2 + 10 &&
+            laserY > buildingWorldPos.y && laserY < buildingWorldPos.y + building.height) {
+          // Laser hit building - only plasma does real damage
+          if (laser.type === 'plasma') {
+            building.health--;
+            building.damageLevel++;
+          }
+
+          this.create3DExplosion(laser.group.position, 10);
+          this.scene.remove(laser.group);
+          this.enemyLasers.splice(j, 1);
+
+          if (building.health <= 0) {
+            this.destroyBuilding(building, i);
+            break;
+          } else {
+            const shrink = 1 - (building.damageLevel / building.maxHealth) * 0.3;
+            building.group.scale.y = shrink;
+          }
+        }
+      }
+    }
+  }
+
+  // Destroy a building with an explosion
+  destroyBuilding(building: any, index: number) {
+    const THREE = this.THREE;
+
+    // Big explosion at building center
+    const center = building.group.position.clone();
+    center.y += building.height / 2;
+    this.create3DExplosion(center, building.width * 1.5);
+
+    // Create falling debris particles
+    const debrisCount = 20;
+    const debrisGeo = new THREE.BufferGeometry();
+    const debrisPositions = new Float32Array(debrisCount * 3);
+    const debrisVelocities: any[] = [];
+
+    for (let i = 0; i < debrisCount; i++) {
+      debrisPositions[i * 3] = center.x + (Math.random() - 0.5) * building.width;
+      debrisPositions[i * 3 + 1] = center.y + (Math.random() - 0.5) * building.height * 0.5;
+      debrisPositions[i * 3 + 2] = center.z + (Math.random() - 0.5) * building.depth;
+
+      debrisVelocities.push(new THREE.Vector3(
+        (Math.random() - 0.5) * 200,
+        Math.random() * 150 + 50,
+        (Math.random() - 0.5) * 200
+      ));
+    }
+
+    debrisGeo.setAttribute('position', new THREE.BufferAttribute(debrisPositions, 3));
+    const debrisMat = new THREE.PointsMaterial({
+      color: building.palette.accent,
+      size: 8,
+      transparent: true,
+      opacity: 1.0,
+    });
+    const debrisSystem = new THREE.Points(debrisGeo, debrisMat);
+    this.scene.add(debrisSystem);
+
+    // Track debris for animation
+    this.explosions3D.push({
+      particles: debrisSystem,
+      light: new THREE.PointLight(building.palette.accent, 0, 0), // Dummy light
+      velocities: debrisVelocities,
+      lifetime: 0,
+      maxLifetime: 2.0,
+      active: true,
+    });
+    // Add dummy light to scene so cleanup works
+    this.scene.add(this.explosions3D[this.explosions3D.length - 1].light);
+
+    // Score bonus for buildings being destroyed (collateral damage from enemies)
+    this.gameScore += 50;
+
+    // Remove building from scene
+    this.scene.remove(building.group);
+    building.active = false;
+  }
+
   createSatellites() {
     const THREE = this.THREE;
     const count = this.settings.satelliteCount;
@@ -2291,29 +2579,35 @@ class MegabotScene {
   }
 
   // Create 3D ship geometry with detailed mesh designs
-  create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor') {
+  create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser') {
     const THREE = this.THREE;
     const group = new THREE.Group();
 
-    let size, health, color;
+    let size = 50, health = 1, color = 0xff4444;
     switch (type) {
       case 'fighter':
-        size = 50; // Increased for better visibility in 3D space
+        size = 50;
         health = 1;
         color = 0xff4444;
         this.createFighterMesh(group, size, color, THREE);
         break;
       case 'bomber':
-        size = 80; // Increased for better visibility in 3D space
+        size = 80;
         health = 3;
         color = 0xff8800;
         this.createBomberMesh(group, size, color, THREE);
         break;
       case 'interceptor':
-        size = 60; // Increased for better visibility in 3D space
+        size = 60;
         health = 2;
         color = 0xffff00;
         this.createInterceptorMesh(group, size, color, THREE);
+        break;
+      case 'cruiser':
+        size = 120;
+        health = 8;
+        color = 0xcc00ff;
+        this.createCruiserMesh(group, size, color, THREE);
         break;
     }
 
@@ -2743,18 +3037,132 @@ class MegabotScene {
     }
   }
 
+  // CRUISER - Heavy capital ship, large and menacing
+  createCruiserMesh(group: any, size: number, color: number, THREE: any) {
+    const primaryMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.4,
+    });
+
+    const armorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x222233,
+      metalness: 0.95,
+      roughness: 0.15,
+      emissive: new THREE.Color(0x110022),
+      emissiveIntensity: 0.2,
+    });
+
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.7,
+    });
+
+    // Main hull - elongated wedge shape (Star Destroyer inspired)
+    const hullGeo = new THREE.BoxGeometry(size * 0.5, size * 0.2, size * 1.8);
+    const hull = new THREE.Mesh(hullGeo, armorMaterial);
+    group.add(hull);
+
+    // Tapered bow (front wedge)
+    const bowGeo = new THREE.ConeGeometry(size * 0.35, size * 0.8, 4);
+    const bow = new THREE.Mesh(bowGeo, primaryMaterial);
+    bow.rotation.x = -Math.PI / 2;
+    bow.rotation.y = Math.PI / 4;
+    bow.position.z = size * 1.3;
+    group.add(bow);
+
+    // Command bridge (raised tower)
+    const bridgeGeo = new THREE.BoxGeometry(size * 0.2, size * 0.15, size * 0.25);
+    const bridge = new THREE.Mesh(bridgeGeo, armorMaterial);
+    bridge.position.set(0, size * 0.18, -size * 0.3);
+    group.add(bridge);
+
+    // Bridge viewport
+    const viewportGeo = new THREE.BoxGeometry(size * 0.18, size * 0.04, 0.5);
+    const viewportMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const viewport = new THREE.Mesh(viewportGeo, viewportMat);
+    viewport.position.set(0, size * 0.22, -size * 0.17);
+    group.add(viewport);
+
+    // Side weapon nacelles
+    for (let side = -1; side <= 1; side += 2) {
+      const nacelleGeo = new THREE.BoxGeometry(size * 0.15, size * 0.12, size * 0.6);
+      const nacelle = new THREE.Mesh(nacelleGeo, primaryMaterial);
+      nacelle.position.set(side * size * 0.35, 0, size * 0.2);
+      group.add(nacelle);
+
+      // Weapon barrel on each nacelle
+      const barrelGeo = new THREE.CylinderGeometry(size * 0.02, size * 0.03, size * 0.4, 8);
+      const barrel = new THREE.Mesh(barrelGeo, armorMaterial);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(side * size * 0.35, size * 0.08, size * 0.5);
+      group.add(barrel);
+
+      // Nacelle glow strip
+      const stripGeo = new THREE.BoxGeometry(size * 0.13, size * 0.02, size * 0.55);
+      const strip = new THREE.Mesh(stripGeo, glowMaterial);
+      strip.position.set(side * size * 0.35, -size * 0.07, size * 0.2);
+      group.add(strip);
+    }
+
+    // Engine array (3 engines at the back)
+    for (let i = -1; i <= 1; i++) {
+      const engineGeo = new THREE.CylinderGeometry(size * 0.06, size * 0.08, size * 0.15, 8);
+      const engine = new THREE.Mesh(engineGeo, armorMaterial);
+      engine.rotation.x = Math.PI / 2;
+      engine.position.set(i * size * 0.15, 0, -size * 0.95);
+      group.add(engine);
+
+      // Engine glow
+      const engineGlowGeo = new THREE.SphereGeometry(size * 0.07, 8, 8);
+      const engineGlowMat = new THREE.MeshBasicMaterial({
+        color: 0xcc00ff,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const engineGlow = new THREE.Mesh(engineGlowGeo, engineGlowMat);
+      engineGlow.position.set(i * size * 0.15, 0, -size * 1.02);
+      group.add(engineGlow);
+    }
+
+    // Ventral fin
+    const finGeo = new THREE.BoxGeometry(size * 0.02, size * 0.15, size * 0.5);
+    const fin = new THREE.Mesh(finGeo, primaryMaterial);
+    fin.position.set(0, -size * 0.18, -size * 0.4);
+    group.add(fin);
+
+    // Hull panel line details (thin dark lines)
+    const panelGeo = new THREE.BoxGeometry(size * 0.52, size * 0.005, size * 0.005);
+    const panelMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    for (let z = -0.6; z <= 0.8; z += 0.35) {
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(0, size * 0.101, z * size);
+      group.add(panel);
+    }
+  }
+
   // Spawn enemy ship from random direction
   spawn3DShip() {
     const THREE = this.THREE;
 
     if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
 
-    // Random ship type
-    const types: Array<'fighter' | 'bomber' | 'interceptor'> = ['fighter', 'bomber', 'interceptor'];
-    const type = types[Math.floor(Math.random() * types.length)];
+    // Random ship type - weighted spawn: cruisers are rare
+    const roll = Math.random();
+    let type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser';
+    if (roll < 0.4) type = 'fighter';
+    else if (roll < 0.65) type = 'interceptor';
+    else if (roll < 0.85) type = 'bomber';
+    else type = 'cruiser'; // 15% chance
 
     const ship = this.create3DShipGeometry(type);
-    console.log(`🚀 Spawning ${type} ship at radius ${this.SHIP_SPAWN_RADIUS}`);
 
     // Spawn in spherical coordinates around megabot
     const theta = Math.random() * Math.PI * 2; // Azimuthal angle
@@ -2803,7 +3211,6 @@ class MegabotScene {
     const formationType = this.FORMATION_TYPES[Math.floor(Math.random() * this.FORMATION_TYPES.length)];
     const formationId = this.formationIdCounter++;
 
-    console.log(`🎯 Spawning ${formationType} formation #${formationId}`);
 
     switch (formationType) {
       case 'v-formation':
@@ -3180,7 +3587,6 @@ class MegabotScene {
     const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
 
     this.create3DMissile(launchPos, targetPos);
-    console.log(`🚀 Missile launched!`);
   }
 
   // Launch cluster missiles (3 missiles in spread pattern) - Shift+Click
@@ -3240,7 +3646,6 @@ class MegabotScene {
       }, index * 50);
     });
 
-    console.log(`🚀🚀🚀 Cluster missiles launched!`);
   }
 
   // 3D collision detection (sphere-sphere)
@@ -3438,7 +3843,6 @@ class MegabotScene {
     this.enemyLasers.push(plasma);
     this.scene.add(plasmaGroup);
 
-    console.log(`💚 Bomber fired plasma cannon!`);
     return plasma;
   }
 
@@ -3523,7 +3927,6 @@ class MegabotScene {
       } else {
         // Reached orbit, switch to orbiting
         ship.orbitPhase = 'orbit';
-        console.log(`🛸 Ship entering orbit phase`);
       }
     } else if (ship.orbitPhase === 'orbit') {
       // Orbit around megabot
@@ -3545,7 +3948,6 @@ class MegabotScene {
       if (Math.random() < 0.002) {
         ship.orbitPhase = 'strafe';
         ship.strafeTarget = ship.orbitRadius * 0.5; // Move to half orbit radius
-        console.log(`🎯 Ship starting strafe run!`);
       }
     } else if (ship.orbitPhase === 'strafe') {
       // Strafe run - move closer while orbiting
@@ -3566,7 +3968,6 @@ class MegabotScene {
       // After strafe, return to orbit
       if (currentRadius < targetRadius + 20) {
         ship.orbitPhase = 'retreat';
-        console.log(`🔄 Ship retreating to orbit`);
       }
     } else if (ship.orbitPhase === 'retreat') {
       // Return to orbit radius
@@ -3614,7 +4015,6 @@ class MegabotScene {
           (perpZ / perpLen) * 200
         );
         ship.strafeTime = 0;
-        console.log(`⚔️ Pincer ship entering strafe phase`);
       }
     } else if (ship.pincerPhase === 'strafe') {
       // Strafe perpendicular to megabot
@@ -3637,7 +4037,6 @@ class MegabotScene {
           (pos.y / dist) * 150,
           (pos.z / dist) * 150
         );
-        console.log(`🔙 Pincer ship retreating`);
       }
     } else if (ship.pincerPhase === 'retreat') {
       // Move away from megabot
@@ -3696,7 +4095,6 @@ class MegabotScene {
         (-pos.y / dist) * speed,
         (-pos.z / dist) * speed
       );
-      console.log(`😡 Escort's bomber destroyed! Going aggressive!`);
     }
   }
 
@@ -3753,14 +4151,20 @@ class MegabotScene {
       } else if (ship.type === 'bomber') {
         // Bombers rotate slowly (heavy and stable)
         ship.group.rotation.y += dt * 0.5;
+      } else if (ship.type === 'cruiser') {
+        // Cruisers drift with heavy inertia, slight pitch oscillation
+        ship.group.rotation.y += dt * 0.3;
+        ship.group.rotation.x = Math.sin(this.time * 0.5) * 0.05;
       }
 
       // Animate engine glows (pulsing effect)
       ship.group.children.forEach((child: any) => {
         if (child.material && child.material.transparent && child.material.color) {
-          const isEngine = child.material.color.getHex() === 0x00ffff ||
-                          child.material.color.getHex() === 0xff6600 ||
-                          child.material.color.getHex() === 0xffff00;
+          const colorHex = child.material.color.getHex();
+          const isEngine = colorHex === 0x00ffff ||
+                          colorHex === 0xff6600 ||
+                          colorHex === 0xffff00 ||
+                          colorHex === 0xcc00ff; // Cruiser engines
           if (isEngine) {
             child.material.opacity = 0.7 + Math.sin(this.time * 10) * 0.2;
           }
@@ -3822,6 +4226,9 @@ class MegabotScene {
       } else if (ship.type === 'bomber') {
         weaponCooldown = 3500; // Bombers charge plasma cannon slowly
         weaponRange = this.ENEMY_LASER_RANGE * 1.2; // Longer range for plasma
+      } else if (ship.type === 'cruiser') {
+        weaponCooldown = 1200; // Cruisers fire broadsides regularly
+        weaponRange = this.ENEMY_LASER_RANGE * 1.5; // Long range capital ship
       }
 
       // Formation-specific behavior modifiers
@@ -3843,6 +4250,10 @@ class MegabotScene {
         } else if (ship.type === 'bomber') {
           // Bombers fire slow but devastating plasma cannons
           this.createPlasmaCannon(ship);
+        } else if (ship.type === 'cruiser') {
+          // Cruisers fire broadside: plasma + standard lasers
+          this.createPlasmaCannon(ship);
+          this.createEnemyLaser(ship);
         } else {
           // Fighters use standard lasers
           this.createEnemyLaser(ship);
@@ -3859,7 +4270,6 @@ class MegabotScene {
         this.create3DExplosion(ship.group.position, ship.size * 2);
         this.scene.remove(ship.group);
         this.enemyShips.splice(i, 1);
-        console.log(`💥 Ship collision! Score: ${this.gameScore}, Health: ${this.megabotHealth}`);
         continue;
       }
 
@@ -3890,12 +4300,11 @@ class MegabotScene {
 
             if (ship.health <= 0) {
               // Score based on ship type
-              const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+              const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
               this.gameScore += scoreBonus;
               this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
-              console.log(`🎯 Destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
               continue;
             }
           }
@@ -3923,12 +4332,11 @@ class MegabotScene {
 
             if (ship.health <= 0) {
               // Score based on ship type
-              const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+              const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
               this.gameScore += scoreBonus;
               this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
-              console.log(`🎯 Destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
               continue;
             }
           }
@@ -3973,12 +4381,11 @@ class MegabotScene {
 
           if (ship.health <= 0) {
             // Score based on ship type (same as laser kills)
-            const scoreBonus = ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+            const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
             this.gameScore += scoreBonus;
             this.create3DExplosion(ship.group.position, ship.size * 2.5);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
-            console.log(`🚀 Missile destroyed ${ship.type}! +${scoreBonus} Score: ${this.gameScore}`);
           } else {
             // Hit but not destroyed - small spark
             this.create3DExplosion(missile.group.position, 15);
@@ -4055,9 +4462,6 @@ class MegabotScene {
 
         this.scene.remove(laser.group);
         this.enemyLasers.splice(i, 1);
-
-        const hitType = laser.type === 'plasma' ? '💚 PLASMA' : laser.type === 'rapid' ? '💠 Rapid' : '🔴 Laser';
-        console.log(`${hitType} hit Megabot! -${laser.damage} HP | Health: ${this.megabotHealth}`);
         continue;
       }
 
@@ -4097,41 +4501,65 @@ class MegabotScene {
       explosion.light.intensity = 20 * (1 - progress);
     }
 
-    // Update game state callback
+    // Update destructible city buildings
+    this.updateBuildings(dt);
+
+    // Update game state callback - count directly instead of .filter() to avoid GC
     if (this.onGameStateUpdate) {
+      let activeShips = 0;
+      for (let i = 0; i < this.enemyShips.length; i++) {
+        if (this.enemyShips[i].active) activeShips++;
+      }
+      let activeMissiles = 0;
+      for (let i = 0; i < this.missiles3D.length; i++) {
+        if (this.missiles3D[i].active) activeMissiles++;
+      }
       this.onGameStateUpdate({
         score: this.gameScore,
         health: this.megabotHealth,
-        shipCount: this.enemyShips.filter(s => s.active).length,
-        missileCount: this.missiles3D.filter(m => m.active).length,
+        shipCount: activeShips,
+        missileCount: activeMissiles,
       });
     }
   }
 
   addEventListeners() {
     // Mouse movement for parallax
-    document.addEventListener("mousemove", (e) => {
+    this._boundMouseMove = (e: MouseEvent) => {
       this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
       this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
-    });
+    };
+    document.addEventListener("mousemove", this._boundMouseMove);
 
-    // Click to launch 3D missiles (Shift+click for cluster missiles)
-    this.container.addEventListener("click", (e) => {
+    // Click to launch 3D missiles - listen on document to avoid z-index blocking
+    // The hero content overlay (z-10) sits above the canvas (z-0), so clicks
+    // on the container never fire. Instead we listen globally and bounds-check.
+    this._boundClick = (e: MouseEvent) => {
       const rect = this.container.getBoundingClientRect();
+      // Only handle clicks within the hero/container area
+      if (
+        e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top || e.clientY > rect.bottom
+      ) return;
+
+      // Ignore clicks on interactive elements (links, buttons) so they still work
+      const target = e.target as HTMLElement;
+      if (target.closest('a, button, [role="button"], input, select, textarea')) return;
+
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
       if (e.shiftKey) {
-        // Cluster missiles - fire 3 in a spread pattern
         this.launchClusterMissiles({ x, y });
       } else {
-        // Single missile
         this.launch3DMissileFromMegabot({ x, y });
       }
-    });
+    };
+    document.addEventListener("click", this._boundClick);
 
     // Window resize
-    window.addEventListener("resize", () => this.onWindowResize(), false);
+    this._boundResize = () => this.onWindowResize();
+    window.addEventListener("resize", this._boundResize, false);
   }
 
   onWindowResize() {
@@ -4147,7 +4575,12 @@ class MegabotScene {
 
     this.animationFrameId = requestAnimationFrame(() => this.animate());
 
-    const deltaTime = 0.016;
+    // Use real elapsed time instead of fixed 0.016 to prevent stuttering
+    const now = performance.now();
+    const rawDelta = this.lastFrameTime > 0 ? (now - this.lastFrameTime) / 1000 : 0.016;
+    this.lastFrameTime = now;
+    // Cap deltaTime to prevent spiral of death on tab-switch or lag spikes
+    const deltaTime = Math.min(rawDelta, 0.05);
     this.time += deltaTime;
 
     // Update 3D combat system
@@ -4659,6 +5092,20 @@ class MegabotScene {
       this.animationFrameId = null;
     }
 
+    // Remove event listeners to prevent duplicates on quality change
+    if (this._boundMouseMove) {
+      document.removeEventListener("mousemove", this._boundMouseMove);
+      this._boundMouseMove = null;
+    }
+    if (this._boundClick) {
+      document.removeEventListener("click", this._boundClick);
+      this._boundClick = null;
+    }
+    if (this._boundResize) {
+      window.removeEventListener("resize", this._boundResize);
+      this._boundResize = null;
+    }
+
     if (this.renderer) {
       this.renderer.dispose();
       if (this.container && this.renderer.domElement && this.container.contains(this.renderer.domElement)) {
@@ -4700,7 +5147,7 @@ class MegabotScene {
     this.enemyLasers = [];
     this.explosions3D = [];
     this.formations = [];
-
-    console.log("✅ Megabot scene destroyed and cleaned up");
+    this.buildings = [];
+    this.lastFrameTime = 0;
   }
 }
