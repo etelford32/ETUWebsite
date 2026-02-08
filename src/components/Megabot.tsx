@@ -183,7 +183,23 @@ class MegabotScene {
   private _tmpVec3A = new THREE.Vector3();
   private _tmpVec3B = new THREE.Vector3();
   private _tmpVec3C = new THREE.Vector3();
+  private _tmpVec3D = new THREE.Vector3();
+  private _tmpVec3E = new THREE.Vector3();
+  private _tmpVec3F = new THREE.Vector3();
   private _tmpQuat = new THREE.Quaternion();
+  private _tmpQuatB = new THREE.Quaternion();
+  private _upVec = new THREE.Vector3(0, 1, 0); // constant up direction
+  // Pre-allocated color constants for ship damage effects
+  private _colorWhite = new THREE.Color(0xffffff);
+  private _colorOrangeDmg = new THREE.Color(0xff9900);
+  private _colorOrangeFlicker = new THREE.Color(0xff6600);
+  private _colorRedDmg = new THREE.Color(0xff4400);
+  // Reusable laser data object to avoid per-frame object literal allocations
+  private _cachedLaserData = {
+    leftStart: { x: 0, y: 0 }, leftEnd: { x: 0, y: 0 },
+    rightStart: { x: 0, y: 0 }, rightEnd: { x: 0, y: 0 },
+    visible: false
+  };
 
   // Bound event handlers for proper cleanup
   private _boundMouseMove: ((e: MouseEvent) => void) | null = null;
@@ -4503,11 +4519,11 @@ class MegabotScene {
             // Bright white flash on hit
             child.material.emissiveIntensity = 0.3 + ship.hitFlash * 1.5;
 
-            // Add damage sparks effect
+            // Add damage sparks effect (reuse pre-allocated Color objects)
             if (ship.hitFlash > 0.8) {
-              child.material.emissive = new THREE.Color(0xffffff); // White flash
+              child.material.emissive.copy(this._colorWhite);
             } else if (ship.hitFlash > 0.3) {
-              child.material.emissive = new THREE.Color(0xff9900); // Orange damage glow
+              child.material.emissive.copy(this._colorOrangeDmg);
             }
           }
         });
@@ -4515,23 +4531,24 @@ class MegabotScene {
 
       // Show damage state based on health percentage
       const healthPercent = ship.health / ship.maxHealth;
-      ship.group.children.forEach((child: any, index: number) => {
-        if (child.material && index === 0) { // Main hull material
+      if (ship.group.children.length > 0) {
+        const hullChild = ship.group.children[0] as any;
+        if (hullChild.material) {
           // Smoke/damage effect at low health
           if (healthPercent < 0.3) {
-            child.material.emissiveIntensity = Math.max(child.material.emissiveIntensity || 0.3, 0.5 + Math.random() * 0.3);
+            hullChild.material.emissiveIntensity = Math.max(hullChild.material.emissiveIntensity || 0.3, 0.5 + Math.random() * 0.3);
             // Flickering damage at critical health
             if (Math.random() > 0.7) {
-              child.material.emissive = new THREE.Color(0xff4400); // Orange damage flicker
+              hullChild.material.emissive.copy(this._colorRedDmg);
             }
           } else if (healthPercent < 0.6) {
             // Moderate damage - slight smoke
             if (Math.random() > 0.9) {
-              child.material.emissive = new THREE.Color(0xff6600);
+              hullChild.material.emissive.copy(this._colorOrangeFlicker);
             }
           }
         }
-      });
+      }
 
       // Ship weapon firing logic (distToMegabot already calculated above)
       const currentTimeMs = this.time * 1000;
@@ -4594,37 +4611,31 @@ class MegabotScene {
         continue;
       }
 
-      // Check collision with lasers (ray-sphere intersection)
+      // Check collision with lasers (ray-sphere intersection) - uses pre-allocated vectors
       if (this.leftLaser && this.rightLaser && this.leftLaser.visible) {
-        const leftEyePos = new THREE.Vector3();
-        this.leftEye.getWorldPosition(leftEyePos);
+        // Left laser check
+        this.leftEye.getWorldPosition(this._tmpVec3C);
+        this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
+        const distToLeftEye = this._tmpVec3D.length();
+        if (distToLeftEye < 800) {
+          this._tmpVec3E.set(0, 1, 0);
+          this._tmpVec3E.applyQuaternion(this.leftLaser.getWorldQuaternion(this._tmpQuat));
+          this._tmpVec3D.normalize(); // normalize in-place (length already captured)
+          const angle = this._tmpVec3E.dot(this._tmpVec3D);
 
-        // Improved sphere check - within laser cone
-        const toShipVec = new THREE.Vector3().subVectors(ship.group.position, leftEyePos);
-        const distToLeftEye = toShipVec.length();
-        if (distToLeftEye < 800) { // Increased laser range for better coverage
-          // Check if ship is in laser direction
-          const laserDir = new THREE.Vector3(0, 1, 0);
-          laserDir.applyQuaternion(this.leftLaser.getWorldQuaternion(new THREE.Quaternion()));
-          const toShip = toShipVec.clone().normalize();
-          const angle = laserDir.dot(toShip);
-
-          // More forgiving cone angle for better hit detection
-          const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92; // Wider beam at upgrade 2+
+          const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92;
           if (angle > laserConeThreshold) {
             ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
             ship.hitFlash = 1.0;
 
-            // Small damage sparks when hit but not destroyed
             if (Math.random() > 0.8) {
-              this.create3DExplosion(ship.group.position, ship.size * 0.5); // Small spark effect
+              this.create3DExplosion(ship.group.position, ship.size * 0.5);
             }
 
             if (ship.health <= 0) {
-              // Score based on ship type
               const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
               this.gameScore += scoreBonus;
-              this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
+              this.create3DExplosion(ship.group.position, ship.size * 2.5);
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
               continue;
@@ -4632,31 +4643,28 @@ class MegabotScene {
           }
         }
 
-        // Check right laser too
-        const rightEyePos = new THREE.Vector3();
-        this.rightEye.getWorldPosition(rightEyePos);
-        const toShipVecRight = new THREE.Vector3().subVectors(ship.group.position, rightEyePos);
-        const distToRightEye = toShipVecRight.length();
+        // Right laser check
+        this.rightEye.getWorldPosition(this._tmpVec3C);
+        this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
+        const distToRightEye = this._tmpVec3D.length();
         if (distToRightEye < 800) {
-          const laserDir = new THREE.Vector3(0, 1, 0);
-          laserDir.applyQuaternion(this.rightLaser.getWorldQuaternion(new THREE.Quaternion()));
-          const toShip = toShipVecRight.clone().normalize();
-          const angle = laserDir.dot(toShip);
+          this._tmpVec3E.set(0, 1, 0);
+          this._tmpVec3E.applyQuaternion(this.rightLaser.getWorldQuaternion(this._tmpQuat));
+          this._tmpVec3D.normalize();
+          const angle = this._tmpVec3E.dot(this._tmpVec3D);
 
           if (angle > (this.upgradeLevel >= 2 ? 0.82 : 0.92)) {
             ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
             ship.hitFlash = 1.0;
 
-            // Small damage sparks when hit but not destroyed
             if (Math.random() > 0.8) {
-              this.create3DExplosion(ship.group.position, ship.size * 0.5); // Small spark effect
+              this.create3DExplosion(ship.group.position, ship.size * 0.5);
             }
 
             if (ship.health <= 0) {
-              // Score based on ship type
               const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
               this.gameScore += scoreBonus;
-              this.create3DExplosion(ship.group.position, ship.size * 2.5); // Larger explosion
+              this.create3DExplosion(ship.group.position, ship.size * 2.5);
               this.scene.remove(ship.group);
               this.enemyShips.splice(i, 1);
               continue;
@@ -4750,7 +4758,7 @@ class MegabotScene {
       if (hitShip) continue;
 
       // Remove if out of range
-      if (missile.group.position.distanceTo(this.megabotWorldPos) > 3000) {
+      if (missile.group.position.distanceToSquared(this.megabotWorldPos) > 9000000) { // 3000^2
         this.scene.remove(missile.group);
         this.missiles3D.splice(i, 1);
       }
@@ -4799,7 +4807,7 @@ class MegabotScene {
       }
 
       // Check if laser hit megabot (sphere collision)
-      const distToMegabot = laser.group.position.distanceTo(this.megabotWorldPos);
+      const distToMegabot = laser.group.position.distanceTo(this.megabotWorldPos); // kept as distanceTo - value used for hit radius comparison
       const hitRadius = laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 : this.MAIN_SIZE;
 
       if (distToMegabot < hitRadius) {
@@ -5056,12 +5064,13 @@ class MegabotScene {
             // Head is already pointing forward due to body rotation, so minimal Y adjustment
             part.mesh.rotation.y = 0;
 
-            // Intensify eye glow when tracking - ULTRA EVIL LOCK-ON
-            this.megabotParts.forEach((eyePart) => {
-              if ((eyePart.type === 'leftEye' || eyePart.type === 'rightEye') && eyePart.mesh.material.uniforms) {
-                eyePart.mesh.material.uniforms.glowIntensity.value = 10.0; // ULTRA EVIL MAXIMUM INTENSITY when locked on!
-              }
-            });
+            // Intensify eye glow when tracking - ULTRA EVIL LOCK-ON (direct access, no forEach)
+            if (this.leftEye?.material?.uniforms) {
+              this.leftEye.material.uniforms.glowIntensity.value = 10.0;
+            }
+            if (this.rightEye?.material?.uniforms) {
+              this.rightEye.material.uniforms.glowIntensity.value = 10.0;
+            }
           } else {
             // IDLE MODE: Default menacing scan when not tracking
             // Smoothly lerp back to scanning pattern
@@ -5221,9 +5230,10 @@ class MegabotScene {
       });
     }
 
-    // Update blast particles
+    // Update blast particles - in-place splice instead of .filter() to avoid array allocation
     if (this.blastParticles.length > 0) {
-      this.blastParticles = this.blastParticles.filter(blast => {
+      for (let i = this.blastParticles.length - 1; i >= 0; i--) {
+        const blast = this.blastParticles[i];
         blast.age += deltaTime;
 
         if (blast.age >= blast.maxAge) {
@@ -5231,32 +5241,31 @@ class MegabotScene {
           if (this.scene) this.scene.remove(blast.system);
           if (blast.system.geometry) blast.system.geometry.dispose();
           if (blast.system.material) blast.system.material.dispose();
-          return false;
+          this.blastParticles.splice(i, 1);
+          continue;
         }
 
         // Update particle positions
         const positions = blast.system.geometry.attributes.position.array as Float32Array;
-        for (let i = 0; i < positions.length / 3; i++) {
-          positions[i * 3] += blast.velocities[i * 3];
-          positions[i * 3 + 1] += blast.velocities[i * 3 + 1];
-          positions[i * 3 + 2] += blast.velocities[i * 3 + 2];
+        for (let j = 0; j < positions.length / 3; j++) {
+          positions[j * 3] += blast.velocities[j * 3];
+          positions[j * 3 + 1] += blast.velocities[j * 3 + 1];
+          positions[j * 3 + 2] += blast.velocities[j * 3 + 2];
 
           // Apply gravity
-          blast.velocities[i * 3 + 1] -= 0.5;
+          blast.velocities[j * 3 + 1] -= 0.5;
 
           // Damping
-          blast.velocities[i * 3] *= 0.98;
-          blast.velocities[i * 3 + 1] *= 0.98;
-          blast.velocities[i * 3 + 2] *= 0.98;
+          blast.velocities[j * 3] *= 0.98;
+          blast.velocities[j * 3 + 1] *= 0.98;
+          blast.velocities[j * 3 + 2] *= 0.98;
         }
         blast.system.geometry.attributes.position.needsUpdate = true;
 
         // Fade out
         const fadeProgress = blast.age / blast.maxAge;
         blast.system.material.opacity = 1.0 - fadeProgress;
-
-        return true;
-      });
+      }
 
       if (this.blastParticles.length === 0) {
         this.isBlasting = false;
@@ -5273,9 +5282,10 @@ class MegabotScene {
       }
     }
 
-    // Update existing spark particles
+    // Update existing spark particles - in-place splice instead of .filter()
     if (this.sparkParticles.length > 0) {
-      this.sparkParticles = this.sparkParticles.filter(spark => {
+      for (let i = this.sparkParticles.length - 1; i >= 0; i--) {
+        const spark = this.sparkParticles[i];
         spark.age += deltaTime;
 
         if (spark.age >= spark.maxAge) {
@@ -5283,32 +5293,31 @@ class MegabotScene {
           if (this.scene) this.scene.remove(spark.system);
           if (spark.system.geometry) spark.system.geometry.dispose();
           if (spark.system.material) spark.system.material.dispose();
-          return false;
+          this.sparkParticles.splice(i, 1);
+          continue;
         }
 
         // Update particle positions
         const positions = spark.system.geometry.attributes.position.array as Float32Array;
-        for (let i = 0; i < positions.length / 3; i++) {
-          positions[i * 3] += spark.velocities[i * 3];
-          positions[i * 3 + 1] += spark.velocities[i * 3 + 1];
-          positions[i * 3 + 2] += spark.velocities[i * 3 + 2];
+        for (let j = 0; j < positions.length / 3; j++) {
+          positions[j * 3] += spark.velocities[j * 3];
+          positions[j * 3 + 1] += spark.velocities[j * 3 + 1];
+          positions[j * 3 + 2] += spark.velocities[j * 3 + 2];
 
           // Apply gravity to sparks
-          spark.velocities[i * 3 + 1] -= 0.8;
+          spark.velocities[j * 3 + 1] -= 0.8;
 
           // Air resistance
-          spark.velocities[i * 3] *= 0.95;
-          spark.velocities[i * 3 + 1] *= 0.95;
-          spark.velocities[i * 3 + 2] *= 0.95;
+          spark.velocities[j * 3] *= 0.95;
+          spark.velocities[j * 3 + 1] *= 0.95;
+          spark.velocities[j * 3 + 2] *= 0.95;
         }
         spark.system.geometry.attributes.position.needsUpdate = true;
 
         // Fade out
         const fadeProgress = spark.age / spark.maxAge;
         spark.system.material.opacity = 1.0 - fadeProgress;
-
-        return true;
-      });
+      }
     }
 
     // Update laser raycasting to target the button
@@ -5316,29 +5325,25 @@ class MegabotScene {
       const THREE = this.THREE;
 
       if (this.trackingTarget && this.targetPosition3D) {
-        // TRACKING MODE: Aim lasers at button (only if plane intersection succeeded)
+        // TRACKING MODE: Aim lasers at button - ZERO allocations (all pre-allocated)
         this.leftLaser.visible = true;
         this.rightLaser.visible = true;
 
-        // Get world positions of the eyes
-        const leftEyeWorldPos = new THREE.Vector3();
-        const rightEyeWorldPos = new THREE.Vector3();
-        this.leftEye.getWorldPosition(leftEyeWorldPos);
-        this.rightEye.getWorldPosition(rightEyeWorldPos);
+        // Get world positions of the eyes into pre-allocated vectors
+        this.leftEye.getWorldPosition(this._tmpVec3A);  // leftEyeWorldPos
+        this.rightEye.getWorldPosition(this._tmpVec3B);  // rightEyeWorldPos
 
-        // Calculate direction from each eye to target
-        const leftDirection = new THREE.Vector3().subVectors(this.targetPosition3D, leftEyeWorldPos);
-        const rightDirection = new THREE.Vector3().subVectors(this.targetPosition3D, rightEyeWorldPos);
+        // Calculate direction from each eye to target (reuse C, D)
+        this._tmpVec3C.subVectors(this.targetPosition3D, this._tmpVec3A); // leftDirection
+        this._tmpVec3D.subVectors(this.targetPosition3D, this._tmpVec3B); // rightDirection
 
-        // Calculate distance to target
-        const leftDistance = leftDirection.length();
-        const rightDistance = rightDirection.length();
+        // Get distances before normalizing
+        const leftDistance = this._tmpVec3C.length();
+        const rightDistance = this._tmpVec3D.length();
+        this._tmpVec3C.normalize();
+        this._tmpVec3D.normalize();
 
-        // Normalize directions
-        leftDirection.normalize();
-        rightDirection.normalize();
-
-        // Update laser scale to match distance (cylinder height is 1, so scale.y = actual distance)
+        // Update laser scale
         this.leftLaser.scale.y = leftDistance;
         this.rightLaser.scale.y = rightDistance;
 
@@ -5346,39 +5351,27 @@ class MegabotScene {
         this.leftLaser.position.copy(this.leftEye.position);
         this.rightLaser.position.copy(this.rightEye.position);
 
-        // Convert target from world space to head local space for lookAt
-        const headWorldPos = new THREE.Vector3();
-        const headWorldQuat = new THREE.Quaternion();
-        const headWorldScale = new THREE.Vector3();
-        this.headGroup.matrixWorld.decompose(headWorldPos, headWorldQuat, headWorldScale);
+        // Decompose head world matrix into pre-allocated objects
+        this.headGroup.matrixWorld.decompose(this._tmpVec3E, this._tmpQuat, this._tmpVec3F);
+        // _tmpVec3E = headWorldPos (no longer needed after decompose)
+        // _tmpQuat = headWorldQuat -> invert it once for reuse
+        // _tmpVec3F = headWorldScale (no longer needed)
+        this._tmpQuat.invert(); // invertedHeadWorldQuat
 
-        const targetLocal = new THREE.Vector3().copy(this.targetPosition3D);
-        targetLocal.sub(headWorldPos);
-        targetLocal.applyQuaternion(headWorldQuat.clone().invert());
+        // Left laser: compute local direction, set quaternion, offset position
+        this._tmpVec3E.copy(this._tmpVec3C).applyQuaternion(this._tmpQuat).normalize();
+        this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3E);
+        this.leftLaser.quaternion.copy(this._tmpQuatB);
+        this.leftLaser.position.add(this._tmpVec3E.multiplyScalar(leftDistance / 2));
 
-        // Point lasers at target (cylinder's Y axis points along length)
-        const upVector = new THREE.Vector3(0, 1, 0);
-
-        // For left laser
-        const leftQuaternion = new THREE.Quaternion();
-        leftQuaternion.setFromUnitVectors(upVector, leftDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize());
-        this.leftLaser.quaternion.copy(leftQuaternion);
-
-        // For right laser
-        const rightQuaternion = new THREE.Quaternion();
-        rightQuaternion.setFromUnitVectors(upVector, rightDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize());
-        this.rightLaser.quaternion.copy(rightQuaternion);
-
-        // Move laser origin to eye center (cylinder's center is at origin, we want base at eye)
-        // Offset by half the laser length in the direction it's pointing (local space)
-        const leftLocalDirection = leftDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
-        this.leftLaser.position.add(leftLocalDirection.multiplyScalar(leftDistance / 2));
-
-        const rightLocalDirection = rightDirection.clone().applyQuaternion(headWorldQuat.clone().invert()).normalize();
-        this.rightLaser.position.add(rightLocalDirection.multiplyScalar(rightDistance / 2));
+        // Right laser: same pattern, reuse _tmpVec3E and _tmpQuatB
+        this._tmpVec3E.copy(this._tmpVec3D).applyQuaternion(this._tmpQuat).normalize();
+        this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3E);
+        this.rightLaser.quaternion.copy(this._tmpQuatB);
+        this.rightLaser.position.add(this._tmpVec3E.multiplyScalar(rightDistance / 2));
 
       } else {
-        // SCANNING MODE: Lasers sweep the area menacingly
+        // SCANNING MODE: Lasers sweep the area - ZERO allocations
         this.leftLaser.visible = true;
         this.rightLaser.visible = true;
 
@@ -5388,88 +5381,65 @@ class MegabotScene {
 
         // Scanning pattern - figure-8 sweep
         const scanSpeed = 0.3;
-        const scanAngleY = Math.sin(this.time * scanSpeed) * 0.4; // Horizontal sweep
-        const scanAngleX = Math.sin(this.time * scanSpeed * 2) * 0.3; // Vertical sweep
+        const scanAngleY = Math.sin(this.time * scanSpeed) * 0.4;
+        const scanAngleX = Math.sin(this.time * scanSpeed * 2) * 0.3;
 
-        // Left laser scans in a pattern
-        const leftScanDirection = new THREE.Vector3(
-          Math.sin(scanAngleY - 0.2),
-          Math.sin(scanAngleX),
-          1
-        ).normalize();
+        // Left laser scan direction (reuse _tmpVec3C)
+        this._tmpVec3C.set(Math.sin(scanAngleY - 0.2), Math.sin(scanAngleX), 1).normalize();
+        this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3C);
+        this.leftLaser.quaternion.copy(this._tmpQuatB);
+        this.leftLaser.scale.y = this.MAIN_SIZE * 3;
 
-        const leftQuaternion = new THREE.Quaternion();
-        leftQuaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), leftScanDirection);
-        this.leftLaser.quaternion.copy(leftQuaternion);
-        this.leftLaser.scale.y = this.MAIN_SIZE * 3; // Medium range for scanning
-
-        // Right laser scans in opposite pattern
-        const rightScanDirection = new THREE.Vector3(
-          Math.sin(scanAngleY + 0.2),
-          Math.sin(scanAngleX),
-          1
-        ).normalize();
-
-        const rightQuaternion = new THREE.Quaternion();
-        rightQuaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rightScanDirection);
-        this.rightLaser.quaternion.copy(rightQuaternion);
+        // Right laser scan direction (reuse _tmpVec3D)
+        this._tmpVec3D.set(Math.sin(scanAngleY + 0.2), Math.sin(scanAngleX), 1).normalize();
+        this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3D);
+        this.rightLaser.quaternion.copy(this._tmpQuatB);
         this.rightLaser.scale.y = this.MAIN_SIZE * 3;
 
-        // Offset position so laser starts at eye
-        this.leftLaser.position.add(leftScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
-        this.rightLaser.position.add(rightScanDirection.clone().multiplyScalar(this.MAIN_SIZE * 1.5));
+        // Offset position so laser starts at eye (use _tmpVec3E as temp)
+        this.leftLaser.position.add(this._tmpVec3E.copy(this._tmpVec3C).multiplyScalar(this.MAIN_SIZE * 1.5));
+        this.rightLaser.position.add(this._tmpVec3E.copy(this._tmpVec3D).multiplyScalar(this.MAIN_SIZE * 1.5));
       }
 
-      // Update laser data for game collision detection
+      // Update laser data for game collision detection - ZERO allocations
       if (this.onLaserUpdate) {
-        const leftEyeWorldPos = new THREE.Vector3();
-        const rightEyeWorldPos = new THREE.Vector3();
-        this.leftEye.getWorldPosition(leftEyeWorldPos);
-        this.rightEye.getWorldPosition(rightEyeWorldPos);
+        // Get eye world positions
+        this.leftEye.getWorldPosition(this._tmpVec3A);
+        this.rightEye.getWorldPosition(this._tmpVec3B);
 
-        // Project 3D world positions to 2D screen coordinates
-        const project3DToScreen = (pos: any) => {
-          const vector = pos.clone().project(this.camera);
-          const x = (vector.x * 0.5 + 0.5) * this.container.offsetWidth;
-          const y = (-(vector.y * 0.5) + 0.5) * this.container.offsetHeight;
-          return { x, y };
+        const w = this.container.offsetWidth;
+        const h = this.container.offsetHeight;
+
+        // Helper: project world pos into cached data point (uses _tmpVec3F as temp)
+        const projectInto = (worldPos: any, target: { x: number; y: number }) => {
+          this._tmpVec3F.copy(worldPos).project(this.camera);
+          target.x = (this._tmpVec3F.x * 0.5 + 0.5) * w;
+          target.y = (-this._tmpVec3F.y * 0.5 + 0.5) * h;
         };
 
-        // Calculate laser end points based on current mode
-        let leftEndWorldPos, rightEndWorldPos;
+        // Project start points
+        projectInto(this._tmpVec3A, this._cachedLaserData.leftStart);
+        projectInto(this._tmpVec3B, this._cachedLaserData.rightStart);
 
         if (this.trackingTarget && this.targetPosition3D) {
-          // In tracking mode, endpoint is the target
-          leftEndWorldPos = this.targetPosition3D.clone();
-          rightEndWorldPos = this.targetPosition3D.clone();
+          // Tracking mode: endpoint is the target
+          projectInto(this.targetPosition3D, this._cachedLaserData.leftEnd);
+          projectInto(this.targetPosition3D, this._cachedLaserData.rightEnd);
         } else {
-          // In scanning mode, calculate endpoint from direction and length
-          const headWorldQuat = new THREE.Quaternion();
-          this.headGroup.getWorldQuaternion(headWorldQuat);
+          // Scanning mode: calculate endpoint from laser direction
+          this.leftLaser.getWorldQuaternion(this._tmpQuat);
+          this._tmpVec3C.set(0, 1, 0).applyQuaternion(this._tmpQuat);
+          this._tmpVec3D.copy(this._tmpVec3A).add(this._tmpVec3C.multiplyScalar(this.MAIN_SIZE * 3));
+          projectInto(this._tmpVec3D, this._cachedLaserData.leftEnd);
 
-          const leftLaserWorldQuat = new THREE.Quaternion();
-          this.leftLaser.getWorldQuaternion(leftLaserWorldQuat);
-          const leftLaserDir = new THREE.Vector3(0, 1, 0).applyQuaternion(leftLaserWorldQuat);
-          leftEndWorldPos = leftEyeWorldPos.clone().add(leftLaserDir.multiplyScalar(this.MAIN_SIZE * 3));
-
-          const rightLaserWorldQuat = new THREE.Quaternion();
-          this.rightLaser.getWorldQuaternion(rightLaserWorldQuat);
-          const rightLaserDir = new THREE.Vector3(0, 1, 0).applyQuaternion(rightLaserWorldQuat);
-          rightEndWorldPos = rightEyeWorldPos.clone().add(rightLaserDir.multiplyScalar(this.MAIN_SIZE * 3));
+          this.rightLaser.getWorldQuaternion(this._tmpQuat);
+          this._tmpVec3C.set(0, 1, 0).applyQuaternion(this._tmpQuat);
+          this._tmpVec3D.copy(this._tmpVec3B).add(this._tmpVec3C.multiplyScalar(this.MAIN_SIZE * 3));
+          projectInto(this._tmpVec3D, this._cachedLaserData.rightEnd);
         }
 
-        const leftStart = project3DToScreen(leftEyeWorldPos);
-        const leftEnd = project3DToScreen(leftEndWorldPos);
-        const rightStart = project3DToScreen(rightEyeWorldPos);
-        const rightEnd = project3DToScreen(rightEndWorldPos);
-
-        this.onLaserUpdate({
-          leftStart,
-          leftEnd,
-          rightStart,
-          rightEnd,
-          visible: this.leftLaser.visible && this.rightLaser.visible
-        });
+        this._cachedLaserData.visible = this.leftLaser.visible && this.rightLaser.visible;
+        this.onLaserUpdate(this._cachedLaserData);
       }
     }
 

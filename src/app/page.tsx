@@ -194,7 +194,7 @@ export default function HomePage() {
             trackingTarget={mousePosition}
             buttonBounds={buttonBounds}
             isButtonClicked={isButtonClicked}
-            onLaserUpdate={setLaserData}
+            onLaserUpdate={undefined} // disabled: laserData unused, saves ~20 allocations/frame
             onGameStateUpdate={setGameState}
           />
         </Suspense>
