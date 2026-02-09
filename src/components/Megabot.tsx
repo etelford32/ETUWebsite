@@ -220,6 +220,19 @@ class MegabotScene {
   readonly MEGABOT_MOVE_SPEED = 250; // Units per second
   readonly MEGABOT_STOMP_RADIUS = 120; // How close to a building before stomping
 
+  // Ground & standing
+  readonly GROUND_Y = -350 * 0.5; // Ground plane level (= -MAIN_SIZE * 0.5, matches building base)
+  readonly MEGABOT_STAND_Y = 350 * 2.2; // Y position so feet touch ground level
+  groundPlane: any = null;
+
+  // Walk animation
+  walkCycle: number = 0;
+  isWalking: boolean = false;
+  readonly STRIDE_ANGLE = 0.35; // Leg swing amplitude (radians)
+  readonly ARM_SWING_ANGLE = 0.25; // Arm swing amplitude
+  readonly WALK_BOB_HEIGHT = 18; // Vertical bob during walk
+  readonly WALK_CYCLE_SPEED = 5; // Walk cycle frequency multiplier
+
   // Wave system
   currentWave: number = 0;
   waveState: 'intermission' | 'active' | 'boss' = 'intermission';
@@ -309,6 +322,7 @@ class MegabotScene {
 
     this.init();
     this.createStarField();
+    this.createGroundPlane();
     this.createMainMegabot();
     this.createCity();
     this.createShieldBubble();
@@ -375,6 +389,7 @@ class MegabotScene {
     try {
       this.init();
       this.createStarField();
+      this.createGroundPlane();
       this.createMainMegabot();
       this.createCity();
       this.createShieldBubble();
@@ -747,8 +762,10 @@ class MegabotScene {
       0.1,
       5000
     );
-    this.camera.position.set(0, 300, 800);
-    this.camera.lookAt(0, 0, 0);
+    // Position camera to frame the grounded megabot and city
+    const initLookY = this.GROUND_Y + (this.MEGABOT_STAND_Y - this.GROUND_Y) * 0.45;
+    this.camera.position.set(0, initLookY + 350, this.cameraDistance);
+    this.camera.lookAt(0, initLookY, 0);
 
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -2209,8 +2226,49 @@ class MegabotScene {
     rimLight.position.set(-300, 200, -300);
     this.scene.add(rimLight);
 
+    // Position megabot so feet touch the ground plane
+    this.mainMegabot.position.y = this.MEGABOT_STAND_Y;
+
     this.scene.add(this.mainMegabot);
     console.log("🤖 Gundam-style Megabot created with evil laser eyes!");
+  }
+
+  // Create the ground plane the city and megabot stand on
+  createGroundPlane() {
+    const THREE = this.THREE;
+    const size = 4000; // Large enough to extend past city radius
+
+    // Dark cyberpunk ground surface
+    const groundGeo = new THREE.PlaneGeometry(size, size);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a14,
+      metalness: 0.4,
+      roughness: 0.7,
+      emissive: new THREE.Color(0x050510),
+      emissiveIntensity: 0.3,
+    });
+    this.groundPlane = new THREE.Mesh(groundGeo, groundMat);
+    this.groundPlane.rotation.x = -Math.PI / 2;
+    this.groundPlane.position.y = this.GROUND_Y;
+    this.scene.add(this.groundPlane);
+
+    // Subtle tech grid overlay
+    const gridHelper = new THREE.GridHelper(size, 80, 0x0a2240, 0x061228);
+    gridHelper.position.y = this.GROUND_Y + 0.5;
+    this.scene.add(gridHelper);
+
+    // Ambient ground glow ring around city center
+    const ringGeo = new THREE.RingGeometry(this.CITY_INNER_RADIUS - 20, this.CITY_INNER_RADIUS + 5, 64);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x003366,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = this.GROUND_Y + 1;
+    this.scene.add(ring);
   }
 
   // Create a destructible cityscape around Megabot's feet
@@ -4186,7 +4244,15 @@ class MegabotScene {
     if (this.keysPressed.has('a') || this.keysPressed.has('arrowleft')) moveX -= 1;
     if (this.keysPressed.has('d') || this.keysPressed.has('arrowright')) moveX += 1;
 
-    if (moveX === 0 && moveZ === 0) return;
+    if (moveX === 0 && moveZ === 0) {
+      // Not moving - decelerate walk cycle and return to standing height
+      this.isWalking = false;
+      // Smoothly return to standing Y
+      this.mainMegabot.position.y += (this.MEGABOT_STAND_Y - this.mainMegabot.position.y) * 0.1;
+      return;
+    }
+
+    this.isWalking = true;
 
     // Normalize diagonal movement
     const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
@@ -4203,28 +4269,34 @@ class MegabotScene {
     this.mainMegabot.position.x += worldX * speed;
     this.mainMegabot.position.z += worldZ * speed;
 
-    // Walking animation - slight bob
-    this.mainMegabot.position.y = Math.sin(this.time * 6) * 8;
+    // Advance walk cycle proportional to speed
+    this.walkCycle += dt * this.WALK_CYCLE_SPEED;
+
+    // Walking bob - two peaks per full cycle (each foot touchdown)
+    this.mainMegabot.position.y = this.MEGABOT_STAND_Y + Math.abs(Math.sin(this.walkCycle)) * this.WALK_BOB_HEIGHT;
 
     // Turn megabot to face movement direction (blend with tracking)
     if (!this.trackingTarget) {
       const targetAngle = Math.atan2(worldX, worldZ);
       const angleDiff = targetAngle - this.mainMegabot.rotation.y;
-      // Normalize angle
       const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
       this.mainMegabot.rotation.y += normalizedDiff * 0.1;
     }
 
-    // Stomp buildings!
+    // STOMP BUILDINGS! Check footfall timing - stomp on downbeat of walk cycle
+    const sinCycle = Math.sin(this.walkCycle);
+    const prevSinCycle = Math.sin(this.walkCycle - dt * this.WALK_CYCLE_SPEED);
+    const isFootfall = (sinCycle <= 0 && prevSinCycle > 0) || (sinCycle >= 0 && prevSinCycle < 0);
+
     for (let i = this.buildings.length - 1; i >= 0; i--) {
       const building = this.buildings[i];
       if (!building.active) continue;
 
       const dx = this.mainMegabot.position.x - building.group.position.x;
       const dz = this.mainMegabot.position.z - building.group.position.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
+      const distSq = dx * dx + dz * dz;
 
-      if (dist < this.MEGABOT_STOMP_RADIUS) {
+      if (distSq < this.MEGABOT_STOMP_RADIUS * this.MEGABOT_STOMP_RADIUS) {
         this.destroyBuilding(building, i);
       }
     }
@@ -4982,15 +5054,19 @@ class MegabotScene {
       this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
     }
 
-    // Smooth camera movement based on mouse, following megabot
-    const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, 0, 0);
+    // Smooth camera movement based on mouse, following grounded megabot
+    const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, this.MEGABOT_STAND_Y, 0);
     this.cameraAngle += this.mouse.x * 0.001;
-    const targetCameraY = megaPos.y + 300 + this.mouse.y * 100;
+
+    // Look at a point between the ground and the megabot center (around torso/hip level)
+    // This frames both the city below and the megabot above
+    const lookAtY = this.GROUND_Y + (megaPos.y - this.GROUND_Y) * 0.45;
+    const targetCameraY = lookAtY + 350 + this.mouse.y * 150;
     this.camera.position.y += (targetCameraY - this.camera.position.y) * 0.05;
 
     this.camera.position.x = megaPos.x + Math.sin(this.cameraAngle) * this.cameraDistance;
     this.camera.position.z = megaPos.z + Math.cos(this.cameraAngle) * this.cameraDistance;
-    this.camera.lookAt(megaPos.x, megaPos.y, megaPos.z);
+    this.camera.lookAt(megaPos.x, lookAtY, megaPos.z);
 
     // Animate main Megabot
     if (this.mainMegabot) {
@@ -5005,8 +5081,8 @@ class MegabotScene {
         // Smoothly rotate body toward target
         this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
         this.mainMegabot.rotation.y = this.currentRotation.y;
-      } else {
-        // IDLE MODE: Slow menacing rotation
+      } else if (!this.isWalking) {
+        // IDLE MODE: Slow menacing rotation (only when not walking - walk sets its own rotation)
         const returnSpeed = 0.05;
         this.currentRotation.y += (0 - this.currentRotation.y) * returnSpeed;
         this.currentRotation.x += (0 - this.currentRotation.x) * returnSpeed;
@@ -5086,23 +5162,51 @@ class MegabotScene {
           }
         }
 
-        // Torso breathing effect
+        // Torso breathing effect + walk sway
         if (part.type === 'torso') {
           const breathe = 1.0 + Math.sin(this.time * 1.5) * 0.02;
           part.mesh.scale.set(breathe, 1.0 + Math.sin(this.time * 1.5) * 0.01, breathe);
+          if (this.isWalking) {
+            // Subtle shoulder sway during walk (shifts weight side to side)
+            const swayTarget = Math.sin(this.walkCycle) * 0.04;
+            part.mesh.rotation.z += (swayTarget - part.mesh.rotation.z) * 0.15;
+            // Slight forward lean
+            part.mesh.rotation.x += (0.03 - part.mesh.rotation.x) * 0.1;
+          } else {
+            part.mesh.rotation.z *= 0.95; // Return to neutral
+            part.mesh.rotation.x *= 0.95;
+          }
         }
 
-        // Arms movement (menacing idle animation)
+        // Arms movement - walk swing or idle sway
         if (part.type === 'arm') {
-          const sway = Math.sin(this.time * 0.8 + part.side) * 0.05;
-          part.mesh.rotation.z = part.side * 0.1 + sway;
-          part.mesh.rotation.x = Math.sin(this.time * 0.6) * 0.08;
+          if (this.isWalking) {
+            // Walking: arms swing opposite to legs (left arm back when left leg forward)
+            const armPhase = part.side === -1 ? Math.PI : 0;
+            const targetX = Math.sin(this.walkCycle + armPhase) * this.ARM_SWING_ANGLE;
+            part.mesh.rotation.x += (targetX - part.mesh.rotation.x) * 0.2;
+            part.mesh.rotation.z = part.side * 0.08;
+          } else {
+            // Idle: subtle menacing sway
+            const sway = Math.sin(this.time * 0.8 + part.side) * 0.05;
+            part.mesh.rotation.z = part.side * 0.1 + sway;
+            const idleX = Math.sin(this.time * 0.6) * 0.08;
+            part.mesh.rotation.x += (idleX - part.mesh.rotation.x) * 0.1;
+          }
         }
 
-        // Legs subtle stance adjustment
+        // Legs - walking stride or idle stance
         if (part.type === 'leg') {
-          const stance = Math.sin(this.time * 0.7 + part.side) * 0.03;
-          part.mesh.rotation.x = stance;
+          if (this.isWalking) {
+            // Walking: alternating stride - left and right legs swap
+            const legPhase = part.side === -1 ? 0 : Math.PI;
+            const targetX = Math.sin(this.walkCycle + legPhase) * this.STRIDE_ANGLE;
+            part.mesh.rotation.x += (targetX - part.mesh.rotation.x) * 0.25;
+          } else {
+            // Idle: subtle weight shift, smoothly return to neutral
+            const stance = Math.sin(this.time * 0.7 + part.side) * 0.02;
+            part.mesh.rotation.x += (stance - part.mesh.rotation.x) * 0.08;
+          }
         }
 
         // Animate holographic scan rings (moving up and down)
@@ -5518,7 +5622,7 @@ class MegabotScene {
     this.buildings = [];
     this.lastFrameTime = 0;
     this.keysPressed.clear();
-    this.megabotWorldPos.set(0, 0, 0);
+    this.megabotWorldPos.set(0, this.MEGABOT_STAND_Y, 0);
     this.currentWave = 0;
     this.waveState = 'intermission';
     this.waveTimer = 0;
