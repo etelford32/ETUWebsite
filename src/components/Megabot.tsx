@@ -200,6 +200,28 @@ class MegabotScene {
     rightStart: { x: 0, y: 0 }, rightEnd: { x: 0, y: 0 },
     visible: false
   };
+  // Performance: cached raycaster objects for setTrackingTarget (avoids per-mousemove allocation)
+  private _cachedRaycaster = new THREE.Raycaster();
+  private _cachedMouse = new THREE.Vector2();
+  private _cachedPlane = new THREE.Plane();
+  private _cachedCameraDir = new THREE.Vector3();
+  private _cachedTargetPos = new THREE.Vector3();
+  private _cachedPlanePoint = new THREE.Vector3();
+  private _cachedPlaneNormal = new THREE.Vector3();
+  // Performance: burst queue replaces setTimeout in fireRapidBurst (prevents timer leaks)
+  private _pendingBursts: { ship: any; fireTime: number }[] = [];
+  // Performance: formation bomber index for O(1) escort->bomber lookup
+  private _formationBomberIndex = new Map<number, any>();
+  // Performance: cached border laser shader material (avoids recompilation on hover)
+  private _borderLaserShaderMaterial: any = null;
+  // Performance: squared distance threshold for particle respawn (avoids sqrt)
+  private _particleRespawnDistSq = 1000 * 1000; // 1000^2
+  private _particleContainDistSq = 0; // set in constructor based on MAIN_SIZE
+  // Performance: object pool for explosion particle systems (avoids per-explosion allocation)
+  private _explosionPool: any[] = [];
+  private _explosionPoolInitialized = false;
+  // Performance: shared geometry cache for ship types (avoids recreating identical geometries)
+  private _geometryCache = new Map<string, any>();
 
   // Bound event handlers for proper cleanup
   private _boundMouseMove: ((e: MouseEvent) => void) | null = null;
@@ -307,7 +329,9 @@ class MegabotScene {
       return;
     }
 
+    this._particleContainDistSq = (this.MAIN_SIZE * 0.5) * (this.MAIN_SIZE * 0.5);
     this.init();
+    this._initExplosionPool();
     this.createStarField();
     this.createMainMegabot();
     this.createCity();
@@ -374,6 +398,7 @@ class MegabotScene {
 
     try {
       this.init();
+      this._initExplosionPool();
       this.createStarField();
       this.createMainMegabot();
       this.createCity();
@@ -395,38 +420,32 @@ class MegabotScene {
     this.trackingTarget = target;
 
     if (target && this.camera && this.headGroup) {
-      // Convert 2D screen coordinates to 3D position using raycasting
-      const mouse = new THREE.Vector2();
-      mouse.x = (target.x / window.innerWidth) * 2 - 1;
-      mouse.y = -(target.y / window.innerHeight) * 2 + 1;
+      // Convert 2D screen coordinates to 3D position using cached raycaster (zero allocation)
+      this._cachedMouse.x = (target.x / window.innerWidth) * 2 - 1;
+      this._cachedMouse.y = -(target.y / window.innerHeight) * 2 + 1;
 
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, this.camera);
+      this._cachedRaycaster.setFromCamera(this._cachedMouse, this.camera);
 
       // Project onto a plane in front of the camera at a reasonable UI depth
-      // Use the camera's view direction to create a plane perpendicular to camera
-      const cameraDirection = new THREE.Vector3();
-      this.camera.getWorldDirection(cameraDirection);
+      this.camera.getWorldDirection(this._cachedCameraDir);
 
       // Create a plane at a fixed distance from camera (where UI elements appear to be)
-      const planeDistance = 800; // Closer distance for UI targeting
-      const planePoint = this.camera.position.clone().add(cameraDirection.multiplyScalar(planeDistance));
-      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraDirection.clone().negate(), planePoint);
+      const planeDistance = 800;
+      this._cachedPlanePoint.copy(this.camera.position).addScaledVector(this._cachedCameraDir, planeDistance);
+      this._cachedPlaneNormal.copy(this._cachedCameraDir).negate();
+      this._cachedPlane.setFromNormalAndCoplanarPoint(this._cachedPlaneNormal, this._cachedPlanePoint);
 
       // Intersect ray with plane
-      const targetPos = new THREE.Vector3();
-      const intersection = raycaster.ray.intersectPlane(plane, targetPos);
+      const intersection = this._cachedRaycaster.ray.intersectPlane(this._cachedPlane, this._cachedTargetPos);
 
       if (intersection) {
-        this.targetPosition3D = targetPos;
+        this.targetPosition3D = this._cachedTargetPos;
 
-        // Calculate proper head and body rotation to look at the target
-        // Get megabot's world position
-        const megabotWorldPos = new THREE.Vector3();
-        this.mainMegabot.getWorldPosition(megabotWorldPos);
+        // Calculate proper head and body rotation to look at the target (zero allocation)
+        this.mainMegabot.getWorldPosition(this._tmpVec3A);
 
         // Calculate direction from megabot to target
-        const directionToTarget = new THREE.Vector3().subVectors(targetPos, megabotWorldPos);
+        const directionToTarget = this._tmpVec3B.subVectors(this._cachedTargetPos, this._tmpVec3A);
 
         // Calculate rotation angles (Euler angles in Y-X-Z order)
         // Y-axis rotation (yaw - horizontal turn)
@@ -478,56 +497,62 @@ class MegabotScene {
     this.clearBorderLasers();
 
     // Create laser beams that trace the button border
-    // We'll create multiple segments for the border outline
-    const laserMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        scanProgress: { value: 0 },
-        beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
-        intensity: { value: 4.0 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
+    // Reuse cached shader material to avoid GPU recompilation on each hover
+    if (!this._borderLaserShaderMaterial) {
+      this._borderLaserShaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          scanProgress: { value: 0 },
+          beamColor: { value: new THREE.Color(1.0, 0.1, 0.1) },
+          intensity: { value: 4.0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
 
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float scanProgress;
-        uniform vec3 beamColor;
-        uniform float intensity;
-        varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          uniform float scanProgress;
+          uniform vec3 beamColor;
+          uniform float intensity;
+          varying vec2 vUv;
 
-        void main() {
-          // Beam intensity from center to edge
-          float distFromCenter = abs(vUv.x - 0.5) * 2.0;
-          float beamIntensity = 1.0 - distFromCenter;
-          beamIntensity = pow(beamIntensity, 1.5);
+          void main() {
+            // Beam intensity from center to edge
+            float distFromCenter = abs(vUv.x - 0.5) * 2.0;
+            float beamIntensity = 1.0 - distFromCenter;
+            beamIntensity = pow(beamIntensity, 1.5);
 
-          // Scanning wave effect
-          float scanWave = smoothstep(scanProgress - 0.2, scanProgress, vUv.y) *
-                          smoothstep(scanProgress + 0.2, scanProgress, vUv.y);
+            // Scanning wave effect
+            float scanWave = smoothstep(scanProgress - 0.2, scanProgress, vUv.y) *
+                            smoothstep(scanProgress + 0.2, scanProgress, vUv.y);
 
-          // Pulsing energy
-          float pulse = 0.7 + sin(time * 8.0 + vUv.y * 20.0) * 0.3;
+            // Pulsing energy
+            float pulse = 0.7 + sin(time * 8.0 + vUv.y * 20.0) * 0.3;
 
-          // Only show laser where scan has reached
-          float visibility = step(0.0, scanProgress - vUv.y) * 0.7 + scanWave;
+            // Only show laser where scan has reached
+            float visibility = step(0.0, scanProgress - vUv.y) * 0.7 + scanWave;
 
-          vec3 finalColor = beamColor * intensity * beamIntensity * pulse;
-          float alpha = beamIntensity * visibility * 0.95;
+            vec3 finalColor = beamColor * intensity * beamIntensity * pulse;
+            float alpha = beamIntensity * visibility * 0.95;
 
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+    }
+    // Reset uniforms for this scan
+    const laserMaterial = this._borderLaserShaderMaterial;
+    laserMaterial.uniforms.time.value = 0;
+    laserMaterial.uniforms.scanProgress.value = 0;
 
     // Store material for cleanup
     this.borderLasers.push({ material: laserMaterial, meshes: [] });
@@ -535,7 +560,7 @@ class MegabotScene {
 
   clearBorderLasers() {
     this.borderLasers.forEach(laser => {
-      if (laser.material) laser.material.dispose();
+      // Don't dispose the cached shader material - it's reused across hovers
       if (laser.meshes) {
         laser.meshes.forEach((mesh: any) => {
           if (this.scene) this.scene.remove(mesh);
@@ -2651,6 +2676,16 @@ class MegabotScene {
     this.scene.add(particleSystem);
   }
 
+  // Performance: cache and reuse identical geometries across ship instances
+  private _getCachedGeometry(key: string, factory: () => any): any {
+    let geo = this._geometryCache.get(key);
+    if (!geo) {
+      geo = factory();
+      this._geometryCache.set(key, geo);
+    }
+    return geo;
+  }
+
   // Create 3D ship geometry with detailed mesh designs
   create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser') {
     const THREE = this.THREE;
@@ -2689,7 +2724,25 @@ class MegabotScene {
     shipLight.position.set(0, 0, 0);
     group.add(shipLight);
 
-    return { group, size, health, maxHealth: health, type, hitFlash: 0 };
+    // Performance: cache engine glow children to avoid forEach scanning every frame
+    const engineColors = new Set([0x00ffff, 0xff6600, 0xffff00, 0xcc00ff]);
+    const engineChildren: any[] = [];
+    const emissiveChildren: any[] = [];
+    group.children.forEach((child: any) => {
+      if (child.material) {
+        if (child.material.transparent && child.material.color) {
+          const colorHex = child.material.color.getHex();
+          if (engineColors.has(colorHex)) {
+            engineChildren.push(child);
+          }
+        }
+        if (child.material.emissiveIntensity !== undefined) {
+          emissiveChildren.push(child);
+        }
+      }
+    });
+
+    return { group, size, health, maxHealth: health, type, hitFlash: 0, _engineChildren: engineChildren, _emissiveChildren: emissiveChildren };
   }
 
   // FIGHTER - Ultra-sleek stealth-fighter inspired design
@@ -2709,21 +2762,21 @@ class MegabotScene {
       roughness: 0.05,
     });
 
-    // Main fuselage - elongated diamond shape (very sleek)
-    const fuselageGeometry = new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 1.8, 12);
+    // Main fuselage - elongated diamond shape (shared geometry across all fighters)
+    const fuselageGeometry = this._getCachedGeometry('fighter_fuselage', () => new THREE.CylinderGeometry(size * 0.12, size * 0.08, size * 1.8, 12));
     const fuselage = new THREE.Mesh(fuselageGeometry, primaryMaterial);
     fuselage.rotation.x = Math.PI / 2;
     group.add(fuselage);
 
     // Sharp nose cone
-    const noseGeometry = new THREE.ConeGeometry(size * 0.12, size * 0.5, 12);
+    const noseGeometry = this._getCachedGeometry('fighter_nose', () => new THREE.ConeGeometry(size * 0.12, size * 0.5, 12));
     const nose = new THREE.Mesh(noseGeometry, darkMaterial);
     nose.rotation.x = -Math.PI / 2;
     nose.position.z = size * 1.15;
     group.add(nose);
 
     // Sleek cockpit canopy (elongated teardrop)
-    const cockpitGeometry = new THREE.SphereGeometry(size * 0.15, 16, 16);
+    const cockpitGeometry = this._getCachedGeometry('fighter_cockpit', () => new THREE.SphereGeometry(size * 0.15, 16, 16));
     const cockpitMaterial = new THREE.MeshStandardMaterial({
       color: 0x00d4ff,
       metalness: 0.2,
@@ -3451,7 +3504,7 @@ class MegabotScene {
 
       bomber.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
 
-      this.enemyShips.push({
+      const bomberShip = {
         ...bomber,
         velocity: bomberVelocity,
         active: true,
@@ -3460,7 +3513,10 @@ class MegabotScene {
         formationType: 'bomber-escort',
         formationRole: 'bomber',
         behavior: 'bomber-advance',
-      });
+      };
+      this.enemyShips.push(bomberShip);
+      // Index bomber for O(1) escort lookup
+      this._formationBomberIndex.set(formationId, bomberShip);
 
       this.scene.add(bomber.group);
     }
@@ -3578,8 +3634,8 @@ class MegabotScene {
 
     const group = new THREE.Group();
 
-    // Missile body (cylinder)
-    const bodyGeometry = new THREE.CylinderGeometry(3, 3, 15, 8);
+    // Missile body (shared geometry)
+    const bodyGeometry = this._getCachedGeometry('missile_body', () => new THREE.CylinderGeometry(3, 3, 15, 8));
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0x4a90e2,
       metalness: 0.9,
@@ -3591,15 +3647,15 @@ class MegabotScene {
     body.rotation.z = Math.PI / 2;
     group.add(body);
 
-    // Missile nose cone
-    const noseGeometry = new THREE.ConeGeometry(3, 8, 8);
+    // Missile nose cone (shared geometry)
+    const noseGeometry = this._getCachedGeometry('missile_nose', () => new THREE.ConeGeometry(3, 8, 8));
     const nose = new THREE.Mesh(noseGeometry, bodyMaterial);
     nose.rotation.z = -Math.PI / 2;
     nose.position.x = 7.5 + 4;
     group.add(nose);
 
-    // Glow effect
-    const glowGeometry = new THREE.SphereGeometry(8, 16, 16);
+    // Glow effect (shared geometry)
+    const glowGeometry = this._getCachedGeometry('missile_glow', () => new THREE.SphereGeometry(8, 16, 16));
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
@@ -3751,9 +3807,9 @@ class MegabotScene {
     const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
-    // Create laser beam geometry (thin cylinder)
+    // Create laser beam geometry (shared across all standard lasers)
     const laserLength = 50;
-    const laserGeometry = new THREE.CylinderGeometry(0.8, 0.8, laserLength, 8);
+    const laserGeometry = this._getCachedGeometry('enemy_laser', () => new THREE.CylinderGeometry(0.8, 0.8, laserLength, 8));
     const laserMaterial = new THREE.MeshBasicMaterial({
       color: 0xff0000,
       transparent: true,
@@ -3761,8 +3817,8 @@ class MegabotScene {
     });
     const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
 
-    // Create laser glow
-    const glowGeometry = new THREE.CylinderGeometry(2, 2, laserLength, 8);
+    // Create laser glow (shared geometry)
+    const glowGeometry = this._getCachedGeometry('enemy_laser_glow', () => new THREE.CylinderGeometry(2, 2, laserLength, 8));
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0xff3300,
       transparent: true,
@@ -3810,9 +3866,9 @@ class MegabotScene {
     const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
-    // Thin, fast cyan laser
+    // Thin, fast cyan laser (shared geometry)
     const laserLength = 30;
-    const laserGeometry = new THREE.CylinderGeometry(0.4, 0.4, laserLength, 6);
+    const laserGeometry = this._getCachedGeometry('rapid_laser', () => new THREE.CylinderGeometry(0.4, 0.4, laserLength, 6));
     const laserMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
@@ -3820,8 +3876,8 @@ class MegabotScene {
     });
     const laserMesh = new THREE.Mesh(laserGeometry, laserMaterial);
 
-    // Bright cyan glow
-    const glowGeometry = new THREE.CylinderGeometry(1.5, 1.5, laserLength, 6);
+    // Bright cyan glow (shared geometry)
+    const glowGeometry = this._getCachedGeometry('rapid_laser_glow', () => new THREE.CylinderGeometry(1.5, 1.5, laserLength, 6));
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ccff,
       transparent: true,
@@ -3866,8 +3922,8 @@ class MegabotScene {
     const megabotPos = this.megabotWorldPos.clone();
     const toMegabot = new THREE.Vector3().subVectors(megabotPos, shipPos).normalize();
 
-    // Large plasma ball
-    const plasmaGeometry = new THREE.SphereGeometry(8, 16, 16);
+    // Large plasma ball (shared geometry)
+    const plasmaGeometry = this._getCachedGeometry('plasma_ball', () => new THREE.SphereGeometry(8, 16, 16));
     const plasmaMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
       transparent: true,
@@ -3875,8 +3931,8 @@ class MegabotScene {
     });
     const plasmaMesh = new THREE.Mesh(plasmaGeometry, plasmaMaterial);
 
-    // Outer glow
-    const glowGeometry = new THREE.SphereGeometry(15, 16, 16);
+    // Outer glow (shared geometry)
+    const glowGeometry = this._getCachedGeometry('plasma_glow', () => new THREE.SphereGeometry(15, 16, 16));
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x44ff44,
       transparent: true,
@@ -3884,8 +3940,8 @@ class MegabotScene {
     });
     const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
 
-    // Inner core
-    const coreGeometry = new THREE.SphereGeometry(4, 12, 12);
+    // Inner core (shared geometry)
+    const coreGeometry = this._getCachedGeometry('plasma_core', () => new THREE.SphereGeometry(4, 12, 12));
     const coreMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
@@ -3924,71 +3980,122 @@ class MegabotScene {
     return plasma;
   }
 
-  // Fire rapid burst (3 shots in quick succession)
+  // Fire rapid burst (3 shots in quick succession) - uses RAF-synced burst queue instead of setTimeout
   fireRapidBurst(ship: any) {
-    // Fire 3 rapid lasers with slight delay simulation via offset
+    const now = this.time;
     for (let i = 0; i < 3; i++) {
-      setTimeout(() => {
-        if (ship.active) {
-          this.createRapidLaser(ship);
-        }
-      }, i * 80); // 80ms between shots
+      this._pendingBursts.push({ ship, fireTime: now + i * 0.08 });
     }
   }
 
-  // Create 3D explosion effect
-  create3DExplosion(position: any, size: number) {
-    const THREE = this.THREE;
+  // Process pending burst queue (called from update loop instead of setTimeout)
+  private _processBurstQueue() {
+    const now = this.time;
+    for (let i = this._pendingBursts.length - 1; i >= 0; i--) {
+      const burst = this._pendingBursts[i];
+      if (now >= burst.fireTime) {
+        if (burst.ship.active) {
+          this.createRapidLaser(burst.ship);
+        }
+        this._pendingBursts.splice(i, 1);
+      }
+    }
+  }
 
+  // Pre-allocate explosion pool to avoid per-explosion Three.js object creation
+  private _initExplosionPool() {
+    const THREE = this.THREE;
+    const particleCount = 50;
+
+    for (let p = 0; p < this.MAX_EXPLOSIONS_3D; p++) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const material = new THREE.PointsMaterial({
+        color: 0xff6600,
+        size: 25,
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const particles = new THREE.Points(geometry, material);
+      particles.visible = false;
+
+      const light = new THREE.PointLight(0xff6600, 20, 250);
+      light.visible = false;
+
+      // Pre-allocate velocity array with plain objects
+      const velocities: { x: number; y: number; z: number }[] = [];
+      for (let i = 0; i < particleCount; i++) {
+        velocities.push({ x: 0, y: 0, z: 0 });
+      }
+
+      this._explosionPool.push({
+        particles,
+        velocities,
+        light,
+        lifetime: 0,
+        maxLifetime: 0.5,
+        active: false,
+        size: 50,
+        _pooled: true,
+      });
+
+      this.scene.add(particles);
+      this.scene.add(light);
+    }
+    this._explosionPoolInitialized = true;
+  }
+
+  // Create 3D explosion effect - uses object pool to avoid allocation
+  create3DExplosion(position: any, size: number) {
     if (this.explosions3D.length >= this.MAX_EXPLOSIONS_3D) return;
 
-    // Create expanding sphere with particles
+    // Find an inactive pooled explosion
+    let explosion: any = null;
+    for (let p = 0; p < this._explosionPool.length; p++) {
+      if (!this._explosionPool[p].active) {
+        explosion = this._explosionPool[p];
+        break;
+      }
+    }
+
+    if (!explosion) return; // All pool slots in use
+
+    // Reset and configure the pooled explosion
     const particleCount = 50;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    const velocities: any[] = [];
+    const positions = explosion.particles.geometry.attributes.position.array as Float32Array;
 
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] = position.x;
       positions[i * 3 + 1] = position.y;
       positions[i * 3 + 2] = position.z;
 
-      // Random outward velocity
-      const vel = new THREE.Vector3(
-        (Math.random() - 0.5) * size * 2,
-        (Math.random() - 0.5) * size * 2,
-        (Math.random() - 0.5) * size * 2
-      );
-      velocities.push(vel);
+      explosion.velocities[i].x = (Math.random() - 0.5) * size * 2;
+      explosion.velocities[i].y = (Math.random() - 0.5) * size * 2;
+      explosion.velocities[i].z = (Math.random() - 0.5) * size * 2;
     }
+    explosion.particles.geometry.attributes.position.needsUpdate = true;
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // Update material size for this explosion
+    explosion.particles.material.size = size * 0.5;
+    explosion.particles.material.opacity = 1.0;
+    explosion.particles.visible = true;
 
-    const material = new THREE.PointsMaterial({
-      color: 0xff6600,
-      size: size * 0.5,
-      transparent: true,
-      opacity: 1.0,
-      blending: THREE.AdditiveBlending,
-    });
+    // Update light
+    explosion.light.position.copy(position);
+    explosion.light.distance = size * 5;
+    explosion.light.intensity = 20;
+    explosion.light.visible = true;
 
-    const particles = new THREE.Points(geometry, material);
-    this.scene.add(particles);
+    explosion.lifetime = 0;
+    explosion.maxLifetime = 0.5;
+    explosion.active = true;
+    explosion.size = size;
 
-    // Add bright flash
-    const flashLight = new THREE.PointLight(0xff6600, 20, size * 5);
-    flashLight.position.copy(position);
-    this.scene.add(flashLight);
-
-    this.explosions3D.push({
-      particles,
-      velocities,
-      light: flashLight,
-      lifetime: 0,
-      maxLifetime: 0.5,
-      active: true,
-      size,
-    });
+    this.explosions3D.push(explosion);
   }
 
   // Update Orbit & Strafe behavior
@@ -4087,7 +4194,8 @@ class MegabotScene {
         const perpZ = pos.x;
         const perpLen = Math.sqrt(perpX * perpX + perpZ * perpZ);
 
-        ship.strafeVelocity = new THREE.Vector3(
+        if (!ship.strafeVelocity) ship.strafeVelocity = new THREE.Vector3();
+        ship.strafeVelocity.set(
           (perpX / perpLen) * 200,
           0,
           (perpZ / perpLen) * 200
@@ -4110,7 +4218,7 @@ class MegabotScene {
         // Velocity away from megabot
         const pos = ship.group.position;
         const dist = pos.length();
-        ship.velocity = new THREE.Vector3(
+        ship.velocity.set(
           (pos.x / dist) * 150,
           (pos.y / dist) * 150,
           (pos.z / dist) * 150
@@ -4127,11 +4235,7 @@ class MegabotScene {
         ship.pincerPhase = 'approach';
         // Turn around toward megabot
         const toMega = this._tmpVec3A.copy(this.megabotWorldPos).sub(ship.group.position).normalize();
-        ship.velocity = new THREE.Vector3(
-          toMega.x * 300,
-          toMega.y * 300,
-          toMega.z * 300
-        );
+        ship.velocity.set(toMega.x * 300, toMega.y * 300, toMega.z * 300);
       }
     }
   }
@@ -4140,12 +4244,12 @@ class MegabotScene {
   updateEscortBehavior(ship: any, dt: number) {
     const THREE = this.THREE;
 
-    // Find the bomber we're escorting
-    const bomber = this.enemyShips.find(
-      (s: any) => s.formationId === ship.escortTarget && s.formationRole === 'bomber'
-    );
+    // Find the bomber we're escorting (O(1) lookup via cached index)
+    const bomber = this._formationBomberIndex.get(ship.escortTarget);
+    // Verify bomber is still in the scene (group.parent is null after scene.remove)
+    const bomberAlive = bomber && bomber.group.parent;
 
-    if (bomber && bomber.active) {
+    if (bomberAlive) {
       // Orbit around the bomber
       ship.orbitAngle += 1.5 * dt;
 
@@ -4162,15 +4266,12 @@ class MegabotScene {
       // Face megabot (threat direction)
       ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
     } else {
-      // Bomber destroyed, go aggressive toward megabot
+      // Bomber destroyed, clean up index and go aggressive toward megabot
+      this._formationBomberIndex.delete(ship.escortTarget);
       ship.behavior = undefined; // Default kamikaze
       const toMega = this._tmpVec3A.copy(this.megabotWorldPos).sub(ship.group.position).normalize();
       const speed = 400; // Angry escort
-      ship.velocity = new THREE.Vector3(
-        toMega.x * speed,
-        toMega.y * speed,
-        toMega.z * speed
-      );
+      ship.velocity.set(toMega.x * speed, toMega.y * speed, toMega.z * speed);
     }
   }
 
@@ -4373,8 +4474,11 @@ class MegabotScene {
           this.lastFormationSpawnTime = currentTime;
         }
 
-        // Check if wave is complete (all spawned and all destroyed)
-        const shipsLeft = this.enemyShips.filter(s => s.active).length;
+        // Check if wave is complete (all spawned and all destroyed) - count directly to avoid GC
+        let shipsLeft = 0;
+        for (let si = 0; si < this.enemyShips.length; si++) {
+          if (this.enemyShips[si].active) shipsLeft++;
+        }
         if (this.waveShipsRemaining <= 0 && shipsLeft === 0) {
           this.waveState = 'intermission';
           this.waveTimer = 0;
@@ -4450,6 +4554,9 @@ class MegabotScene {
     const THREE = this.THREE;
     const dt = deltaTime;
 
+    // Process RAF-synced burst queue (replaces setTimeout for interceptor fire)
+    this._processBurstQueue();
+
     // Wave-based spawning instead of constant
     this.updateWaveSystem(dt);
 
@@ -4494,39 +4601,30 @@ class MegabotScene {
         ship.group.rotation.x = Math.sin(this.time * 0.5) * 0.05;
       }
 
-      // Animate engine glows (pulsing effect)
-      ship.group.children.forEach((child: any) => {
-        if (child.material && child.material.transparent && child.material.color) {
-          const colorHex = child.material.color.getHex();
-          const isEngine = colorHex === 0x00ffff ||
-                          colorHex === 0xff6600 ||
-                          colorHex === 0xffff00 ||
-                          colorHex === 0xcc00ff; // Cruiser engines
-          if (isEngine) {
-            child.material.opacity = 0.7 + Math.sin(this.time * 10) * 0.2;
-          }
+      // Animate engine glows (pulsing effect) - uses cached engine refs instead of forEach
+      const enginePulse = 0.7 + Math.sin(this.time * 10) * 0.2;
+      if (ship._engineChildren) {
+        for (let e = 0; e < ship._engineChildren.length; e++) {
+          ship._engineChildren[e].material.opacity = enginePulse;
         }
-      });
+      }
 
-      // Enhanced damage visual feedback
+      // Enhanced damage visual feedback - uses cached emissive refs instead of forEach
       if (ship.hitFlash > 0) {
         ship.hitFlash -= dt * 3;
         if (ship.hitFlash < 0) ship.hitFlash = 0;
 
-        // Apply intense flash to all ship materials when hit
-        ship.group.children.forEach((child: any) => {
-          if (child.material && child.material.emissiveIntensity !== undefined) {
-            // Bright white flash on hit
+        if (ship._emissiveChildren) {
+          for (let e = 0; e < ship._emissiveChildren.length; e++) {
+            const child = ship._emissiveChildren[e];
             child.material.emissiveIntensity = 0.3 + ship.hitFlash * 1.5;
-
-            // Add damage sparks effect (reuse pre-allocated Color objects)
             if (ship.hitFlash > 0.8) {
               child.material.emissive.copy(this._colorWhite);
             } else if (ship.hitFlash > 0.3) {
               child.material.emissive.copy(this._colorOrangeDmg);
             }
           }
-        });
+        }
       }
 
       // Show damage state based on health percentage
@@ -4838,8 +4936,10 @@ class MegabotScene {
       explosion.lifetime += dt;
 
       if (explosion.lifetime >= explosion.maxLifetime) {
-        this.scene.remove(explosion.particles);
-        this.scene.remove(explosion.light);
+        // Return pooled explosions to pool instead of removing from scene
+        explosion.active = false;
+        explosion.particles.visible = false;
+        explosion.light.visible = false;
         this.explosions3D.splice(i, 1);
         continue;
       }
@@ -5157,43 +5257,46 @@ class MegabotScene {
       const positions = particleData.system.geometry.attributes.position.array as Float32Array;
       const velocities = particleData.velocities;
 
-      for (let i = 0; i < positions.length / 3; i++) {
+      const particleLen = positions.length / 3;
+      for (let i = 0; i < particleLen; i++) {
+        const i3 = i * 3;
         // Apply velocities
-        positions[i * 3] += velocities[i][0];
-        positions[i * 3 + 1] += velocities[i][1];
-        positions[i * 3 + 2] += velocities[i][2];
+        positions[i3] += velocities[i][0];
+        positions[i3 + 1] += velocities[i][1];
+        positions[i3 + 2] += velocities[i][2];
 
-        // Attraction to center
-        const x = positions[i * 3];
-        const y = positions[i * 3 + 1];
-        const z = positions[i * 3 + 2];
-        const dist = Math.sqrt(x * x + y * y + z * z);
+        // Attraction to center - use distSq to avoid sqrt (only need sqrt for normalization)
+        const x = positions[i3];
+        const y = positions[i3 + 1];
+        const z = positions[i3 + 2];
+        const distSq = x * x + y * y + z * z;
 
-        if (dist > this.MAIN_SIZE * 0.5) {
-          velocities[i][0] -= (x / dist) * 0.01;
-          velocities[i][1] -= (y / dist) * 0.01;
-          velocities[i][2] -= (z / dist) * 0.01;
+        if (distSq > this._particleContainDistSq) {
+          // Only compute sqrt when we actually need the normalized direction
+          const invDist = 1 / Math.sqrt(distSq);
+          velocities[i][0] -= x * invDist * 0.01;
+          velocities[i][1] -= y * invDist * 0.01;
+          velocities[i][2] -= z * invDist * 0.01;
         }
 
         // Orbital motion
-        const orbital = 0.005;
-        velocities[i][0] += -y * orbital;
-        velocities[i][1] += x * orbital;
+        velocities[i][0] += -y * 0.005;
+        velocities[i][1] += x * 0.005;
 
         // Damping
         velocities[i][0] *= 0.99;
         velocities[i][1] *= 0.99;
         velocities[i][2] *= 0.99;
 
-        // Respawn if too far
-        if (dist > 1000) {
+        // Respawn if too far (squared comparison avoids sqrt)
+        if (distSq > this._particleRespawnDistSq) {
           const radius = this.MAIN_SIZE * (1 + Math.random() * 2);
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.random() * Math.PI;
 
-          positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-          positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-          positions[i * 3 + 2] = radius * Math.cos(phi);
+          positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+          positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+          positions[i3 + 2] = radius * Math.cos(phi);
 
           velocities[i][0] = (Math.random() - 0.5) * 0.5;
           velocities[i][1] = (Math.random() - 0.5) * 0.5;
@@ -5514,6 +5617,11 @@ class MegabotScene {
     this.missiles3D = [];
     this.enemyLasers = [];
     this.explosions3D = [];
+    this._explosionPool = [];
+    this._explosionPoolInitialized = false;
+    this._pendingBursts = [];
+    this._formationBomberIndex.clear();
+    this._geometryCache.clear();
     this.formations = [];
     this.buildings = [];
     this.lastFrameTime = 0;
