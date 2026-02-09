@@ -120,6 +120,27 @@ class MegabotScene {
   cameraAngle: number = 0;
   cameraDistance: number = 1400; // Increased for building-sized mecha
 
+  // Godmode 3D camera system
+  cameraYaw: number = 0;              // Horizontal orbit angle (radians)
+  cameraPitch: number = 0.2;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
+  cameraTargetDistance: number = 1400; // Smooth zoom target
+  cameraPanX: number = 0;             // Look-at pan offset X
+  cameraPanY: number = 0;             // Look-at pan offset Y
+  cameraPanZ: number = 0;             // Look-at pan offset Z
+  private _isDragging = false;        // Right-click orbit drag active
+  private _isPanning = false;         // Middle-click pan drag active
+  private _dragStartX = 0;
+  private _dragStartY = 0;
+  private _dragTotalDist = 0;         // Total drag distance (for click vs drag detection)
+  // Camera limits & tuning
+  readonly CAMERA_MIN_DISTANCE = 200;
+  readonly CAMERA_MAX_DISTANCE = 5000;
+  readonly CAMERA_MIN_PITCH = -0.3;    // Slightly below horizon
+  readonly CAMERA_MAX_PITCH = 1.45;    // Near top-down
+  readonly CAMERA_ORBIT_SPEED = 0.004;
+  readonly CAMERA_PAN_SPEED = 1.5;
+  readonly CAMERA_ZOOM_SMOOTH = 0.08;  // Zoom interpolation factor
+
   // Mouse tracking for button hover effects
   trackingTarget: { x: number; y: number } | null = null;
   targetRotation: { x: number; y: number } = { x: 0, y: 0 };
