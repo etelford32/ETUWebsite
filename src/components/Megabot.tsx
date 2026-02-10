@@ -117,8 +117,7 @@ class MegabotScene {
 
   // Camera controls
   mouse: any = { x: 0, y: 0 };
-  cameraAngle: number = 0;
-  cameraDistance: number = 1400; // Increased for building-sized mecha
+  cameraDistance: number = 1400; // Current distance (smoothed toward cameraTargetDistance)
 
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
@@ -250,6 +249,10 @@ class MegabotScene {
   private _boundResize: (() => void) | null = null;
   private _boundKeyDown: ((e: KeyboardEvent) => void) | null = null;
   private _boundKeyUp: ((e: KeyboardEvent) => void) | null = null;
+  private _boundWheel: ((e: WheelEvent) => void) | null = null;
+  private _boundMouseDown: ((e: MouseEvent) => void) | null = null;
+  private _boundMouseUp: ((e: MouseEvent) => void) | null = null;
+  private _boundContextMenu: ((e: Event) => void) | null = null;
 
   // City / Buildings system
   buildings: any[] = [];
@@ -790,8 +793,8 @@ class MegabotScene {
     this.camera = new THREE.PerspectiveCamera(
       60,
       this.container.offsetWidth / this.container.offsetHeight,
-      0.1,
-      5000
+      1,
+      12000 // Extended for godmode camera max zoom-out
     );
     this.camera.position.set(0, 300, 800);
     this.camera.lookAt(0, 0, 0);
@@ -4315,9 +4318,9 @@ class MegabotScene {
     moveX /= len;
     moveZ /= len;
 
-    // Apply movement relative to camera angle so "forward" is always screen-up
-    const cosA = Math.cos(this.cameraAngle);
-    const sinA = Math.sin(this.cameraAngle);
+    // Apply movement relative to camera yaw so "forward" is always screen-up
+    const cosA = Math.cos(this.cameraYaw);
+    const sinA = Math.sin(this.cameraYaw);
     const worldX = moveX * cosA - moveZ * sinA;
     const worldZ = moveX * sinA + moveZ * cosA;
 
@@ -5008,23 +5011,117 @@ class MegabotScene {
   }
 
   addEventListeners() {
-    // Mouse movement for parallax
+    // ── Mouse movement: subtle parallax + orbit/pan drag ──
     this._boundMouseMove = (e: MouseEvent) => {
+      // Always track normalized mouse for subtle parallax
       this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
       this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+
+      // Right-click drag → orbit camera
+      if (this._isDragging) {
+        const dx = e.clientX - this._dragStartX;
+        const dy = e.clientY - this._dragStartY;
+        this._dragTotalDist += Math.abs(dx) + Math.abs(dy);
+
+        this.cameraYaw -= dx * this.CAMERA_ORBIT_SPEED;
+        this.cameraPitch += dy * this.CAMERA_ORBIT_SPEED;
+        // Clamp pitch
+        this.cameraPitch = Math.max(this.CAMERA_MIN_PITCH, Math.min(this.CAMERA_MAX_PITCH, this.cameraPitch));
+
+        this._dragStartX = e.clientX;
+        this._dragStartY = e.clientY;
+        return;
+      }
+
+      // Middle-click drag → pan camera
+      if (this._isPanning) {
+        const dx = e.clientX - this._dragStartX;
+        const dy = e.clientY - this._dragStartY;
+        this._dragTotalDist += Math.abs(dx) + Math.abs(dy);
+
+        // Pan in camera-local XY plane
+        const panScale = this.cameraDistance * this.CAMERA_PAN_SPEED * 0.001;
+        // Horizontal pan is perpendicular to camera yaw
+        this.cameraPanX -= dx * panScale * Math.cos(this.cameraYaw);
+        this.cameraPanZ += dx * panScale * Math.sin(this.cameraYaw);
+        // Vertical pan is always world-Y
+        this.cameraPanY += dy * panScale;
+
+        this._dragStartX = e.clientX;
+        this._dragStartY = e.clientY;
+        return;
+      }
     };
     document.addEventListener("mousemove", this._boundMouseMove);
 
-    // Click to launch 3D missiles - listen on document to avoid z-index blocking
+    // ── Mouse down: start orbit drag (right) or pan drag (middle) ──
+    this._boundMouseDown = (e: MouseEvent) => {
+      const rect = this.container.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom) return;
+
+      if (e.button === 2) {
+        // Right-click: orbit
+        this._isDragging = true;
+        this._dragStartX = e.clientX;
+        this._dragStartY = e.clientY;
+        this._dragTotalDist = 0;
+        e.preventDefault();
+      } else if (e.button === 1) {
+        // Middle-click: pan
+        this._isPanning = true;
+        this._dragStartX = e.clientX;
+        this._dragStartY = e.clientY;
+        this._dragTotalDist = 0;
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("mousedown", this._boundMouseDown);
+
+    // ── Mouse up: end drag ──
+    this._boundMouseUp = (e: MouseEvent) => {
+      if (e.button === 2) this._isDragging = false;
+      if (e.button === 1) this._isPanning = false;
+    };
+    document.addEventListener("mouseup", this._boundMouseUp);
+
+    // ── Context menu: suppress on canvas so right-click drag works ──
+    this._boundContextMenu = (e: Event) => {
+      const rect = this.container.getBoundingClientRect();
+      const me = e as MouseEvent;
+      if (me.clientX >= rect.left && me.clientX <= rect.right &&
+          me.clientY >= rect.top  && me.clientY <= rect.bottom) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", this._boundContextMenu);
+
+    // ── Scroll wheel: zoom in/out ──
+    this._boundWheel = (e: WheelEvent) => {
+      const rect = this.container.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom) return;
+
+      // Zoom speed scales with distance (feels natural at all zoom levels)
+      const zoomFactor = 1 + (e.deltaY > 0 ? 0.1 : -0.1);
+      this.cameraTargetDistance = Math.max(
+        this.CAMERA_MIN_DISTANCE,
+        Math.min(this.CAMERA_MAX_DISTANCE, this.cameraTargetDistance * zoomFactor)
+      );
+      e.preventDefault();
+    };
+    document.addEventListener("wheel", this._boundWheel, { passive: false });
+
+    // ── Click: fire missiles (left-click only, not during drag) ──
     // The hero content overlay (z-10) sits above the canvas (z-0), so clicks
     // on the container never fire. Instead we listen globally and bounds-check.
     this._boundClick = (e: MouseEvent) => {
+      // Only left-click fires missiles
+      if (e.button !== 0) return;
+
       const rect = this.container.getBoundingClientRect();
-      // Only handle clicks within the hero/container area
-      if (
-        e.clientX < rect.left || e.clientX > rect.right ||
-        e.clientY < rect.top || e.clientY > rect.bottom
-      ) return;
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom) return;
 
       // Ignore clicks on interactive elements (links, buttons) so they still work
       const target = e.target as HTMLElement;
@@ -5041,13 +5138,29 @@ class MegabotScene {
     };
     document.addEventListener("click", this._boundClick);
 
-    // Keyboard: WASD / Arrow keys for movement, Q for barrage
+    // ── Keyboard: WASD movement, Q barrage, R reset camera, F focus ──
     this._boundKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      // Only capture game keys, don't interfere with page interaction
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q'].includes(key)) {
+      // Game movement + camera keys
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'r', 'f'].includes(key)) {
         e.preventDefault();
         this.keysPressed.add(key);
+
+        // Camera reset (R) - snap back to default orbit
+        if (key === 'r') {
+          this.cameraYaw = 0;
+          this.cameraPitch = 0.2;
+          this.cameraTargetDistance = 1400;
+          this.cameraPanX = 0;
+          this.cameraPanY = 0;
+          this.cameraPanZ = 0;
+        }
+        // Focus on megabot (F) - clear pan offset
+        if (key === 'f') {
+          this.cameraPanX = 0;
+          this.cameraPanY = 0;
+          this.cameraPanZ = 0;
+        }
       }
     };
     this._boundKeyUp = (e: KeyboardEvent) => {
@@ -5056,7 +5169,7 @@ class MegabotScene {
     document.addEventListener("keydown", this._boundKeyDown);
     document.addEventListener("keyup", this._boundKeyUp);
 
-    // Window resize
+    // ── Window resize ──
     this._boundResize = () => this.onWindowResize();
     window.addEventListener("resize", this._boundResize, false);
   }
@@ -5103,15 +5216,28 @@ class MegabotScene {
       this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
     }
 
-    // Smooth camera movement based on mouse, following megabot
+    // ── Godmode camera: spherical orbit + zoom + pan ──
     const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, 0, 0);
-    this.cameraAngle += this.mouse.x * 0.001;
-    const targetCameraY = megaPos.y + 300 + this.mouse.y * 100;
-    this.camera.position.y += (targetCameraY - this.camera.position.y) * 0.05;
 
-    this.camera.position.x = megaPos.x + Math.sin(this.cameraAngle) * this.cameraDistance;
-    this.camera.position.z = megaPos.z + Math.cos(this.cameraAngle) * this.cameraDistance;
-    this.camera.lookAt(megaPos.x, megaPos.y, megaPos.z);
+    // Subtle idle drift when not actively orbiting (keeps the scene alive)
+    if (!this._isDragging) {
+      this.cameraYaw += this.mouse.x * 0.0003;
+    }
+
+    // Smooth zoom interpolation
+    this.cameraDistance += (this.cameraTargetDistance - this.cameraDistance) * this.CAMERA_ZOOM_SMOOTH;
+
+    // Compute look-at point (megabot + pan offset)
+    const lookX = megaPos.x + this.cameraPanX;
+    const lookY = megaPos.y + this.cameraPanY;
+    const lookZ = megaPos.z + this.cameraPanZ;
+
+    // Spherical coordinates → camera world position
+    const cosPitch = Math.cos(this.cameraPitch);
+    this.camera.position.x = lookX + Math.sin(this.cameraYaw) * cosPitch * this.cameraDistance;
+    this.camera.position.y = lookY + Math.sin(this.cameraPitch) * this.cameraDistance;
+    this.camera.position.z = lookZ + Math.cos(this.cameraYaw) * cosPitch * this.cameraDistance;
+    this.camera.lookAt(lookX, lookY, lookZ);
 
     // Animate main Megabot
     if (this.mainMegabot) {
@@ -5592,6 +5718,22 @@ class MegabotScene {
     if (this._boundKeyUp) {
       document.removeEventListener("keyup", this._boundKeyUp);
       this._boundKeyUp = null;
+    }
+    if (this._boundWheel) {
+      document.removeEventListener("wheel", this._boundWheel);
+      this._boundWheel = null;
+    }
+    if (this._boundMouseDown) {
+      document.removeEventListener("mousedown", this._boundMouseDown);
+      this._boundMouseDown = null;
+    }
+    if (this._boundMouseUp) {
+      document.removeEventListener("mouseup", this._boundMouseUp);
+      this._boundMouseUp = null;
+    }
+    if (this._boundContextMenu) {
+      document.removeEventListener("contextmenu", this._boundContextMenu);
+      this._boundContextMenu = null;
     }
     if (this._boundResize) {
       window.removeEventListener("resize", this._boundResize);
