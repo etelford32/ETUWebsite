@@ -412,6 +412,18 @@ class MegabotScene {
 
   updateQuality(quality: QualityLevel) {
     console.log(`🎨 Quality change requested: ${quality}`);
+
+    // Preserve camera state across quality change
+    const savedCamera = {
+      yaw: this.cameraYaw,
+      pitch: this.cameraPitch,
+      distance: this.cameraDistance,
+      targetDistance: this.cameraTargetDistance,
+      panX: this.cameraPanX,
+      panY: this.cameraPanY,
+      panZ: this.cameraPanZ,
+    };
+
     this.destroy();
     this.settings = this.detectCapabilities(quality);
 
@@ -430,6 +442,16 @@ class MegabotScene {
       this.createSatellites();
       this.createEnergyParticles();
       this.addEventListeners();
+
+      // Restore camera state
+      this.cameraYaw = savedCamera.yaw;
+      this.cameraPitch = savedCamera.pitch;
+      this.cameraDistance = savedCamera.distance;
+      this.cameraTargetDistance = savedCamera.targetDistance;
+      this.cameraPanX = savedCamera.panX;
+      this.cameraPanY = savedCamera.panY;
+      this.cameraPanZ = savedCamera.panZ;
+
       this.animate();
     } catch (error) {
       console.error("❌ Error recreating scene:", error);
@@ -453,8 +475,8 @@ class MegabotScene {
       // Project onto a plane in front of the camera at a reasonable UI depth
       this.camera.getWorldDirection(this._cachedCameraDir);
 
-      // Create a plane at a fixed distance from camera (where UI elements appear to be)
-      const planeDistance = 800;
+      // Scale plane distance with camera distance so laser targeting stays accurate at all zoom levels
+      const planeDistance = Math.max(400, this.cameraDistance * 0.6);
       this._cachedPlanePoint.copy(this.camera.position).addScaledVector(this._cachedCameraDir, planeDistance);
       this._cachedPlaneNormal.copy(this._cachedCameraDir).negate();
       this._cachedPlane.setFromNormalAndCoplanarPoint(this._cachedPlaneNormal, this._cachedPlanePoint);
@@ -3737,7 +3759,8 @@ class MegabotScene {
 
     vector.unproject(this.camera);
     const dir = vector.sub(this.camera.position).normalize();
-    const distance = 2000;
+    // Scale aim distance with camera distance so aiming stays accurate at all zoom levels
+    const distance = Math.max(2000, this.cameraDistance * 1.5);
     const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
 
     const missile = this.create3DMissile(launchPos, targetPos);
@@ -3767,7 +3790,8 @@ class MegabotScene {
 
     vector.unproject(this.camera);
     const dir = vector.sub(this.camera.position).normalize();
-    const distance = 2000;
+    // Scale aim distance with camera distance so cluster aiming stays accurate at all zoom levels
+    const distance = Math.max(2000, this.cameraDistance * 1.5);
     const centerTarget = this.camera.position.clone().add(dir.clone().multiplyScalar(distance));
 
     // Calculate spread vectors perpendicular to the direction
@@ -5220,8 +5244,12 @@ class MegabotScene {
     const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, 0, 0);
 
     // Subtle idle drift when not actively orbiting (keeps the scene alive)
-    if (!this._isDragging) {
+    if (!this._isDragging && !this._isPanning) {
       this.cameraYaw += this.mouse.x * 0.0003;
+      // Gentle vertical drift from mouse Y (restores parallax feel)
+      const targetPitchOffset = this.mouse.y * 0.0002;
+      this.cameraPitch = Math.max(this.CAMERA_MIN_PITCH,
+        Math.min(this.CAMERA_MAX_PITCH, this.cameraPitch + targetPitchOffset));
     }
 
     // Smooth zoom interpolation
