@@ -4673,6 +4673,35 @@ class MegabotScene {
     }
   }
 
+  // Shared laser-vs-ship cone check. Returns true if ship was destroyed.
+  _checkLaserHit(eye: any, laser: any, ship: any, coneThreshold: number, damagePerSec: number, dt: number): boolean {
+    eye.getWorldPosition(this._tmpVec3C);
+    this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
+    const dist = this._tmpVec3D.length();
+    if (dist >= 800) return false;
+
+    this._tmpVec3E.set(0, 1, 0);
+    this._tmpVec3E.applyQuaternion(laser.getWorldQuaternion(this._tmpQuat));
+    this._tmpVec3D.normalize();
+    const angle = this._tmpVec3E.dot(this._tmpVec3D);
+    if (angle <= coneThreshold) return false;
+
+    ship.health -= damagePerSec * dt;
+    ship.hitFlash = 1.0;
+
+    if (Math.random() > 0.8) {
+      this.create3DExplosion(ship.group.position, ship.size * 0.5);
+    }
+
+    if (ship.health <= 0) {
+      const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+      this.gameScore += scoreBonus;
+      this.create3DExplosion(ship.group.position, ship.size * 2.5);
+      return true;
+    }
+    return false;
+  }
+
   // Update 3D combat system
   update3DCombat(deltaTime: number) {
     const THREE = this.THREE;
@@ -4684,6 +4713,14 @@ class MegabotScene {
     // Wave-based spawning instead of constant
     this.updateWaveSystem(dt);
 
+    // Pre-compute per-frame invariants (hoisted outside ship loop)
+    const currentTimeMs = this.time * 1000;
+    const enginePulse = 0.7 + Math.sin(this.time * 10) * 0.2;
+    const interceptorWobble = Math.sin(this.time * 4) * 0.2;
+    const cruiserPitch = Math.sin(this.time * 0.5) * 0.05;
+    const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92;
+    const laserDamagePerSec = this.upgradeLevel >= 4 ? 10 : 5;
+
     // Update enemy ships
     for (let i = this.enemyShips.length - 1; i >= 0; i--) {
       const ship = this.enemyShips[i];
@@ -4693,16 +4730,12 @@ class MegabotScene {
 
       // Update position based on behavior type
       if (ship.behavior === 'orbit-strafe') {
-        // Orbit & Strafe behavior
         this.updateOrbitStrafeBehavior(ship, dt, distToMegabot);
       } else if (ship.behavior === 'pincer-attack') {
-        // Pincer attack behavior
         this.updatePincerBehavior(ship, dt, distToMegabot);
       } else if (ship.behavior === 'escort-protect') {
-        // Escort protection behavior
         this.updateEscortBehavior(ship, dt);
       } else {
-        // Default behavior: move toward target
         ship.group.position.x += ship.velocity.x * dt;
         ship.group.position.y += ship.velocity.y * dt;
         ship.group.position.z += ship.velocity.z * dt;
@@ -4710,23 +4743,18 @@ class MegabotScene {
 
       // Dynamic rotation based on ship type
       if (ship.type === 'fighter') {
-        // Fighters barrel roll slightly
         ship.group.rotation.z += dt * 3;
       } else if (ship.type === 'interceptor') {
-        // Interceptors wobble aggressively
-        ship.group.rotation.z = Math.sin(this.time * 4) * 0.2;
+        ship.group.rotation.z = interceptorWobble;
         ship.group.rotation.x += dt * 0.5;
       } else if (ship.type === 'bomber') {
-        // Bombers rotate slowly (heavy and stable)
         ship.group.rotation.y += dt * 0.5;
       } else if (ship.type === 'cruiser') {
-        // Cruisers drift with heavy inertia, slight pitch oscillation
         ship.group.rotation.y += dt * 0.3;
-        ship.group.rotation.x = Math.sin(this.time * 0.5) * 0.05;
+        ship.group.rotation.x = cruiserPitch;
       }
 
       // Animate engine glows (pulsing effect) - uses cached engine refs instead of forEach
-      const enginePulse = 0.7 + Math.sin(this.time * 10) * 0.2;
       if (ship._engineChildren) {
         for (let e = 0; e < ship._engineChildren.length; e++) {
           ship._engineChildren[e].material.opacity = enginePulse;
@@ -4773,8 +4801,6 @@ class MegabotScene {
       }
 
       // Ship weapon firing logic (distToMegabot already calculated above)
-      const currentTimeMs = this.time * 1000;
-
       // Different weapons and cooldowns based on ship type and behavior
       let weaponCooldown = 2000; // Default cooldown in ms
       let weaponRange = this.ENEMY_LASER_RANGE;
@@ -4833,65 +4859,17 @@ class MegabotScene {
         continue;
       }
 
-      // Check collision with lasers (ray-sphere intersection) - uses pre-allocated vectors
+      // Check collision with lasers (ray-cone intersection) - shared helper, hoisted thresholds
       if (this.leftLaser && this.rightLaser && this.leftLaser.visible) {
-        // Left laser check
-        this.leftEye.getWorldPosition(this._tmpVec3C);
-        this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
-        const distToLeftEye = this._tmpVec3D.length();
-        if (distToLeftEye < 800) {
-          this._tmpVec3E.set(0, 1, 0);
-          this._tmpVec3E.applyQuaternion(this.leftLaser.getWorldQuaternion(this._tmpQuat));
-          this._tmpVec3D.normalize(); // normalize in-place (length already captured)
-          const angle = this._tmpVec3E.dot(this._tmpVec3D);
-
-          const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92;
-          if (angle > laserConeThreshold) {
-            ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
-            ship.hitFlash = 1.0;
-
-            if (Math.random() > 0.8) {
-              this.create3DExplosion(ship.group.position, ship.size * 0.5);
-            }
-
-            if (ship.health <= 0) {
-              const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
-              this.gameScore += scoreBonus;
-              this.create3DExplosion(ship.group.position, ship.size * 2.5);
-              this.scene.remove(ship.group);
-              this.enemyShips.splice(i, 1);
-              continue;
-            }
-          }
+        if (this._checkLaserHit(this.leftEye, this.leftLaser, ship, laserConeThreshold, laserDamagePerSec, dt)) {
+          this.scene.remove(ship.group);
+          this.enemyShips.splice(i, 1);
+          continue;
         }
-
-        // Right laser check
-        this.rightEye.getWorldPosition(this._tmpVec3C);
-        this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
-        const distToRightEye = this._tmpVec3D.length();
-        if (distToRightEye < 800) {
-          this._tmpVec3E.set(0, 1, 0);
-          this._tmpVec3E.applyQuaternion(this.rightLaser.getWorldQuaternion(this._tmpQuat));
-          this._tmpVec3D.normalize();
-          const angle = this._tmpVec3E.dot(this._tmpVec3D);
-
-          if (angle > (this.upgradeLevel >= 2 ? 0.82 : 0.92)) {
-            ship.health -= (this.upgradeLevel >= 4 ? 10 : 5) * dt;
-            ship.hitFlash = 1.0;
-
-            if (Math.random() > 0.8) {
-              this.create3DExplosion(ship.group.position, ship.size * 0.5);
-            }
-
-            if (ship.health <= 0) {
-              const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
-              this.gameScore += scoreBonus;
-              this.create3DExplosion(ship.group.position, ship.size * 2.5);
-              this.scene.remove(ship.group);
-              this.enemyShips.splice(i, 1);
-              continue;
-            }
-          }
+        if (this._checkLaserHit(this.rightEye, this.rightLaser, ship, laserConeThreshold, laserDamagePerSec, dt)) {
+          this.scene.remove(ship.group);
+          this.enemyShips.splice(i, 1);
+          continue;
         }
       }
 
@@ -5356,14 +5334,21 @@ class MegabotScene {
         this.mainMegabot.rotation.y += 0.001;
       }
 
+      // Pre-compute trig values used across multiple parts (hoisted out of forEach)
+      const sinT4 = Math.sin(this.time * 4.0);   // eye glow pulsing
+      const sinT3 = Math.sin(this.time * 3.0);   // laser beam pulsing
+      const sinT1_5 = Math.sin(this.time * 1.5); // torso breathing
+      const sinT0_3 = Math.sin(this.time * 0.3); // head scan Y
+      const sinT0_5 = Math.sin(this.time * 0.5); // head scan X
+      const sinT0_6 = Math.sin(this.time * 0.6); // idle arm X rotation
+
       // Animate individual parts
       this.megabotParts.forEach((part) => {
         // Animate evil laser eyes - FASTER and MORE INTENSE
         if (part.type === 'leftEye' || part.type === 'rightEye') {
           if (part.mesh.material.uniforms) {
             part.mesh.material.uniforms.time.value = this.time;
-            // Intensify the glow periodically - EVIL PULSING (faster and stronger)
-            const intensity = 5.0 + Math.sin(this.time * 4.0) * 2.0; // Doubled speed and intensity
+            const intensity = 5.0 + sinT4 * 2.0;
             part.mesh.material.uniforms.glowIntensity.value = intensity;
           }
         }
@@ -5372,9 +5357,8 @@ class MegabotScene {
         if (part.type === 'leftLaser' || part.type === 'rightLaser') {
           if (part.mesh.material.uniforms) {
             part.mesh.material.uniforms.time.value = this.time;
-            // Pulsing beam intensity - extra intense when tracking
             const baseIntensity = this.trackingTarget ? 3.5 : 2.0;
-            const intensity = baseIntensity + Math.sin(this.time * 3.0) * 0.5;
+            const intensity = baseIntensity + sinT3 * 0.5;
             part.mesh.material.uniforms.intensity.value = intensity;
           }
         }
@@ -5415,9 +5399,8 @@ class MegabotScene {
             }
           } else {
             // IDLE MODE: Default menacing scan when not tracking
-            // Smoothly lerp back to scanning pattern
-            const scanY = Math.sin(this.time * 0.3) * 0.2;
-            const scanX = Math.sin(this.time * 0.5) * 0.1;
+            const scanY = sinT0_3 * 0.2;
+            const scanX = sinT0_5 * 0.1;
 
             const returnSpeed = 0.08;
             this.currentRotation.x += (scanX - this.currentRotation.x) * returnSpeed;
@@ -5430,8 +5413,8 @@ class MegabotScene {
 
         // Torso breathing effect + walk sway
         if (part.type === 'torso') {
-          const breathe = 1.0 + Math.sin(this.time * 1.5) * 0.02;
-          part.mesh.scale.set(breathe, 1.0 + Math.sin(this.time * 1.5) * 0.01, breathe);
+          const breathe = 1.0 + sinT1_5 * 0.02;
+          part.mesh.scale.set(breathe, 1.0 + sinT1_5 * 0.01, breathe);
           if (this.isWalking) {
             // Subtle shoulder sway during walk (shifts weight side to side)
             const swayTarget = Math.sin(this.walkCycle) * 0.04;
@@ -5456,7 +5439,7 @@ class MegabotScene {
             // Idle: subtle menacing sway
             const sway = Math.sin(this.time * 0.8 + part.side) * 0.05;
             part.mesh.rotation.z = part.side * 0.1 + sway;
-            const idleX = Math.sin(this.time * 0.6) * 0.08;
+            const idleX = sinT0_6 * 0.08;
             part.mesh.rotation.x += (idleX - part.mesh.rotation.x) * 0.1;
           }
         }
@@ -5564,8 +5547,9 @@ class MegabotScene {
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.random() * Math.PI;
 
-          positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-          positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+          const sinPhi = Math.sin(phi);
+          positions[i3] = radius * sinPhi * Math.cos(theta);
+          positions[i3 + 1] = radius * sinPhi * Math.sin(theta);
           positions[i3 + 2] = radius * Math.cos(phi);
 
           velocities[i][0] = (Math.random() - 0.5) * 0.5;
@@ -5752,19 +5736,20 @@ class MegabotScene {
         this.leftLaser.position.copy(this.leftEye.position);
         this.rightLaser.position.copy(this.rightEye.position);
 
-        // Scanning pattern - figure-8 sweep
+        // Scanning pattern - figure-8 sweep (cache shared sin)
         const scanSpeed = 0.3;
         const scanAngleY = Math.sin(this.time * scanSpeed) * 0.4;
         const scanAngleX = Math.sin(this.time * scanSpeed * 2) * 0.3;
+        const sinScanX = Math.sin(scanAngleX); // shared between left & right
 
         // Left laser scan direction (reuse _tmpVec3C)
-        this._tmpVec3C.set(Math.sin(scanAngleY - 0.2), Math.sin(scanAngleX), 1).normalize();
+        this._tmpVec3C.set(Math.sin(scanAngleY - 0.2), sinScanX, 1).normalize();
         this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3C);
         this.leftLaser.quaternion.copy(this._tmpQuatB);
         this.leftLaser.scale.y = this.MAIN_SIZE * 3;
 
         // Right laser scan direction (reuse _tmpVec3D)
-        this._tmpVec3D.set(Math.sin(scanAngleY + 0.2), Math.sin(scanAngleX), 1).normalize();
+        this._tmpVec3D.set(Math.sin(scanAngleY + 0.2), sinScanX, 1).normalize();
         this._tmpQuatB.setFromUnitVectors(this._upVec, this._tmpVec3D);
         this.rightLaser.quaternion.copy(this._tmpQuatB);
         this.rightLaser.scale.y = this.MAIN_SIZE * 3;
