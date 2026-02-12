@@ -200,6 +200,16 @@ class MegabotScene {
     upgradeLevel: number;
   }) => void;
 
+  // Game state callback dedup - only fire when values change
+  private _prevScore = -1;
+  private _prevHealth = -1;
+  private _prevShipCount = -1;
+  private _prevMissileCount = -1;
+  private _prevWave = -1;
+  private _prevWaveState = '';
+  private _prevShieldHP = -1;
+  private _prevUpgradeLevel = -1;
+
   // Performance: real delta time tracking
   lastFrameTime: number = 0;
 
@@ -331,6 +341,7 @@ class MegabotScene {
   readonly ENEMY_LASER_SPEED = 1200;
   readonly ENEMY_LASER_RANGE = 800;
   readonly SHIP_SPAWN_RADIUS = 1200; // Distance from megabot where ships spawn (reduced for better visibility)
+  readonly _despawnRadiusSq = (1200 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
 
   constructor(
     container: HTMLDivElement,
@@ -2509,11 +2520,12 @@ class MegabotScene {
 
         const dx = ship.group.position.x - buildingWorldPos.x;
         const dz = ship.group.position.z - buildingWorldPos.z;
-        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const horizontalDistSq = dx * dx + dz * dz;
         const shipY = ship.group.position.y;
         const buildingTop = buildingWorldPos.y + building.height;
+        const collisionRadius = building.width / 2 + ship.size;
 
-        if (horizontalDist < (building.width / 2 + ship.size) &&
+        if (horizontalDistSq < collisionRadius * collisionRadius &&
             shipY > buildingWorldPos.y && shipY < buildingTop) {
           // Ship crashed into building!
           building.health--;
@@ -2539,16 +2551,18 @@ class MegabotScene {
       if (!building.active) continue;
 
       // Check if enemy lasers/plasma hit buildings
+      const laserCollisionRadius = building.width / 2 + 10;
+      const laserCollisionRadiusSq = laserCollisionRadius * laserCollisionRadius;
       for (let j = this.enemyLasers.length - 1; j >= 0; j--) {
         const laser = this.enemyLasers[j];
         if (!laser.active) continue;
 
         const dx = laser.group.position.x - buildingWorldPos.x;
         const dz = laser.group.position.z - buildingWorldPos.z;
-        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        const horizontalDistSq = dx * dx + dz * dz;
         const laserY = laser.group.position.y;
 
-        if (horizontalDist < building.width / 2 + 10 &&
+        if (horizontalDistSq < laserCollisionRadiusSq &&
             laserY > buildingWorldPos.y && laserY < buildingWorldPos.y + building.height) {
           // Laser hit building - only plasma does real damage
           if (laser.type === 'plasma') {
@@ -4885,31 +4899,34 @@ class MegabotScene {
       const missile = this.missiles3D[i];
       if (!missile.active) continue;
 
-      // Homing missile logic (upgrade level 1+)
+      // Homing missile logic (upgrade level 1+) - cached target avoids O(M×S) scan
       if ((missile as any).homing && this.enemyShips.length > 0) {
-        // Find nearest ship
-        let nearestDist = Infinity;
-        let nearestShip: any = null;
-        for (const ship of this.enemyShips) {
-          if (!ship.active) continue;
-          const d = missile.group.position.distanceToSquared(ship.group.position);
-          if (d < nearestDist) {
-            nearestDist = d;
-            nearestShip = ship;
+        // Re-acquire target only when needed (dead, inactive, or no target)
+        let target = (missile as any)._homingTarget;
+        if (!target || !target.active || target.health <= 0) {
+          let nearestDist = Infinity;
+          target = null;
+          for (let s = 0; s < this.enemyShips.length; s++) {
+            const ship = this.enemyShips[s];
+            if (!ship.active) continue;
+            const d = missile.group.position.distanceToSquared(ship.group.position);
+            if (d < nearestDist) {
+              nearestDist = d;
+              target = ship;
+            }
           }
+          (missile as any)._homingTarget = target;
         }
-        if (nearestShip) {
-          // Steer toward target
-          const toTarget = this._tmpVec3A.subVectors(nearestShip.group.position, missile.group.position).normalize();
+        if (target) {
+          // Steer toward cached target
+          const toTarget = this._tmpVec3A.subVectors(target.group.position, missile.group.position).normalize();
           const currentDir = this._tmpVec3B.copy(missile.velocity).normalize();
-          // Blend: 80% current direction + 20% homing
           const homingStrength = this.upgradeLevel >= 4 ? 0.06 : 0.03;
           missile.velocity.x += (toTarget.x - currentDir.x) * this.MISSILE_SPEED_3D * homingStrength;
           missile.velocity.y += (toTarget.y - currentDir.y) * this.MISSILE_SPEED_3D * homingStrength;
           missile.velocity.z += (toTarget.z - currentDir.z) * this.MISSILE_SPEED_3D * homingStrength;
-          // Re-normalize to missile speed
           missile.velocity.normalize().multiplyScalar(this.MISSILE_SPEED_3D);
-          missile.group.lookAt(nearestShip.group.position);
+          missile.group.lookAt(target.group.position);
         }
       }
 
@@ -5006,11 +5023,11 @@ class MegabotScene {
         });
       }
 
-      // Check if laser hit megabot (sphere collision)
-      const distToMegabot = laser.group.position.distanceTo(this.megabotWorldPos); // kept as distanceTo - value used for hit radius comparison
+      // Check if laser hit megabot (sphere collision) - squared distance avoids sqrt
+      const distToMegabotSq = laser.group.position.distanceToSquared(this.megabotWorldPos);
       const hitRadius = laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 : this.MAIN_SIZE;
 
-      if (distToMegabot < hitRadius) {
+      if (distToMegabotSq < hitRadius * hitRadius) {
         // Hit megabot! (through shield)
         this.applyDamageToMegabot(laser.damage);
 
@@ -5024,7 +5041,7 @@ class MegabotScene {
       }
 
       // Remove if expired or out of range
-      if (laser.lifetime >= laser.maxLifetime || distToMegabot > this.SHIP_SPAWN_RADIUS * 2) {
+      if (laser.lifetime >= laser.maxLifetime || distToMegabotSq > this._despawnRadiusSq) {
         this.scene.remove(laser.group);
         this.enemyLasers.splice(i, 1);
       }
@@ -5064,7 +5081,7 @@ class MegabotScene {
     // Update destructible city buildings
     this.updateBuildings(dt);
 
-    // Update game state callback - count directly instead of .filter() to avoid GC
+    // Update game state callback - only fire when values actually change to avoid React re-renders
     if (this.onGameStateUpdate) {
       let activeShips = 0;
       for (let i = 0; i < this.enemyShips.length; i++) {
@@ -5074,17 +5091,35 @@ class MegabotScene {
       for (let i = 0; i < this.missiles3D.length; i++) {
         if (this.missiles3D[i].active) activeMissiles++;
       }
-      this.onGameStateUpdate({
-        score: this.gameScore,
-        health: this.megabotHealth,
-        shipCount: activeShips,
-        missileCount: activeMissiles,
-        wave: this.currentWave,
-        waveState: this.waveState,
-        shieldHP: Math.floor(this.shieldHP),
-        maxShieldHP: this.MAX_SHIELD_HP,
-        upgradeLevel: this.upgradeLevel,
-      });
+      const flooredShield = Math.floor(this.shieldHP);
+      if (this.gameScore !== this._prevScore ||
+          this.megabotHealth !== this._prevHealth ||
+          activeShips !== this._prevShipCount ||
+          activeMissiles !== this._prevMissileCount ||
+          this.currentWave !== this._prevWave ||
+          this.waveState !== this._prevWaveState ||
+          flooredShield !== this._prevShieldHP ||
+          this.upgradeLevel !== this._prevUpgradeLevel) {
+        this._prevScore = this.gameScore;
+        this._prevHealth = this.megabotHealth;
+        this._prevShipCount = activeShips;
+        this._prevMissileCount = activeMissiles;
+        this._prevWave = this.currentWave;
+        this._prevWaveState = this.waveState;
+        this._prevShieldHP = flooredShield;
+        this._prevUpgradeLevel = this.upgradeLevel;
+        this.onGameStateUpdate({
+          score: this.gameScore,
+          health: this.megabotHealth,
+          shipCount: activeShips,
+          missileCount: activeMissiles,
+          wave: this.currentWave,
+          waveState: this.waveState,
+          shieldHP: flooredShield,
+          maxShieldHP: this.MAX_SHIELD_HP,
+          upgradeLevel: this.upgradeLevel,
+        });
+      }
     }
   }
 
