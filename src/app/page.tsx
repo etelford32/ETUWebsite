@@ -7,6 +7,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
+import CameraControls from "@/components/CameraControls";
 import CountdownTimer from "@/components/CountdownTimer";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
@@ -20,6 +21,7 @@ export default function HomePage() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [animationQuality, setAnimationQuality] = useState<QualityLevel>("medium");
   const megabotRef = useRef<any>(null);
+  const megabotSceneRef = useRef<any>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [buttonBounds, setButtonBounds] = useState<DOMRect | null>(null);
@@ -196,6 +198,7 @@ export default function HomePage() {
             isButtonClicked={isButtonClicked}
             onLaserUpdate={undefined} // disabled: laserData unused, saves ~20 allocations/frame
             onGameStateUpdate={setGameState}
+            onSceneReady={(scene: any) => { megabotSceneRef.current = scene; }}
           />
         </Suspense>
 
@@ -211,6 +214,9 @@ export default function HomePage() {
           onChange={(quality) => setAnimationQuality(quality)}
           defaultQuality={animationQuality}
         />
+
+        {/* Godmode Camera Controls */}
+        <CameraControls megabotRef={megabotSceneRef} />
 
         {/* Interactive hint */}
         <div className="absolute top-24 right-6 z-20 hidden md:block">

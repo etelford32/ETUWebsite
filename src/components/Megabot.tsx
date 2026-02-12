@@ -28,6 +28,7 @@ interface MegabotProps {
     maxShieldHP: number;
     upgradeLevel: number;
   }) => void;
+  onSceneReady?: (scene: any) => void;
 }
 
 export default function Megabot({
@@ -36,7 +37,8 @@ export default function Megabot({
   buttonBounds = null,
   isButtonClicked = false,
   onLaserUpdate = undefined,
-  onGameStateUpdate = undefined
+  onGameStateUpdate = undefined,
+  onSceneReady = undefined
 }: MegabotProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const megabotRef = useRef<any>(null);
@@ -45,6 +47,7 @@ export default function Megabot({
     // Initialize Megabot scene with Three.js ES modules
     if (containerRef.current) {
       megabotRef.current = new MegabotScene(containerRef.current, quality, onLaserUpdate, onGameStateUpdate);
+      if (onSceneReady) onSceneReady(megabotRef.current);
     }
 
     return () => {
@@ -117,6 +120,7 @@ class MegabotScene {
 
   // Camera controls
   mouse: any = { x: 0, y: 0 };
+  cameraAngle: number = 0;      // Horizontal orbit angle for minigame camera
   cameraDistance: number = 1400; // Current distance (smoothed toward cameraTargetDistance)
 
   // Godmode 3D camera system
@@ -5312,19 +5316,23 @@ class MegabotScene {
       this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
     }
 
-    // Smooth camera movement based on mouse, following grounded megabot
+    // Godmode 3D camera: spherical coords (yaw, pitch, distance) with pan offsets
     const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, this.MEGABOT_STAND_Y, 0);
-    this.cameraAngle += this.mouse.x * 0.001;
 
-    // Look at a point between the ground and the megabot center (around torso/hip level)
-    // This frames both the city below and the megabot above
-    const lookAtY = this.GROUND_Y + (megaPos.y - this.GROUND_Y) * 0.45;
-    const targetCameraY = lookAtY + 350 + this.mouse.y * 150;
-    this.camera.position.y += (targetCameraY - this.camera.position.y) * 0.05;
+    // Smooth zoom interpolation
+    this.cameraDistance += (this.cameraTargetDistance - this.cameraDistance) * this.CAMERA_ZOOM_SMOOTH;
 
-    this.camera.position.x = megaPos.x + Math.sin(this.cameraAngle) * this.cameraDistance;
-    this.camera.position.z = megaPos.z + Math.cos(this.cameraAngle) * this.cameraDistance;
-    this.camera.lookAt(megaPos.x, lookAtY, megaPos.z);
+    // Look-at target = megabot position + pan offsets
+    const lookAtX = megaPos.x + this.cameraPanX;
+    const lookAtY = megaPos.y * 0.45 + this.GROUND_Y * 0.55 + this.cameraPanY;
+    const lookAtZ = megaPos.z + this.cameraPanZ;
+
+    // Spherical coordinates: camera orbits around the look-at target
+    const cosPitch = Math.cos(this.cameraPitch);
+    this.camera.position.x = lookAtX + this.cameraDistance * cosPitch * Math.sin(this.cameraYaw);
+    this.camera.position.y = lookAtY + this.cameraDistance * Math.sin(this.cameraPitch);
+    this.camera.position.z = lookAtZ + this.cameraDistance * cosPitch * Math.cos(this.cameraYaw);
+    this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
     // Animate main Megabot
     if (this.mainMegabot) {
@@ -5809,6 +5817,65 @@ class MegabotScene {
     }
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  // --- Godmode camera control API (called from React UI) ---
+
+  cameraZoomIn() {
+    this.cameraTargetDistance = Math.max(
+      this.CAMERA_MIN_DISTANCE,
+      this.cameraTargetDistance * 0.85
+    );
+  }
+
+  cameraZoomOut() {
+    this.cameraTargetDistance = Math.min(
+      this.CAMERA_MAX_DISTANCE,
+      this.cameraTargetDistance * 1.18
+    );
+  }
+
+  cameraRotateLeft() {
+    this.cameraYaw -= 0.15;
+  }
+
+  cameraRotateRight() {
+    this.cameraYaw += 0.15;
+  }
+
+  cameraTiltUp() {
+    this.cameraPitch = Math.min(this.CAMERA_MAX_PITCH, this.cameraPitch + 0.1);
+  }
+
+  cameraTiltDown() {
+    this.cameraPitch = Math.max(this.CAMERA_MIN_PITCH, this.cameraPitch - 0.1);
+  }
+
+  cameraReset() {
+    this.cameraYaw = 0;
+    this.cameraPitch = 0.2;
+    this.cameraTargetDistance = 1400;
+    this.cameraPanX = 0;
+    this.cameraPanY = 0;
+    this.cameraPanZ = 0;
+  }
+
+  cameraFocus() {
+    this.cameraPanX = 0;
+    this.cameraPanY = 0;
+    this.cameraPanZ = 0;
+  }
+
+  getCameraState() {
+    return {
+      yaw: this.cameraYaw,
+      pitch: this.cameraPitch,
+      distance: this.cameraDistance,
+      targetDistance: this.cameraTargetDistance,
+      panX: this.cameraPanX,
+      panY: this.cameraPanY,
+      panZ: this.cameraPanZ,
+    };
   }
 
   destroy() {
