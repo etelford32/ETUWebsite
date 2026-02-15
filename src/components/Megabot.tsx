@@ -270,8 +270,8 @@ class MegabotScene {
 
   // City / Buildings system
   buildings: any[] = [];
-  readonly BUILDING_COUNT = 36;
-  readonly CITY_RADIUS = 900; // How far buildings spread from center
+  readonly BUILDING_COUNT = 60;
+  readonly CITY_RADIUS = 1400; // How far buildings spread from center
   readonly CITY_INNER_RADIUS = 250; // Keep clear around megabot's feet
 
   // Megabot movement (WASD / arrow keys)
@@ -2347,7 +2347,7 @@ class MegabotScene {
   // Create the ground plane the city and megabot stand on
   createGroundPlane() {
     const THREE = this.THREE;
-    const size = 6000; // Large enough to extend past expanded city radius
+    const size = 8000; // Large enough to extend past expanded city radius
 
     // Dark cyberpunk ground surface
     const groundGeo = new THREE.PlaneGeometry(size, size);
@@ -2405,10 +2405,12 @@ class MegabotScene {
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
-      // Vary building dimensions — scaled so tallest reach Megabot's waist
+      // Vary building dimensions — taller near center, shorter at edges
+      const distRatio = (radius - this.CITY_INNER_RADIUS) / (this.CITY_RADIUS - this.CITY_INNER_RADIUS);
+      const heightScale = 1.0 - distRatio * 0.5; // Outer buildings are ~50% shorter
       const width = 50 + Math.random() * 70;
       const depth = 50 + Math.random() * 70;
-      const height = 150 + Math.random() * 400;
+      const height = (150 + Math.random() * 400) * heightScale;
 
       const palette = buildingColors[Math.floor(Math.random() * buildingColors.length)];
       const group = new THREE.Group();
@@ -2474,8 +2476,8 @@ class MegabotScene {
       accent.position.y = height + 1.5;
       group.add(accent);
 
-      // Rooftop antenna/spire on taller buildings
-      if (height > 300) {
+      // Rooftop antenna/spire on taller buildings (height > 400 limits lights to ~15)
+      if (height > 400) {
         const spireGeo = new THREE.CylinderGeometry(1, 2, 40, 6);
         const spireMat = new THREE.MeshStandardMaterial({
           color: 0x444466,
@@ -4014,38 +4016,74 @@ class MegabotScene {
 
     const group = new THREE.Group();
 
-    // Missile body (shared geometry)
-    const bodyGeometry = this._getCachedGeometry('missile_body', () => new THREE.CylinderGeometry(3, 3, 15, 8));
+    // Missile body — cylindrical fuselage
+    const bodyGeometry = this._getCachedGeometry('missile_body2', () => new THREE.CylinderGeometry(2.5, 3.5, 22, 8));
     const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a90e2,
-      metalness: 0.9,
-      roughness: 0.1,
-      emissive: new THREE.Color(0x4a90e2),
-      emissiveIntensity: 0.5,
+      color: 0xcccccc,
+      metalness: 0.95,
+      roughness: 0.15,
+      emissive: new THREE.Color(0x222233),
+      emissiveIntensity: 0.3,
     });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.rotation.z = Math.PI / 2;
+    body.rotation.x = Math.PI / 2; // Orient along Z axis (forward)
     group.add(body);
 
-    // Missile nose cone (shared geometry)
-    const noseGeometry = this._getCachedGeometry('missile_nose', () => new THREE.ConeGeometry(3, 8, 8));
-    const nose = new THREE.Mesh(noseGeometry, bodyMaterial);
-    nose.rotation.z = -Math.PI / 2;
-    nose.position.x = 7.5 + 4;
+    // Nose cone — sharp warhead tip
+    const noseGeometry = this._getCachedGeometry('missile_nose2', () => new THREE.ConeGeometry(2.5, 10, 8));
+    const noseMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff3333,
+      metalness: 0.8,
+      roughness: 0.2,
+      emissive: new THREE.Color(0xff1111),
+      emissiveIntensity: 0.4,
+    });
+    const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+    nose.rotation.x = -Math.PI / 2; // Point forward
+    nose.position.z = 16; // Front of body
     group.add(nose);
 
-    // Glow effect (shared geometry)
-    const glowGeometry = this._getCachedGeometry('missile_glow', () => new THREE.SphereGeometry(8, 16, 16));
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.3,
+    // Tail fins — 4 stabilizer fins
+    const finGeometry = this._getCachedGeometry('missile_fin', () => new THREE.BoxGeometry(1, 8, 5));
+    const finMaterial = new THREE.MeshStandardMaterial({
+      color: 0x666688,
+      metalness: 0.9,
+      roughness: 0.2,
     });
-    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-    group.add(glow);
+    for (let i = 0; i < 4; i++) {
+      const fin = new THREE.Mesh(finGeometry, finMaterial);
+      const angle = (i / 4) * Math.PI * 2;
+      fin.position.set(Math.cos(angle) * 4, Math.sin(angle) * 4, -9);
+      fin.rotation.z = angle;
+      group.add(fin);
+    }
 
-    // Point light
-    const missileLight = new THREE.PointLight(0x4a90e2, 3, 100);
+    // Engine exhaust glow — small bright dot at the back
+    const exhaustGeometry = this._getCachedGeometry('missile_exhaust', () => new THREE.SphereGeometry(3, 8, 8));
+    const exhaustMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ccff,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const exhaust = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
+    exhaust.position.z = -12; // Back of missile
+    group.add(exhaust);
+
+    // Accent band around the body
+    const bandGeometry = this._getCachedGeometry('missile_band', () => new THREE.CylinderGeometry(3.7, 3.7, 2, 8));
+    const bandMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4a90e2,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const band = new THREE.Mesh(bandGeometry, bandMaterial);
+    band.rotation.x = Math.PI / 2;
+    band.position.z = 5; // Mid-body
+    group.add(band);
+
+    // Point light — engine glow (smaller range than before)
+    const missileLight = new THREE.PointLight(0x00ccff, 4, 60);
+    missileLight.position.z = -12;
     group.add(missileLight);
 
     group.position.copy(startPos);
@@ -5761,19 +5799,25 @@ class MegabotScene {
       this.megabotWorldPos.copy(this.mainMegabot.position);
 
       // Body rotation - track target, Q/E manual, or idle hold
+      // Always sync currentRotation.y from actual rotation so tracking/idle don't clobber Q/E
       if (this.trackingTarget && this.targetPosition3D) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
+        // Blend toward target rotation, but start from the actual current rotation
         const lerpSpeed = 0.14;
-
-        // Smoothly rotate body toward target
-        this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
-        this.mainMegabot.rotation.y = this.currentRotation.y;
+        const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
+        const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+        this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
+        this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (!this.isWalking) {
         // IDLE MODE: Hold current facing direction (Q/E or last walk direction)
         // Smoothly decay head tracking offsets back to neutral
         const returnSpeed = 0.05;
         this.currentRotation.x += (0 - this.currentRotation.x) * returnSpeed;
-        // No constant rotation.y drift — player controls facing with Q/E
+        // Sync currentRotation from actual rotation (keeps Q/E changes)
+        this.currentRotation.y = this.mainMegabot.rotation.y;
+      } else {
+        // WALKING: sync currentRotation from movement-set rotation
+        this.currentRotation.y = this.mainMegabot.rotation.y;
       }
 
       // Pre-compute trig values used across multiple parts (hoisted out of forEach)
