@@ -85,7 +85,7 @@ export default function CameraControls({ megabotRef }: CameraControlsProps) {
 
               <div className="mt-3 pt-3 border-t border-white/10">
                 <p className="text-xs text-white/50 leading-relaxed">
-                  Right-drag to orbit. Middle-drag to pan. Scroll to zoom. R to reset. F to focus.
+                  WASD to move. Q/E to rotate. Right-drag to orbit. Scroll to zoom. R to reset. F to focus.
                 </p>
               </div>
             </div>

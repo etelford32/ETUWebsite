@@ -132,11 +132,12 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
         <div className="mt-2 pt-2 border-t border-purple-500/30 space-y-1">
           <div className="text-purple-300 font-bold text-[10px] mb-1">CONTROLS</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">WASD</span> Move Megabot</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Q/E</span> Rotate Megabot</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Click</span> Fire missile</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+Click</span> Cluster missiles</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Mouse</span> Aim lasers</div>
           {gameState.upgradeLevel >= 3 && (
-            <div className="text-yellow-400 text-[10px]"><span className="text-white">Q</span> Missile Barrage</div>
+            <div className="text-yellow-400 text-[10px]"><span className="text-white">X</span> Missile Barrage</div>
           )}
         </div>
       </div>

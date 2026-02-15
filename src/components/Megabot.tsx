@@ -121,12 +121,12 @@ class MegabotScene {
   // Camera controls
   mouse: any = { x: 0, y: 0 };
   cameraAngle: number = 0;      // Horizontal orbit angle for minigame camera
-  cameraDistance: number = 1400; // Current distance (smoothed toward cameraTargetDistance)
+  cameraDistance: number = 1200; // Current distance (smoothed toward cameraTargetDistance)
 
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
-  cameraPitch: number = 0.2;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
-  cameraTargetDistance: number = 1400; // Smooth zoom target
+  cameraPitch: number = 0.35;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
+  cameraTargetDistance: number = 1200; // Smooth zoom target
   cameraPanX: number = 0;             // Look-at pan offset X
   cameraPanY: number = 0;             // Look-at pan offset Y
   cameraPanZ: number = 0;             // Look-at pan offset Z
@@ -270,15 +270,17 @@ class MegabotScene {
 
   // City / Buildings system
   buildings: any[] = [];
-  readonly BUILDING_COUNT = 24;
-  readonly CITY_RADIUS = 600; // How far buildings spread from center
-  readonly CITY_INNER_RADIUS = 200; // Keep clear around megabot's feet
+  readonly BUILDING_COUNT = 36;
+  readonly CITY_RADIUS = 900; // How far buildings spread from center
+  readonly CITY_INNER_RADIUS = 250; // Keep clear around megabot's feet
 
   // Megabot movement (WASD / arrow keys)
   keysPressed: Set<string> = new Set();
   megabotWorldPos = new THREE.Vector3(0, 0, 0); // Cached position updated per frame
   readonly MEGABOT_MOVE_SPEED = 250; // Units per second
-  readonly MEGABOT_STOMP_RADIUS = 120; // How close to a building before stomping
+  readonly MEGABOT_STOMP_RADIUS = 180; // Core destroy radius for Godzilla stomp
+  readonly STOMP_HEAVY_RADIUS = 280; // Heavy splash damage radius
+  readonly STOMP_LIGHT_RADIUS = 350; // Light splash damage radius
 
   // Ground & standing
   readonly GROUND_Y = -350 * 0.5; // Ground plane level (= -MAIN_SIZE * 0.5, matches building base)
@@ -292,6 +294,27 @@ class MegabotScene {
   readonly ARM_SWING_ANGLE = 0.25; // Arm swing amplitude
   readonly WALK_BOB_HEIGHT = 18; // Vertical bob during walk
   readonly WALK_CYCLE_SPEED = 5; // Walk cycle frequency multiplier
+  readonly MEGABOT_ROTATE_SPEED = 2.5; // Q/E rotation speed (radians/sec)
+
+  // Camera shake system
+  cameraShakeX: number = 0;
+  cameraShakeY: number = 0;
+  cameraShakeZ: number = 0;
+  cameraShakeMagnitude: number = 0;
+  cameraShakeDecay: number = 0;
+
+  // Building damage smoke/fire particle pool
+  buildingSmokeEmitters: any[] = [];
+  readonly MAX_SMOKE_EMITTERS = 10;
+  readonly SMOKE_PARTICLES_PER_EMITTER = 15;
+
+  // Debris chunk pool
+  debrisChunks: any[] = [];
+  readonly MAX_DEBRIS_CHUNKS = 40;
+  debrisPoolInitialized: boolean = false;
+
+  // Collapsing buildings (animated destruction)
+  collapsingBuildings: any[] = [];
 
   // Wave system
   currentWave: number = 0;
@@ -340,8 +363,8 @@ class MegabotScene {
   readonly MISSILE_SPEED_3D = 800;
   readonly ENEMY_LASER_SPEED = 1200;
   readonly ENEMY_LASER_RANGE = 800;
-  readonly SHIP_SPAWN_RADIUS = 1200; // Distance from megabot where ships spawn (reduced for better visibility)
-  readonly _despawnRadiusSq = (1200 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
+  readonly SHIP_SPAWN_RADIUS = 1800; // Distance from megabot where ships spawn
+  readonly _despawnRadiusSq = (1800 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
 
   constructor(
     container: HTMLDivElement,
@@ -388,6 +411,7 @@ class MegabotScene {
     this.createGroundPlane();
     this.createMainMegabot();
     this.createCity();
+    this.initSmokeEmitters();
     this.createShieldBubble();
     this.createSatellites();
     this.createEnergyParticles();
@@ -468,6 +492,7 @@ class MegabotScene {
       this.createGroundPlane();
       this.createMainMegabot();
       this.createCity();
+      this.initSmokeEmitters();
       this.createShieldBubble();
       this.createSatellites();
       this.createEnergyParticles();
@@ -2322,7 +2347,7 @@ class MegabotScene {
   // Create the ground plane the city and megabot stand on
   createGroundPlane() {
     const THREE = this.THREE;
-    const size = 4000; // Large enough to extend past city radius
+    const size = 6000; // Large enough to extend past expanded city radius
 
     // Dark cyberpunk ground surface
     const groundGeo = new THREE.PlaneGeometry(size, size);
@@ -2380,10 +2405,10 @@ class MegabotScene {
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
-      // Vary building dimensions
-      const width = 30 + Math.random() * 50;
-      const depth = 30 + Math.random() * 50;
-      const height = 60 + Math.random() * 200;
+      // Vary building dimensions — scaled so tallest reach Megabot's waist
+      const width = 50 + Math.random() * 70;
+      const depth = 50 + Math.random() * 70;
+      const height = 150 + Math.random() * 400;
 
       const palette = buildingColors[Math.floor(Math.random() * buildingColors.length)];
       const group = new THREE.Group();
@@ -2450,7 +2475,7 @@ class MegabotScene {
       group.add(accent);
 
       // Rooftop antenna/spire on taller buildings
-      if (height > 150) {
+      if (height > 300) {
         const spireGeo = new THREE.CylinderGeometry(1, 2, 40, 6);
         const spireMat = new THREE.MeshStandardMaterial({
           color: 0x444466,
@@ -2461,16 +2486,22 @@ class MegabotScene {
         spire.position.y = height + 20;
         group.add(spire);
 
-        // Blinking light on top
-        const blinkLight = new THREE.PointLight(palette.accent, 2, 60);
+        // Blinking light on top — only on tall buildings to limit light count
+        const blinkLight = new THREE.PointLight(palette.accent, 2, 80);
         blinkLight.position.y = height + 42;
         group.add(blinkLight);
       }
 
-      // Small point light at building base for ambient glow
-      const baseLight = new THREE.PointLight(palette.accent, 1, width * 2);
-      baseLight.position.y = 5;
-      group.add(baseLight);
+      // Emissive base glow strip instead of PointLight (saves 36 lights for performance)
+      const baseGlowGeo = new THREE.BoxGeometry(width * 0.9, 3, depth * 0.9);
+      const baseGlowMat = new THREE.MeshBasicMaterial({
+        color: palette.accent,
+        transparent: true,
+        opacity: 0.4,
+      });
+      const baseGlow = new THREE.Mesh(baseGlowGeo, baseGlowMat);
+      baseGlow.position.y = 1.5;
+      group.add(baseGlow);
 
       group.position.set(x, -this.MAIN_SIZE * 0.5, z);
 
@@ -2486,6 +2517,11 @@ class MegabotScene {
         active: true,
         palette,
         damageLevel: 0, // 0 = pristine, increases with damage
+        // Damage effect state
+        damageTiltX: (Math.random() - 0.5) * 0.3, // Random lean direction on damage
+        damageTiltZ: (Math.random() - 0.5) * 0.3,
+        smokeEmitterIndex: -1, // Index into buildingSmokeEmitters pool (-1 = none)
+        windowMeshes: group.children.filter((c: any) => c.material === windowMat),
       });
     }
   }
@@ -2499,19 +2535,6 @@ class MegabotScene {
       if (!building.active) continue;
 
       const buildingWorldPos = building.group.position;
-
-      // Visual damage feedback - make buildings glow when damaged
-      if (building.damageLevel > 0) {
-        const damageRatio = building.damageLevel / building.maxHealth;
-
-        // Fire flicker on damaged buildings
-        building.group.children.forEach((child: any) => {
-          if (child.isPointLight && child.position.y < 10) {
-            child.color.setHex(damageRatio > 0.5 ? 0xff4400 : 0xff8800);
-            child.intensity = 2 + Math.sin(this.time * 8 + i) * 1.5;
-          }
-        });
-      }
 
       // Check collision with enemy ships that crash into buildings
       for (let j = this.enemyShips.length - 1; j >= 0; j--) {
@@ -2541,9 +2564,7 @@ class MegabotScene {
             this.destroyBuilding(building, i);
             break;
           } else {
-            // Partial damage - shrink the building slightly
-            const shrink = 1 - (building.damageLevel / building.maxHealth) * 0.3;
-            building.group.scale.y = shrink;
+            this.applyBuildingDamageVisuals(building);
           }
         }
       }
@@ -2578,15 +2599,14 @@ class MegabotScene {
             this.destroyBuilding(building, i);
             break;
           } else {
-            const shrink = 1 - (building.damageLevel / building.maxHealth) * 0.3;
-            building.group.scale.y = shrink;
+            this.applyBuildingDamageVisuals(building);
           }
         }
       }
     }
   }
 
-  // Destroy a building with an explosion
+  // Destroy a building with collapse animation
   destroyBuilding(building: any, index: number) {
     const THREE = this.THREE;
 
@@ -2595,52 +2615,290 @@ class MegabotScene {
     center.y += building.height / 2;
     this.create3DExplosion(center, building.width * 1.5);
 
-    // Create falling debris particles
-    const debrisCount = 20;
-    const debrisGeo = new THREE.BufferGeometry();
-    const debrisPositions = new Float32Array(debrisCount * 3);
-    const debrisVelocities: any[] = [];
-
-    for (let i = 0; i < debrisCount; i++) {
-      debrisPositions[i * 3] = center.x + (Math.random() - 0.5) * building.width;
-      debrisPositions[i * 3 + 1] = center.y + (Math.random() - 0.5) * building.height * 0.5;
-      debrisPositions[i * 3 + 2] = center.z + (Math.random() - 0.5) * building.depth;
-
-      debrisVelocities.push(new THREE.Vector3(
-        (Math.random() - 0.5) * 200,
-        Math.random() * 150 + 50,
-        (Math.random() - 0.5) * 200
-      ));
+    // Release smoke emitter if assigned
+    if (building.smokeEmitterIndex >= 0) {
+      this.releaseSmokeEmitter(building.smokeEmitterIndex);
+      building.smokeEmitterIndex = -1;
     }
 
-    debrisGeo.setAttribute('position', new THREE.BufferAttribute(debrisPositions, 3));
-    const debrisMat = new THREE.PointsMaterial({
-      color: building.palette.accent,
-      size: 8,
-      transparent: true,
-      opacity: 1.0,
-    });
-    const debrisSystem = new THREE.Points(debrisGeo, debrisMat);
-    this.scene.add(debrisSystem);
-
-    // Track debris for animation
-    this.explosions3D.push({
-      particles: debrisSystem,
-      light: new THREE.PointLight(building.palette.accent, 0, 0), // Dummy light
-      velocities: debrisVelocities,
-      lifetime: 0,
-      maxLifetime: 2.0,
-      active: true,
-    });
-    // Add dummy light to scene so cleanup works
-    this.scene.add(this.explosions3D[this.explosions3D.length - 1].light);
-
-    // Score bonus for buildings being destroyed (collateral damage from enemies)
-    this.gameScore += 50;
-
-    // Remove building from scene
-    this.scene.remove(building.group);
+    // Start collapse animation instead of instant removal
     building.active = false;
+    this.collapsingBuildings.push({
+      group: building.group,
+      width: building.width,
+      height: building.height,
+      depth: building.depth,
+      palette: building.palette,
+      collapseTime: 0,
+      collapseMaxTime: 0.8,
+      collapseVelocityY: 0,
+      collapseTiltX: (Math.random() - 0.5) * 0.4,
+      collapseTiltZ: (Math.random() - 0.5) * 0.4,
+      debrisSpawned: false,
+    });
+
+    // Camera shake for big destruction
+    this.triggerCameraShake(8);
+
+    // Score bonus for buildings being destroyed
+    this.gameScore += 50;
+  }
+
+  // Update collapsing buildings animation
+  updateCollapsingBuildings(dt: number) {
+    const THREE = this.THREE;
+
+    for (let i = this.collapsingBuildings.length - 1; i >= 0; i--) {
+      const cb = this.collapsingBuildings[i];
+      cb.collapseTime += dt;
+
+      // Accelerate downward + tilt
+      cb.collapseVelocityY -= 400 * dt; // gravity
+      cb.group.position.y += cb.collapseVelocityY * dt;
+
+      // Progressive tilt as it collapses
+      const tiltProgress = Math.min(cb.collapseTime / cb.collapseMaxTime, 1.0);
+      cb.group.rotation.x += cb.collapseTiltX * dt * 2;
+      cb.group.rotation.z += cb.collapseTiltZ * dt * 2;
+
+      // Shrink vertically (crumbling)
+      cb.group.scale.y = Math.max(0, 1 - tiltProgress * 0.6);
+      cb.group.scale.x = 1 + tiltProgress * 0.3; // Spread out horizontally
+      cb.group.scale.z = 1 + tiltProgress * 0.3;
+
+      // Spawn debris chunks at halfway point
+      if (!cb.debrisSpawned && cb.collapseTime > cb.collapseMaxTime * 0.4) {
+        cb.debrisSpawned = true;
+        this.spawnDebrisChunks(cb.group.position, cb.width, cb.height, cb.depth, cb.palette);
+      }
+
+      // Remove when collapse is complete
+      if (cb.collapseTime >= cb.collapseMaxTime) {
+        // Final dust puff at ground level
+        const dustPos = cb.group.position.clone();
+        dustPos.y = this.GROUND_Y + 5;
+        this.create3DExplosion(dustPos, cb.width * 0.8);
+
+        this.scene.remove(cb.group);
+        this.collapsingBuildings.splice(i, 1);
+      }
+    }
+  }
+
+  // Spawn 3D debris chunks from a destroyed building
+  spawnDebrisChunks(position: any, width: number, height: number, depth: number, palette: any) {
+    const THREE = this.THREE;
+    const chunkCount = 8;
+
+    for (let i = 0; i < chunkCount; i++) {
+      // Reuse from pool or create new
+      let chunk: any;
+      const inactive = this.debrisChunks.find((c: any) => !c.active);
+      if (inactive) {
+        chunk = inactive;
+        chunk.active = true;
+        chunk.lifetime = 0;
+      } else if (this.debrisChunks.length < this.MAX_DEBRIS_CHUNKS) {
+        const size = 5 + Math.random() * 15;
+        const geo = new THREE.BoxGeometry(size, size * (0.5 + Math.random()), size);
+        const mat = new THREE.MeshStandardMaterial({
+          color: palette.base,
+          metalness: 0.5,
+          roughness: 0.6,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        chunk = { mesh, active: true, lifetime: 0, velocity: new THREE.Vector3(), rotSpeed: new THREE.Vector3() };
+        this.debrisChunks.push(chunk);
+      } else {
+        // Pool full, skip
+        continue;
+      }
+
+      // Position around building
+      chunk.mesh.position.set(
+        position.x + (Math.random() - 0.5) * width,
+        position.y + Math.random() * height * 0.5,
+        position.z + (Math.random() - 0.5) * depth
+      );
+
+      // Velocity: outward + upward
+      chunk.velocity.set(
+        (Math.random() - 0.5) * 250,
+        100 + Math.random() * 200,
+        (Math.random() - 0.5) * 250
+      );
+
+      // Random tumble
+      chunk.rotSpeed.set(
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8
+      );
+
+      chunk.mesh.material.color.setHex(palette.base);
+      chunk.mesh.material.opacity = 1.0;
+      chunk.mesh.visible = true;
+      this.scene.add(chunk.mesh);
+    }
+  }
+
+  // Update debris chunks with gravity and fade
+  updateDebrisChunks(dt: number) {
+    for (const chunk of this.debrisChunks) {
+      if (!chunk.active) continue;
+
+      chunk.lifetime += dt;
+
+      // Gravity
+      chunk.velocity.y -= 400 * dt;
+
+      // Move
+      chunk.mesh.position.x += chunk.velocity.x * dt;
+      chunk.mesh.position.y += chunk.velocity.y * dt;
+      chunk.mesh.position.z += chunk.velocity.z * dt;
+
+      // Tumble
+      chunk.mesh.rotation.x += chunk.rotSpeed.x * dt;
+      chunk.mesh.rotation.y += chunk.rotSpeed.y * dt;
+      chunk.mesh.rotation.z += chunk.rotSpeed.z * dt;
+
+      // Stop at ground
+      if (chunk.mesh.position.y < this.GROUND_Y) {
+        chunk.mesh.position.y = this.GROUND_Y;
+        chunk.velocity.y *= -0.3; // Bounce
+        chunk.velocity.x *= 0.7;
+        chunk.velocity.z *= 0.7;
+      }
+
+      // Fade after 1s
+      if (chunk.lifetime > 1.0) {
+        const fadeProgress = (chunk.lifetime - 1.0) / 0.5;
+        chunk.mesh.material.transparent = true;
+        chunk.mesh.material.opacity = Math.max(0, 1 - fadeProgress);
+      }
+
+      // Remove after 1.5s
+      if (chunk.lifetime > 1.5) {
+        chunk.active = false;
+        chunk.mesh.visible = false;
+        this.scene.remove(chunk.mesh);
+      }
+    }
+  }
+
+  // Smoke/fire emitter pool management
+  initSmokeEmitters() {
+    const THREE = this.THREE;
+    for (let i = 0; i < this.MAX_SMOKE_EMITTERS; i++) {
+      const count = this.SMOKE_PARTICLES_PER_EMITTER;
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const velocities: number[][] = [];
+      const lifetimes: number[] = [];
+
+      for (let j = 0; j < count; j++) {
+        positions[j * 3] = 0;
+        positions[j * 3 + 1] = 0;
+        positions[j * 3 + 2] = 0;
+        velocities.push([(Math.random() - 0.5) * 15, 30 + Math.random() * 40, (Math.random() - 0.5) * 15]);
+        lifetimes.push(Math.random() * 2); // Stagger initial lifetimes
+      }
+
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0x444444,
+        size: 10,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+      });
+      const system = new THREE.Points(geo, mat);
+      system.visible = false;
+
+      this.buildingSmokeEmitters.push({
+        system,
+        velocities,
+        lifetimes,
+        active: false,
+        buildingRef: null,
+        origin: new THREE.Vector3(),
+      });
+
+      this.scene.add(system);
+    }
+  }
+
+  // Assign a smoke emitter to a damaged building
+  assignSmokeEmitter(building: any) {
+    for (let i = 0; i < this.buildingSmokeEmitters.length; i++) {
+      const emitter = this.buildingSmokeEmitters[i];
+      if (!emitter.active) {
+        emitter.active = true;
+        emitter.buildingRef = building;
+        emitter.origin.copy(building.group.position);
+        emitter.origin.y += building.height * 0.7; // Smoke from upper section
+        emitter.system.visible = true;
+        building.smokeEmitterIndex = i;
+
+        // Set damage-based color: orange for heavy damage, gray for light
+        const damageRatio = building.damageLevel / building.maxHealth;
+        if (damageRatio > 0.7) {
+          emitter.system.material.color.setHex(0xff6600); // Fire
+          emitter.system.material.size = 12;
+        } else {
+          emitter.system.material.color.setHex(0x444444); // Smoke
+          emitter.system.material.size = 10;
+        }
+        return;
+      }
+    }
+  }
+
+  // Release a smoke emitter back to the pool
+  releaseSmokeEmitter(index: number) {
+    if (index >= 0 && index < this.buildingSmokeEmitters.length) {
+      const emitter = this.buildingSmokeEmitters[index];
+      emitter.active = false;
+      emitter.buildingRef = null;
+      emitter.system.visible = false;
+    }
+  }
+
+  // Update all active smoke emitters
+  updateSmokeEmitters(dt: number) {
+    for (const emitter of this.buildingSmokeEmitters) {
+      if (!emitter.active) continue;
+
+      const positions = emitter.system.geometry.attributes.position.array as Float32Array;
+      const count = positions.length / 3;
+
+      for (let i = 0; i < count; i++) {
+        const i3 = i * 3;
+        emitter.lifetimes[i] += dt;
+
+        // Move particles
+        positions[i3] += emitter.velocities[i][0] * dt;
+        positions[i3 + 1] += emitter.velocities[i][1] * dt;
+        positions[i3 + 2] += emitter.velocities[i][2] * dt;
+
+        // Add slight drift
+        emitter.velocities[i][0] += (Math.random() - 0.5) * 5 * dt;
+        emitter.velocities[i][2] += (Math.random() - 0.5) * 5 * dt;
+
+        // Respawn when lifetime exceeded
+        if (emitter.lifetimes[i] > 2.0) {
+          emitter.lifetimes[i] = 0;
+          positions[i3] = emitter.origin.x + (Math.random() - 0.5) * 20;
+          positions[i3 + 1] = emitter.origin.y + Math.random() * 10;
+          positions[i3 + 2] = emitter.origin.z + (Math.random() - 0.5) * 20;
+          emitter.velocities[i][0] = (Math.random() - 0.5) * 15;
+          emitter.velocities[i][1] = 30 + Math.random() * 40;
+          emitter.velocities[i][2] = (Math.random() - 0.5) * 15;
+        }
+      }
+
+      emitter.system.geometry.attributes.position.needsUpdate = true;
+    }
   }
 
   createSatellites() {
@@ -2813,28 +3071,28 @@ class MegabotScene {
     const THREE = this.THREE;
     const group = new THREE.Group();
 
-    let size = 50, health = 1, color = 0xff4444;
+    let size = 80, health = 1, color = 0xff4444;
     switch (type) {
       case 'fighter':
-        size = 50;
+        size = 80;
         health = 1;
         color = 0xff4444;
         this.createFighterMesh(group, size, color, THREE);
         break;
       case 'bomber':
-        size = 80;
+        size = 130;
         health = 3;
         color = 0xff8800;
         this.createBomberMesh(group, size, color, THREE);
         break;
       case 'interceptor':
-        size = 60;
+        size = 100;
         health = 2;
         color = 0xffff00;
         this.createInterceptorMesh(group, size, color, THREE);
         break;
       case 'cruiser':
-        size = 120;
+        size = 200;
         health = 8;
         color = 0xcc00ff;
         this.createCruiserMesh(group, size, color, THREE);
@@ -4403,6 +4661,15 @@ class MegabotScene {
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
 
+    // Q/E manual rotation — independent of camera and movement
+    const manualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
+    if (this.keysPressed.has('q')) {
+      this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
+    }
+    if (this.keysPressed.has('e')) {
+      this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
+    }
+
     let moveX = 0;
     let moveZ = 0;
 
@@ -4439,22 +4706,35 @@ class MegabotScene {
     // Advance walk cycle proportional to speed
     this.walkCycle += dt * this.WALK_CYCLE_SPEED;
 
-    // Walking bob - two peaks per full cycle (each foot touchdown)
-    this.mainMegabot.position.y = this.MEGABOT_STAND_Y + Math.abs(Math.sin(this.walkCycle)) * this.WALK_BOB_HEIGHT;
+    // Walking bob with secondary bounce harmonic + footfall dip
+    const primaryBob = Math.abs(Math.sin(this.walkCycle)) * this.WALK_BOB_HEIGHT;
+    const secondaryBounce = Math.abs(Math.sin(this.walkCycle * 2)) * (this.WALK_BOB_HEIGHT * 0.15);
+    // Footfall dip: brief downward dip when sin crosses zero (foot plants)
+    const sinCycle = Math.sin(this.walkCycle);
+    const footfallDip = (1 - Math.abs(sinCycle)) * -4; // -4 unit dip at zero crossings
+    this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
 
-    // Turn megabot to face movement direction (blend with tracking)
-    if (!this.trackingTarget) {
+    // Turn megabot to face movement direction (snappier lerp)
+    // Only auto-face when Q/E are NOT pressed — manual rotation takes priority
+    if (!this.trackingTarget && !manualRotating) {
       const targetAngle = Math.atan2(worldX, worldZ);
       const angleDiff = targetAngle - this.mainMegabot.rotation.y;
       const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-      this.mainMegabot.rotation.y += normalizedDiff * 0.1;
+      this.mainMegabot.rotation.y += normalizedDiff * 0.2;
     }
 
-    // STOMP BUILDINGS! Check footfall timing - stomp on downbeat of walk cycle
-    const sinCycle = Math.sin(this.walkCycle);
+    // GODZILLA STOMP! Check footfall timing - stomp on downbeat of walk cycle
     const prevSinCycle = Math.sin(this.walkCycle - dt * this.WALK_CYCLE_SPEED);
     const isFootfall = (sinCycle <= 0 && prevSinCycle > 0) || (sinCycle >= 0 && prevSinCycle < 0);
 
+    // Screen shake on every footfall
+    if (isFootfall) {
+      this.triggerCameraShake(6);
+      // Dust cloud at foot position
+      this.createStompDust(this.mainMegabot.position);
+    }
+
+    // Splash damage: core destroy, heavy ring, light ring
     for (let i = this.buildings.length - 1; i >= 0; i--) {
       const building = this.buildings[i];
       if (!building.active) continue;
@@ -4463,9 +4743,119 @@ class MegabotScene {
       const dz = this.mainMegabot.position.z - building.group.position.z;
       const distSq = dx * dx + dz * dz;
 
+      // Core radius: instant destroy
       if (distSq < this.MEGABOT_STOMP_RADIUS * this.MEGABOT_STOMP_RADIUS) {
         this.destroyBuilding(building, i);
+        this.triggerCameraShake(10);
       }
+      // Heavy damage ring (only on footfall)
+      else if (isFootfall && distSq < this.STOMP_HEAVY_RADIUS * this.STOMP_HEAVY_RADIUS) {
+        building.health -= 2;
+        building.damageLevel += 2;
+        if (building.health <= 0) {
+          this.destroyBuilding(building, i);
+        } else {
+          this.applyBuildingDamageVisuals(building);
+        }
+      }
+      // Light damage ring (only on footfall)
+      else if (isFootfall && distSq < this.STOMP_LIGHT_RADIUS * this.STOMP_LIGHT_RADIUS) {
+        building.health -= 1;
+        building.damageLevel += 1;
+        if (building.health <= 0) {
+          this.destroyBuilding(building, i);
+        } else {
+          this.applyBuildingDamageVisuals(building);
+        }
+      }
+    }
+  }
+
+  // Trigger camera shake with given magnitude
+  triggerCameraShake(magnitude: number) {
+    this.cameraShakeMagnitude = Math.max(this.cameraShakeMagnitude, magnitude);
+    this.cameraShakeDecay = 0.3; // 0.3s shake duration
+  }
+
+  // Create dust cloud particles at stomp position
+  createStompDust(position: any) {
+    const THREE = this.THREE;
+    const dustCount = 20;
+    const dustGeo = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustCount * 3);
+    const dustVelocities: any[] = [];
+
+    for (let i = 0; i < dustCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * 30;
+      dustPositions[i * 3] = position.x + Math.cos(angle) * radius;
+      dustPositions[i * 3 + 1] = this.GROUND_Y + 5 + Math.random() * 10;
+      dustPositions[i * 3 + 2] = position.z + Math.sin(angle) * radius;
+
+      // Expand outward and upward
+      const speed = 80 + Math.random() * 120;
+      dustVelocities.push(new THREE.Vector3(
+        Math.cos(angle) * speed,
+        30 + Math.random() * 60,
+        Math.sin(angle) * speed
+      ));
+    }
+
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0x998877,
+      size: 12,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const dustSystem = new THREE.Points(dustGeo, dustMat);
+    this.scene.add(dustSystem);
+
+    // Track as explosion for animation/cleanup
+    this.explosions3D.push({
+      particles: dustSystem,
+      light: new THREE.PointLight(0x000000, 0, 0),
+      velocities: dustVelocities,
+      lifetime: 0,
+      maxLifetime: 1.2,
+      active: true,
+    });
+    this.scene.add(this.explosions3D[this.explosions3D.length - 1].light);
+  }
+
+  // Apply progressive damage visuals to a building based on its damageLevel
+  applyBuildingDamageVisuals(building: any) {
+    const damageRatio = building.damageLevel / building.maxHealth;
+
+    // Tilt building based on damage
+    if (damageRatio > 0.25) {
+      const tiltAmount = Math.min(damageRatio, 1.0);
+      // Light damage: subtle tilt (up to ~5°)
+      const tiltScale = damageRatio > 0.75 ? 0.25 : damageRatio > 0.5 ? 0.14 : 0.06;
+      building.group.rotation.x = building.damageTiltX * tiltScale;
+      building.group.rotation.z = building.damageTiltZ * tiltScale;
+    }
+
+    // Shrink slightly
+    const shrink = 1 - Math.min(damageRatio, 1.0) * 0.3;
+    building.group.scale.y = shrink;
+
+    // Darken windows progressively
+    if (building.windowMeshes) {
+      const windowCount = building.windowMeshes.length;
+      const darkCount = Math.floor(windowCount * Math.min(damageRatio * 1.2, 1.0));
+      for (let i = 0; i < windowCount; i++) {
+        if (i < darkCount) {
+          building.windowMeshes[i].material = building.windowMeshes[i].material.clone();
+          building.windowMeshes[i].material.opacity = 0.1;
+          building.windowMeshes[i].material.color.setHex(0x111111);
+        }
+      }
+    }
+
+    // Assign smoke emitter for medium+ damage
+    if (damageRatio > 0.4 && building.smokeEmitterIndex === -1) {
+      this.assignSmokeEmitter(building);
     }
   }
 
@@ -5081,6 +5471,11 @@ class MegabotScene {
     // Update destructible city buildings
     this.updateBuildings(dt);
 
+    // Update collapsing buildings, debris chunks, and smoke
+    this.updateCollapsingBuildings(dt);
+    this.updateDebrisChunks(dt);
+    this.updateSmokeEmitters(dt);
+
     // Update game state callback - only fire when values actually change to avoid React re-renders
     if (this.onGameStateUpdate) {
       let activeShips = 0;
@@ -5255,15 +5650,15 @@ class MegabotScene {
     this._boundKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       // Game movement + camera keys
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'r', 'f'].includes(key)) {
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'x', 'r', 'f'].includes(key)) {
         e.preventDefault();
         this.keysPressed.add(key);
 
         // Camera reset (R) - snap back to default orbit
         if (key === 'r') {
           this.cameraYaw = 0;
-          this.cameraPitch = 0.2;
-          this.cameraTargetDistance = 1400;
+          this.cameraPitch = 0.35;
+          this.cameraTargetDistance = 1200;
           this.cameraPanX = 0;
           this.cameraPanY = 0;
           this.cameraPanZ = 0;
@@ -5324,7 +5719,7 @@ class MegabotScene {
     if (this.barrageCooldown > 0) this.barrageCooldown -= deltaTime;
 
     // Handle Q key for missile barrage
-    if (this.keysPressed.has('q') && this.upgradeLevel >= 3 && this.barrageCooldown <= 0) {
+    if (this.keysPressed.has('x') && this.upgradeLevel >= 3 && this.barrageCooldown <= 0) {
       this.launchMissileBarrage();
       this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
     }
@@ -5345,6 +5740,19 @@ class MegabotScene {
     this.camera.position.x = lookAtX + this.cameraDistance * cosPitch * Math.sin(this.cameraYaw);
     this.camera.position.y = lookAtY + this.cameraDistance * Math.sin(this.cameraPitch);
     this.camera.position.z = lookAtZ + this.cameraDistance * cosPitch * Math.cos(this.cameraYaw);
+
+    // Apply camera shake
+    if (this.cameraShakeDecay > 0) {
+      const shakeIntensity = this.cameraShakeMagnitude * (this.cameraShakeDecay / 0.3);
+      this.camera.position.x += (Math.random() - 0.5) * shakeIntensity * 2;
+      this.camera.position.y += (Math.random() - 0.5) * shakeIntensity * 2;
+      this.camera.position.z += (Math.random() - 0.5) * shakeIntensity * 2;
+      this.cameraShakeDecay -= deltaTime;
+      if (this.cameraShakeDecay <= 0) {
+        this.cameraShakeMagnitude = 0;
+      }
+    }
+
     this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
     // Animate main Megabot
@@ -5352,7 +5760,7 @@ class MegabotScene {
       // Cache world pos for combat checks
       this.megabotWorldPos.copy(this.mainMegabot.position);
 
-      // Body rotation - track target or idle rotation
+      // Body rotation - track target, Q/E manual, or idle hold
       if (this.trackingTarget && this.targetPosition3D) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
         const lerpSpeed = 0.14;
@@ -5361,12 +5769,11 @@ class MegabotScene {
         this.currentRotation.y += (this.targetRotation.y - this.currentRotation.y) * lerpSpeed;
         this.mainMegabot.rotation.y = this.currentRotation.y;
       } else if (!this.isWalking) {
-        // IDLE MODE: Slow menacing rotation (only when not walking - walk sets its own rotation)
+        // IDLE MODE: Hold current facing direction (Q/E or last walk direction)
+        // Smoothly decay head tracking offsets back to neutral
         const returnSpeed = 0.05;
-        this.currentRotation.y += (0 - this.currentRotation.y) * returnSpeed;
         this.currentRotation.x += (0 - this.currentRotation.x) * returnSpeed;
-
-        this.mainMegabot.rotation.y += 0.001;
+        // No constant rotation.y drift — player controls facing with Q/E
       }
 
       // Pre-compute trig values used across multiple parts (hoisted out of forEach)
@@ -5452,10 +5859,10 @@ class MegabotScene {
           part.mesh.scale.set(breathe, 1.0 + sinT1_5 * 0.01, breathe);
           if (this.isWalking) {
             // Subtle shoulder sway during walk (shifts weight side to side)
-            const swayTarget = Math.sin(this.walkCycle) * 0.04;
+            const swayTarget = Math.sin(this.walkCycle) * 0.05;
             part.mesh.rotation.z += (swayTarget - part.mesh.rotation.z) * 0.15;
-            // Slight forward lean
-            part.mesh.rotation.x += (0.03 - part.mesh.rotation.x) * 0.1;
+            // Forward lean (~5° when walking)
+            part.mesh.rotation.x += (0.085 - part.mesh.rotation.x) * 0.12;
           } else {
             part.mesh.rotation.z *= 0.95; // Return to neutral
             part.mesh.rotation.x *= 0.95;
@@ -5873,8 +6280,8 @@ class MegabotScene {
 
   cameraReset() {
     this.cameraYaw = 0;
-    this.cameraPitch = 0.2;
-    this.cameraTargetDistance = 1400;
+    this.cameraPitch = 0.35;
+    this.cameraTargetDistance = 1200;
     this.cameraPanX = 0;
     this.cameraPanY = 0;
     this.cameraPanZ = 0;
