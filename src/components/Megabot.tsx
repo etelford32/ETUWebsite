@@ -270,9 +270,9 @@ class MegabotScene {
 
   // City / Buildings system
   buildings: any[] = [];
-  readonly BUILDING_COUNT = 60;
-  readonly CITY_RADIUS = 1400; // How far buildings spread from center
-  readonly CITY_INNER_RADIUS = 250; // Keep clear around megabot's feet
+  readonly BUILDING_COUNT = 180;
+  readonly CITY_RADIUS = 7000; // How far buildings spread from center
+  readonly CITY_INNER_RADIUS = 300; // Keep clear around megabot's feet
 
   // Megabot movement (WASD / arrow keys)
   keysPressed: Set<string> = new Set();
@@ -310,7 +310,7 @@ class MegabotScene {
 
   // Debris chunk pool
   debrisChunks: any[] = [];
-  readonly MAX_DEBRIS_CHUNKS = 40;
+  readonly MAX_DEBRIS_CHUNKS = 60;
   debrisPoolInitialized: boolean = false;
 
   // Collapsing buildings (animated destruction)
@@ -2347,7 +2347,7 @@ class MegabotScene {
   // Create the ground plane the city and megabot stand on
   createGroundPlane() {
     const THREE = this.THREE;
-    const size = 8000; // Large enough to extend past expanded city radius
+    const size = 20000; // Large enough to extend past 5x expanded city radius
 
     // Dark cyberpunk ground surface
     const groundGeo = new THREE.PlaneGeometry(size, size);
@@ -2395,135 +2395,261 @@ class MegabotScene {
       { base: 0x1a1a3e, accent: 0xffa500, window: 0xffcc00 },
       { base: 0x2d132c, accent: 0xe94560, window: 0xff2244 },
       { base: 0x222244, accent: 0xaa66ff, window: 0x8844dd },
+      { base: 0x0d1b2a, accent: 0x1b9aaa, window: 0x06d6a0 },
+      { base: 0x2b2d42, accent: 0xef476f, window: 0xff6b6b },
     ];
 
+    // Building style types for variety
+    const styles: ('tower' | 'wide' | 'skyscraper' | 'dome' | 'industrial')[] =
+      ['tower', 'wide', 'skyscraper', 'dome', 'industrial'];
+
     for (let i = 0; i < this.BUILDING_COUNT; i++) {
-      // Place buildings in a ring around megabot
-      const angle = (i / this.BUILDING_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      const radius = this.CITY_INNER_RADIUS + Math.random() * (this.CITY_RADIUS - this.CITY_INNER_RADIUS);
+      // Distribute buildings using golden-angle spiral for even coverage
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const angle = i * goldenAngle + (Math.random() - 0.5) * 0.3;
+      const t = (i + 0.5) / this.BUILDING_COUNT;
+      const radius = this.CITY_INNER_RADIUS + t * (this.CITY_RADIUS - this.CITY_INNER_RADIUS);
 
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
-      // Vary building dimensions — taller near center, shorter at edges
+      // Distance-based sizing — taller near center, shorter at edges
       const distRatio = (radius - this.CITY_INNER_RADIUS) / (this.CITY_RADIUS - this.CITY_INNER_RADIUS);
-      const heightScale = 1.0 - distRatio * 0.5; // Outer buildings are ~50% shorter
-      const width = 50 + Math.random() * 70;
-      const depth = 50 + Math.random() * 70;
-      const height = (150 + Math.random() * 400) * heightScale;
+      const heightScale = 1.0 - distRatio * 0.6;
+
+      // Pick style based on position
+      const style = styles[i % styles.length];
+      let width: number, depth: number, height: number;
+
+      switch (style) {
+        case 'skyscraper': // Tall, narrow towers — city center showpieces
+          width = 40 + Math.random() * 40;
+          depth = 40 + Math.random() * 40;
+          height = (350 + Math.random() * 300) * heightScale;
+          break;
+        case 'tower': // Medium cylindrical/box towers
+          width = 50 + Math.random() * 50;
+          depth = 50 + Math.random() * 50;
+          height = (200 + Math.random() * 250) * heightScale;
+          break;
+        case 'wide': // Wide, squat commercial buildings
+          width = 80 + Math.random() * 100;
+          depth = 80 + Math.random() * 100;
+          height = (80 + Math.random() * 150) * heightScale;
+          break;
+        case 'dome': // Round/cylindrical structures
+          width = 60 + Math.random() * 60;
+          depth = 60 + Math.random() * 60;
+          height = (120 + Math.random() * 200) * heightScale;
+          break;
+        case 'industrial': // Boxy, wide, functional
+          width = 70 + Math.random() * 80;
+          depth = 70 + Math.random() * 80;
+          height = (100 + Math.random() * 120) * heightScale;
+          break;
+      }
 
       const palette = buildingColors[Math.floor(Math.random() * buildingColors.length)];
       const group = new THREE.Group();
 
-      // Main building body
-      const bodyGeo = new THREE.BoxGeometry(width, height, depth);
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: palette.base,
-        metalness: 0.7,
-        roughness: 0.3,
-        emissive: new THREE.Color(palette.base),
-        emissiveIntensity: 0.1,
-      });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.y = height / 2;
-      group.add(body);
+      // Main building body — varies by style
+      if (style === 'dome') {
+        // Cylindrical base + dome top
+        const baseH = height * 0.7;
+        const baseGeo = new THREE.CylinderGeometry(width / 2, width / 2, baseH, 12);
+        const baseMat = new THREE.MeshStandardMaterial({
+          color: palette.base, metalness: 0.7, roughness: 0.3,
+          emissive: new THREE.Color(palette.base), emissiveIntensity: 0.1,
+        });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = baseH / 2;
+        group.add(base);
 
-      // Window rows - glowing strips on the front faces
-      const windowRows = Math.floor(height / 20);
+        // Dome top
+        const domeGeo = new THREE.SphereGeometry(width / 2, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const domeMat = new THREE.MeshStandardMaterial({
+          color: palette.accent, metalness: 0.9, roughness: 0.1,
+          emissive: new THREE.Color(palette.accent), emissiveIntensity: 0.2,
+          transparent: true, opacity: 0.7,
+        });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = baseH;
+        group.add(dome);
+      } else if (style === 'industrial') {
+        // Boxy base with pipes/vents
+        const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: palette.base, metalness: 0.6, roughness: 0.5,
+          emissive: new THREE.Color(palette.base), emissiveIntensity: 0.05,
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = height / 2;
+        group.add(body);
+
+        // Smoke stacks on top
+        for (let s = 0; s < 2; s++) {
+          const stackGeo = new THREE.CylinderGeometry(3, 4, height * 0.3, 6);
+          const stackMat = new THREE.MeshStandardMaterial({
+            color: 0x555555, metalness: 0.8, roughness: 0.4,
+          });
+          const stack = new THREE.Mesh(stackGeo, stackMat);
+          stack.position.set((s === 0 ? -1 : 1) * width * 0.3, height + height * 0.15, 0);
+          group.add(stack);
+        }
+      } else if (style === 'skyscraper') {
+        // Tapered skyscraper — wider at base, narrower at top
+        const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: palette.base, metalness: 0.85, roughness: 0.15,
+          emissive: new THREE.Color(palette.base), emissiveIntensity: 0.1,
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = height / 2;
+        group.add(body);
+
+        // Crown section — distinctive top
+        const crownH = height * 0.15;
+        const crownGeo = new THREE.BoxGeometry(width * 0.6, crownH, depth * 0.6);
+        const crownMat = new THREE.MeshStandardMaterial({
+          color: palette.accent, metalness: 0.9, roughness: 0.1,
+          emissive: new THREE.Color(palette.accent), emissiveIntensity: 0.3,
+        });
+        const crown = new THREE.Mesh(crownGeo, crownMat);
+        crown.position.y = height + crownH / 2;
+        group.add(crown);
+      } else {
+        // Standard box building (tower, wide)
+        const bodyGeo = new THREE.BoxGeometry(width, height, depth);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: palette.base, metalness: 0.7, roughness: 0.3,
+          emissive: new THREE.Color(palette.base), emissiveIntensity: 0.1,
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = height / 2;
+        group.add(body);
+      }
+
+      // Window rows — skip for dome/industrial styles (they get different treatment)
       const windowMat = new THREE.MeshBasicMaterial({
         color: palette.window,
         transparent: true,
         opacity: 0.6 + Math.random() * 0.3,
       });
 
-      for (let row = 0; row < windowRows; row++) {
-        // Only add windows to ~60% of rows (some are dark floors)
-        if (Math.random() > 0.6) continue;
+      if (style !== 'dome' && style !== 'industrial') {
+        const windowSpacing = style === 'skyscraper' ? 15 : 20;
+        const windowRows = Math.floor(height / windowSpacing);
+        // Limit window meshes for performance on the huge city
+        const maxWindowRows = Math.min(windowRows, 12);
 
-        const windowHeight = 4;
-        const windowWidth = width * 0.8;
-        const windowGeo = new THREE.BoxGeometry(windowWidth, windowHeight, 0.5);
+        for (let row = 0; row < maxWindowRows; row++) {
+          if (Math.random() > 0.6) continue;
 
-        // Front face windows
-        const windowFront = new THREE.Mesh(windowGeo, windowMat);
-        windowFront.position.set(0, 10 + row * 20, depth / 2 + 0.3);
-        group.add(windowFront);
+          const windowHeight = 4;
+          const windowWidth = width * 0.8;
+          const windowGeo = new THREE.BoxGeometry(windowWidth, windowHeight, 0.5);
+          const rowY = 10 + row * windowSpacing;
 
-        // Back face windows
-        const windowBack = new THREE.Mesh(windowGeo, windowMat);
-        windowBack.position.set(0, 10 + row * 20, -depth / 2 - 0.3);
-        group.add(windowBack);
+          // Front + back
+          const windowFront = new THREE.Mesh(windowGeo, windowMat);
+          windowFront.position.set(0, rowY, depth / 2 + 0.3);
+          group.add(windowFront);
 
-        // Side windows
-        const sideWindowGeo = new THREE.BoxGeometry(0.5, windowHeight, depth * 0.8);
-        const windowLeft = new THREE.Mesh(sideWindowGeo, windowMat);
-        windowLeft.position.set(-width / 2 - 0.3, 10 + row * 20, 0);
-        group.add(windowLeft);
+          const windowBack = new THREE.Mesh(windowGeo, windowMat);
+          windowBack.position.set(0, rowY, -depth / 2 - 0.3);
+          group.add(windowBack);
 
-        const windowRight = new THREE.Mesh(sideWindowGeo, windowMat);
-        windowRight.position.set(width / 2 + 0.3, 10 + row * 20, 0);
-        group.add(windowRight);
+          // Sides
+          const sideWindowGeo = new THREE.BoxGeometry(0.5, windowHeight, depth * 0.8);
+          const windowLeft = new THREE.Mesh(sideWindowGeo, windowMat);
+          windowLeft.position.set(-width / 2 - 0.3, rowY, 0);
+          group.add(windowLeft);
+
+          const windowRight = new THREE.Mesh(sideWindowGeo, windowMat);
+          windowRight.position.set(width / 2 + 0.3, rowY, 0);
+          group.add(windowRight);
+        }
+      } else if (style === 'dome') {
+        // Ring lights around the dome base
+        for (let r = 0; r < 3; r++) {
+          const ringGeo = new THREE.TorusGeometry(width / 2 + 1, 1, 4, 16);
+          const ringMat = new THREE.MeshBasicMaterial({
+            color: palette.window, transparent: true, opacity: 0.5,
+          });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          ring.position.y = height * 0.2 * (r + 1);
+          group.add(ring);
+        }
+      } else if (style === 'industrial') {
+        // Warning stripes
+        const stripeGeo = new THREE.BoxGeometry(width + 1, 4, depth + 1);
+        const stripeMat = new THREE.MeshBasicMaterial({
+          color: 0xffaa00, transparent: true, opacity: 0.5,
+        });
+        const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+        stripe.position.y = height * 0.5;
+        group.add(stripe);
       }
 
-      // Rooftop accent light
-      const accentGeo = new THREE.BoxGeometry(width * 0.3, 3, depth * 0.3);
-      const accentMat = new THREE.MeshBasicMaterial({
-        color: palette.accent,
-        transparent: true,
-        opacity: 0.8,
-      });
-      const accent = new THREE.Mesh(accentGeo, accentMat);
-      accent.position.y = height + 1.5;
-      group.add(accent);
+      // Rooftop accent
+      if (style !== 'dome') {
+        const accentGeo = new THREE.BoxGeometry(width * 0.3, 3, depth * 0.3);
+        const accentMat = new THREE.MeshBasicMaterial({
+          color: palette.accent, transparent: true, opacity: 0.8,
+        });
+        const accent = new THREE.Mesh(accentGeo, accentMat);
+        accent.position.y = height + 1.5;
+        group.add(accent);
+      }
 
-      // Rooftop antenna/spire on taller buildings (height > 400 limits lights to ~15)
-      if (height > 400) {
-        const spireGeo = new THREE.CylinderGeometry(1, 2, 40, 6);
+      // Antenna/spire on tall skyscrapers only — limit PointLights to ~15
+      if (style === 'skyscraper' && height > 400) {
+        const spireGeo = new THREE.CylinderGeometry(1, 2, 50, 6);
         const spireMat = new THREE.MeshStandardMaterial({
-          color: 0x444466,
-          metalness: 0.9,
-          roughness: 0.1,
+          color: 0x444466, metalness: 0.9, roughness: 0.1,
         });
         const spire = new THREE.Mesh(spireGeo, spireMat);
-        spire.position.y = height + 20;
+        spire.position.y = height + 25;
         group.add(spire);
 
-        // Blinking light on top — only on tall buildings to limit light count
-        const blinkLight = new THREE.PointLight(palette.accent, 2, 80);
-        blinkLight.position.y = height + 42;
+        const blinkLight = new THREE.PointLight(palette.accent, 2, 100);
+        blinkLight.position.y = height + 52;
         group.add(blinkLight);
       }
 
-      // Emissive base glow strip instead of PointLight (saves 36 lights for performance)
+      // Emissive base glow strip
       const baseGlowGeo = new THREE.BoxGeometry(width * 0.9, 3, depth * 0.9);
       const baseGlowMat = new THREE.MeshBasicMaterial({
-        color: palette.accent,
-        transparent: true,
-        opacity: 0.4,
+        color: palette.accent, transparent: true, opacity: 0.4,
       });
       const baseGlow = new THREE.Mesh(baseGlowGeo, baseGlowMat);
       baseGlow.position.y = 1.5;
       group.add(baseGlow);
 
       group.position.set(x, -this.MAIN_SIZE * 0.5, z);
-
       this.scene.add(group);
+
+      // Pick a random destruction type for this building
+      const destructionTypes: ('topple' | 'split' | 'collapse')[] = ['topple', 'split', 'collapse'];
+      const destructionType = destructionTypes[Math.floor(Math.random() * 3)];
 
       this.buildings.push({
         group,
-        health: Math.ceil(height / 30), // Taller buildings take more hits
+        health: Math.ceil(height / 30),
         maxHealth: Math.ceil(height / 30),
         width,
         height,
         depth,
         active: true,
         palette,
-        damageLevel: 0, // 0 = pristine, increases with damage
-        // Damage effect state
-        damageTiltX: (Math.random() - 0.5) * 0.3, // Random lean direction on damage
+        style,
+        damageLevel: 0,
+        damageTiltX: (Math.random() - 0.5) * 0.3,
         damageTiltZ: (Math.random() - 0.5) * 0.3,
-        smokeEmitterIndex: -1, // Index into buildingSmokeEmitters pool (-1 = none)
+        smokeEmitterIndex: -1,
         windowMeshes: group.children.filter((c: any) => c.material === windowMat),
+        destructionType,
       });
     }
   }
@@ -2612,77 +2738,283 @@ class MegabotScene {
   destroyBuilding(building: any, index: number) {
     const THREE = this.THREE;
 
-    // Big explosion at building center (reuse temp vector)
-    this._tmpVec3A.copy(building.group.position);
-    this._tmpVec3A.y += building.height / 2;
-    this.create3DExplosion(this._tmpVec3A, building.width * 1.5);
-
     // Release smoke emitter if assigned
     if (building.smokeEmitterIndex >= 0) {
       this.releaseSmokeEmitter(building.smokeEmitterIndex);
       building.smokeEmitterIndex = -1;
     }
 
-    // Start collapse animation instead of instant removal
     building.active = false;
-    this.collapsingBuildings.push({
-      group: building.group,
-      width: building.width,
-      height: building.height,
-      depth: building.depth,
-      palette: building.palette,
-      collapseTime: 0,
-      collapseMaxTime: 0.8,
-      collapseVelocityY: 0,
-      collapseTiltX: (Math.random() - 0.5) * 0.4,
-      collapseTiltZ: (Math.random() - 0.5) * 0.4,
-      debrisSpawned: false,
-    });
+    const dtype = building.destructionType || 'collapse';
 
-    // Camera shake for big destruction
-    this.triggerCameraShake(8);
+    if (dtype === 'topple') {
+      // TOPPLE: building tips to one side, accelerating rotation, explosions along the fall
+      const toppleDir = Math.random() * Math.PI * 2; // random direction to fall
+      this._tmpVec3A.copy(building.group.position);
+      this._tmpVec3A.y += building.height * 0.3;
+      this.create3DExplosion(this._tmpVec3A, building.width);
+
+      this.collapsingBuildings.push({
+        type: 'topple',
+        group: building.group,
+        width: building.width,
+        height: building.height,
+        depth: building.depth,
+        palette: building.palette,
+        collapseTime: 0,
+        collapseMaxTime: 1.6,
+        toppleDir, // radians on XZ plane
+        angularVelocity: 0.3, // starts slow, accelerates
+        currentAngle: 0,
+        pivotY: building.group.position.y, // ground level pivot
+        explosionCount: 0, // track cascading explosions
+        debrisSpawned: false,
+      });
+      this.triggerCameraShake(10);
+    } else if (dtype === 'split') {
+      // SPLIT: building cleaves in two, halves fly apart
+      this._tmpVec3A.copy(building.group.position);
+      this._tmpVec3A.y += building.height * 0.5;
+      this.create3DExplosion(this._tmpVec3A, building.width * 2);
+
+      // Create two half-building meshes
+      const splitAngle = Math.random() * Math.PI; // direction of split
+      const cosA = Math.cos(splitAngle);
+      const sinA = Math.sin(splitAngle);
+
+      const halves: any[] = [];
+      for (let h = 0; h < 2; h++) {
+        const halfGroup = new THREE.Group();
+        const halfH = building.height * 0.5;
+        const geo = new THREE.BoxGeometry(building.width, halfH, building.depth);
+        const mat = new THREE.MeshStandardMaterial({
+          color: building.palette.base,
+          metalness: 0.4,
+          roughness: 0.5,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        // Bottom half at 0, top half offset up
+        mesh.position.y = h === 0 ? halfH * 0.5 : halfH * 0.5;
+        halfGroup.add(mesh);
+
+        // Add window strips to halves
+        const windowGeo = new THREE.BoxGeometry(building.width + 0.5, 3, building.depth + 0.5);
+        const windowMat = new THREE.MeshBasicMaterial({
+          color: building.palette.windows,
+          transparent: true,
+          opacity: 0.6,
+        });
+        for (let w = 0; w < 3; w++) {
+          const win = new THREE.Mesh(windowGeo, windowMat);
+          win.position.y = halfH * 0.2 * (w + 1);
+          halfGroup.add(win);
+        }
+
+        halfGroup.position.copy(building.group.position);
+        halfGroup.position.y += h === 0 ? 0 : building.height * 0.5;
+        this.scene.add(halfGroup);
+
+        const sign = h === 0 ? 1 : -1;
+        halves.push({
+          group: halfGroup,
+          velocity: new THREE.Vector3(
+            cosA * sign * (120 + Math.random() * 80),
+            150 + Math.random() * 100,
+            sinA * sign * (120 + Math.random() * 80)
+          ),
+          rotSpeed: new THREE.Vector3(
+            (Math.random() - 0.5) * 4,
+            (Math.random() - 0.5) * 3,
+            (Math.random() - 0.5) * 4
+          ),
+        });
+      }
+
+      // Hide original building
+      building.group.visible = false;
+
+      this.collapsingBuildings.push({
+        type: 'split',
+        group: building.group,
+        width: building.width,
+        height: building.height,
+        depth: building.depth,
+        palette: building.palette,
+        collapseTime: 0,
+        collapseMaxTime: 2.0,
+        halves,
+        debrisSpawned: false,
+      });
+      this.triggerCameraShake(12);
+    } else {
+      // COLLAPSE: crumbles straight down (existing behavior)
+      this._tmpVec3A.copy(building.group.position);
+      this._tmpVec3A.y += building.height / 2;
+      this.create3DExplosion(this._tmpVec3A, building.width * 1.5);
+
+      this.collapsingBuildings.push({
+        type: 'collapse',
+        group: building.group,
+        width: building.width,
+        height: building.height,
+        depth: building.depth,
+        palette: building.palette,
+        collapseTime: 0,
+        collapseMaxTime: 0.8,
+        collapseVelocityY: 0,
+        collapseTiltX: (Math.random() - 0.5) * 0.4,
+        collapseTiltZ: (Math.random() - 0.5) * 0.4,
+        debrisSpawned: false,
+      });
+      this.triggerCameraShake(8);
+    }
 
     // Score bonus for buildings being destroyed
     this.gameScore += 50;
   }
 
-  // Update collapsing buildings animation
+  // Update collapsing buildings animation — dispatches to 3 destruction types
   updateCollapsingBuildings(dt: number) {
     const THREE = this.THREE;
 
     for (let i = this.collapsingBuildings.length - 1; i >= 0; i--) {
       const cb = this.collapsingBuildings[i];
       cb.collapseTime += dt;
+      const progress = Math.min(cb.collapseTime / cb.collapseMaxTime, 1.0);
 
-      // Accelerate downward + tilt
-      cb.collapseVelocityY -= 400 * dt; // gravity
-      cb.group.position.y += cb.collapseVelocityY * dt;
+      if (cb.type === 'topple') {
+        // ── TOPPLE: building rotates from base, falls to one side ──
+        // Accelerating angular velocity (gravity-driven rotation)
+        cb.angularVelocity += 3.0 * dt; // angular acceleration
+        cb.currentAngle += cb.angularVelocity * dt;
 
-      // Progressive tilt as it collapses
-      const tiltProgress = Math.min(cb.collapseTime / cb.collapseMaxTime, 1.0);
-      cb.group.rotation.x += cb.collapseTiltX * dt * 2;
-      cb.group.rotation.z += cb.collapseTiltZ * dt * 2;
+        // Rotate around the base (pivot at ground level)
+        // We rotate the group around an axis perpendicular to toppleDir
+        const perpX = -Math.sin(cb.toppleDir);
+        const perpZ = Math.cos(cb.toppleDir);
+        cb.group.rotation.x = perpX * cb.currentAngle;
+        cb.group.rotation.z = perpZ * cb.currentAngle;
 
-      // Shrink vertically (crumbling)
-      cb.group.scale.y = Math.max(0, 1 - tiltProgress * 0.6);
-      cb.group.scale.x = 1 + tiltProgress * 0.3; // Spread out horizontally
-      cb.group.scale.z = 1 + tiltProgress * 0.3;
+        // Cascading explosions along the building as it falls (every ~20 degrees)
+        const explosionThresholds = [0.3, 0.6, 0.9, 1.2, 1.5];
+        while (cb.explosionCount < explosionThresholds.length &&
+               cb.currentAngle > explosionThresholds[cb.explosionCount]) {
+          const frac = cb.explosionCount / explosionThresholds.length;
+          this._tmpVec3A.copy(cb.group.position);
+          this._tmpVec3A.y += cb.height * (1.0 - frac * 0.8);
+          this._tmpVec3A.x += Math.cos(cb.toppleDir) * cb.height * frac * 0.4;
+          this._tmpVec3A.z += Math.sin(cb.toppleDir) * cb.height * frac * 0.4;
+          this.create3DExplosion(this._tmpVec3A, cb.width * (0.6 + frac * 0.8));
+          cb.explosionCount++;
+        }
 
-      // Spawn debris chunks at halfway point
-      if (!cb.debrisSpawned && cb.collapseTime > cb.collapseMaxTime * 0.4) {
-        cb.debrisSpawned = true;
-        this.spawnDebrisChunks(cb.group.position, cb.width, cb.height, cb.depth, cb.palette);
-      }
+        // Spawn debris when past 60 degrees
+        if (!cb.debrisSpawned && cb.currentAngle > 1.05) {
+          cb.debrisSpawned = true;
+          this.spawnDebrisChunks(cb.group.position, cb.width, cb.height, cb.depth, cb.palette);
+        }
 
-      // Remove when collapse is complete
-      if (cb.collapseTime >= cb.collapseMaxTime) {
-        // Final dust puff at ground level (reuse temp vector)
-        this._tmpVec3B.copy(cb.group.position);
-        this._tmpVec3B.y = this.GROUND_Y + 5;
-        this.create3DExplosion(this._tmpVec3B, cb.width * 0.8);
+        // Finish when angle > ~90 degrees or time is up
+        if (cb.currentAngle > Math.PI * 0.5 || cb.collapseTime >= cb.collapseMaxTime) {
+          // Ground impact explosion
+          this._tmpVec3B.copy(cb.group.position);
+          this._tmpVec3B.x += Math.cos(cb.toppleDir) * cb.height * 0.5;
+          this._tmpVec3B.z += Math.sin(cb.toppleDir) * cb.height * 0.5;
+          this._tmpVec3B.y = this.GROUND_Y + 5;
+          this.create3DExplosion(this._tmpVec3B, cb.width * 2);
+          this.spawnDebrisChunks(this._tmpVec3B, cb.width * 1.5, cb.height * 0.3, cb.depth, cb.palette);
+          this.triggerCameraShake(6);
 
-        this.scene.remove(cb.group);
-        this.collapsingBuildings.splice(i, 1);
+          this.scene.remove(cb.group);
+          this.collapsingBuildings.splice(i, 1);
+        }
+
+      } else if (cb.type === 'split') {
+        // ── SPLIT: two halves fly apart with gravity ──
+        for (const half of cb.halves) {
+          // Gravity
+          half.velocity.y -= 500 * dt;
+
+          // Move
+          half.group.position.x += half.velocity.x * dt;
+          half.group.position.y += half.velocity.y * dt;
+          half.group.position.z += half.velocity.z * dt;
+
+          // Tumble
+          half.group.rotation.x += half.rotSpeed.x * dt;
+          half.group.rotation.y += half.rotSpeed.y * dt;
+          half.group.rotation.z += half.rotSpeed.z * dt;
+
+          // Ground collision — bounce once then stop
+          if (half.group.position.y < this.GROUND_Y) {
+            half.group.position.y = this.GROUND_Y;
+            half.velocity.y *= -0.2;
+            half.velocity.x *= 0.5;
+            half.velocity.z *= 0.5;
+            half.rotSpeed.multiplyScalar(0.5);
+          }
+        }
+
+        // Spawn debris at midpoint
+        if (!cb.debrisSpawned && cb.collapseTime > cb.collapseMaxTime * 0.3) {
+          cb.debrisSpawned = true;
+          for (const half of cb.halves) {
+            this.spawnDebrisChunks(half.group.position, cb.width, cb.height * 0.4, cb.depth, cb.palette);
+          }
+        }
+
+        // Secondary explosions at each half
+        if (cb.collapseTime > 0.4 && !cb._secondExplosion) {
+          cb._secondExplosion = true;
+          for (const half of cb.halves) {
+            this.create3DExplosion(half.group.position, cb.width * 0.8);
+          }
+        }
+
+        // Remove when time is up
+        if (cb.collapseTime >= cb.collapseMaxTime) {
+          // Final dust puffs at each half location
+          for (const half of cb.halves) {
+            this._tmpVec3B.copy(half.group.position);
+            this._tmpVec3B.y = this.GROUND_Y + 5;
+            this.create3DExplosion(this._tmpVec3B, cb.width * 0.6);
+            this.scene.remove(half.group);
+          }
+          // Also remove the original (hidden) group
+          this.scene.remove(cb.group);
+          this.collapsingBuildings.splice(i, 1);
+        }
+
+      } else {
+        // ── COLLAPSE: crumbles straight down (original behavior) ──
+        // Accelerate downward + tilt
+        cb.collapseVelocityY -= 400 * dt;
+        cb.group.position.y += cb.collapseVelocityY * dt;
+
+        // Progressive tilt as it collapses
+        cb.group.rotation.x += cb.collapseTiltX * dt * 2;
+        cb.group.rotation.z += cb.collapseTiltZ * dt * 2;
+
+        // Shrink vertically (crumbling)
+        cb.group.scale.y = Math.max(0, 1 - progress * 0.6);
+        cb.group.scale.x = 1 + progress * 0.3;
+        cb.group.scale.z = 1 + progress * 0.3;
+
+        // Spawn debris chunks at halfway point
+        if (!cb.debrisSpawned && cb.collapseTime > cb.collapseMaxTime * 0.4) {
+          cb.debrisSpawned = true;
+          this.spawnDebrisChunks(cb.group.position, cb.width, cb.height, cb.depth, cb.palette);
+        }
+
+        // Remove when collapse is complete
+        if (cb.collapseTime >= cb.collapseMaxTime) {
+          this._tmpVec3B.copy(cb.group.position);
+          this._tmpVec3B.y = this.GROUND_Y + 5;
+          this.create3DExplosion(this._tmpVec3B, cb.width * 0.8);
+
+          this.scene.remove(cb.group);
+          this.collapsingBuildings.splice(i, 1);
+        }
       }
     }
   }
