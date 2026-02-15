@@ -362,7 +362,7 @@ class MegabotScene {
   readonly SHIP_SPEED_MAX = 400;
   readonly MISSILE_SPEED_3D = 800;
   readonly ENEMY_LASER_SPEED = 1200;
-  readonly ENEMY_LASER_RANGE = 800;
+  readonly ENEMY_LASER_RANGE = 1200;
   readonly SHIP_SPAWN_RADIUS = 1800; // Distance from megabot where ships spawn
   readonly _despawnRadiusSq = (1800 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
 
@@ -2612,10 +2612,10 @@ class MegabotScene {
   destroyBuilding(building: any, index: number) {
     const THREE = this.THREE;
 
-    // Big explosion at building center
-    const center = building.group.position.clone();
-    center.y += building.height / 2;
-    this.create3DExplosion(center, building.width * 1.5);
+    // Big explosion at building center (reuse temp vector)
+    this._tmpVec3A.copy(building.group.position);
+    this._tmpVec3A.y += building.height / 2;
+    this.create3DExplosion(this._tmpVec3A, building.width * 1.5);
 
     // Release smoke emitter if assigned
     if (building.smokeEmitterIndex >= 0) {
@@ -2676,10 +2676,10 @@ class MegabotScene {
 
       // Remove when collapse is complete
       if (cb.collapseTime >= cb.collapseMaxTime) {
-        // Final dust puff at ground level
-        const dustPos = cb.group.position.clone();
-        dustPos.y = this.GROUND_Y + 5;
-        this.create3DExplosion(dustPos, cb.width * 0.8);
+        // Final dust puff at ground level (reuse temp vector)
+        this._tmpVec3B.copy(cb.group.position);
+        this._tmpVec3B.y = this.GROUND_Y + 5;
+        this.create3DExplosion(this._tmpVec3B, cb.width * 0.8);
 
         this.scene.remove(cb.group);
         this.collapsingBuildings.splice(i, 1);
@@ -4878,15 +4878,17 @@ class MegabotScene {
     const shrink = 1 - Math.min(damageRatio, 1.0) * 0.3;
     building.group.scale.y = shrink;
 
-    // Darken windows progressively
+    // Darken windows progressively (only clone material once per window)
     if (building.windowMeshes) {
       const windowCount = building.windowMeshes.length;
       const darkCount = Math.floor(windowCount * Math.min(damageRatio * 1.2, 1.0));
-      for (let i = 0; i < windowCount; i++) {
-        if (i < darkCount) {
-          building.windowMeshes[i].material = building.windowMeshes[i].material.clone();
-          building.windowMeshes[i].material.opacity = 0.1;
-          building.windowMeshes[i].material.color.setHex(0x111111);
+      for (let i = 0; i < darkCount; i++) {
+        const win = building.windowMeshes[i];
+        if (win && !win._darkened) {
+          win.material = win.material.clone();
+          win.material.opacity = 0.1;
+          win.material.color.setHex(0x111111);
+          win._darkened = true;
         }
       }
     }
@@ -5120,7 +5122,7 @@ class MegabotScene {
     eye.getWorldPosition(this._tmpVec3C);
     this._tmpVec3D.subVectors(ship.group.position, this._tmpVec3C);
     const dist = this._tmpVec3D.length();
-    if (dist >= 800) return false;
+    if (dist >= this.ENEMY_LASER_RANGE) return false;
 
     this._tmpVec3E.set(0, 1, 0);
     this._tmpVec3E.applyQuaternion(laser.getWorldQuaternion(this._tmpQuat));
@@ -5160,15 +5162,23 @@ class MegabotScene {
     const enginePulse = 0.7 + Math.sin(this.time * 10) * 0.2;
     const interceptorWobble = Math.sin(this.time * 4) * 0.2;
     const cruiserPitch = Math.sin(this.time * 0.5) * 0.05;
+    const bomberPitch = Math.sin(this.time * 0.8) * 0.02;
     const laserConeThreshold = this.upgradeLevel >= 2 ? 0.82 : 0.92;
     const laserDamagePerSec = this.upgradeLevel >= 4 ? 10 : 5;
+    const weaponRangeSq = this.ENEMY_LASER_RANGE * this.ENEMY_LASER_RANGE;
+    const despawnDistSq = (this.SHIP_SPAWN_RADIUS * 2) * (this.SHIP_SPAWN_RADIUS * 2);
 
     // Update enemy ships
     for (let i = this.enemyShips.length - 1; i >= 0; i--) {
       const ship = this.enemyShips[i];
       if (!ship.active) continue;
 
-      const distToMegabot = ship.group.position.distanceTo(this.megabotWorldPos);
+      const distToMegabotSq = ship.group.position.distanceToSquared(this.megabotWorldPos);
+
+      // Behavior functions need actual distance — only sqrt when needed
+      const distToMegabot = (ship.behavior === 'orbit-strafe' || ship.behavior === 'pincer-attack')
+        ? Math.sqrt(distToMegabotSq)
+        : 0; // unused for other behaviors
 
       // Update position based on behavior type
       if (ship.behavior === 'orbit-strafe') {
@@ -5183,17 +5193,25 @@ class MegabotScene {
         ship.group.position.z += ship.velocity.z * dt;
       }
 
-      // Dynamic rotation based on ship type
+      // Face direction of travel (or Megabot), then add characteristic secondary motion
+      // Only apply lookAt for non-formation ships (formations handle their own facing)
+      if (!ship.behavior || ship.behavior === 'formation-attack') {
+        // Face toward Megabot
+        ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+      }
+      // Add type-specific secondary motion on top of facing direction
       if (ship.type === 'fighter') {
-        ship.group.rotation.z += dt * 3;
+        // Fighters: banking roll during flight
+        ship.group.rotateZ(Math.sin(this.time * 4 + i) * 0.03);
       } else if (ship.type === 'interceptor') {
-        ship.group.rotation.z = interceptorWobble;
-        ship.group.rotation.x += dt * 0.5;
+        // Interceptors: aggressive wobble
+        ship.group.rotateZ(interceptorWobble * 0.15);
       } else if (ship.type === 'bomber') {
-        ship.group.rotation.y += dt * 0.5;
+        // Bombers: slow, steady — gentle pitch oscillation
+        ship.group.rotateX(bomberPitch);
       } else if (ship.type === 'cruiser') {
-        ship.group.rotation.y += dt * 0.3;
-        ship.group.rotation.x = cruiserPitch;
+        // Cruisers: majestic slow roll
+        ship.group.rotateX(cruiserPitch * 0.5);
       }
 
       // Animate engine glows (pulsing effect) - uses cached engine refs instead of forEach
@@ -5268,7 +5286,8 @@ class MegabotScene {
         weaponCooldown *= 0.8; // Escorts are vigilant
       }
 
-      if (distToMegabot < weaponRange &&
+      const weaponRangeSqScaled = weaponRange * weaponRange;
+      if (distToMegabotSq < weaponRangeSqScaled &&
           currentTimeMs - ship.lastLaserTime > weaponCooldown) {
 
         // Fire appropriate weapon based on ship type
@@ -5290,8 +5309,9 @@ class MegabotScene {
         ship.lastLaserTime = currentTimeMs;
       }
 
-      // Check collision with megabot
-      if (distToMegabot < this.MAIN_SIZE + ship.size) {
+      // Check collision with megabot (squared distance)
+      const megabotHitRadius = this.MAIN_SIZE + ship.size;
+      if (distToMegabotSq < megabotHitRadius * megabotHitRadius) {
         // Hit megabot - apply damage through shield and score penalty
         this.applyDamageToMegabot(10);
         this.gameScore = Math.max(0, this.gameScore - 5);
@@ -5315,8 +5335,8 @@ class MegabotScene {
         }
       }
 
-      // Remove if too far
-      if (distToMegabot > this.SHIP_SPAWN_RADIUS * 2) {
+      // Remove if too far (squared distance)
+      if (distToMegabotSq > despawnDistSq) {
         this.scene.remove(ship.group);
         this.enemyShips.splice(i, 1);
       }
@@ -5363,6 +5383,18 @@ class MegabotScene {
       missile.group.position.y += missile.velocity.y * dt;
       missile.group.position.z += missile.velocity.z * dt;
 
+      // Non-homing missiles should face their velocity direction
+      if (!(missile as any).homing) {
+        const ahead = this._tmpVec3C.copy(missile.group.position).add(missile.velocity);
+        missile.group.lookAt(ahead);
+      }
+
+      // Pulsing exhaust glow on all missiles
+      const exhaustChild = missile.group.children[3]; // exhaust sphere
+      if (exhaustChild && exhaustChild.material) {
+        exhaustChild.material.opacity = 0.5 + Math.sin(this.time * 15) * 0.3;
+      }
+
       // Update lifetime
       missile.lifetime += dt;
       if (missile.lifetime > missile.maxLifetime) {
@@ -5377,7 +5409,7 @@ class MegabotScene {
         const ship = this.enemyShips[j];
         if (!ship.active) continue;
 
-        if (this.check3DCollision(missile.group.position, 5, ship.group.position, ship.size)) {
+        if (this.check3DCollision(missile.group.position, 15, ship.group.position, ship.size)) {
           ship.health--;
           ship.hitFlash = 1.0;
           hitShip = true;
@@ -5403,7 +5435,7 @@ class MegabotScene {
       if (hitShip) continue;
 
       // Remove if out of range
-      if (missile.group.position.distanceToSquared(this.megabotWorldPos) > 9000000) { // 3000^2
+      if (missile.group.position.distanceToSquared(this.megabotWorldPos) > 16000000) { // 4000^2
         this.scene.remove(missile.group);
         this.missiles3D.splice(i, 1);
       }
@@ -5432,23 +5464,26 @@ class MegabotScene {
         laser.group.rotation.y += dt * 3;
         laser.group.rotation.x += dt * 2;
 
-        // Update point light intensity
-        laser.group.children.forEach((child: any) => {
-          if (child.isPointLight) {
-            child.intensity = 2 + Math.sin(laser.pulsePhase * 2) * 1;
+        // Update point light intensity (for loop instead of forEach)
+        const plasmaChildren = laser.group.children;
+        for (let c = 0; c < plasmaChildren.length; c++) {
+          if (plasmaChildren[c].isPointLight) {
+            plasmaChildren[c].intensity = 2 + Math.sin(laser.pulsePhase * 2) * 1;
           }
-        });
+        }
       } else if (laser.type === 'rapid') {
         // Rapid laser streaking effect - slight trail
         laser.group.scale.z = 1 + laser.lifetime * 2; // Stretch as it flies
       } else {
         // Standard laser fade out over lifetime
         const fadeProgress = laser.lifetime / laser.maxLifetime;
-        laser.group.children.forEach((child: any) => {
+        const laserChildren = laser.group.children;
+        for (let c = 0; c < laserChildren.length; c++) {
+          const child = laserChildren[c] as any;
           if (child.material && child.material.transparent) {
             child.material.opacity = (1 - fadeProgress) * 0.9;
           }
-        });
+        }
       }
 
       // Check if laser hit megabot (sphere collision) - squared distance avoids sqrt
