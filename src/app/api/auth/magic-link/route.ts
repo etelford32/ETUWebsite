@@ -1,30 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
+import { resolveEmailFromInput } from '@/lib/resolveEmail'
 
 /**
  * POST /api/auth/magic-link - Send a magic link email for passwordless login
  *
- * Uses Supabase Admin API to generate the link, then sends via Resend
+ * Accepts either an email address or a commander username in the `email` field.
+ * Uses Supabase Admin API to generate the link, then sends via Resend.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, redirectTo } = body
+    const { email: emailOrUsername, redirectTo } = body
 
-    if (!email) {
+    if (!emailOrUsername) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Email or commander name is required' },
         { status: 400 }
       )
     }
 
-    // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+    const supabase = createServerClient()
+
+    // Resolve username → email if needed
+    let email: string | null
+    if (emailOrUsername.includes('@')) {
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrUsername)) {
+        return NextResponse.json(
+          { error: 'Invalid email format' },
+          { status: 400 }
+        )
+      }
+      email = emailOrUsername.toLowerCase()
+    } else {
+      email = await resolveEmailFromInput(emailOrUsername, supabase)
+      if (!email) {
+        // Don't reveal whether account exists — always return success
+        return NextResponse.json({
+          success: true,
+          message: 'If an account exists, a magic link has been sent.',
+        })
+      }
     }
 
     // Rate limiting: 3 magic link attempts per hour per email+IP combination
@@ -45,8 +63,6 @@ export async function POST(request: NextRequest) {
         }
       )
     }
-
-    const supabase = createServerClient()
 
     // Get the base URL for the redirect
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||

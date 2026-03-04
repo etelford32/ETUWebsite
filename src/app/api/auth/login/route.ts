@@ -2,28 +2,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
+import { resolveEmailFromInput } from '@/lib/resolveEmail'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password } = body
+    // Accept either the legacy `email` field or the new `emailOrUsername` field
+    const { email: legacyEmail, emailOrUsername, password } = body
+    const input = (emailOrUsername || legacyEmail || '').trim()
 
-    if (!email || !password) {
+    if (!input || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Email (or commander name) and password are required' },
         { status: 400 }
       )
     }
 
-    // Rate limiting: 5 login attempts per 15 minutes per email+IP combination
-    const identifier = getEmailIdentifier(email.toLowerCase(), request)
+    // Rate limit on the raw input so username and email attempts share the same bucket
+    const identifier = getEmailIdentifier(input.toLowerCase(), request)
     const rateLimitResult = RateLimiters.auth(identifier)
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {
           error: 'Too many login attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         },
         {
           status: 429,
@@ -31,24 +34,33 @@ export async function POST(request: NextRequest) {
             'Retry-After': rateLimitResult.retryAfter?.toString() || '900',
             'X-RateLimit-Limit': '5',
             'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString()
-          }
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+          },
         }
       )
     }
 
     const supabase = createServerClient()
 
+    // Resolve username → email if needed
+    const resolvedEmail = await resolveEmailFromInput(input, supabase)
+
+    if (!resolvedEmail) {
+      return NextResponse.json(
+        { error: 'Invalid email, commander name, or password' },
+        { status: 401 }
+      )
+    }
+
     // Authenticate with Supabase
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: resolvedEmail,
       password,
     })
 
     if (authError || !authData.user) {
-      // Don't reveal whether email exists or password is wrong
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'Invalid email, commander name, or password' },
         { status: 401 }
       )
     }
@@ -62,7 +74,6 @@ export async function POST(request: NextRequest) {
 
     const role = (profile as any)?.role || 'user'
 
-    // Create session cookie
     const response = NextResponse.json({
       success: true,
       user: {
