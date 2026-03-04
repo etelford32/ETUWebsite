@@ -55,6 +55,7 @@ export default function HomePage() {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }>({
     score: 0,
     health: 10000,
