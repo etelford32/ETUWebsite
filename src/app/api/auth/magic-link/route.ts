@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
 
     // Resolve username → email if needed
-    let email: string | null
+    let resolvedEmail: string
     if (emailOrUsername.includes('@')) {
       // Validate email format
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrUsername)) {
@@ -33,20 +33,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-      email = emailOrUsername.toLowerCase()
+      resolvedEmail = emailOrUsername.toLowerCase()
     } else {
-      email = await resolveEmailFromInput(emailOrUsername, supabase)
-      if (!email) {
+      const found = await resolveEmailFromInput(emailOrUsername, supabase)
+      if (!found) {
         // Don't reveal whether account exists — always return success
         return NextResponse.json({
           success: true,
           message: 'If an account exists, a magic link has been sent.',
         })
       }
+      resolvedEmail = found
     }
 
     // Rate limiting: 3 magic link attempts per hour per email+IP combination
-    const identifier = getEmailIdentifier(email.toLowerCase(), request)
+    const identifier = getEmailIdentifier(resolvedEmail.toLowerCase(), request)
     const rateLimitResult = RateLimiters.signup(identifier)
 
     if (!rateLimitResult.allowed) {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user exists first
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const userExists = existingUsers?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase())
+    const userExists = existingUsers?.users?.some(u => u.email?.toLowerCase() === resolvedEmail.toLowerCase())
 
     let magicLinkUrl: string
 
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
       // Generate magic link for existing user
       const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
-        email: email,
+        email: resolvedEmail,
         options: {
           redirectTo: callbackURL,
         }
@@ -101,10 +102,10 @@ export async function POST(request: NextRequest) {
     } else {
       // Create new user first (without password - they'll use magic links)
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: email,
+        email: resolvedEmail,
         email_confirm: true, // Auto-confirm since we're sending them a magic link
         user_metadata: {
-          username: email.split('@')[0],
+          username: resolvedEmail.split('@')[0],
         },
       })
 
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
       // Now generate magic link for the new user
       const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: 'magiclink',
-        email: email,
+        email: resolvedEmail,
         options: {
           redirectTo: callbackURL,
         }
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
     </div>
     <div class="footer">
       <p>Explore the Universe 2175 - The Ultimate Space Adventure</p>
-      <p style="font-size: 12px;">This email was sent to ${email}</p>
+      <p style="font-size: 12px;">This email was sent to ${resolvedEmail}</p>
     </div>
   </div>
 </body>
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         from: 'ETU 2175 <noreply@exploretheuniverse2175.com>',
-        to: [email],
+        to: [resolvedEmail],
         subject: '🔮 Your Magic Link - Explore the Universe 2175',
         html: emailHtml
       })
