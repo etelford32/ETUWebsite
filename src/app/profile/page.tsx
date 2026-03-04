@@ -54,11 +54,19 @@ export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
+  const [userEmail, setUserEmail] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editedUsername, setEditedUsername] = useState('')
   const [editedFaction, setEditedFaction] = useState('')
   const [editedShipClass, setEditedShipClass] = useState('')
   const [activeTab, setActiveTab] = useState<'stats' | 'achievements' | 'history' | 'settings'>('stats')
+
+  // Change password state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [changePasswordMsg, setChangePasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Mock data for now - will be replaced with real data from game
   const [achievements] = useState<Achievement[]>([
@@ -163,6 +171,11 @@ export default function ProfilePage() {
         return
       }
 
+      // Store the actual email from the session
+      if (sessionData.user?.email) {
+        setUserEmail(sessionData.user.email)
+      }
+
       // Fetch profile from API
       const profileRes = await fetch('/api/profile')
       const profileData = await profileRes.json()
@@ -235,6 +248,39 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error updating profile:', error)
       alert('Failed to update profile')
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setChangePasswordMsg(null)
+
+    if (newPassword !== confirmNewPassword) {
+      setChangePasswordMsg({ type: 'error', text: 'Passwords do not match.' })
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword, confirmPassword: confirmNewPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const msg = data.details?.length ? data.details.join(' ') : (data.error || 'Failed to update password.')
+        setChangePasswordMsg({ type: 'error', text: msg })
+      } else {
+        setChangePasswordMsg({ type: 'success', text: 'Password updated successfully!' })
+        setNewPassword('')
+        setConfirmNewPassword('')
+        setShowChangePassword(false)
+      }
+    } catch {
+      setChangePasswordMsg({ type: 'error', text: 'Network error. Please try again.' })
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -670,17 +716,96 @@ export default function ProfilePage() {
             <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Account Settings</h3>
               <div className="space-y-4">
+                {/* Email display — fixed (was showing UUID) */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Email
+                    Sign-in Email
                   </label>
                   <input
                     type="email"
                     disabled
-                    value={profile.id}
-                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-500 cursor-not-allowed"
+                    value={userEmail}
+                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed"
                   />
-                  <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+                  <p className="text-xs text-slate-500 mt-1">Contact support to change your email address</p>
+                </div>
+
+                {/* Security — Change Password */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Security</label>
+                  <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 space-y-3">
+                    {!showChangePassword ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white">Password</p>
+                          <p className="text-xs text-slate-400">Change your account password</p>
+                        </div>
+                        <button
+                          onClick={() => { setShowChangePassword(true); setChangePasswordMsg(null) }}
+                          className="px-4 py-1.5 text-sm bg-indigo-600/40 hover:bg-indigo-600/60 border border-indigo-500/40 rounded-lg transition"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleChangePassword} className="space-y-3">
+                        <p className="text-sm font-medium text-white">Change Password</p>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                          placeholder="New password"
+                          autoComplete="new-password"
+                          className="w-full px-3 py-2 bg-slate-900/80 border border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <input
+                          type="password"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          required
+                          placeholder="Confirm new password"
+                          autoComplete="new-password"
+                          className={`w-full px-3 py-2 bg-slate-900/80 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                            confirmNewPassword && newPassword !== confirmNewPassword
+                              ? 'border-rose-500/60'
+                              : 'border-slate-600'
+                          }`}
+                        />
+                        {changePasswordMsg && (
+                          <p className={`text-xs ${changePasswordMsg.type === 'success' ? 'text-green-400' : 'text-rose-400'}`}>
+                            {changePasswordMsg.text}
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={changingPassword || !newPassword || !confirmNewPassword || newPassword !== confirmNewPassword}
+                            className="px-4 py-1.5 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg transition disabled:opacity-50"
+                          >
+                            {changingPassword ? 'Updating…' : 'Update Password'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setShowChangePassword(false); setNewPassword(''); setConfirmNewPassword(''); setChangePasswordMsg(null) }}
+                            className="px-4 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Don't know your current password?{' '}
+                          <a href="/forgot-password" className="text-indigo-400 hover:text-indigo-300">
+                            Reset via email
+                          </a>
+                        </p>
+                      </form>
+                    )}
+                    {/* Show persistent success message after closing the form */}
+                    {!showChangePassword && changePasswordMsg?.type === 'success' && (
+                      <p className="text-xs text-green-400">{changePasswordMsg.text}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div>

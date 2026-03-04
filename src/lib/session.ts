@@ -24,7 +24,7 @@ export async function createSession(userId: string, email: string, role?: string
   cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict', // Changed from 'lax' to 'strict' for better security
+    sameSite: 'lax', // lax allows cookies to be set when following external links (e.g. magic link from email)
     maxAge: SESSION_MAX_AGE,
     path: '/',
   })
@@ -99,7 +99,7 @@ export function setSessionOnResponse(
   response.cookies.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict', // Changed from 'lax' to 'strict' for better security
+    sameSite: 'lax', // lax allows cookies to be set when following external links (e.g. magic link from email)
     maxAge: SESSION_MAX_AGE,
     path: '/',
   })
