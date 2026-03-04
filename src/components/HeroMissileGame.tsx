@@ -13,6 +13,13 @@ interface HeroMissileGameProps {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    perf?: {
+      fps: number;
+      frameMs: number;
+      collisionChecks: number;
+      collisionChecksFull: number;
+      barrageQueue: number;
+    };
   };
 }
 
@@ -141,6 +148,58 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           )}
         </div>
       </div>
+
+      {/* Perf telemetry panel — bottom-right, dev overlay */}
+      {gameState.perf && (
+        <div
+          className="absolute bottom-4 right-4 bg-black/80 text-white text-[10px] p-2 rounded border border-green-500/40 font-mono"
+          style={{ pointerEvents: "none", minWidth: "200px" }}
+        >
+          <div className="text-green-400 font-bold mb-1 text-[10px] tracking-widest">PERF</div>
+          <div className="space-y-0.5">
+            {/* FPS with color-coded health */}
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">FPS</span>
+              <span className={
+                gameState.perf.fps >= 55 ? "text-green-400" :
+                gameState.perf.fps >= 30 ? "text-yellow-400" : "text-red-400"
+              }>
+                {gameState.perf.fps} <span className="text-gray-600">({gameState.perf.frameMs}ms)</span>
+              </span>
+            </div>
+            {/* Collision checks: grid actual vs brute-force theoretical */}
+            <div className="flex justify-between gap-3">
+              <span className="text-gray-500">Col.checks</span>
+              <span className="text-cyan-400">
+                {gameState.perf.collisionChecks}
+                <span className="text-gray-600">
+                  {gameState.perf.collisionChecksFull > 0
+                    ? ` / ${gameState.perf.collisionChecksFull}`
+                    : ""}
+                </span>
+              </span>
+            </div>
+            {/* Savings: how much work the grid avoided */}
+            {gameState.perf.collisionChecksFull > 0 && (
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Grid saved</span>
+                <span className="text-green-400">
+                  {Math.round(
+                    (1 - gameState.perf.collisionChecks / gameState.perf.collisionChecksFull) * 100
+                  )}%
+                </span>
+              </div>
+            )}
+            {/* Barrage queue depth */}
+            {gameState.perf.barrageQueue > 0 && (
+              <div className="flex justify-between gap-3">
+                <span className="text-gray-500">Barrage Q</span>
+                <span className="text-yellow-400">{gameState.perf.barrageQueue}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

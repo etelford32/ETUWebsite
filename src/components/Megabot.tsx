@@ -27,6 +27,7 @@ interface MegabotProps {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
   onSceneReady?: (scene: any) => void;
 }
@@ -198,6 +199,7 @@ class MegabotScene {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
 
   // Game state callback dedup - only fire when values change
@@ -256,6 +258,26 @@ class MegabotScene {
   private _explosionPoolInitialized = false;
   // Performance: shared geometry cache for ship types (avoids recreating identical geometries)
   private _geometryCache = new Map<string, any>();
+
+  // Performance: 2D spatial grid for O(1) building-collision lookup (replaces O(N) scan)
+  // Buildings are registered by XZ center cell on creation; removed on destruction.
+  private _buildingGrid = new Map<string, any[]>();
+  private readonly _GRID_CELL_SIZE = 400; // world units per grid cell
+  private _gridQueryBuffer: any[] = [];  // reused per-query to avoid allocation
+
+  // Performance: barrage queue mirrors _pendingBursts — replaces setTimeout in launchMissileBarrage
+  private _pendingBarrage: { launchPos: any; targetPos: any; homing: boolean; fireTime: number }[] = [];
+
+  // Telemetry: rolling-window perf stats emitted via onGameStateUpdate
+  private _telemetry = {
+    fps: 0,
+    frameMs: 0,
+    _fpsFrameCount: 0,
+    _fpsTimer: 0,
+    collisionChecks: 0,       // actual grid-narrowed checks this frame
+    collisionChecksFull: 0,   // what brute-force O(N) would have been (for comparison)
+    barrageQueue: 0,
+  };
 
   // Bound event handlers for proper cleanup
   private _boundMouseMove: ((e: MouseEvent) => void) | null = null;
@@ -386,6 +408,7 @@ class MegabotScene {
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
+      perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
     }) => void
   ) {
     this.THREE = THREE;
@@ -2634,7 +2657,7 @@ class MegabotScene {
       const destructionTypes: ('topple' | 'split' | 'collapse')[] = ['topple', 'split', 'collapse'];
       const destructionType = destructionTypes[Math.floor(Math.random() * 3)];
 
-      this.buildings.push({
+      const buildingEntry = {
         group,
         health: Math.ceil(height / 30),
         maxHealth: Math.ceil(height / 30),
@@ -2650,88 +2673,114 @@ class MegabotScene {
         smokeEmitterIndex: -1,
         windowMeshes: group.children.filter((c: any) => c.material === windowMat),
         destructionType,
-      });
+        _gridKey: null as string | null, // set by _registerBuildingInGrid
+      };
+      this.buildings.push(buildingEntry);
+      this._registerBuildingInGrid(buildingEntry);
     }
   }
 
-  // Update buildings - check for damage from ship crashes and enemy fire
+  // Update buildings — uses spatial grid to narrow collision candidates.
+  // Loop order is inverted vs. the old O(buildings×projectiles) approach:
+  // now we iterate projectiles and look up only nearby buildings (O(1)).
   updateBuildings(dt: number) {
-    const THREE = this.THREE;
+    // ── Telemetry: count actual vs. brute-force checks ──────────────────────
+    let checksThisFrame = 0;
+    let activeBuildings = 0;
+    for (let bi = 0; bi < this.buildings.length; bi++) {
+      if (this.buildings[bi].active) activeBuildings++;
+    }
+    // What the old nested O(N) loop would have checked:
+    const bruteForce = activeBuildings * (this.enemyShips.length + this.enemyLasers.length);
 
-    for (let i = this.buildings.length - 1; i >= 0; i--) {
-      const building = this.buildings[i];
-      if (!building.active) continue;
+    // ── Ship vs. Building (spatial grid) ────────────────────────────────────
+    for (let j = this.enemyShips.length - 1; j >= 0; j--) {
+      const ship = this.enemyShips[j];
+      if (!ship.active) continue;
 
-      const buildingWorldPos = building.group.position;
+      // Query radius: max building half-width (200) + max ship size (200) = 400.
+      // Using actual ship.size keeps it tighter for small ships.
+      const nearby = this._getBuildingsInRange(
+        ship.group.position.x, ship.group.position.z, ship.size + 200
+      );
 
-      // Check collision with enemy ships that crash into buildings
-      for (let j = this.enemyShips.length - 1; j >= 0; j--) {
-        const ship = this.enemyShips[j];
-        if (!ship.active) continue;
+      for (let k = 0; k < nearby.length; k++) {
+        const building = nearby[k];
+        if (!building.active) continue;
+        checksThisFrame++;
 
-        const dx = ship.group.position.x - buildingWorldPos.x;
-        const dz = ship.group.position.z - buildingWorldPos.z;
+        const bPos = building.group.position;
+        const dx = ship.group.position.x - bPos.x;
+        const dz = ship.group.position.z - bPos.z;
         const horizontalDistSq = dx * dx + dz * dz;
         const shipY = ship.group.position.y;
-        const buildingTop = buildingWorldPos.y + building.height;
         const collisionRadius = building.width / 2 + ship.size;
 
         if (horizontalDistSq < collisionRadius * collisionRadius &&
-            shipY > buildingWorldPos.y && shipY < buildingTop) {
+            shipY > bPos.y && shipY < bPos.y + building.height) {
           // Ship crashed into building!
           building.health--;
           building.damageLevel++;
-
           this.create3DExplosion(ship.group.position, ship.size * 1.5);
-
-          // Destroy the ship on impact
           this.scene.remove(ship.group);
           this.enemyShips.splice(j, 1);
 
           if (building.health <= 0) {
-            this.destroyBuilding(building, i);
-            break;
+            this.destroyBuilding(building, 0); // index unused inside destroyBuilding
           } else {
             this.applyBuildingDamageVisuals(building);
           }
+          break; // ship is removed; stop checking buildings for this ship
         }
       }
+    }
 
-      if (!building.active) continue;
+    // ── Laser vs. Building (spatial grid) ───────────────────────────────────
+    for (let j = this.enemyLasers.length - 1; j >= 0; j--) {
+      const laser = this.enemyLasers[j];
+      if (!laser.active) continue;
 
-      // Check if enemy lasers/plasma hit buildings
-      const laserCollisionRadius = building.width / 2 + 10;
-      const laserCollisionRadiusSq = laserCollisionRadius * laserCollisionRadius;
-      for (let j = this.enemyLasers.length - 1; j >= 0; j--) {
-        const laser = this.enemyLasers[j];
-        if (!laser.active) continue;
+      // Laser collision radius = building.width/2 + 10; max ~100. Use 200 as safe bound.
+      const nearby = this._getBuildingsInRange(
+        laser.group.position.x, laser.group.position.z, 200
+      );
 
-        const dx = laser.group.position.x - buildingWorldPos.x;
-        const dz = laser.group.position.z - buildingWorldPos.z;
+      for (let k = 0; k < nearby.length; k++) {
+        const building = nearby[k];
+        if (!building.active) continue;
+        checksThisFrame++;
+
+        const bPos = building.group.position;
+        const laserCollisionRadius = building.width / 2 + 10;
+        const dx = laser.group.position.x - bPos.x;
+        const dz = laser.group.position.z - bPos.z;
         const horizontalDistSq = dx * dx + dz * dz;
         const laserY = laser.group.position.y;
 
-        if (horizontalDistSq < laserCollisionRadiusSq &&
-            laserY > buildingWorldPos.y && laserY < buildingWorldPos.y + building.height) {
-          // Laser hit building - only plasma does real damage
+        if (horizontalDistSq < laserCollisionRadius * laserCollisionRadius &&
+            laserY > bPos.y && laserY < bPos.y + building.height) {
+          // Laser hit building — only plasma deals structural damage
           if (laser.type === 'plasma') {
             building.health--;
             building.damageLevel++;
           }
-
           this.create3DExplosion(laser.group.position, 10);
           this.scene.remove(laser.group);
           this.enemyLasers.splice(j, 1);
 
           if (building.health <= 0) {
-            this.destroyBuilding(building, i);
-            break;
+            this.destroyBuilding(building, 0);
           } else {
             this.applyBuildingDamageVisuals(building);
           }
+          break; // laser is consumed; stop checking buildings for this laser
         }
       }
     }
+
+    // ── Telemetry update ────────────────────────────────────────────────────
+    this._telemetry.collisionChecks = checksThisFrame;
+    this._telemetry.collisionChecksFull = bruteForce;
   }
 
   // Destroy a building with collapse animation
@@ -2745,6 +2794,7 @@ class MegabotScene {
     }
 
     building.active = false;
+    this._removeBuildingFromGrid(building); // pull out of spatial index immediately
     const dtype = building.destructionType || 'collapse';
 
     if (dtype === 'topple') {
@@ -4741,8 +4791,11 @@ class MegabotScene {
   }
 
   // Process pending burst queue (called from update loop instead of setTimeout)
+  // Also drains the barrage queue which replaces setTimeout in launchMissileBarrage.
   private _processBurstQueue() {
     const now = this.time;
+
+    // Rapid-burst queue (interceptor fire)
     for (let i = this._pendingBursts.length - 1; i >= 0; i--) {
       const burst = this._pendingBursts[i];
       if (now >= burst.fireTime) {
@@ -4752,6 +4805,72 @@ class MegabotScene {
         this._pendingBursts.splice(i, 1);
       }
     }
+
+    // Missile barrage queue (replaces setTimeout — no timer leaks, RAF-synced)
+    for (let i = this._pendingBarrage.length - 1; i >= 0; i--) {
+      const entry = this._pendingBarrage[i];
+      if (now >= entry.fireTime) {
+        const missile = this.create3DMissile(entry.launchPos, entry.targetPos);
+        if (missile && entry.homing) {
+          (missile as any).homing = true;
+        }
+        this._pendingBarrage.splice(i, 1);
+      }
+    }
+  }
+
+  // ── Spatial grid helpers ──────────────────────────────────────────────────
+  // Buildings are registered by XZ center on creation, removed on destruction.
+  // Each query returns only cells within radius, narrowing collision checks
+  // from O(180) to O(avg ~1-3 buildings) per projectile per frame.
+
+  private _gridCellKey(cx: number, cz: number): string {
+    return `${cx},${cz}`;
+  }
+
+  // Register a building in the cell containing its XZ center position.
+  private _registerBuildingInGrid(building: any) {
+    const cs = this._GRID_CELL_SIZE;
+    const cx = Math.floor(building.group.position.x / cs);
+    const cz = Math.floor(building.group.position.z / cs);
+    const key = this._gridCellKey(cx, cz);
+    building._gridKey = key; // cache for O(1) removal
+    let cell = this._buildingGrid.get(key);
+    if (!cell) { cell = []; this._buildingGrid.set(key, cell); }
+    cell.push(building);
+  }
+
+  // Remove a building from its cached grid cell (called when destroyed).
+  private _removeBuildingFromGrid(building: any) {
+    if (!building._gridKey) return;
+    const cell = this._buildingGrid.get(building._gridKey);
+    if (cell) {
+      const idx = cell.indexOf(building);
+      if (idx !== -1) cell.splice(idx, 1);
+    }
+    building._gridKey = null;
+  }
+
+  // Return all buildings whose center cell overlaps the query circle.
+  // Writes into _gridQueryBuffer (reused each call — zero allocation).
+  private _getBuildingsInRange(px: number, pz: number, radius: number): any[] {
+    const cs = this._GRID_CELL_SIZE;
+    const minCX = Math.floor((px - radius) / cs);
+    const maxCX = Math.floor((px + radius) / cs);
+    const minCZ = Math.floor((pz - radius) / cs);
+    const maxCZ = Math.floor((pz + radius) / cs);
+    this._gridQueryBuffer.length = 0;
+    for (let cx = minCX; cx <= maxCX; cx++) {
+      for (let cz = minCZ; cz <= maxCZ; cz++) {
+        const cell = this._buildingGrid.get(this._gridCellKey(cx, cz));
+        if (cell) {
+          for (let k = 0; k < cell.length; k++) {
+            this._gridQueryBuffer.push(cell[k]);
+          }
+        }
+      }
+    }
+    return this._gridQueryBuffer;
   }
 
   // Pre-allocate explosion pool to avoid per-explosion Three.js object creation
@@ -5295,32 +5414,37 @@ class MegabotScene {
     this.upgradeLevel = newLevel;
   }
 
-  // Missile barrage - fire missiles in all directions (Level 3 ability)
+  // Missile barrage - fire missiles in all directions (Level 3 ability).
+  // Uses _pendingBarrage queue (RAF-synced) instead of setTimeout to avoid
+  // timer leaks when the scene is destroyed mid-barrage.
   launchMissileBarrage() {
     if (!this.mainMegabot) return;
     const THREE = this.THREE;
 
     const count = this.upgradeLevel >= 4 ? 12 : 8;
+    const shouldHoming = this.upgradeLevel >= 1;
+
+    // Capture launch position once — all missiles fan out from here.
+    // Positions and targets are pre-computed synchronously so the queue
+    // entries are self-contained (no stale closure over mutable state).
+    const baseLaunchX = this.mainMegabot.position.x;
+    const baseLaunchY = this.mainMegabot.position.y + this.MAIN_SIZE * 0.7;
+    const baseLaunchZ = this.mainMegabot.position.z;
+
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const launchPos = this.mainMegabot.position.clone();
-      launchPos.y += this.MAIN_SIZE * 0.7;
-
-      const targetPos = launchPos.clone().add(
-        new THREE.Vector3(
-          Math.cos(angle) * 1500,
-          (Math.random() - 0.3) * 400,
-          Math.sin(angle) * 1500
-        )
+      const launchPos = new THREE.Vector3(baseLaunchX, baseLaunchY, baseLaunchZ);
+      const targetPos = new THREE.Vector3(
+        baseLaunchX + Math.cos(angle) * 1500,
+        baseLaunchY + (Math.random() - 0.3) * 400,
+        baseLaunchZ + Math.sin(angle) * 1500
       );
-
-      setTimeout(() => {
-        const missile = this.create3DMissile(launchPos.clone(), targetPos);
-        // If upgrade level 1+, make missiles homing
-        if (missile && this.upgradeLevel >= 1) {
-          (missile as any).homing = true;
-        }
-      }, i * 40);
+      this._pendingBarrage.push({
+        launchPos,
+        targetPos,
+        homing: shouldHoming,
+        fireTime: this.time + i * 0.04, // 40 ms stagger, RAF-synced
+      });
     }
   }
 
@@ -5881,7 +6005,9 @@ class MegabotScene {
     this.updateDebrisChunks(dt);
     this.updateSmokeEmitters(dt);
 
-    // Update game state callback - only fire when values actually change to avoid React re-renders
+    // Update game state callback — only fire when values actually change to avoid React re-renders.
+    // Perf telemetry is always included; its rapid variation is intentionally skipped from
+    // the dedup check so game-logic changes still gate the callback.
     if (this.onGameStateUpdate) {
       let activeShips = 0;
       for (let i = 0; i < this.enemyShips.length; i++) {
@@ -5918,6 +6044,13 @@ class MegabotScene {
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,
+          perf: {
+            fps: this._telemetry.fps,
+            frameMs: Math.round(this._telemetry.frameMs * 10) / 10,
+            collisionChecks: this._telemetry.collisionChecks,
+            collisionChecksFull: this._telemetry.collisionChecksFull,
+            barrageQueue: this._telemetry.barrageQueue,
+          },
         });
       }
     }
@@ -6107,6 +6240,17 @@ class MegabotScene {
     // Cap deltaTime to prevent spiral of death on tab-switch or lag spikes
     const deltaTime = Math.min(rawDelta, 0.05);
     this.time += deltaTime;
+
+    // ── Telemetry: rolling FPS (updated every 500ms to avoid noisy readings) ──
+    this._telemetry.frameMs = rawDelta * 1000;
+    this._telemetry._fpsFrameCount++;
+    this._telemetry._fpsTimer += rawDelta;
+    if (this._telemetry._fpsTimer >= 0.5) {
+      this._telemetry.fps = Math.round(this._telemetry._fpsFrameCount / this._telemetry._fpsTimer);
+      this._telemetry._fpsFrameCount = 0;
+      this._telemetry._fpsTimer = 0;
+    }
+    this._telemetry.barrageQueue = this._pendingBarrage.length;
 
     // WASD / Arrow key movement
     this.updateMegabotMovement(deltaTime);
@@ -6803,6 +6947,9 @@ class MegabotScene {
     this._explosionPool = [];
     this._explosionPoolInitialized = false;
     this._pendingBursts = [];
+    this._pendingBarrage = [];
+    this._buildingGrid.clear();
+    this._gridQueryBuffer.length = 0;
     this._formationBomberIndex.clear();
     this._geometryCache.clear();
     this.formations = [];
