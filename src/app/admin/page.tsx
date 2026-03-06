@@ -178,6 +178,12 @@ export default function AdminDashboard() {
             >
               Feedback Management
             </Link>
+            <Link
+              href="/admin/content"
+              className="px-4 py-2 bg-pink-600/30 hover:bg-pink-600/50 border border-pink-500/30 text-pink-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              ✏️ Content Editor
+            </Link>
           </div>
         </motion.div>
 
@@ -303,13 +309,18 @@ export default function AdminDashboard() {
                 Review and respond to user feedback
               </div>
             </Link>
-            <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg opacity-50">
-              <div className="text-2xl mb-2">👥</div>
-              <div className="text-slate-400 font-semibold">
-                User Management
+            <Link
+              href="/admin/content"
+              className="p-4 bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/30 rounded-lg transition-all group"
+            >
+              <div className="text-2xl mb-2">✏️</div>
+              <div className="text-white font-semibold group-hover:text-pink-300">
+                Content Editor
               </div>
-              <div className="text-slate-500 text-sm">Coming soon</div>
-            </div>
+              <div className="text-slate-400 text-sm">
+                Write and publish devlog entries
+              </div>
+            </Link>
             <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg opacity-50">
               <div className="text-2xl mb-2">📈</div>
               <div className="text-slate-400 font-semibold">
