@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -14,19 +14,18 @@ interface DevlogEntry {
   tags: string[];
 }
 
-const devlogEntries: DevlogEntry[] = [
+// Static seed entries shown before the DB loads (also used as fallback if DB unavailable)
+const SEED_ENTRIES: DevlogEntry[] = [
   {
     id: "devlog-1",
     date: "2026-01-13",
     title: "Welcome to Elliot's Devlog!",
     content: "This is where I'll be sharing regular updates about the development of Explore the Universe 2175. Stay tuned for insights into game design decisions, technical challenges, and exciting new features coming to the game. Check out the roadmap and backlog to see what's planned!",
     tags: ["announcement", "welcome"]
-  }
-];
-const devlogEntries: DevlogEntry[] = [
+  },
   {
     id: "devlog-2",
-    date: "2026-03-6",
+    date: "2026-03-06",
     title: "Part 1: Bosses, AI, and Memory!",
     content: "This is my first official announcements and journal entry into the DevLog, where I dive into specifics about the game production process and creating a game engine from scratch, which has many benefits!",
     tags: ["announcement"]
@@ -35,13 +34,30 @@ const devlogEntries: DevlogEntry[] = [
 
 export default function DevlogPage() {
   const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [entries, setEntries] = useState<DevlogEntry[]>(SEED_ENTRIES);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Load entries from DB and check admin status in parallel
+  useEffect(() => {
+    fetch("/api/devlog")
+      .then(r => r.json())
+      .then(({ entries: dbEntries }) => {
+        if (dbEntries && dbEntries.length > 0) setEntries(dbEntries);
+      })
+      .catch(() => { /* DB not yet set up — seed entries remain */ });
+
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(({ user }) => { if (user?.role === "admin") setIsAdmin(true); })
+      .catch(() => {});
+  }, []);
 
   // Get all unique tags
-  const allTags = ["all", ...new Set(devlogEntries.flatMap(entry => entry.tags))];
+  const allTags = ["all", ...new Set(entries.flatMap(entry => entry.tags))];
 
   const filteredEntries = selectedTag === "all"
-    ? devlogEntries
-    : devlogEntries.filter(entry => entry.tags.includes(selectedTag));
+    ? entries
+    : entries.filter(entry => entry.tags.includes(selectedTag));
 
   return (
     <div className="min-h-screen bg-deep-900">
@@ -51,9 +67,19 @@ export default function DevlogPage() {
       <section className="relative py-20 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 to-transparent"></div>
         <div className="max-w-6xl mx-auto relative z-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors">
-            <span>←</span> Back to Home
-          </Link>
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+              <span>←</span> Back to Home
+            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin/content"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 rounded-lg text-purple-300 text-sm font-medium transition-all"
+              >
+                ✏️ Manage Devlog
+              </Link>
+            )}
+          </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
             ✍️ Elliot's Devlog
           </h1>
