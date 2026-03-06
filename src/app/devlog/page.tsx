@@ -17,10 +17,19 @@ interface DevlogEntry {
 const devlogEntries: DevlogEntry[] = [
   {
     id: "devlog-1",
-    date: "2025-01-13",
+    date: "2026-01-13",
     title: "Welcome to Elliot's Devlog!",
     content: "This is where I'll be sharing regular updates about the development of Explore the Universe 2175. Stay tuned for insights into game design decisions, technical challenges, and exciting new features coming to the game. Check out the roadmap and backlog to see what's planned!",
     tags: ["announcement", "welcome"]
+  }
+];
+const devlogEntries: DevlogEntry[] = [
+  {
+    id: "devlog-2",
+    date: "2026-03-6",
+    title: "Part 1: Bosses, AI, and Memory!",
+    content: "This is my first official announcements and journal entry into the DevLog, where I dive into specifics about the game production process and creating a game engine from scratch, which has many benefits!",
+    tags: ["announcement"]
   }
 ];
 
