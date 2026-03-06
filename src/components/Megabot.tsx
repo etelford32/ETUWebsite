@@ -268,6 +268,9 @@ class MegabotScene {
   // Performance: barrage queue mirrors _pendingBursts — replaces setTimeout in launchMissileBarrage
   private _pendingBarrage: { launchPos: any; targetPos: any; homing: boolean; fireTime: number }[] = [];
 
+  // Performance: frame counter for skipping expensive per-frame work on alternate frames
+  private _frameCount: number = 0;
+
   // Telemetry: rolling-window perf stats emitted via onGameStateUpdate
   private _telemetry = {
     fps: 0,
@@ -901,13 +904,19 @@ class MegabotScene {
     this.camera.position.set(0, initLookY + 350, this.cameraDistance);
     this.camera.lookAt(0, initLookY, 0);
 
+    // Quality-adaptive renderer settings: lower DPR and disable AA at medium/low quality
+    // to dramatically reduce GPU fill-rate (4x pixels at DPR=2 vs 1x at DPR=1)
+    const isHighQuality = this.settings.particleCount > this.PARTICLE_COUNT_MED;
+    const isLowQuality  = this.settings.particleCount <= this.PARTICLE_COUNT_LOW;
+    const maxDPR = isHighQuality ? 2.0 : isLowQuality ? 1.0 : 1.5;
+
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true,
+      antialias: isHighQuality, // Disable MSAA at low/medium — DPR already reduces aliasing
       powerPreference: "high-performance",
     });
     this.renderer.setSize(this.container.offsetWidth, this.container.offsetHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDPR));
     this.renderer.setClearColor(0x000000, 0);
 
     this.renderer.domElement.style.position = "absolute";
@@ -6236,10 +6245,19 @@ class MegabotScene {
     // Use real elapsed time instead of fixed 0.016 to prevent stuttering
     const now = performance.now();
     const rawDelta = this.lastFrameTime > 0 ? (now - this.lastFrameTime) / 1000 : 0.016;
+
+    // 60fps cap: on 120/144Hz displays rAF fires twice as often as needed — skip extra frames
+    // 0.01567s ≈ 63.8fps threshold gives a small buffer above 60fps without dropping frames
+    if (rawDelta < 0.01567 && this.lastFrameTime > 0) return;
+
     this.lastFrameTime = now;
     // Cap deltaTime to prevent spiral of death on tab-switch or lag spikes
     const deltaTime = Math.min(rawDelta, 0.05);
     this.time += deltaTime;
+
+    // Increment frame counter for every-other-frame optimisations
+    this._frameCount++;
+    const isEvenFrame = (this._frameCount & 1) === 0;
 
     // ── Telemetry: rolling FPS (updated every 500ms to avoid noisy readings) ──
     this._telemetry.frameMs = rawDelta * 1000;
@@ -6480,12 +6498,15 @@ class MegabotScene {
         }
 
         // Update children materials (for groups like arms, legs, torso)
-        if (part.mesh && part.mesh.children) {
-          part.mesh.children.forEach((child: any) => {
+        // Only on even frames: shader time-uniform animation at ~30Hz is visually indistinguishable
+        if (isEvenFrame && part.mesh && part.mesh.children) {
+          const children = part.mesh.children;
+          for (let ci = 0; ci < children.length; ci++) {
+            const child = children[ci] as any;
             if (child.material && child.material.uniforms && child.material.uniforms.time) {
               child.material.uniforms.time.value = this.time;
             }
-          });
+          }
         }
       });
     }
@@ -6502,8 +6523,8 @@ class MegabotScene {
       satellite.group.rotation.y += satellite.rotationSpeed * 0.7;
     });
 
-    // Animate energy particles
-    this.energyParticles.forEach((particleData) => {
+    // Animate energy particles — every other frame halves CPU cost; motion is smooth at 30 updates/s
+    if (isEvenFrame) this.energyParticles.forEach((particleData) => {
       const positions = particleData.system.geometry.attributes.position.array as Float32Array;
       const velocities = particleData.velocities;
 
