@@ -54,8 +54,8 @@ const roadmapData: RoadmapItem[] = [
   },
   {
     id: "milestone-3",
-    title: "MILESTONE 3: Bloom Begins",
-    description: "The Mycelari awakening. Nature fights back. Stations bloom with alien life. Your enemies become gardens. Nothing is quite what it seems.",
+    title: "MILESTONE 3: A Wild Bloom Begins",
+    description: "The Mycelari awakening. The Evolution of Wildnerness fights back. Stations bloom with alien life. Your enemies become garden carapaces for new super-bosses. Nothing is quite what it seems.",
     status: "planned",
     date: "Q3-Q4 2025",
     category: "launch",
@@ -65,7 +65,7 @@ const roadmapData: RoadmapItem[] = [
       "Erosion Mechanics - Parasitic armor growth",
       "Mycelari Substrate - New resource system",
       "Unique Mycelari Weapons",
-      "Boss: Ursos - The Mycelari Titan",
+      "Boss: Ursos - The Wild Titan",
       "Boss: Arkanvil - Greed incarnate",
       "New Locations: Mycelar Prime, Fungal Biomes"
     ]
