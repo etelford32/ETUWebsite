@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest } from '@/lib/session'
 
+// Use untyped client to avoid Database type resolution issues for new tables
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = () => createServerClient() as any
+
 // PUT /api/devlog/[id] — admin only, update an entry
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -20,8 +24,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'title and content are required' }, { status: 400 })
     }
 
-    const supabase = createServerClient()
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('devlog_entries')
       .update({
         title: title.trim(),
@@ -57,8 +60,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 })
     }
 
-    const supabase = createServerClient()
-    const { error } = await supabase
+    const { error } = await db()
       .from('devlog_entries')
       .delete()
       .eq('id', params.id)
@@ -78,8 +80,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 // GET /api/devlog/[id] — public, returns a single entry
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('devlog_entries')
       .select('*')
       .eq('id', params.id)
@@ -95,3 +96,4 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
