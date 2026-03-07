@@ -205,6 +205,41 @@ export interface Database {
           created_at?: string
         }
       }
+      devlog_entries: {
+        Row: {
+          id: string
+          slug: string | null
+          title: string
+          content: string
+          date: string
+          tags: string[]
+          published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug?: string | null
+          title: string
+          content: string
+          date?: string
+          tags?: string[]
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string | null
+          title?: string
+          content?: string
+          date?: string
+          tags?: string[]
+          published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       career_applications: {
         Row: {
           id: string
