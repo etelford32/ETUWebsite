@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest } from '@/lib/session'
 
+// Use untyped client to avoid Database type resolution issues for new tables
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = () => createServerClient() as any
+
 // GET /api/devlog — public, returns all published entries ordered by date desc
 export async function GET() {
   try {
-    const supabase = createServerClient()
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('devlog_entries')
       .select('id, title, content, date, tags, published, created_at, updated_at')
       .eq('published', true)
@@ -43,8 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'title and content are required' }, { status: 400 })
     }
 
-    const supabase = createServerClient()
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('devlog_entries')
       .insert({
         title: title.trim(),
