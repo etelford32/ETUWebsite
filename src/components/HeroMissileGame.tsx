@@ -13,6 +13,8 @@ interface HeroMissileGameProps {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    combo?: number;
+    comboTimer?: number;
     perf?: {
       fps: number;
       frameMs: number;
@@ -61,10 +63,30 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           )}
         </div>
 
-        {/* Score */}
+        {/* Score + Combo */}
         <div className="mb-2">
           <div className="text-cyan-400 text-xs font-bold mb-1">SCORE</div>
           <div className="text-2xl font-bold text-white">{gameState.score.toLocaleString()}</div>
+          {(gameState.combo ?? 0) >= 2 && (
+            <div className="mt-1 flex items-center gap-1">
+              <span
+                className={`text-sm font-black tracking-wide ${
+                  (gameState.combo ?? 0) >= 6 ? 'text-red-400 animate-pulse' :
+                  (gameState.combo ?? 0) >= 4 ? 'text-orange-400' :
+                  'text-yellow-400'
+                }`}
+              >
+                x{Math.min(gameState.combo ?? 0, 8)} COMBO!
+              </span>
+              {/* Combo timer bar */}
+              <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-yellow-400 transition-all"
+                  style={{ width: `${Math.min(((gameState.comboTimer ?? 0) / 2.5) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Shield bar */}

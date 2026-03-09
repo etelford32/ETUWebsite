@@ -336,6 +336,8 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
     const animate = (currentTime: number) => {
       const deltaTime = Math.min(currentTime - lastTime, 32); // Cap at 32ms for stability
       lastTime = currentTime;
+      // Normalize velocity to 60fps-equivalent so movement speed is frame-rate independent
+      const dtScale = deltaTime / 16.667;
       animTime += deltaTime / 1000;
 
       // Update missiles (using ref for performance)
@@ -348,29 +350,29 @@ export default function ShipCanvas({ shipData }: ShipCanvasProps) {
 
           return {
             ...m,
-            x: m.x + m.vx,
-            y: m.y + m.vy,
+            x: m.x + m.vx * dtScale,
+            y: m.y + m.vy * dtScale,
             trail: newTrail,
             age: m.age + deltaTime
           };
         })
         .filter(m => {
-          // Use world coordinates - missiles centered at 0,0 (ship position)
-          // Remove missiles that are too far from ship or too old
-          const distanceFromShip = Math.sqrt(m.x * m.x + m.y * m.y);
-          return distanceFromShip < 1000 && m.age < 10000;
+          // Use squared distance — avoids sqrt overhead every frame per missile
+          const distSq = m.x * m.x + m.y * m.y;
+          return distSq < 1_000_000 && m.age < 10000; // 1000^2
         });
 
       // Update laser beams
+      const particleDecay = Math.pow(0.95, dtScale); // Frame-rate-independent velocity decay
       lasersRef.current = lasersRef.current
         .map(l => {
           const newParticles = l.particles
             .map(p => ({
-              x: p.x + p.vx,
-              y: p.y + p.vy,
-              vx: p.vx * 0.95, // Faster decay for performance
-              vy: p.vy * 0.95,
-              alpha: p.alpha - 0.03
+              x: p.x + p.vx * dtScale,
+              y: p.y + p.vy * dtScale,
+              vx: p.vx * particleDecay,
+              vy: p.vy * particleDecay,
+              alpha: p.alpha - 0.03 * dtScale
             }))
             .filter(p => p.alpha > 0);
 

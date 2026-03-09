@@ -27,6 +27,8 @@ interface MegabotProps {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    combo: number;
+    comboTimer: number;
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
   onSceneReady?: (scene: any) => void;
@@ -199,6 +201,8 @@ class MegabotScene {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    combo: number;
+    comboTimer: number;
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
 
@@ -319,7 +323,7 @@ class MegabotScene {
   readonly ARM_SWING_ANGLE = 0.25; // Arm swing amplitude
   readonly WALK_BOB_HEIGHT = 18; // Vertical bob during walk
   readonly WALK_CYCLE_SPEED = 5; // Walk cycle frequency multiplier
-  readonly MEGABOT_ROTATE_SPEED = 2.5; // Q/E rotation speed (radians/sec)
+  readonly MEGABOT_ROTATE_SPEED = 4.0; // Q/E rotation speed (radians/sec)
 
   // Camera shake system
   cameraShakeX: number = 0;
@@ -368,6 +372,12 @@ class MegabotScene {
   barrageCooldown: number = 0;
   readonly BARRAGE_COOLDOWN_TIME = 8; // seconds
 
+  // Combo kill system — chain kills within COMBO_WINDOW seconds for score multiplier
+  comboCount: number = 0;
+  comboTimer: number = 0;
+  readonly COMBO_WINDOW = 2.5; // seconds
+  private _prevCombo = -1;
+
   // Megabot constants - BUILDING SIZED!
   readonly MAIN_SIZE = 350; // Increased for massive scale
   readonly SATELLITE_COUNT_LOW = 3;
@@ -411,6 +421,8 @@ class MegabotScene {
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
+      combo: number;
+      comboTimer: number;
       perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
     }) => void
   ) {
@@ -5603,9 +5615,12 @@ class MegabotScene {
     }
 
     if (ship.health <= 0) {
-      const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
-      this.gameScore += scoreBonus;
-      this.create3DExplosion(ship.group.position, ship.size * 2.5);
+      const base = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+      this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
+      this.comboTimer = this.COMBO_WINDOW;
+      this.gameScore += base * Math.min(this.comboCount, 8);
+      const blastScale = ship.type === 'cruiser' ? 5.0 : ship.type === 'bomber' ? 4.0 : ship.type === 'interceptor' ? 2.0 : 2.5;
+      this.create3DExplosion(ship.group.position, ship.size * blastScale);
       return true;
     }
     return false;
@@ -5880,10 +5895,12 @@ class MegabotScene {
           hitShip = true;
 
           if (ship.health <= 0) {
-            // Score based on ship type (same as laser kills)
-            const scoreBonus = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
-            this.gameScore += scoreBonus;
-            this.create3DExplosion(ship.group.position, ship.size * 2.5);
+            const base = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+            this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
+            this.comboTimer = this.COMBO_WINDOW;
+            this.gameScore += base * Math.min(this.comboCount, 8);
+            const blastScale = ship.type === 'cruiser' ? 5.0 : ship.type === 'bomber' ? 4.0 : ship.type === 'interceptor' ? 2.0 : 2.5;
+            this.create3DExplosion(ship.group.position, ship.size * blastScale);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
           } else {
@@ -6034,7 +6051,8 @@ class MegabotScene {
           this.currentWave !== this._prevWave ||
           this.waveState !== this._prevWaveState ||
           flooredShield !== this._prevShieldHP ||
-          this.upgradeLevel !== this._prevUpgradeLevel) {
+          this.upgradeLevel !== this._prevUpgradeLevel ||
+          this.comboCount !== this._prevCombo) {
         this._prevScore = this.gameScore;
         this._prevHealth = this.megabotHealth;
         this._prevShipCount = activeShips;
@@ -6043,6 +6061,7 @@ class MegabotScene {
         this._prevWaveState = this.waveState;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
+        this._prevCombo = this.comboCount;
         this.onGameStateUpdate({
           score: this.gameScore,
           health: this.megabotHealth,
@@ -6053,6 +6072,8 @@ class MegabotScene {
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,
+          combo: this.comboCount,
+          comboTimer: this.comboTimer,
           perf: {
             fps: this._telemetry.fps,
             frameMs: Math.round(this._telemetry.frameMs * 10) / 10,
@@ -6285,6 +6306,15 @@ class MegabotScene {
     // Update barrage cooldown
     if (this.barrageCooldown > 0) this.barrageCooldown -= deltaTime;
 
+    // Tick down combo kill timer — reset combo if player hasn't killed in COMBO_WINDOW seconds
+    if (this.comboTimer > 0) {
+      this.comboTimer -= deltaTime;
+      if (this.comboTimer <= 0) {
+        this.comboTimer = 0;
+        this.comboCount = 0;
+      }
+    }
+
     // Handle Q key for missile barrage
     if (this.keysPressed.has('x') && this.upgradeLevel >= 3 && this.barrageCooldown <= 0) {
       this.launchMissileBarrage();
@@ -6329,9 +6359,10 @@ class MegabotScene {
 
       // Body rotation - track target, Q/E manual, or idle hold
       // Always sync currentRotation.y from actual rotation so tracking/idle don't clobber Q/E
-      if (this.trackingTarget && this.targetPosition3D) {
+      const isManualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
+      if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
-        // Blend toward target rotation, but start from the actual current rotation
+        // Skip when player is manually rotating with Q/E — let them do a full 360°
         const lerpSpeed = 0.14;
         const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
