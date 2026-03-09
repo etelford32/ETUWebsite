@@ -985,13 +985,13 @@ class MegabotScene {
     const mechaMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        baseColor: { value: new THREE.Color(0.01, 0.005, 0.01) }, // DARKER evil black metallic
-        metalness: { value: 0.99 }, // Ultra metallic for glossy finish
-        roughness: { value: 0.06 }, // Even shinier, menacing reflective armor
-        envIntensity: { value: 1.4 }, // STRONGER reflections for menacing appearance
+        baseColor: { value: new THREE.Color(0.05, 0.052, 0.06) }, // Industrial dark steel — visible contrast
+        metalness: { value: 0.99 },
+        roughness: { value: 0.05 }, // Ultra-polished armour
+        envIntensity: { value: 1.8 }, // Stronger chrome-like reflections
         emissiveColor: { value: new THREE.Color(1.0, 0.05, 0.05) }, // INTENSE evil red glow
-        emissiveIntensity: { value: 0.9 }, // MAXIMUM EVIL intensity
-        panelLineColor: { value: new THREE.Color(0.01, 0.0, 0.02) }, // DEEPER evil panel lines
+        emissiveIntensity: { value: 1.1 }, // Stronger edge glow
+        panelLineColor: { value: new THREE.Color(0.008, 0.0, 0.012) }, // Deep shadow panel lines
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -1041,25 +1041,12 @@ class MegabotScene {
           return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
         }
 
-        // Procedural normal mapping
+        // Procedural normal mapping — panel-line bumps only (no noise call)
         vec3 perturbNormal(vec3 normal, vec2 uv) {
-          float scale = 2.0;
-          float strength = 0.3;
-
-          // Panel line bumps
-          float bumpX = smoothstep(0.48, 0.5, fract(uv.x * 5.0)) - smoothstep(0.5, 0.52, fract(uv.x * 5.0));
-          float bumpY = smoothstep(0.48, 0.5, fract(uv.y * 5.0)) - smoothstep(0.5, 0.52, fract(uv.y * 5.0));
-
-          // Micro detail
-          float microDetail = noise(uv * 100.0) * 0.1;
-
-          vec3 perturbation = vec3(
-            (bumpX + microDetail) * strength,
-            (bumpY + microDetail) * strength,
-            1.0
-          );
-
-          return normalize(normal + perturbation);
+          float strength = 0.28;
+          float bumpX = smoothstep(0.47, 0.5, fract(uv.x * 5.0)) - smoothstep(0.5, 0.53, fract(uv.x * 5.0));
+          float bumpY = smoothstep(0.47, 0.5, fract(uv.y * 5.0)) - smoothstep(0.5, 0.53, fract(uv.y * 5.0));
+          return normalize(normal + vec3(bumpX * strength, bumpY * strength, 0.0));
         }
 
         // Fresnel (Schlick approximation)
@@ -1097,13 +1084,14 @@ class MegabotScene {
           float rivetDist = length(rivetUv - 0.5);
           float rivets = smoothstep(0.08, 0.06, rivetDist) * 0.3;
 
-          // Battle damage and scratches
-          float scratches = noise(vUv * 80.0);
-          scratches = smoothstep(0.75, 0.85, scratches) * 0.2;
+          // Battle damage and scratches — analytic pattern (no noise() cost)
+          float scratchU = fract(vUv.x * 43.7 + vUv.y * 17.3);
+          float scratchV = fract(vUv.y * 61.1 + vUv.x * 29.9);
+          float scratches = smoothstep(0.93, 0.96, scratchU) * 0.18
+                          + smoothstep(0.95, 0.98, scratchV) * 0.12;
 
-          // Wear on edges (lighter metal showing through)
-          float wear = noise(vUv * 30.0) * fresnel(viewDir, normal, 2.0);
-          wear = smoothstep(0.6, 0.8, wear) * 0.15;
+          // Wear on edges — purely fresnel-based, no noise needed
+          float wear = fresnel(viewDir, normal, 1.8) * 0.18;
 
           // Base metal color
           vec3 albedo = baseColor;
@@ -1156,9 +1144,11 @@ class MegabotScene {
           vec3 groundColor = vec3(0.1, 0.12, 0.15);
           vec3 envReflection = mix(groundColor, skyColor, upFacing) * envIntensity * metalness;
 
-          // Fresnel rim lighting - evil red glow
-          float rim = fresnel(viewDir, normal, 3.0);
-          vec3 rimLight = vec3(1.0, 0.15, 0.15) * rim * 0.8; // Menacing red rim
+          // Fresnel rim lighting — evil red + cool chrome
+          float rim = fresnel(viewDir, normal, 2.5);
+          float rimSharp = fresnel(viewDir, normal, 6.0); // Tight chrome highlight
+          vec3 rimLight = vec3(1.0, 0.1, 0.1) * rim * 1.1      // broad red rim
+                        + vec3(0.8, 0.9, 1.0) * rimSharp * 0.6; // sharp chrome edge
 
           // Energy flow lines (subtle tech detail)
           float energyFlow = sin(vUv.y * 8.0 + time * 1.5) * 0.5 + 0.5;
@@ -1382,23 +1372,51 @@ class MegabotScene {
     facePlate.position.z = this.MAIN_SIZE * 0.22;
     headGroup.add(facePlate);
 
+    // BROW RIDGE - aggressive forward-leaning overhang above visor
+    const browRidgeGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.46, this.MAIN_SIZE * 0.09, this.MAIN_SIZE * 0.14);
+    const browRidge = new THREE.Mesh(browRidgeGeometry, mechaMaterial);
+    browRidge.position.set(0, this.MAIN_SIZE * 0.115, this.MAIN_SIZE * 0.22);
+    browRidge.rotation.x = 0.18; // tilt forward menacingly
+    headGroup.add(browRidge);
+
+    // Brow under-lip - sharp metal edge below the brow
+    const browLipGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.44, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.06);
+    const browLip = new THREE.Mesh(browLipGeometry, accentMaterial);
+    browLip.position.set(0, this.MAIN_SIZE * 0.07, this.MAIN_SIZE * 0.27);
+    headGroup.add(browLip);
+
     // CHIN MOUNTED WEAPON POD - forward firepower
-    const chinWeaponHousingGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.15);
+    const chinWeaponHousingGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.18);
     const chinWeaponHousing = new THREE.Mesh(chinWeaponHousingGeometry, accentMaterial);
-    chinWeaponHousing.position.set(0, -this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.22);
+    chinWeaponHousing.position.set(0, -this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.2);
     headGroup.add(chinWeaponHousing);
 
     // Triple barrel under-chin cannons
     for (let barrel = 0; barrel < 3; barrel++) {
-      const underChinCannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.18, 8);
+      const underChinCannonGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.2, 8);
       const underChinCannon = new THREE.Mesh(underChinCannonGeometry, mechaMaterial);
       underChinCannon.rotation.x = Math.PI / 2;
       underChinCannon.position.set(
         this.MAIN_SIZE * (-0.08 + barrel * 0.08),
         -this.MAIN_SIZE * 0.22,
-        this.MAIN_SIZE * 0.32
+        this.MAIN_SIZE * 0.33
       );
       headGroup.add(underChinCannon);
+    }
+
+    // INDUSTRIAL VENTILATION GRILLS - lower face (4 horizontal slats)
+    for (let vent = 0; vent < 4; vent++) {
+      const slatGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.018, this.MAIN_SIZE * 0.055);
+      const slat = new THREE.Mesh(slatGeometry, accentMaterial);
+      slat.position.set(0, -this.MAIN_SIZE * (0.04 + vent * 0.032), this.MAIN_SIZE * 0.22);
+      headGroup.add(slat);
+    }
+    // Vent side frames
+    for (let side = -1; side <= 1; side += 2) {
+      const ventFrameGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.016, this.MAIN_SIZE * 0.135, this.MAIN_SIZE * 0.055);
+      const ventFrame = new THREE.Mesh(ventFrameGeo, mechaMaterial);
+      ventFrame.position.set(side * this.MAIN_SIZE * 0.16, -this.MAIN_SIZE * 0.072, this.MAIN_SIZE * 0.22);
+      headGroup.add(ventFrame);
     }
 
     // Additional face armor layer - more angular
@@ -1408,17 +1426,22 @@ class MegabotScene {
     facePlate2.position.y = -this.MAIN_SIZE * 0.05;
     headGroup.add(facePlate2);
 
-    // Cheek armor plates - reinforced protection
+    // Cheek armor plates - reinforced protection with angled edge
     for (let side = -1; side <= 1; side += 2) {
-      const cheekArmorGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.09, this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.14);
+      const cheekArmorGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.16);
       const cheekArmor = new THREE.Mesh(cheekArmorGeometry, accentMaterial);
-      cheekArmor.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.25);
-      cheekArmor.rotation.y = side * 0.15;
+      cheekArmor.position.set(side * this.MAIN_SIZE * 0.24, -this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.24);
+      cheekArmor.rotation.y = side * 0.18;
       headGroup.add(cheekArmor);
+      // Cheek vent slot
+      const cheekVentGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.016, this.MAIN_SIZE * 0.06);
+      const cheekVent = new THREE.Mesh(cheekVentGeo, mechaMaterial);
+      cheekVent.position.set(side * this.MAIN_SIZE * 0.24, this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.3);
+      headGroup.add(cheekVent);
     }
 
-    // V-Fin sensor crest - Menacing black blade with red energy
-    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5, 3); // Sharp aggressive blade
+    // V-Fin sensor crest - MASSIVE menacing black blade with red energy
+    const vFinGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.23, this.MAIN_SIZE * 0.72, 3); // Sharp aggressive blade — bigger
     const vFinMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
@@ -1472,8 +1495,9 @@ class MegabotScene {
     headGroup.add(vFin);
     this.megabotParts.push({ mesh: vFin, type: 'vfin' });
 
-    // EVIL LASER EYES with intense glow effect
-    const eyeGeometry = new THREE.SphereGeometry(this.MAIN_SIZE * 0.06, 16, 16);
+    // EVIL LASER EYES — horizontal visor SLITS for a true evil machine look
+    // Box geometry gives the Terminator / HAL-9000 single-visor appearance
+    const eyeGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.14, this.MAIN_SIZE * 0.042, this.MAIN_SIZE * 0.035);
     const eyeMaterial = new THREE.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
@@ -1517,12 +1541,28 @@ class MegabotScene {
     });
 
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2);
+    leftEye.position.set(-this.MAIN_SIZE * 0.106, this.MAIN_SIZE * 0.065, this.MAIN_SIZE * 0.215);
     headGroup.add(leftEye);
 
     const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial.clone());
-    rightEye.position.set(this.MAIN_SIZE * 0.1, this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.2);
+    rightEye.position.set(this.MAIN_SIZE * 0.106, this.MAIN_SIZE * 0.065, this.MAIN_SIZE * 0.215);
     headGroup.add(rightEye);
+
+    // Visor bridge — narrow connector strip linking the two slit eyes
+    const visorBridgeGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.03);
+    const visorBridge = new THREE.Mesh(visorBridgeGeo, eyeMaterial.clone());
+    visorBridge.position.set(0, this.MAIN_SIZE * 0.065, this.MAIN_SIZE * 0.215);
+    headGroup.add(visorBridge);
+
+    // Visor recess housing — dark recessed bay that frames the glowing slits
+    const visorHousingGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.42, this.MAIN_SIZE * 0.09, this.MAIN_SIZE * 0.05);
+    const visorHousing = new THREE.Mesh(visorHousingGeo, new THREE.MeshStandardMaterial({
+      color: 0x030305,
+      metalness: 0.95,
+      roughness: 0.08,
+    }));
+    visorHousing.position.set(0, this.MAIN_SIZE * 0.065, this.MAIN_SIZE * 0.195);
+    headGroup.add(visorHousing);
 
     // Store references to eyes
     this.leftEye = leftEye;
@@ -1658,56 +1698,93 @@ class MegabotScene {
 
     // Massive shoulder armor panels with weapon mounts
     for (let side = -1; side <= 1; side += 2) {
-      const shoulderPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.12);
+      const shoulderPlateGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.3, this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.14);
       const shoulderPlate = new THREE.Mesh(shoulderPlateGeometry, accentMaterial);
-      shoulderPlate.position.set(side * this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.08);
-      shoulderPlate.rotation.y = side * 0.12;
+      shoulderPlate.position.set(side * this.MAIN_SIZE * 0.48, this.MAIN_SIZE * 0.33, this.MAIN_SIZE * 0.07);
+      shoulderPlate.rotation.y = side * 0.1;
       torsoGroup.add(shoulderPlate);
 
-      // SHOULDER-MOUNTED MISSILE LAUNCHER POD - MASSIVE AND MENACING
-      const missileLauncherGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.35, this.MAIN_SIZE * 0.20);
+      // ── INDUSTRIAL SHOULDER MISSILE LAUNCHER POD ──────────────────────────
+      // Main housing — heavy box with angular profile
+      const missileLauncherGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.46, this.MAIN_SIZE * 0.28);
       const missileLauncher = new THREE.Mesh(missileLauncherGeometry, mechaMaterial);
-      missileLauncher.position.set(side * this.MAIN_SIZE * 0.48, this.MAIN_SIZE * 0.58, this.MAIN_SIZE * 0.05);
+      const podX = side * this.MAIN_SIZE * 0.53;
+      missileLauncher.position.set(podX, this.MAIN_SIZE * 0.60, this.MAIN_SIZE * 0.04);
       torsoGroup.add(missileLauncher);
 
-      // Missile launcher support frame
-      const launcherFrameGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.08, this.MAIN_SIZE * 0.18);
+      // Launcher front face plate (recessed darker panel)
+      const frontPlateGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.29, this.MAIN_SIZE * 0.42, this.MAIN_SIZE * 0.03);
+      const frontPlate = new THREE.Mesh(frontPlateGeo, accentMaterial);
+      frontPlate.position.set(podX, this.MAIN_SIZE * 0.60, this.MAIN_SIZE * 0.20);
+      torsoGroup.add(frontPlate);
+
+      // Launcher support frame / hydraulic base
+      const launcherFrameGeometry = new THREE.BoxGeometry(this.MAIN_SIZE * 0.28, this.MAIN_SIZE * 0.10, this.MAIN_SIZE * 0.24);
       const launcherFrame = new THREE.Mesh(launcherFrameGeometry, accentMaterial);
-      launcherFrame.position.set(side * this.MAIN_SIZE * 0.48, this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.05);
+      launcherFrame.position.set(podX, this.MAIN_SIZE * 0.42, this.MAIN_SIZE * 0.04);
       torsoGroup.add(launcherFrame);
 
-      // Missile tubes (8 per shoulder in 2x4 grid - more firepower!)
-      for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 4; col++) {
-          const missileTubeGeometry = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.22, 8);
-          const missileTube = new THREE.Mesh(missileTubeGeometry, new THREE.MeshStandardMaterial({
-            color: 0x0a0a0a,
-            metalness: 0.95,
-            roughness: 0.2,
-          }));
-          missileTube.rotation.x = -Math.PI * 0.12; // Angle upward menacingly
-          missileTube.position.set(
-            side * this.MAIN_SIZE * (0.40 + col * 0.045),
-            this.MAIN_SIZE * (0.64 + row * -0.10),
-            this.MAIN_SIZE * 0.14
-          );
-          torsoGroup.add(missileTube);
+      // TOP BLAST DEFLECTOR — angled plate that shields the top of the pod
+      const blastShieldGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.34, this.MAIN_SIZE * 0.055, this.MAIN_SIZE * 0.30);
+      const blastShield = new THREE.Mesh(blastShieldGeo, mechaMaterial);
+      blastShield.position.set(podX, this.MAIN_SIZE * 0.86, this.MAIN_SIZE * 0.01);
+      blastShield.rotation.x = -0.22; // Angle slightly forward for deflector look
+      torsoGroup.add(blastShield);
 
-          // Missile warheads visible in tubes (red tips)
-          const warheadGeometry = new THREE.ConeGeometry(this.MAIN_SIZE * 0.022, this.MAIN_SIZE * 0.04, 6);
-          const warhead = new THREE.Mesh(warheadGeometry, new THREE.MeshStandardMaterial({
-            color: 0xcc0000,
-            emissive: new THREE.Color(0xcc0000),
-            emissiveIntensity: 0.6,
-            metalness: 0.8,
-          }));
-          warhead.rotation.x = -Math.PI * 0.12;
-          warhead.position.set(
-            side * this.MAIN_SIZE * (0.40 + col * 0.045),
-            this.MAIN_SIZE * (0.64 + row * -0.10),
-            this.MAIN_SIZE * 0.24
-          );
-          torsoGroup.add(warhead);
+      // Blast shield front lip (sharp edge)
+      const shieldLipGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.34, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.04);
+      const shieldLip = new THREE.Mesh(shieldLipGeo, accentMaterial);
+      shieldLip.position.set(podX, this.MAIN_SIZE * 0.84, this.MAIN_SIZE * 0.16);
+      torsoGroup.add(shieldLip);
+
+      // TARGETING SENSOR POD — cylindrical optics on top of launcher
+      const targetingPodGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.05, this.MAIN_SIZE * 0.055, this.MAIN_SIZE * 0.12, 8);
+      const targetingPod = new THREE.Mesh(targetingPodGeo, mechaMaterial);
+      targetingPod.position.set(podX, this.MAIN_SIZE * 0.95, this.MAIN_SIZE * 0.04);
+      torsoGroup.add(targetingPod);
+
+      // Targeting sensor lens (glowing red)
+      const lensGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.03, this.MAIN_SIZE * 0.02, 8);
+      const lens = new THREE.Mesh(lensGeo, new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: new THREE.Color(1, 0, 0),
+        emissiveIntensity: 2.0,
+        metalness: 0.5,
+      }));
+      lens.position.set(podX, this.MAIN_SIZE * 0.95, this.MAIN_SIZE * 0.11);
+      torsoGroup.add(lens);
+
+      // Hydraulic strut connecting pod to shoulder
+      const strutGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.22, 8);
+      const strut = new THREE.Mesh(strutGeo, new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.98, roughness: 0.1 }));
+      strut.rotation.z = side * 0.25;
+      strut.position.set(side * this.MAIN_SIZE * 0.42, this.MAIN_SIZE * 0.50, this.MAIN_SIZE * 0.05);
+      torsoGroup.add(strut);
+
+      // MISSILE TUBES — 3×4 grid (12 per shoulder, up from 8)
+      const tubeMat = new THREE.MeshStandardMaterial({ color: 0x080808, metalness: 0.98, roughness: 0.15 });
+      const warheadMat = new THREE.MeshStandardMaterial({
+        color: 0xcc0000, emissive: new THREE.Color(0xcc0000), emissiveIntensity: 0.8, metalness: 0.8,
+      });
+      const tubeGeo   = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.026, this.MAIN_SIZE * 0.026, this.MAIN_SIZE * 0.24, 6);
+      const headGeo   = new THREE.ConeGeometry(this.MAIN_SIZE * 0.021, this.MAIN_SIZE * 0.05, 5);
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 4; col++) {
+          const tubeAngle = -Math.PI * 0.1;
+          const tx = side * this.MAIN_SIZE * (0.42 + col * 0.042);
+          const ty = this.MAIN_SIZE * (0.72 - row * 0.115);
+          const tz = this.MAIN_SIZE * 0.13;
+
+          const tube = new THREE.Mesh(tubeGeo, tubeMat);
+          tube.rotation.x = tubeAngle;
+          tube.position.set(tx, ty, tz);
+          torsoGroup.add(tube);
+
+          const whead = new THREE.Mesh(headGeo, warheadMat);
+          whead.rotation.x = tubeAngle;
+          // Offset warhead to sit at tube exit
+          whead.position.set(tx, ty + Math.sin(-tubeAngle) * this.MAIN_SIZE * 0.14, tz + Math.cos(-tubeAngle) * this.MAIN_SIZE * 0.13);
+          torsoGroup.add(whead);
         }
       }
     }
