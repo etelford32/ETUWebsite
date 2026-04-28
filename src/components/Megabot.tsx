@@ -126,6 +126,20 @@ class MegabotScene {
   cameraAngle: number = 0;      // Horizontal orbit angle for minigame camera
   cameraDistance: number = 1200; // Current distance (smoothed toward cameraTargetDistance)
 
+  // Mouse-aim: megabot's body smoothly yaws to face the world point under the cursor.
+  // Coords are container-local (already viewport-corrected) and get raycast onto a
+  // horizontal aim plane each frame — recomputed per-frame because the camera moves.
+  private _aimMouseLocalX: number = 0;
+  private _aimMouseLocalY: number = 0;
+  private _hasMouseAim: boolean = false;
+  private _aimWorldX: number = 0;
+  private _aimWorldZ: number = 0;
+  private _aimRaycaster = new THREE.Raycaster();
+  private _aimMouseNDC = new THREE.Vector2();
+  private _aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private _aimHit = new THREE.Vector3();
+  readonly MEGABOT_AIM_LERP = 0.12; // Body yaw slerp toward cursor (per frame)
+
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
   cameraPitch: number = 0.35;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
@@ -4514,95 +4528,79 @@ class MegabotScene {
     return missile;
   }
 
-  // Launch missile from megabot toward target
-  launch3DMissileFromMegabot(targetScreenPos: { x: number; y: number }) {
+  // Launch a single missile in megabot's facing direction.
+  // The mouse has already aimed megabot's body via updateAimFromMouse — clicking is
+  // now a pure trigger, so missiles always fire along the local +Z forward vector.
+  launch3DMissileFromMegabot() {
     if (!this.mainMegabot) return;
 
     const THREE = this.THREE;
+    const FORWARD_DIST = 4000; // Aim point well ahead of megabot — homing/collision handles the rest
 
-    // Get megabot shoulder position (launch point)
+    // Shoulder launch point
     const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
     launchOffset.applyQuaternion(this.mainMegabot.quaternion);
     const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
 
-    // Convert screen position to 3D world position
-    const vector = new THREE.Vector3(
-      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
-      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
-      0.5
-    );
-
-    vector.unproject(this.camera);
-    const dir = vector.sub(this.camera.position).normalize();
-    // Scale aim distance with camera distance so aiming stays accurate at all zoom levels
-    const distance = Math.max(2000, this.cameraDistance * 1.5);
-    const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
+    // Forward vector in world space (local +Z rotated by megabot's quaternion)
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mainMegabot.quaternion);
+    const targetPos = new THREE.Vector3().copy(launchPos).addScaledVector(forward, FORWARD_DIST);
 
     const missile = this.create3DMissile(launchPos, targetPos);
-    // Apply homing at upgrade level 1+
     if (missile && this.upgradeLevel >= 1) {
       (missile as any).homing = true;
     }
   }
 
-  // Launch cluster missiles (3 missiles in spread pattern) - Shift+Click
-  launchClusterMissiles(targetScreenPos: { x: number; y: number }) {
+  // Launch cluster missiles (3 missiles in horizontal forward fan) — Shift+Click.
+  // Stagger via the RAF-synced barrage queue so we don't leak setTimeout handles
+  // if the scene tears down mid-volley.
+  launchClusterMissiles() {
     if (!this.mainMegabot) return;
 
     const THREE = this.THREE;
+    const FORWARD_DIST = 4000;
+    const FAN_SPREAD = 0.18; // ~10° between missiles
 
-    // Get megabot shoulder position (launch point)
-    const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
-    launchOffset.applyQuaternion(this.mainMegabot.quaternion);
-    const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
+    // Forward and right vectors. In a right-handed system with local +Z forward and +Y up,
+    // world-right = up × forward (NOT forward × up — that yields the left vector).
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mainMegabot.quaternion);
+    const right = new THREE.Vector3().crossVectors(this._upVec, forward).normalize();
 
-    // Convert screen position to 3D world position
-    const vector = new THREE.Vector3(
-      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
-      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
-      0.5
-    );
+    // 3 fan angles: center, left, right
+    const fanAngles = [0, -FAN_SPREAD, FAN_SPREAD];
+    const shoulderXOffsets = [0, -1, 1]; // center, left, right shoulders
+    const shoulderHomingApplies = this.upgradeLevel >= 1;
 
-    vector.unproject(this.camera);
-    const dir = vector.sub(this.camera.position).normalize();
-    // Scale aim distance with camera distance so cluster aiming stays accurate at all zoom levels
-    const distance = Math.max(2000, this.cameraDistance * 1.5);
-    const centerTarget = this.camera.position.clone().add(dir.clone().multiplyScalar(distance));
+    for (let i = 0; i < 3; i++) {
+      // Shoulder offset in megabot-local space
+      const shoulderOffset = new THREE.Vector3(
+        shoulderXOffsets[i] * this.MAIN_SIZE * 0.3,
+        this.MAIN_SIZE * 0.7,
+        this.MAIN_SIZE * 0.2,
+      );
+      shoulderOffset.applyQuaternion(this.mainMegabot.quaternion);
+      const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, shoulderOffset);
 
-    // Calculate spread vectors perpendicular to the direction
-    const up = new THREE.Vector3(0, 1, 0);
-    const right = new THREE.Vector3().crossVectors(dir, up).normalize();
-    const spreadUp = new THREE.Vector3().crossVectors(right, dir).normalize();
+      // Rotate forward vector around world Y by the fan angle
+      const angle = fanAngles[i];
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const dir = new THREE.Vector3(
+        forward.x * cosA + right.x * sinA,
+        forward.y,
+        forward.z * cosA + right.z * sinA,
+      );
+      const targetPos = new THREE.Vector3().copy(launchPos).addScaledVector(dir, FORWARD_DIST);
 
-    const spreadAmount = 300; // Spread distance at target
-
-    // Fire 3 missiles in a spread pattern
-    const spreadOffsets = [
-      { x: 0, y: 0 },           // Center
-      { x: -spreadAmount, y: spreadAmount * 0.5 },  // Upper left
-      { x: spreadAmount, y: spreadAmount * 0.5 },   // Upper right
-    ];
-
-    spreadOffsets.forEach((offset, index) => {
-      const targetPos = centerTarget.clone();
-      targetPos.add(right.clone().multiplyScalar(offset.x));
-      targetPos.add(spreadUp.clone().multiplyScalar(offset.y));
-
-      // Slight delay between missiles for visual effect
-      setTimeout(() => {
-        // Alternate launch positions (left and right shoulders)
-        const shoulderOffset = new THREE.Vector3(
-          (index === 1 ? -1 : index === 2 ? 1 : 0) * this.MAIN_SIZE * 0.3,
-          this.MAIN_SIZE * 0.7,
-          this.MAIN_SIZE * 0.2
-        );
-        shoulderOffset.applyQuaternion(this.mainMegabot.quaternion);
-        const missileStart = new THREE.Vector3().addVectors(this.mainMegabot.position, shoulderOffset);
-
-        this.create3DMissile(missileStart, targetPos);
-      }, index * 50);
-    });
-
+      // Stagger by 40ms via the existing RAF-synced queue (no setTimeout leaks)
+      this._pendingBarrage.push({
+        launchPos,
+        targetPos,
+        homing: shoulderHomingApplies,
+        fireTime: this.time + i * 0.04,
+      });
+    }
   }
 
   // 3D collision detection (sphere-sphere)
@@ -5167,6 +5165,33 @@ class MegabotScene {
     }
   }
 
+  // Recompute the world-space aim point each frame by raycasting the cursor
+  // through the camera onto a horizontal plane at megabot's torso height.
+  // Yaw-only aim: pitch is intentionally ignored so missiles fire level.
+  private updateAimFromMouse() {
+    if (!this._hasMouseAim || !this.mainMegabot || !this.camera) return;
+    if (this._isDragging || this._isPanning) return;
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    this._aimMouseNDC.x = (this._aimMouseLocalX / rect.width) * 2 - 1;
+    this._aimMouseNDC.y = -(this._aimMouseLocalY / rect.height) * 2 + 1;
+
+    this._aimRaycaster.setFromCamera(this._aimMouseNDC, this.camera);
+
+    // Plane at megabot's torso height; constant = -planeY because Plane is `n·x + d = 0`
+    // and our normal is +Y, so a plane at y=h satisfies y - h = 0 ⇒ d = -h.
+    const planeY = this.mainMegabot.position.y;
+    this._aimPlane.constant = -planeY;
+
+    const hit = this._aimRaycaster.ray.intersectPlane(this._aimPlane, this._aimHit);
+    if (hit) {
+      this._aimWorldX = this._aimHit.x;
+      this._aimWorldZ = this._aimHit.z;
+    }
+  }
+
   // WASD / Arrow key movement for Megabot
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
@@ -5224,9 +5249,10 @@ class MegabotScene {
     const footfallDip = (1 - Math.abs(sinCycle)) * -4; // -4 unit dip at zero crossings
     this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
 
-    // Turn megabot to face movement direction (snappier lerp)
-    // Only auto-face when Q/E are NOT pressed — manual rotation takes priority
-    if (!this.trackingTarget && !manualRotating) {
+    // Turn megabot to face movement direction (snappier lerp).
+    // Skip when Q/E rotation, UI tracking, or mouse-aim is active — those drive yaw instead,
+    // letting megabot strafe while staying aimed at the cursor (3rd-person shooter feel).
+    if (!this.trackingTarget && !manualRotating && !this._hasMouseAim) {
       const targetAngle = Math.atan2(worldX, worldZ);
       const angleDiff = targetAngle - this.mainMegabot.rotation.y;
       const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
@@ -6087,11 +6113,25 @@ class MegabotScene {
   }
 
   addEventListeners() {
-    // ── Mouse movement: subtle parallax + orbit/pan drag ──
+    // ── Mouse movement: aim megabot, orbit/pan drag ──
     this._boundMouseMove = (e: MouseEvent) => {
-      // Always track normalized mouse for subtle parallax
-      this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
-      this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+      // Track mouse position for aim — convert to container-local so the
+      // raycast in animate() is correct even when the canvas isn't full-viewport.
+      // While orbiting/panning we don't update the aim coords (the cursor is
+      // being interpreted as a drag, not a target).
+      if (!this._isDragging && !this._isPanning) {
+        const rect = this.container.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const localY = e.clientY - rect.top;
+        if (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height) {
+          this._aimMouseLocalX = localX;
+          this._aimMouseLocalY = localY;
+          this._hasMouseAim = true;
+        } else {
+          // Cursor left the canvas — release aim so megabot returns to walking auto-face / idle.
+          this._hasMouseAim = false;
+        }
+      }
 
       // Right-click drag → orbit camera
       if (this._isDragging) {
@@ -6203,13 +6243,12 @@ class MegabotScene {
       const target = e.target as HTMLElement;
       if (target.closest('a, button, [role="button"], input, select, textarea')) return;
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
+      // Click is a pure trigger: missiles fire along megabot's facing direction.
+      // The mouse already aimed his body via updateAimFromMouse before this fires.
       if (e.shiftKey) {
-        this.launchClusterMissiles({ x, y });
+        this.launchClusterMissiles();
       } else {
-        this.launch3DMissileFromMegabot({ x, y });
+        this.launch3DMissileFromMegabot();
       }
     };
     document.addEventListener("click", this._boundClick);
@@ -6352,12 +6391,15 @@ class MegabotScene {
 
     this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
+    // Recompute mouse-aim world point now that the camera matrix is up to date.
+    this.updateAimFromMouse();
+
     // Animate main Megabot
     if (this.mainMegabot) {
       // Cache world pos for combat checks
       this.megabotWorldPos.copy(this.mainMegabot.position);
 
-      // Body rotation - track target, Q/E manual, or idle hold
+      // Body rotation - track target, Q/E manual, mouse-aim, or idle hold
       // Always sync currentRotation.y from actual rotation so tracking/idle don't clobber Q/E
       const isManualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
       if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
@@ -6367,6 +6409,19 @@ class MegabotScene {
         const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
         this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
+        this.currentRotation.y = this.mainMegabot.rotation.y;
+      } else if (this._hasMouseAim && !isManualRotating) {
+        // MOUSE-AIM MODE: body smoothly yaws toward the world point under the cursor.
+        // Local +Z is forward; atan2(dx, dz) yields the yaw whose forward vector hits (dx, dz).
+        const dx = this._aimWorldX - this.mainMegabot.position.x;
+        const dz = this._aimWorldZ - this.mainMegabot.position.z;
+        // Ignore degenerate aim (cursor on top of megabot) to avoid flipping.
+        if (dx * dx + dz * dz > 1) {
+          const targetYaw = Math.atan2(dx, dz);
+          const angleDiff = targetYaw - this.mainMegabot.rotation.y;
+          const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+          this.mainMegabot.rotation.y += normalizedDiff * this.MEGABOT_AIM_LERP;
+        }
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (!this.isWalking) {
         // IDLE MODE: Hold current facing direction (Q/E or last walk direction)
