@@ -5333,24 +5333,29 @@ class MegabotScene {
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
 
-    // Q/E manual rotation — independent of camera and movement
-    const manualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
-    if (this.keysPressed.has('q')) {
-      this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
-    }
-    if (this.keysPressed.has('e')) {
-      this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
-    }
+    // ── Manual yaw rotation: A/D + Arrow Left/Right ──
+    // A = turn left (rotation.y decreases — world's +Z rotates toward -X)
+    // D = turn right (rotation.y increases — toward +X)
+    // Holding A or D suppresses mouse-aim (see animate() body-rotation block) so
+    // the player can manually steer regardless of cursor position.
+    const rotateLeft  = this.keysPressed.has('a') || this.keysPressed.has('arrowleft');
+    const rotateRight = this.keysPressed.has('d') || this.keysPressed.has('arrowright');
+    if (rotateLeft)  this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
+    if (rotateRight) this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
 
-    let moveX = 0;
-    let moveZ = 0;
+    // ── Movement input — megabot-LOCAL frame ──
+    // W/Up = forward (local +Z)   S/Down = back (local -Z)
+    // Q     = strafe left (-X)    E       = strafe right (+X)
+    // Movement is megabot-relative so mouse-aim/A/D steer while WASD-QE handle
+    // locomotion (twin-stick feel: aim with mouse, run/strafe with keyboard).
+    let localX = 0;
+    let localZ = 0;
+    if (this.keysPressed.has('w') || this.keysPressed.has('arrowup'))   localZ += 1;
+    if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) localZ -= 1;
+    if (this.keysPressed.has('q')) localX -= 1;
+    if (this.keysPressed.has('e')) localX += 1;
 
-    if (this.keysPressed.has('w') || this.keysPressed.has('arrowup')) moveZ -= 1;
-    if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) moveZ += 1;
-    if (this.keysPressed.has('a') || this.keysPressed.has('arrowleft')) moveX -= 1;
-    if (this.keysPressed.has('d') || this.keysPressed.has('arrowright')) moveX += 1;
-
-    if (moveX === 0 && moveZ === 0) {
+    if (localX === 0 && localZ === 0) {
       // Not moving - decelerate walk cycle and return to standing height
       this.isWalking = false;
       // Smoothly return to standing Y
@@ -5360,16 +5365,19 @@ class MegabotScene {
 
     this.isWalking = true;
 
-    // Normalize diagonal movement
-    const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
-    moveX /= len;
-    moveZ /= len;
+    // Normalize diagonal magnitude so strafe+forward isn't sqrt(2)× faster
+    const len = Math.sqrt(localX * localX + localZ * localZ);
+    localX /= len;
+    localZ /= len;
 
-    // Apply movement relative to camera yaw so "forward" is always screen-up
-    const cosA = Math.cos(this.cameraYaw);
-    const sinA = Math.sin(this.cameraYaw);
-    const worldX = moveX * cosA - moveZ * sinA;
-    const worldZ = moveX * sinA + moveZ * cosA;
+    // Project megabot-local input into world space using his yaw.
+    // Local +Z (forward) at θ rotates to world (sin θ, 0, cos θ).
+    // Local +X (right)   at θ rotates to world (cos θ, 0, -sin θ).
+    const yaw = this.mainMegabot.rotation.y;
+    const cosA = Math.cos(yaw);
+    const sinA = Math.sin(yaw);
+    const worldX =  localX * cosA + localZ * sinA;
+    const worldZ = -localX * sinA + localZ * cosA;
 
     const speed = this.MEGABOT_MOVE_SPEED * dt;
     this.mainMegabot.position.x += worldX * speed;
@@ -5386,15 +5394,10 @@ class MegabotScene {
     const footfallDip = (1 - Math.abs(sinCycle)) * -4; // -4 unit dip at zero crossings
     this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
 
-    // Turn megabot to face movement direction (snappier lerp).
-    // Skip when Q/E rotation, UI tracking, or mouse-aim is active — those drive yaw instead,
-    // letting megabot strafe while staying aimed at the cursor (3rd-person shooter feel).
-    if (!this.trackingTarget && !manualRotating && !this._hasMouseAim) {
-      const targetAngle = Math.atan2(worldX, worldZ);
-      const angleDiff = targetAngle - this.mainMegabot.rotation.y;
-      const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-      this.mainMegabot.rotation.y += normalizedDiff * 0.2;
-    }
+    // (Auto-face-toward-movement removed — facing is driven explicitly by
+    // mouse-aim or A/D rotation. Strafe with Q/E or back up with S without
+    // megabot's body snapping around. The mouse-aim suppression check lives
+    // in animate()'s body-rotation block.)
 
     // GODZILLA STOMP! Check footfall timing - stomp on downbeat of walk cycle
     const prevSinCycle = Math.sin(this.walkCycle - dt * this.WALK_CYCLE_SPEED);
@@ -6713,9 +6716,12 @@ class MegabotScene {
       // Cache world pos for combat checks
       this.megabotWorldPos.copy(this.mainMegabot.position);
 
-      // Body rotation - track target, Q/E manual, mouse-aim, or idle hold
-      // Always sync currentRotation.y from actual rotation so tracking/idle don't clobber Q/E
-      const isManualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
+      // Body rotation priority: UI-tracking > A/D manual rotate > mouse-aim > idle hold.
+      // A/D (and Arrow Left/Right) rotate megabot in updateMegabotMovement; this flag
+      // tells UI-tracking and mouse-aim to back off so manual steering wins.
+      const isManualRotating =
+        this.keysPressed.has('a') || this.keysPressed.has('d') ||
+        this.keysPressed.has('arrowleft') || this.keysPressed.has('arrowright');
       if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
         // Skip when player is manually rotating with Q/E — let them do a full 360°
