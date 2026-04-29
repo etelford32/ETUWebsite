@@ -2446,26 +2446,104 @@ class MegabotScene {
     const THREE = this.THREE;
     const size = 20000; // Large enough to extend past 5x expanded city radius
 
-    // Dark cyberpunk ground surface
+    // Procedural city floor — replaces the previous flat MeshStandardMaterial
+    // with a fragment shader that draws asphalt, painted road grid (0xff/0x44),
+    // crosswalks, and dashed lane markers. Cheap on the GPU (one extra fragment
+    // shader, no textures to load) and looks like an actual urban grid from any
+    // camera angle. Worldgrid stays UV-aligned so no streaks under camera move.
     const groundGeo = new THREE.PlaneGeometry(size, size);
-    const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0a14,
-      metalness: 0.4,
-      roughness: 0.7,
-      emissive: new THREE.Color(0x050510),
-      emissiveIntensity: 0.3,
+    const groundMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uSize: { value: size },
+        uBlockSize: { value: 600.0 },   // city-block spacing in world units
+        uRoadWidth: { value: 80.0 },    // street width (each side of intersection)
+        uTime: { value: 0.0 },
+      },
+      vertexShader: `
+        varying vec2 vWorldXZ;
+        void main() {
+          // Ground plane is rotated -π/2 around X, so geometry-space (x,y) maps
+          // to world-space (x,-z). Pass world-XZ to the fragment shader so the
+          // street grid stays anchored to world coords (not screen coords).
+          vWorldXZ = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        precision highp float;
+        uniform float uBlockSize;
+        uniform float uRoadWidth;
+        uniform float uTime;
+        varying vec2 vWorldXZ;
+
+        // Hash for per-block variation
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+        void main() {
+          vec2 p = vWorldXZ;
+
+          // Distance to the nearest street centerline along each axis
+          vec2 cell = mod(p, uBlockSize);
+          vec2 distToCenterline = min(cell, uBlockSize - cell);
+          float minStreet = min(distToCenterline.x, distToCenterline.y);
+          bool onStreet = minStreet < uRoadWidth;
+
+          // Block coordinate for per-block accent variation
+          vec2 blockId = floor(p / uBlockSize);
+          float blockHash = hash(blockId);
+
+          // Base colors
+          vec3 blockColor = mix(vec3(0.04, 0.04, 0.08), vec3(0.06, 0.07, 0.12), blockHash); // dark city floor
+          vec3 streetColor = vec3(0.025, 0.025, 0.03);  // asphalt
+          vec3 lineColor = vec3(0.95, 0.85, 0.25);      // painted yellow center line
+
+          vec3 col;
+          if (onStreet) {
+            col = streetColor;
+
+            // Center line — a thin painted stripe down the middle of each street
+            float centerStripe = step(minStreet, 1.5);
+            col = mix(col, lineColor, centerStripe);
+
+            // Dashed lane markers on the off-axis (so streets reading L-R get
+            // dashes for cars going up-down and vice versa)
+            bool xAxisStreet = distToCenterline.x < distToCenterline.y;
+            float along = xAxisStreet ? p.y : p.x;
+            float dashCycle = mod(along, 50.0);
+            float inDash = step(dashCycle, 18.0); // 18u dash, 32u gap
+            float laneOffsetDist = xAxisStreet ? distToCenterline.y : distToCenterline.x;
+            bool inLanePos = laneOffsetDist > uRoadWidth * 0.45 && laneOffsetDist < uRoadWidth * 0.5;
+            if (inDash > 0.5 && inLanePos) {
+              col = mix(col, vec3(0.85, 0.85, 0.85), 0.7); // white dashed lanes
+            }
+          } else {
+            // City block — slightly varied dark with a faint emissive tint
+            col = blockColor;
+            // Crosshatch pattern at the block edges (sidewalks)
+            float edgeDist = uRoadWidth - minStreet; // negative outside streets
+            // edgeDist > 0 means we're inside the street margin, but onStreet is false.
+            // That branch is unreachable; instead use a simple distance-from-street threshold.
+            if (minStreet < uRoadWidth + 8.0) {
+              col = mix(col, vec3(0.18, 0.18, 0.2), 0.6); // sidewalk gray
+            }
+          }
+
+          // Subtle scanline shimmer along streets (sells the "tron" feel)
+          if (onStreet) {
+            float shimmer = sin((p.x + p.y) * 0.02 + uTime * 0.6) * 0.5 + 0.5;
+            col += vec3(0.0, 0.05, 0.08) * shimmer * 0.4;
+          }
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
     });
     this.groundPlane = new THREE.Mesh(groundGeo, groundMat);
     this.groundPlane.rotation.x = -Math.PI / 2;
     this.groundPlane.position.y = this.GROUND_Y;
     this.scene.add(this.groundPlane);
 
-    // Subtle tech grid overlay
-    const gridHelper = new THREE.GridHelper(size, 80, 0x0a2240, 0x061228);
-    gridHelper.position.y = this.GROUND_Y + 0.5;
-    this.scene.add(gridHelper);
-
-    // Ambient ground glow ring around city center
+    // Ambient ground glow ring around city center — keep, marks megabot's "spawn footprint"
     const ringGeo = new THREE.RingGeometry(this.CITY_INNER_RADIUS - 20, this.CITY_INNER_RADIUS + 5, 64);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x003366,
@@ -3531,11 +3609,14 @@ class MegabotScene {
   }
 
   // Create 3D ship geometry with detailed mesh designs
-  create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser') {
+  create3DShipGeometry(type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser' | 'tank' | 'sam') {
     const THREE = this.THREE;
     const group = new THREE.Group();
 
     let size = 80, health = 1, color = 0xff4444;
+    // Ground-unit flags drive position-clamping + skip-aerial-behavior in update3DCombat.
+    let isGroundUnit = false;
+    let isStationary = false;
     switch (type) {
       case 'fighter':
         size = 80;
@@ -3560,6 +3641,23 @@ class MegabotScene {
         health = 8;
         color = 0xcc00ff;
         this.createCruiserMesh(group, size, color, THREE);
+        break;
+      case 'tank':
+        // Mobile ground unit — drives toward megabot, stops at standoff, fires plasma.
+        size = 90;
+        health = 4;
+        color = 0x556633; // olive-drab
+        isGroundUnit = true;
+        this.createTankMesh(group, size, color, THREE);
+        break;
+      case 'sam':
+        // Stationary SAM site — locks on, lobs fast homing missiles. Tougher to compensate.
+        size = 80;
+        health = 5;
+        color = 0x6a6a3a;
+        isGroundUnit = true;
+        isStationary = true;
+        this.createSamMesh(group, size, color, THREE);
         break;
     }
 
@@ -3586,7 +3684,152 @@ class MegabotScene {
       }
     });
 
-    return { group, size, health, maxHealth: health, type, hitFlash: 0, _engineChildren: engineChildren, _emissiveChildren: emissiveChildren };
+    return {
+      group, size, health, maxHealth: health, type, hitFlash: 0,
+      _engineChildren: engineChildren, _emissiveChildren: emissiveChildren,
+      isGroundUnit, isStationary,
+    };
+  }
+
+  // TANK — boxy hull with treads, rotating turret, charged-cannon muzzle.
+  // Y-locked: hull floats just above ground; treads anchor to GROUND_Y.
+  createTankMesh(group: any, size: number, color: number, THREE: any) {
+    const hullMat = new THREE.MeshStandardMaterial({
+      color, metalness: 0.55, roughness: 0.7,
+      emissive: new THREE.Color(0x221100), emissiveIntensity: 0.15,
+    });
+    const trackMat = new THREE.MeshStandardMaterial({
+      color: 0x111111, metalness: 0.4, roughness: 0.9,
+    });
+    const turretMat = new THREE.MeshStandardMaterial({
+      color: 0x3d3d2a, metalness: 0.7, roughness: 0.5,
+      emissive: new THREE.Color(0x331100), emissiveIntensity: 0.25,
+    });
+
+    // Hull (main body)
+    const hullGeo = this._getCachedGeometry('tank_hull', () => new THREE.BoxGeometry(1.1, 0.4, 1.5));
+    const hull = new THREE.Mesh(hullGeo, hullMat);
+    hull.scale.setScalar(size);
+    hull.position.y = size * 0.35;
+    group.add(hull);
+
+    // Twin treads — chunky, slightly wider than hull
+    const treadGeo = this._getCachedGeometry('tank_tread', () => new THREE.BoxGeometry(0.25, 0.3, 1.7));
+    for (let side = -1; side <= 1; side += 2) {
+      const tread = new THREE.Mesh(treadGeo, trackMat);
+      tread.scale.setScalar(size);
+      tread.position.set(side * size * 0.55, size * 0.15, 0);
+      group.add(tread);
+    }
+
+    // Turret base + barrel — barrel points along +Z (megabot's forward convention)
+    const turretGeo = this._getCachedGeometry('tank_turret', () => new THREE.CylinderGeometry(0.4, 0.45, 0.4, 12));
+    const turret = new THREE.Mesh(turretGeo, turretMat);
+    turret.scale.setScalar(size);
+    turret.position.y = size * 0.75;
+    turret.position.z = -size * 0.05;
+    group.add(turret);
+
+    const barrelGeo = this._getCachedGeometry('tank_barrel', () => new THREE.CylinderGeometry(0.06, 0.07, 0.9, 8));
+    const barrel = new THREE.Mesh(barrelGeo, trackMat);
+    barrel.scale.setScalar(size);
+    barrel.position.y = size * 0.78;
+    barrel.position.z = size * 0.45;
+    barrel.rotation.x = Math.PI / 2;
+    group.add(barrel);
+
+    // Muzzle glow — additive red sphere telegraphs "this thing shoots"
+    const muzzleGeo = this._getCachedGeometry('tank_muzzle', () => new THREE.SphereGeometry(0.08, 8, 8));
+    const muzzleMat = new THREE.MeshBasicMaterial({
+      color: 0xff3322, transparent: true, opacity: 0.7,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const muzzle = new THREE.Mesh(muzzleGeo, muzzleMat);
+    muzzle.scale.setScalar(size);
+    muzzle.position.y = size * 0.78;
+    muzzle.position.z = size * 0.95;
+    group.add(muzzle);
+
+    // Top hatch detail (small box) — gives the silhouette some character
+    const hatchGeo = this._getCachedGeometry('tank_hatch', () => new THREE.BoxGeometry(0.25, 0.08, 0.25));
+    const hatch = new THREE.Mesh(hatchGeo, hullMat);
+    hatch.scale.setScalar(size);
+    hatch.position.y = size * 0.6;
+    hatch.position.z = -size * 0.3;
+    group.add(hatch);
+  }
+
+  // SAM SITE — stationary launcher: square base, 4 missile rails skyward, glowing radar dish.
+  // The radar dish gets tagged so update3DCombat can spin it for visual life.
+  createSamMesh(group: any, size: number, color: number, THREE: any) {
+    const baseMat = new THREE.MeshStandardMaterial({
+      color, metalness: 0.5, roughness: 0.7,
+      emissive: new THREE.Color(0x222200), emissiveIntensity: 0.1,
+    });
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0xdddddd, metalness: 0.4, roughness: 0.4,
+    });
+    const tipMat = new THREE.MeshBasicMaterial({
+      color: 0xff2222, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const radarMat = new THREE.MeshStandardMaterial({
+      color: 0x223344, metalness: 0.6, roughness: 0.3,
+      emissive: new THREE.Color(0x00ffaa), emissiveIntensity: 0.5,
+    });
+
+    // Base slab on the ground
+    const baseGeo = this._getCachedGeometry('sam_base', () => new THREE.BoxGeometry(1.3, 0.3, 1.3));
+    const base = new THREE.Mesh(baseGeo, baseMat);
+    base.scale.setScalar(size);
+    base.position.y = size * 0.15;
+    group.add(base);
+
+    // Launcher box (mid-height) — would rotate with turret, kept static for cost
+    const launcherGeo = this._getCachedGeometry('sam_launcher', () => new THREE.BoxGeometry(0.7, 0.45, 0.9));
+    const launcher = new THREE.Mesh(launcherGeo, baseMat);
+    launcher.scale.setScalar(size);
+    launcher.position.y = size * 0.55;
+    group.add(launcher);
+
+    // 4 missile rails arranged in a square pattern, angled skyward + slightly forward
+    const railGeo = this._getCachedGeometry('sam_rail', () => new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8));
+    const tipGeo = this._getCachedGeometry('sam_tip', () => new THREE.ConeGeometry(0.08, 0.18, 8));
+    for (let i = 0; i < 4; i++) {
+      const xOff = (i % 2 === 0) ? -1 : 1;
+      const zOff = (i < 2) ? -1 : 1;
+      const tilt = -0.3; // pitch back slightly toward sky
+      const rail = new THREE.Mesh(railGeo, railMat);
+      rail.scale.setScalar(size);
+      rail.position.set(xOff * size * 0.22, size * 0.95, zOff * size * 0.25);
+      rail.rotation.x = tilt;
+      group.add(rail);
+
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.scale.setScalar(size);
+      tip.position.set(xOff * size * 0.22, size * 1.27, zOff * size * 0.25 - size * 0.06);
+      tip.rotation.x = tilt;
+      group.add(tip);
+    }
+
+    // Radar dish on top — tagged for per-frame spin
+    const dishGeo = this._getCachedGeometry('sam_dish', () =>
+      new THREE.SphereGeometry(0.18, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2));
+    const dish = new THREE.Mesh(dishGeo, radarMat);
+    dish.scale.setScalar(size);
+    dish.position.y = size * 1.15;
+    dish.position.z = size * 0.35;
+    dish.rotation.x = -0.4;
+    (dish as any)._isRadarDish = true;
+    group.add(dish);
+
+    // Antenna — thin spike from radar, sells the "scanning" feel
+    const antennaGeo = this._getCachedGeometry('sam_antenna', () => new THREE.CylinderGeometry(0.01, 0.015, 0.4, 6));
+    const antenna = new THREE.Mesh(antennaGeo, railMat);
+    antenna.scale.setScalar(size);
+    antenna.position.y = size * 1.45;
+    antenna.position.z = size * 0.35;
+    group.add(antenna);
   }
 
   // FIGHTER - Ultra-sleek stealth-fighter inspired design
@@ -4114,50 +4357,81 @@ class MegabotScene {
 
     if (this.enemyShips.length >= this.MAX_SHIPS_3D) return;
 
-    // Random ship type - weighted spawn: cruisers are rare
+    // Weighted spawn pool. Aerial: fighter/interceptor/bomber/cruiser (~70%).
+    // Ground: tank/SAM (~30%) — gives the player a varied threat surface and
+    // means destruction visuals (shockwaves on cratered ground) read clearly.
     const roll = Math.random();
-    let type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser';
-    if (roll < 0.4) type = 'fighter';
-    else if (roll < 0.65) type = 'interceptor';
-    else if (roll < 0.85) type = 'bomber';
-    else type = 'cruiser'; // 15% chance
+    let type: 'fighter' | 'bomber' | 'interceptor' | 'cruiser' | 'tank' | 'sam';
+    if      (roll < 0.30) type = 'fighter';      // 30%
+    else if (roll < 0.50) type = 'interceptor';  // 20%
+    else if (roll < 0.62) type = 'bomber';       // 12%
+    else if (roll < 0.70) type = 'cruiser';      // 8%
+    else if (roll < 0.88) type = 'tank';         // 18%
+    else                  type = 'sam';          // 12%
 
     const ship = this.create3DShipGeometry(type);
 
-    // Spawn in spherical coordinates around megabot's current position
     const mp = this.megabotWorldPos;
+
+    if ((ship as any).isGroundUnit) {
+      // Ground spawn: pick an angle on the XZ plane around megabot, place at GROUND_Y.
+      // Tanks roll inward; SAMs sit still and fire homing missiles.
+      const theta = Math.random() * Math.PI * 2;
+      const spawnX = mp.x + this.SHIP_SPAWN_RADIUS * Math.cos(theta);
+      const spawnZ = mp.z + this.SHIP_SPAWN_RADIUS * Math.sin(theta);
+      ship.group.position.set(spawnX, this.GROUND_Y, spawnZ);
+
+      // Face megabot on the XZ plane only (no pitch — they're ground-locked).
+      const facingYaw = Math.atan2(mp.x - spawnX, mp.z - spawnZ);
+      ship.group.rotation.y = facingYaw;
+
+      const velocity = (ship as any).isStationary
+        ? new THREE.Vector3(0, 0, 0)
+        : (() => {
+            // Tanks creep in along the XZ vector; speed scales with wave so they
+            // remain a steady threat without ever overtaking aerial pacing.
+            const dx = mp.x - spawnX, dz = mp.z - spawnZ;
+            const len = Math.sqrt(dx * dx + dz * dz) || 1;
+            const TANK_SPEED = 70 + this.currentWave * 4;
+            return new THREE.Vector3((dx / len) * TANK_SPEED, 0, (dz / len) * TANK_SPEED);
+          })();
+
+      this.enemyShips.push({
+        ...ship,
+        velocity,
+        active: true,
+        lastLaserTime: 0,
+      });
+      this.scene.add(ship.group);
+      return;
+    }
+
+    // Aerial spawn (existing) — spherical around megabot.
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.random() * Math.PI;
-
     const spawnX = mp.x + this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.cos(theta);
     const spawnY = mp.y + this.SHIP_SPAWN_RADIUS * Math.sin(phi) * Math.sin(theta);
     const spawnZ = mp.z + this.SHIP_SPAWN_RADIUS * Math.cos(phi);
-
     ship.group.position.set(spawnX, spawnY, spawnZ);
 
-    // Calculate velocity toward megabot
     const dirX = mp.x - spawnX;
     const dirY = mp.y - spawnY;
     const dirZ = mp.z - spawnZ;
     const distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
     const speed = this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN);
-
     const velocity = new THREE.Vector3(
       (dirX / distance) * speed,
       (dirY / distance) * speed,
-      (dirZ / distance) * speed
+      (dirZ / distance) * speed,
     );
-
-    // Point ship in direction of travel
     ship.group.lookAt(mp.x, mp.y, mp.z);
 
     this.enemyShips.push({
       ...ship,
       velocity,
       active: true,
-      lastLaserTime: 0, // Track when ship last fired laser
+      lastLaserTime: 0,
     });
-
     this.scene.add(ship.group);
   }
 
@@ -5860,11 +6134,21 @@ class MegabotScene {
     }
 
     if (ship.health <= 0) {
-      const base = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+      const base = ship.type === 'cruiser' ? 500
+        : ship.type === 'bomber' ? 300
+        : ship.type === 'sam' ? 250
+        : ship.type === 'tank' ? 220
+        : ship.type === 'interceptor' ? 200
+        : 100;
       this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
       this.comboTimer = this.COMBO_WINDOW;
       this.gameScore += base * Math.min(this.comboCount, 8);
-      const blastScale = ship.type === 'cruiser' ? 5.0 : ship.type === 'bomber' ? 4.0 : ship.type === 'interceptor' ? 2.0 : 2.5;
+      const blastScale = ship.type === 'cruiser' ? 5.0
+        : ship.type === 'bomber' ? 4.0
+        : ship.type === 'sam' ? 3.5      // ammo cooks off
+        : ship.type === 'tank' ? 3.2     // armor + fuel
+        : ship.type === 'interceptor' ? 2.0
+        : 2.5;
       this.create3DExplosion(ship.group.position, ship.size * blastScale);
       return true;
     }
@@ -5912,31 +6196,65 @@ class MegabotScene {
         this.updatePincerBehavior(ship, dt, distToMegabot);
       } else if (ship.behavior === 'escort-protect') {
         this.updateEscortBehavior(ship, dt);
+      } else if (ship.isGroundUnit) {
+        // Ground units: SAM is stationary, tanks creep in until standoff distance,
+        // then stop and fire from range. Y is clamped so they ride the ground plane
+        // regardless of what their velocity vector tries to do.
+        if (!ship.isStationary) {
+          // sqrt only when needed — tanks are the only ones that need it for standoff
+          const distXZ = Math.sqrt(distToMegabotSq);
+          const TANK_STANDOFF = 700;
+          if (distXZ > TANK_STANDOFF) {
+            ship.group.position.x += ship.velocity.x * dt;
+            ship.group.position.z += ship.velocity.z * dt;
+          }
+          // Re-aim the chassis toward megabot on every frame; small lerp smooths
+          // direction changes when megabot moves around the tank.
+          const targetYaw = Math.atan2(
+            this.megabotWorldPos.x - ship.group.position.x,
+            this.megabotWorldPos.z - ship.group.position.z,
+          );
+          const yawDiff = Math.atan2(
+            Math.sin(targetYaw - ship.group.rotation.y),
+            Math.cos(targetYaw - ship.group.rotation.y),
+          );
+          ship.group.rotation.y += yawDiff * 0.08;
+        }
+        ship.group.position.y = this.GROUND_Y;
       } else {
         ship.group.position.x += ship.velocity.x * dt;
         ship.group.position.y += ship.velocity.y * dt;
         ship.group.position.z += ship.velocity.z * dt;
       }
 
-      // Face direction of travel (or Megabot), then add characteristic secondary motion
-      // Only apply lookAt for non-formation ships (formations handle their own facing)
-      if (!ship.behavior || ship.behavior === 'formation-attack') {
-        // Face toward Megabot
-        ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
-      }
-      // Add type-specific secondary motion on top of facing direction
-      if (ship.type === 'fighter') {
-        // Fighters: banking roll during flight
-        ship.group.rotateZ(Math.sin(this.time * 4 + i) * 0.03);
-      } else if (ship.type === 'interceptor') {
-        // Interceptors: aggressive wobble
-        ship.group.rotateZ(interceptorWobble * 0.15);
-      } else if (ship.type === 'bomber') {
-        // Bombers: slow, steady — gentle pitch oscillation
-        ship.group.rotateX(bomberPitch);
-      } else if (ship.type === 'cruiser') {
-        // Cruisers: majestic slow roll
-        ship.group.rotateX(cruiserPitch * 0.5);
+      // Face direction of travel + secondary banking. Ground units are oriented
+      // explicitly above and don't bank/pitch — skip both.
+      if (!ship.isGroundUnit) {
+        if (!ship.behavior || ship.behavior === 'formation-attack') {
+          // Face toward Megabot
+          ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+        }
+        if (ship.type === 'fighter') {
+          ship.group.rotateZ(Math.sin(this.time * 4 + i) * 0.03);
+        } else if (ship.type === 'interceptor') {
+          ship.group.rotateZ(interceptorWobble * 0.15);
+        } else if (ship.type === 'bomber') {
+          ship.group.rotateX(bomberPitch);
+        } else if (ship.type === 'cruiser') {
+          ship.group.rotateX(cruiserPitch * 0.5);
+        }
+      } else if (ship.type === 'sam') {
+        // Spin the radar dish on SAM sites for visual life. Cached on first
+        // touch so we don't traverse children every frame.
+        if (!ship._radarDish) {
+          for (let c = 0; c < ship.group.children.length; c++) {
+            if ((ship.group.children[c] as any)._isRadarDish) {
+              ship._radarDish = ship.group.children[c];
+              break;
+            }
+          }
+        }
+        if (ship._radarDish) ship._radarDish.rotation.z += dt * 1.4;
       }
 
       // Animate engine glows (pulsing effect) - uses cached engine refs instead of forEach
@@ -6000,6 +6318,12 @@ class MegabotScene {
       } else if (ship.type === 'cruiser') {
         weaponCooldown = 1200; // Cruisers fire broadsides regularly
         weaponRange = this.ENEMY_LASER_RANGE * 1.5; // Long range capital ship
+      } else if (ship.type === 'tank') {
+        weaponCooldown = 2400; // Heavy plasma shells, deliberate cadence
+        weaponRange = this.ENEMY_LASER_RANGE * 0.9;
+      } else if (ship.type === 'sam') {
+        weaponCooldown = 3200; // Tracking radar lock-on takes a beat
+        weaponRange = this.ENEMY_LASER_RANGE * 1.6; // Long-range AA — best defensive coverage
       }
 
       // Formation-specific behavior modifiers
@@ -6026,6 +6350,12 @@ class MegabotScene {
           // Cruisers fire broadside: plasma + standard lasers
           this.createPlasmaCannon(ship);
           this.createEnemyLaser(ship);
+        } else if (ship.type === 'tank') {
+          // Tanks fire heavy plasma shells from the ground
+          this.createPlasmaCannon(ship);
+        } else if (ship.type === 'sam') {
+          // SAM sites fire homing missiles — reuse the homing-laser primitive
+          this.createEnemyLaser(ship);
         } else {
           // Fighters use standard lasers
           this.createEnemyLaser(ship);
@@ -6034,16 +6364,18 @@ class MegabotScene {
         ship.lastLaserTime = currentTimeMs;
       }
 
-      // Check collision with megabot (squared distance)
-      const megabotHitRadius = this.MAIN_SIZE + ship.size;
-      if (distToMegabotSq < megabotHitRadius * megabotHitRadius) {
-        // Hit megabot - apply damage through shield and score penalty
-        this.applyDamageToMegabot(10);
-        this.gameScore = Math.max(0, this.gameScore - 5);
-        this.create3DExplosion(ship.group.position, ship.size * 2);
-        this.scene.remove(ship.group);
-        this.enemyShips.splice(i, 1);
-        continue;
+      // Kamikaze damage — only aerial units can ram megabot. Ground units stand
+      // off and fire from range, so they should never be deleted by proximity.
+      if (!ship.isGroundUnit) {
+        const megabotHitRadius = this.MAIN_SIZE + ship.size;
+        if (distToMegabotSq < megabotHitRadius * megabotHitRadius) {
+          this.applyDamageToMegabot(10);
+          this.gameScore = Math.max(0, this.gameScore - 5);
+          this.create3DExplosion(ship.group.position, ship.size * 2);
+          this.scene.remove(ship.group);
+          this.enemyShips.splice(i, 1);
+          continue;
+        }
       }
 
       // Check collision with lasers (ray-cone intersection) - shared helper, hoisted thresholds
@@ -6140,11 +6472,21 @@ class MegabotScene {
           hitShip = true;
 
           if (ship.health <= 0) {
-            const base = ship.type === 'cruiser' ? 500 : ship.type === 'bomber' ? 300 : ship.type === 'interceptor' ? 200 : 100;
+            const base = ship.type === 'cruiser' ? 500
+        : ship.type === 'bomber' ? 300
+        : ship.type === 'sam' ? 250
+        : ship.type === 'tank' ? 220
+        : ship.type === 'interceptor' ? 200
+        : 100;
             this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
             this.comboTimer = this.COMBO_WINDOW;
             this.gameScore += base * Math.min(this.comboCount, 8);
-            const blastScale = ship.type === 'cruiser' ? 5.0 : ship.type === 'bomber' ? 4.0 : ship.type === 'interceptor' ? 2.0 : 2.5;
+            const blastScale = ship.type === 'cruiser' ? 5.0
+        : ship.type === 'bomber' ? 4.0
+        : ship.type === 'sam' ? 3.5      // ammo cooks off
+        : ship.type === 'tank' ? 3.2     // armor + fuel
+        : ship.type === 'interceptor' ? 2.0
+        : 2.5;
             this.create3DExplosion(ship.group.position, ship.size * blastScale);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
@@ -7075,6 +7417,11 @@ class MegabotScene {
     if (this.starField) {
       this.starField.rotation.y += 0.0001;
       this.starField.rotation.x += 0.00005;
+    }
+
+    // Drive the procedural-road shader's time uniform for the scanline shimmer.
+    if (this.groundPlane && this.groundPlane.material && (this.groundPlane.material as any).uniforms) {
+      (this.groundPlane.material as any).uniforms.uTime.value = this.time;
     }
 
     // Update border laser scanning animation
