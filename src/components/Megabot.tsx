@@ -302,6 +302,13 @@ class MegabotScene {
   private _shockwavePool: any[] = [];
   private _shockwavePoolInitialized = false;
   readonly MAX_SHOCKWAVES = 12;
+
+  // Aim reticle — a 3D crosshair placed where megabot's missiles/lasers will
+  // arrive at AIM_RETICLE_DIST units of forward travel. Always billboards toward
+  // the camera and rescales for constant on-screen size, so it stays legible in
+  // 3rd-person, FPS, and free modes.
+  private _aimReticle: any = null;
+  readonly AIM_RETICLE_DIST = 1500;
   // Performance: shared geometry cache for ship types (avoids recreating identical geometries)
   private _geometryCache = new Map<string, any>();
 
@@ -490,6 +497,7 @@ class MegabotScene {
     this.init();
     this._initExplosionPool();
     this._initShockwavePool();
+    this.createAimReticle();
     this.createStarField();
     this.createGroundPlane();
     this.createMainMegabot();
@@ -5048,6 +5056,79 @@ class MegabotScene {
     }
   }
 
+  // Build the aim reticle — a 3D crosshair (outer ring + center dot + 4 ticks)
+  // floating at AIM_RETICLE_DIST units along megabot's forward axis. depthTest=false
+  // and renderOrder=999 keep it visible above any geometry, including buildings.
+  private createAimReticle() {
+    const THREE = this.THREE;
+    const group = new THREE.Group();
+
+    const baseColor = 0xff4444;
+    const dotColor = 0xff7777;
+    const mkMat = (color: number, opacity: number) => new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide,
+    });
+
+    // Outer ring — annulus at radius ~40 (will be scaled per-frame)
+    const ring = new THREE.Mesh(new THREE.RingGeometry(35, 45, 32), mkMat(baseColor, 0.85));
+    group.add(ring);
+
+    // Center dot
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(8, 16), mkMat(dotColor, 0.95));
+    group.add(dot);
+
+    // 4 cardinal tick marks just outside the ring (top/bottom/left/right)
+    const tickGeo = new THREE.PlaneGeometry(4, 14);
+    for (let i = 0; i < 4; i++) {
+      const tick = new THREE.Mesh(tickGeo, mkMat(baseColor, 0.85));
+      const angle = i * Math.PI / 2; // 0, π/2, π, 3π/2
+      tick.position.set(Math.cos(angle) * 56, Math.sin(angle) * 56, 0);
+      tick.rotation.z = angle - Math.PI / 2; // long axis points radially outward
+      group.add(tick);
+    }
+
+    group.renderOrder = 999;
+    group.traverse((o: any) => { if (o.material) o.renderOrder = 999; });
+    this.scene.add(group);
+    this._aimReticle = group;
+  }
+
+  // Per-frame: place the reticle along megabot's forward, billboard toward the
+  // camera, and scale by camera distance so it reads at a consistent on-screen size.
+  // Hidden when megabot doesn't exist (not yet created / destroyed).
+  private updateAimReticle() {
+    if (!this._aimReticle || !this.camera) return;
+    if (!this.mainMegabot) {
+      this._aimReticle.visible = false;
+      return;
+    }
+    this._aimReticle.visible = true;
+
+    // Anchor at the missile launch point (shoulder offset) + forward * AIM_RETICLE_DIST
+    // so the reticle sits exactly on the line missiles fly down.
+    const megaQuat = this.mainMegabot.quaternion;
+    const launchOffset = this._tmpVec3A.set(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2)
+      .applyQuaternion(megaQuat);
+    const launchPos = this._tmpVec3B.copy(this.mainMegabot.position).add(launchOffset);
+    const forward = this._tmpVec3C.set(0, 0, 1).applyQuaternion(megaQuat);
+    this._aimReticle.position.copy(launchPos).addScaledVector(forward, this.AIM_RETICLE_DIST);
+
+    // Billboard toward camera
+    this._aimReticle.lookAt(this.camera.position);
+
+    // Constant on-screen size: scale ∝ distance to camera. The base reticle is
+    // sized for ~800 units; rescale so it visually matches at any range.
+    const camDist = this._aimReticle.position.distanceTo(this.camera.position);
+    const scale = camDist / 800;
+    this._aimReticle.scale.setScalar(scale);
+  }
+
   // Create 3D explosion effect - uses object pool to avoid allocation
   create3DExplosion(position: any, size: number) {
     if (this.explosions3D.length >= this.MAX_EXPLOSIONS_3D) return;
@@ -5334,26 +5415,24 @@ class MegabotScene {
     if (!this.mainMegabot) return;
 
     // ── Manual yaw rotation: A/D + Arrow Left/Right ──
-    // A = turn left (rotation.y decreases — world's +Z rotates toward -X)
-    // D = turn right (rotation.y increases — toward +X)
-    // Holding A or D suppresses mouse-aim (see animate() body-rotation block) so
-    // the player can manually steer regardless of cursor position.
+    // A = turn left, D = turn right (sign empirically picked to match player
+    // intent in 3rd-person/free cameras — note that the math depends on which
+    // side of megabot the camera sits on, so we just match the perception).
     const rotateLeft  = this.keysPressed.has('a') || this.keysPressed.has('arrowleft');
     const rotateRight = this.keysPressed.has('d') || this.keysPressed.has('arrowright');
-    if (rotateLeft)  this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
-    if (rotateRight) this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
+    if (rotateLeft)  this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
+    if (rotateRight) this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
 
     // ── Movement input — megabot-LOCAL frame ──
     // W/Up = forward (local +Z)   S/Down = back (local -Z)
-    // Q     = strafe left (-X)    E       = strafe right (+X)
-    // Movement is megabot-relative so mouse-aim/A/D steer while WASD-QE handle
-    // locomotion (twin-stick feel: aim with mouse, run/strafe with keyboard).
+    // Q     = strafe left         E       = strafe right
+    // (Strafe sign matches rotation sign convention chosen above.)
     let localX = 0;
     let localZ = 0;
     if (this.keysPressed.has('w') || this.keysPressed.has('arrowup'))   localZ += 1;
     if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) localZ -= 1;
-    if (this.keysPressed.has('q')) localX -= 1;
-    if (this.keysPressed.has('e')) localX += 1;
+    if (this.keysPressed.has('q')) localX += 1; // strafe left
+    if (this.keysPressed.has('e')) localX -= 1; // strafe right
 
     if (localX === 0 && localZ === 0) {
       // Not moving - decelerate walk cycle and return to standing height
@@ -6711,6 +6790,9 @@ class MegabotScene {
     // Recompute mouse-aim world point now that the camera matrix is up to date.
     this.updateAimFromMouse();
 
+    // Position + billboard the aim reticle along megabot's forward axis.
+    this.updateAimReticle();
+
     // Animate main Megabot
     if (this.mainMegabot) {
       // Cache world pos for combat checks
@@ -7375,6 +7457,7 @@ class MegabotScene {
     this._explosionPoolInitialized = false;
     this._shockwavePool = [];
     this._shockwavePoolInitialized = false;
+    this._aimReticle = null;
     this._pendingBursts = [];
     this._pendingBarrage = [];
     this._buildingGrid.clear();
