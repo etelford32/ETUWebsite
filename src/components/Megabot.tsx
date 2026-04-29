@@ -124,7 +124,9 @@ class MegabotScene {
   // Camera controls
   mouse: any = { x: 0, y: 0 };
   cameraAngle: number = 0;      // Horizontal orbit angle for minigame camera
-  cameraDistance: number = 1200; // Current distance (smoothed toward cameraTargetDistance)
+  // Initial distance matches TP_FOLLOW_DIST so the default 3rd-person camera
+  // doesn't visibly pull in on first frame.
+  cameraDistance: number = 950; // Current distance (smoothed toward cameraTargetDistance)
 
   // Mouse-aim: megabot's body smoothly yaws to face the world point under the cursor.
   // Coords are container-local (already viewport-corrected) and get raycast onto a
@@ -142,8 +144,8 @@ class MegabotScene {
 
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
-  cameraPitch: number = 0.35;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
-  cameraTargetDistance: number = 1200; // Smooth zoom target
+  cameraPitch: number = 0.22;         // Vertical orbit angle (0 = horizon, PI/2 = top-down) — TP default
+  cameraTargetDistance: number = 950; // Smooth zoom target — matches TP_FOLLOW_DIST
   cameraPanX: number = 0;             // Look-at pan offset X
   cameraPanY: number = 0;             // Look-at pan offset Y
   cameraPanZ: number = 0;             // Look-at pan offset Z
@@ -152,6 +154,26 @@ class MegabotScene {
   private _dragStartX = 0;
   private _dragStartY = 0;
   private _dragTotalDist = 0;         // Total drag distance (for click vs drag detection)
+
+  // Camera modes — V cycles, 1/2/3 sets directly.
+  // - thirdPerson (default): camera follows behind megabot, yaw locks to his facing
+  //   so we always see what he's doing. Right-drag adjusts pitch only; wheel zooms.
+  // - fps: camera sits at megabot's eye position looking along his forward vector.
+  //   Megabot's mesh is hidden so we see *out*, not at his back. Mouse aim turns him,
+  //   the view turns with him. Click fires forward.
+  // - free: legacy orbit camera. Right-drag yaw+pitch, middle pan, wheel zoom.
+  cameraMode: 'thirdPerson' | 'fps' | 'free' = 'thirdPerson';
+  // Per-mode tuning
+  readonly TP_FOLLOW_DIST = 950;      // Default distance behind megabot in 3rd-person
+  readonly TP_FOLLOW_HEIGHT_LOOKAT = 0.3; // Look-at height as fraction of MAIN_SIZE above megabot
+  readonly TP_FOLLOW_LERP = 0.18;     // How quickly camera yaw catches up to megabot's facing
+  readonly TP_PITCH_DEFAULT = 0.22;
+  readonly TP_PITCH_MIN = -0.05;
+  readonly TP_PITCH_MAX = 0.85;
+  readonly FPS_PITCH_MIN = -0.6;
+  readonly FPS_PITCH_MAX = 0.6;
+  readonly FPS_EYE_HEIGHT_MULT = 1.55; // Eye Y offset above megabot origin, in MAIN_SIZE units
+  readonly FPS_EYE_FORWARD_MULT = 0.45; // Eye Z offset (slightly past head face)
   // Camera limits & tuning
   readonly CAMERA_MIN_DISTANCE = 200;
   readonly CAMERA_MAX_DISTANCE = 5000;
@@ -5265,8 +5287,8 @@ class MegabotScene {
   }
 
   // Recompute the world-space aim point each frame by raycasting the cursor
-  // through the camera onto a horizontal plane at megabot's torso height.
-  // Yaw-only aim: pitch is intentionally ignored so missiles fire level.
+  // through the camera. The result is yaw-only (pitch ignored — megabot's
+  // body can't pitch and missiles fire level).
   private updateAimFromMouse() {
     if (!this._hasMouseAim || !this.mainMegabot || !this.camera) return;
     if (this._isDragging || this._isPanning) return;
@@ -5276,14 +5298,30 @@ class MegabotScene {
 
     this._aimMouseNDC.x = (this._aimMouseLocalX / rect.width) * 2 - 1;
     this._aimMouseNDC.y = -(this._aimMouseLocalY / rect.height) * 2 + 1;
-
     this._aimRaycaster.setFromCamera(this._aimMouseNDC, this.camera);
 
-    // Plane at megabot's torso height; constant = -planeY because Plane is `n·x + d = 0`
-    // and our normal is +Y, so a plane at y=h satisfies y - h = 0 ⇒ d = -h.
+    if (this.cameraMode === 'fps') {
+      // FPS path: the camera is AT eye height looking horizontally, so a horizontal
+      // aim plane at megabot.y rarely intersects the ray. Instead we project the
+      // ray's XZ direction component and place the aim point a fixed distance ahead.
+      // Cursor at screen-center → aim along megabot's current forward → no turn;
+      // cursor off-center → aim point off-axis → megabot turns toward it (mouselook).
+      const dir = this._aimRaycaster.ray.direction;
+      const lenXZ = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
+      if (lenXZ > 0.001) {
+        const nx = dir.x / lenXZ;
+        const nz = dir.z / lenXZ;
+        const AHEAD = 1500;
+        this._aimWorldX = this.mainMegabot.position.x + nx * AHEAD;
+        this._aimWorldZ = this.mainMegabot.position.z + nz * AHEAD;
+      }
+      return;
+    }
+
+    // Free / 3rd-person: horizontal plane at megabot's torso height.
+    // Plane is `n·x + d = 0`; with normal +Y, a plane at y=h satisfies y - h = 0 ⇒ d = -h.
     const planeY = this.mainMegabot.position.y;
     this._aimPlane.constant = -planeY;
-
     const hit = this._aimRaycaster.ray.intersectPlane(this._aimPlane, this._aimHit);
     if (hit) {
       this._aimWorldX = this._aimHit.x;
@@ -6248,23 +6286,36 @@ class MegabotScene {
       }
 
       // Right-click drag → orbit camera
+      // 3rd-person + FPS: pitch only (yaw is yoked to megabot's facing).
+      // Free: yaw + pitch as before.
       if (this._isDragging) {
         const dx = e.clientX - this._dragStartX;
         const dy = e.clientY - this._dragStartY;
         this._dragTotalDist += Math.abs(dx) + Math.abs(dy);
 
-        this.cameraYaw -= dx * this.CAMERA_ORBIT_SPEED;
+        if (this.cameraMode === 'free') {
+          this.cameraYaw -= dx * this.CAMERA_ORBIT_SPEED;
+        }
         this.cameraPitch += dy * this.CAMERA_ORBIT_SPEED;
-        // Clamp pitch
-        this.cameraPitch = Math.max(this.CAMERA_MIN_PITCH, Math.min(this.CAMERA_MAX_PITCH, this.cameraPitch));
+
+        // Clamp pitch — tighter range for 3rd-person/FPS where extreme angles would
+        // either show megabot's underside (3rd) or roll over backwards (fps).
+        const pMin = this.cameraMode === 'fps' ? this.FPS_PITCH_MIN
+                   : this.cameraMode === 'thirdPerson' ? this.TP_PITCH_MIN
+                   : this.CAMERA_MIN_PITCH;
+        const pMax = this.cameraMode === 'fps' ? this.FPS_PITCH_MAX
+                   : this.cameraMode === 'thirdPerson' ? this.TP_PITCH_MAX
+                   : this.CAMERA_MAX_PITCH;
+        this.cameraPitch = Math.max(pMin, Math.min(pMax, this.cameraPitch));
 
         this._dragStartX = e.clientX;
         this._dragStartY = e.clientY;
         return;
       }
 
-      // Middle-click drag → pan camera
-      if (this._isPanning) {
+      // Middle-click drag → pan camera (free mode only — pan makes no sense
+      // in follow modes that center on megabot)
+      if (this._isPanning && this.cameraMode === 'free') {
         const dx = e.clientX - this._dragStartX;
         const dy = e.clientY - this._dragStartY;
         this._dragTotalDist += Math.abs(dx) + Math.abs(dy);
@@ -6367,24 +6418,42 @@ class MegabotScene {
     };
     document.addEventListener("click", this._boundClick);
 
-    // ── Keyboard: WASD movement, Q barrage, R reset camera, F focus ──
+    // ── Keyboard: WASD movement, Q/E rotate, X barrage, R reset, F focus, V/1/2/3 camera mode ──
     this._boundKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       // Game movement + camera keys
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'x', 'r', 'f'].includes(key)) {
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'x', 'r', 'f', 'v', '1', '2', '3'].includes(key)) {
         e.preventDefault();
         this.keysPressed.add(key);
 
-        // Camera reset (R) - snap back to default orbit
+        // Camera mode controls
+        if (key === 'v') {
+          this.cycleCameraMode();
+        } else if (key === '1') {
+          this.setCameraMode('thirdPerson');
+        } else if (key === '2') {
+          this.setCameraMode('fps');
+        } else if (key === '3') {
+          this.setCameraMode('free');
+        }
+
+        // Camera reset (R) — defaults depend on mode so a reset feels mode-correct
         if (key === 'r') {
-          this.cameraYaw = 0;
-          this.cameraPitch = 0.35;
-          this.cameraTargetDistance = 1200;
+          if (this.cameraMode === 'thirdPerson') {
+            this.cameraPitch = this.TP_PITCH_DEFAULT;
+            this.cameraTargetDistance = this.TP_FOLLOW_DIST;
+          } else if (this.cameraMode === 'fps') {
+            this.cameraPitch = 0;
+          } else {
+            this.cameraYaw = 0;
+            this.cameraPitch = 0.35;
+            this.cameraTargetDistance = 1200;
+          }
           this.cameraPanX = 0;
           this.cameraPanY = 0;
           this.cameraPanZ = 0;
         }
-        // Focus on megabot (F) - clear pan offset
+        // Focus on megabot (F) - clear pan offset (free cam only — other modes don't pan)
         if (key === 'f') {
           this.cameraPanX = 0;
           this.cameraPanY = 0;
@@ -6409,6 +6478,156 @@ class MegabotScene {
     this.camera.aspect = this.container.offsetWidth / this.container.offsetHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.container.offsetWidth, this.container.offsetHeight);
+  }
+
+  // Apply per-frame camera shake (decays over 0.3s). Shared across all camera modes.
+  private _applyCameraShake(dt: number) {
+    if (this.cameraShakeDecay <= 0) return;
+    const shakeIntensity = this.cameraShakeMagnitude * (this.cameraShakeDecay / 0.3);
+    this.camera.position.x += (Math.random() - 0.5) * shakeIntensity * 2;
+    this.camera.position.y += (Math.random() - 0.5) * shakeIntensity * 2;
+    this.camera.position.z += (Math.random() - 0.5) * shakeIntensity * 2;
+    this.cameraShakeDecay -= dt;
+    if (this.cameraShakeDecay <= 0) this.cameraShakeMagnitude = 0;
+  }
+
+  // FREE CAMERA — legacy orbit cam. Right-drag yaw+pitch, middle pan, wheel zoom.
+  private updateFreeCamera(_dt: number) {
+    const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, this.MEGABOT_STAND_Y, 0);
+
+    // Smooth zoom interpolation
+    this.cameraDistance += (this.cameraTargetDistance - this.cameraDistance) * this.CAMERA_ZOOM_SMOOTH;
+
+    // Look-at = megabot + pan offsets, with floor blend so target sits between feet and torso
+    const lookAtX = megaPos.x + this.cameraPanX;
+    const lookAtY = megaPos.y * 0.45 + this.GROUND_Y * 0.55 + this.cameraPanY;
+    const lookAtZ = megaPos.z + this.cameraPanZ;
+
+    const cosPitch = Math.cos(this.cameraPitch);
+    this.camera.position.x = lookAtX + this.cameraDistance * cosPitch * Math.sin(this.cameraYaw);
+    this.camera.position.y = lookAtY + this.cameraDistance * Math.sin(this.cameraPitch);
+    this.camera.position.z = lookAtZ + this.cameraDistance * cosPitch * Math.cos(this.cameraYaw);
+
+    this._applyCameraShake(_dt);
+    this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
+  }
+
+  // THIRD-PERSON FOLLOW — camera orbits around megabot but its yaw chases his
+  // facing direction so he's always centered. Distance and pitch stay user-
+  // controllable (wheel, right-drag). The +π offset is because, with our
+  // spherical-coords convention (camera_x = sin(yaw)·dist, camera_z = cos(yaw)·dist),
+  // putting the camera *behind* a megabot facing +Z requires camYaw = megaYaw + π.
+  private updateThirdPersonCamera(dt: number) {
+    if (!this.mainMegabot) {
+      this.updateFreeCamera(dt);
+      return;
+    }
+    const megaPos = this.mainMegabot.position;
+    const megaYaw = this.mainMegabot.rotation.y;
+
+    // Target camera yaw = behind megabot. Smoothly lerp via wrapped angle diff.
+    const targetYaw = megaYaw + Math.PI;
+    const yawDiff = Math.atan2(Math.sin(targetYaw - this.cameraYaw), Math.cos(targetYaw - this.cameraYaw));
+    this.cameraYaw += yawDiff * this.TP_FOLLOW_LERP;
+
+    // Pitch: clamp to a tighter, "shoulder-cam" range
+    if (this.cameraPitch < this.TP_PITCH_MIN) this.cameraPitch = this.TP_PITCH_MIN;
+    else if (this.cameraPitch > this.TP_PITCH_MAX) this.cameraPitch = this.TP_PITCH_MAX;
+
+    // Smooth zoom interpolation (same field as free cam — wheel handler still drives this)
+    this.cameraDistance += (this.cameraTargetDistance - this.cameraDistance) * this.CAMERA_ZOOM_SMOOTH;
+
+    // Look-at: a point slightly above megabot's torso AND slightly ahead of him,
+    // so megabot reads in the lower-third of the frame and the action is centered.
+    const forwardX = Math.sin(megaYaw);
+    const forwardZ = Math.cos(megaYaw);
+    const aheadFactor = this.MAIN_SIZE * 0.4;
+    const lookAtX = megaPos.x + forwardX * aheadFactor;
+    const lookAtY = megaPos.y + this.MAIN_SIZE * this.TP_FOLLOW_HEIGHT_LOOKAT;
+    const lookAtZ = megaPos.z + forwardZ * aheadFactor;
+
+    const cosPitch = Math.cos(this.cameraPitch);
+    this.camera.position.x = lookAtX + this.cameraDistance * cosPitch * Math.sin(this.cameraYaw);
+    this.camera.position.y = lookAtY + this.cameraDistance * Math.sin(this.cameraPitch);
+    this.camera.position.z = lookAtZ + this.cameraDistance * cosPitch * Math.cos(this.cameraYaw);
+
+    this._applyCameraShake(dt);
+    this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
+  }
+
+  // FPS — camera at megabot's eye position, looking along his +Z forward.
+  // Megabot's mesh is hidden when this mode is active (see setCameraMode), so
+  // we see *out* rather than at the inside of his head. Mouse aim turns megabot,
+  // which turns the view. cameraPitch (right-drag) tilts the look target up/down.
+  private updateFPSCamera(dt: number) {
+    if (!this.mainMegabot) {
+      this.updateFreeCamera(dt);
+      return;
+    }
+    const megaPos = this.mainMegabot.position;
+    const megaQuat = this.mainMegabot.quaternion;
+
+    // Eye position offset in megabot-local space, rotated into world.
+    const eyeOffset = this._tmpVec3A.set(
+      0,
+      this.MAIN_SIZE * this.FPS_EYE_HEIGHT_MULT,
+      this.MAIN_SIZE * this.FPS_EYE_FORWARD_MULT,
+    ).applyQuaternion(megaQuat);
+
+    this.camera.position.set(
+      megaPos.x + eyeOffset.x,
+      megaPos.y + eyeOffset.y,
+      megaPos.z + eyeOffset.z,
+    );
+
+    // Look 1500 units forward along megabot's facing, with cameraPitch as a
+    // small vertical tilt (negative pitch looks down, positive looks up).
+    const forward = this._tmpVec3B.set(0, 0, 1).applyQuaternion(megaQuat);
+    const pitch = Math.max(this.FPS_PITCH_MIN, Math.min(this.FPS_PITCH_MAX, this.cameraPitch));
+    const horizDist = 1500 * Math.cos(pitch);
+    const verticalRise = 1500 * Math.sin(pitch);
+
+    this._applyCameraShake(dt);
+    this.camera.lookAt(
+      this.camera.position.x + forward.x * horizDist,
+      this.camera.position.y + verticalRise,
+      this.camera.position.z + forward.z * horizDist,
+    );
+  }
+
+  // Switch camera mode. Hides/restores megabot mesh for FPS so we see out, not
+  // at the inside of his head. Resets cameraPitch to the new mode's default so
+  // we don't carry a 1.4-rad orbit pitch into a shoulder-cam.
+  setCameraMode(mode: 'thirdPerson' | 'fps' | 'free') {
+    if (this.cameraMode === mode) return;
+    const prev = this.cameraMode;
+    this.cameraMode = mode;
+
+    // Show megabot for everything except FPS
+    if (this.mainMegabot) {
+      this.mainMegabot.visible = mode !== 'fps';
+    }
+
+    // Reset pitch + distance to mode-appropriate defaults so transitions feel
+    // intentional rather than dragging the previous mode's orbit state along.
+    if (mode === 'thirdPerson') {
+      this.cameraPitch = this.TP_PITCH_DEFAULT;
+      this.cameraTargetDistance = this.TP_FOLLOW_DIST;
+    } else if (mode === 'fps') {
+      this.cameraPitch = 0;
+    } else if (mode === 'free' && prev !== 'free') {
+      // Carry over distance for continuity, but reset pan offsets.
+      this.cameraPanX = 0; this.cameraPanY = 0; this.cameraPanZ = 0;
+      this.cameraTargetDistance = 1200;
+    }
+  }
+
+  // Cycle thirdPerson → fps → free → thirdPerson
+  cycleCameraMode() {
+    const next: 'thirdPerson' | 'fps' | 'free' =
+      this.cameraMode === 'thirdPerson' ? 'fps' :
+      this.cameraMode === 'fps' ? 'free' : 'thirdPerson';
+    this.setCameraMode(next);
   }
 
   animate() {
@@ -6474,36 +6693,17 @@ class MegabotScene {
       this.barrageCooldown = this.BARRAGE_COOLDOWN_TIME;
     }
 
-    // Godmode 3D camera: spherical coords (yaw, pitch, distance) with pan offsets
-    const megaPos = this.mainMegabot ? this.mainMegabot.position : this._tmpVec3A.set(0, this.MEGABOT_STAND_Y, 0);
-
-    // Smooth zoom interpolation
-    this.cameraDistance += (this.cameraTargetDistance - this.cameraDistance) * this.CAMERA_ZOOM_SMOOTH;
-
-    // Look-at target = megabot position + pan offsets
-    const lookAtX = megaPos.x + this.cameraPanX;
-    const lookAtY = megaPos.y * 0.45 + this.GROUND_Y * 0.55 + this.cameraPanY;
-    const lookAtZ = megaPos.z + this.cameraPanZ;
-
-    // Spherical coordinates: camera orbits around the look-at target
-    const cosPitch = Math.cos(this.cameraPitch);
-    this.camera.position.x = lookAtX + this.cameraDistance * cosPitch * Math.sin(this.cameraYaw);
-    this.camera.position.y = lookAtY + this.cameraDistance * Math.sin(this.cameraPitch);
-    this.camera.position.z = lookAtZ + this.cameraDistance * cosPitch * Math.cos(this.cameraYaw);
-
-    // Apply camera shake
-    if (this.cameraShakeDecay > 0) {
-      const shakeIntensity = this.cameraShakeMagnitude * (this.cameraShakeDecay / 0.3);
-      this.camera.position.x += (Math.random() - 0.5) * shakeIntensity * 2;
-      this.camera.position.y += (Math.random() - 0.5) * shakeIntensity * 2;
-      this.camera.position.z += (Math.random() - 0.5) * shakeIntensity * 2;
-      this.cameraShakeDecay -= deltaTime;
-      if (this.cameraShakeDecay <= 0) {
-        this.cameraShakeMagnitude = 0;
-      }
+    // Per-mode camera update. Each helper writes camera.position + does lookAt
+    // and applies shake; they all share the same yaw/pitch/distance state but
+    // interpret it differently. updateAimFromMouse() runs after so it raycasts
+    // through the post-update camera matrix.
+    if (this.cameraMode === 'fps') {
+      this.updateFPSCamera(deltaTime);
+    } else if (this.cameraMode === 'thirdPerson') {
+      this.updateThirdPersonCamera(deltaTime);
+    } else {
+      this.updateFreeCamera(deltaTime);
     }
-
-    this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
     // Recompute mouse-aim world point now that the camera matrix is up to date.
     this.updateAimFromMouse();

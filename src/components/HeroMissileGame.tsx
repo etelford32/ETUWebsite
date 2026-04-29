@@ -165,7 +165,10 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           <div className="text-gray-400 text-[10px]"><span className="text-white">Q/E</span> Manual rotate</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Click</span> Fire forward</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+Click</span> Cluster fan</div>
-          <div className="text-gray-400 text-[10px]"><span className="text-white">Right-drag</span> Orbit camera</div>
+          <div className="text-cyan-300 text-[10px] pt-1 border-t border-purple-500/20 mt-1">CAMERA</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">V</span> Cycle: 3rd / FPS / Free</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">1 / 2 / 3</span> Pick mode directly</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Right-drag</span> Tilt (3rd/FPS) / Orbit (Free)</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Wheel</span> Zoom &nbsp;<span className="text-white">R</span> Reset cam</div>
           {gameState.upgradeLevel >= 3 && (
             <div className="text-yellow-400 text-[10px]"><span className="text-white">X</span> Missile Barrage</div>
