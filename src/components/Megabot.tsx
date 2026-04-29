@@ -134,6 +134,27 @@ class MegabotScene {
   private _aimMouseLocalX: number = 0;
   private _aimMouseLocalY: number = 0;
   private _hasMouseAim: boolean = false;
+  // "Last input wins" gate. When the player rotates with A/D (or arrow L/R),
+  // mouse-aim is suspended so the body doesn't snap back to the cursor the moment
+  // they release the key. The next mousemove on canvas re-engages it. Without
+  // this, manual rotation feels broken — every release teleports facing back.
+  private _aimRequiresMouseMove: boolean = false;
+
+  // Shared per-type ground-vehicle materials. Lazily initialized by the first
+  // create*Mesh call and reused across every instance — without this, 15 tanks
+  // were allocating 60+ MeshStandardMaterial objects and the Cylon-eye pulse
+  // animation needed to walk every instance's children.
+  private _tankMatHull: any = null;
+  private _tankMatTrack: any = null;
+  private _tankMatTurret: any = null;
+  private _tankMatPanelGlow: any = null;
+  private _tankMatSensorGlow: any = null;
+  private _tankMatExhaust: any = null;
+  private _samMatBase: any = null;
+  private _samMatRail: any = null;
+  private _samMatTip: any = null;
+  private _samMatRadar: any = null;
+  private _samMatLed: any = null;
   private _aimWorldX: number = 0;
   private _aimWorldZ: number = 0;
   private _aimRaycaster = new THREE.Raycaster();
@@ -3644,9 +3665,11 @@ class MegabotScene {
         break;
       case 'tank':
         // Mobile ground unit — drives toward megabot, stops at standoff, fires plasma.
+        // Color mirrors the existing enemy faction palette (red trim on dark gunmetal),
+        // not olive-drab military, so the visual reads as "Megabot's enemies" not "Earth army".
         size = 90;
         health = 4;
-        color = 0x556633; // olive-drab
+        color = 0xff2244; // red trim accent (used by panel glow / sensor)
         isGroundUnit = true;
         this.createTankMesh(group, size, color, THREE);
         break;
@@ -3654,7 +3677,7 @@ class MegabotScene {
         // Stationary SAM site — locks on, lobs fast homing missiles. Tougher to compensate.
         size = 80;
         health = 5;
-        color = 0x6a6a3a;
+        color = 0xff5522; // hot orange-red — radar/LED accent palette
         isGroundUnit = true;
         isStationary = true;
         this.createSamMesh(group, size, color, THREE);
@@ -3691,145 +3714,247 @@ class MegabotScene {
     };
   }
 
-  // TANK — boxy hull with treads, rotating turret, charged-cannon muzzle.
-  // Y-locked: hull floats just above ground; treads anchor to GROUND_Y.
-  createTankMesh(group: any, size: number, color: number, THREE: any) {
-    const hullMat = new THREE.MeshStandardMaterial({
-      color, metalness: 0.55, roughness: 0.7,
-      emissive: new THREE.Color(0x221100), emissiveIntensity: 0.15,
-    });
-    const trackMat = new THREE.MeshStandardMaterial({
-      color: 0x111111, metalness: 0.4, roughness: 0.9,
-    });
-    const turretMat = new THREE.MeshStandardMaterial({
-      color: 0x3d3d2a, metalness: 0.7, roughness: 0.5,
-      emissive: new THREE.Color(0x331100), emissiveIntensity: 0.25,
-    });
+  // TANK — dark gunmetal hull with red emissive trim, sloped glacis, Cylon-eye
+  // sensor, and rear exhaust. Materials are shared across all tank instances.
+  createTankMesh(group: any, size: number, _color: number, THREE: any) {
+    // Lazy material initialization — every subsequent tank reuses these refs.
+    if (!this._tankMatHull) {
+      this._tankMatHull = new THREE.MeshStandardMaterial({
+        color: 0x1a1a22, metalness: 0.85, roughness: 0.4,
+        emissive: new THREE.Color(0x1a0408), emissiveIntensity: 0.3,
+      });
+      this._tankMatTrack = new THREE.MeshStandardMaterial({
+        color: 0x0a0a0c, metalness: 0.5, roughness: 0.85,
+      });
+      this._tankMatTurret = new THREE.MeshStandardMaterial({
+        color: 0x222229, metalness: 0.9, roughness: 0.3,
+        emissive: new THREE.Color(0x220406), emissiveIntensity: 0.35,
+      });
+      // Emissive panel-line strip — additive so it pops against dark hulls.
+      this._tankMatPanelGlow = new THREE.MeshBasicMaterial({
+        color: 0xff2244, transparent: true, opacity: 0.85,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      // Bright Cylon-eye sensor on the turret front — bigger, more saturated.
+      this._tankMatSensorGlow = new THREE.MeshBasicMaterial({
+        color: 0xff3322, transparent: true, opacity: 0.95,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      // Rear exhaust glow
+      this._tankMatExhaust = new THREE.MeshBasicMaterial({
+        color: 0xff7733, transparent: true, opacity: 0.6,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+    }
 
-    // Hull (main body)
-    const hullGeo = this._getCachedGeometry('tank_hull', () => new THREE.BoxGeometry(1.1, 0.4, 1.5));
-    const hull = new THREE.Mesh(hullGeo, hullMat);
-    hull.scale.setScalar(size);
-    hull.position.y = size * 0.35;
-    group.add(hull);
-
-    // Twin treads — chunky, slightly wider than hull
-    const treadGeo = this._getCachedGeometry('tank_tread', () => new THREE.BoxGeometry(0.25, 0.3, 1.7));
+    // ── Treads — flat lower boxes anchored to GROUND_Y level (relative y=0.15) ──
+    const treadGeo = this._getCachedGeometry('tank_tread', () => new THREE.BoxGeometry(0.26, 0.32, 1.8));
     for (let side = -1; side <= 1; side += 2) {
-      const tread = new THREE.Mesh(treadGeo, trackMat);
+      const tread = new THREE.Mesh(treadGeo, this._tankMatTrack);
       tread.scale.setScalar(size);
-      tread.position.set(side * size * 0.55, size * 0.15, 0);
+      tread.position.set(side * size * 0.55, size * 0.16, 0);
       group.add(tread);
     }
 
-    // Turret base + barrel — barrel points along +Z (megabot's forward convention)
-    const turretGeo = this._getCachedGeometry('tank_turret', () => new THREE.CylinderGeometry(0.4, 0.45, 0.4, 12));
-    const turret = new THREE.Mesh(turretGeo, turretMat);
+    // ── Hull main body — wider, lower-profile box than before ──
+    const hullGeo = this._getCachedGeometry('tank_hull', () => new THREE.BoxGeometry(1.0, 0.32, 1.3));
+    const hull = new THREE.Mesh(hullGeo, this._tankMatHull);
+    hull.scale.setScalar(size);
+    hull.position.y = size * 0.45;
+    group.add(hull);
+
+    // ── Sloped glacis (front armor wedge) — angled box at hull front ──
+    const glacisGeo = this._getCachedGeometry('tank_glacis', () => new THREE.BoxGeometry(0.95, 0.08, 0.55));
+    const glacis = new THREE.Mesh(glacisGeo, this._tankMatHull);
+    glacis.scale.setScalar(size);
+    glacis.position.y = size * 0.5;
+    glacis.position.z = size * 0.55;
+    glacis.rotation.x = -0.45; // tilt forward for the sloped-wedge look
+    group.add(glacis);
+
+    // ── Side panel emissive strips — thin red lines down each flank ──
+    const panelGeo = this._getCachedGeometry('tank_panel', () => new THREE.BoxGeometry(0.04, 0.06, 1.0));
+    for (let side = -1; side <= 1; side += 2) {
+      const panel = new THREE.Mesh(panelGeo, this._tankMatPanelGlow);
+      panel.scale.setScalar(size);
+      panel.position.set(side * size * 0.51, size * 0.42, 0);
+      group.add(panel);
+    }
+
+    // ── Turret base (lower cylinder) ──
+    const turretBaseGeo = this._getCachedGeometry('tank_turret_base', () => new THREE.CylinderGeometry(0.42, 0.46, 0.18, 14));
+    const turretBase = new THREE.Mesh(turretBaseGeo, this._tankMatTurret);
+    turretBase.scale.setScalar(size);
+    turretBase.position.y = size * 0.7;
+    turretBase.position.z = -size * 0.05;
+    group.add(turretBase);
+
+    // ── Turret main body — sloped wedge so it doesn't look like a soup can ──
+    const turretGeo = this._getCachedGeometry('tank_turret', () => new THREE.BoxGeometry(0.7, 0.32, 0.85));
+    const turret = new THREE.Mesh(turretGeo, this._tankMatTurret);
     turret.scale.setScalar(size);
-    turret.position.y = size * 0.75;
+    turret.position.y = size * 0.95;
     turret.position.z = -size * 0.05;
+    turret.rotation.x = -0.08;
     group.add(turret);
 
-    const barrelGeo = this._getCachedGeometry('tank_barrel', () => new THREE.CylinderGeometry(0.06, 0.07, 0.9, 8));
-    const barrel = new THREE.Mesh(barrelGeo, trackMat);
+    // ── Cylon eye sensor — wide horizontal slit of red glow on turret front ──
+    const eyeGeo = this._getCachedGeometry('tank_eye', () => new THREE.BoxGeometry(0.5, 0.06, 0.04));
+    const eye = new THREE.Mesh(eyeGeo, this._tankMatSensorGlow);
+    eye.scale.setScalar(size);
+    eye.position.y = size * 0.95;
+    eye.position.z = size * 0.38;
+    group.add(eye);
+
+    // ── Barrel — long cylinder forward from turret ──
+    const barrelGeo = this._getCachedGeometry('tank_barrel', () => new THREE.CylinderGeometry(0.06, 0.075, 0.95, 10));
+    const barrel = new THREE.Mesh(barrelGeo, this._tankMatTrack);
     barrel.scale.setScalar(size);
-    barrel.position.y = size * 0.78;
-    barrel.position.z = size * 0.45;
+    barrel.position.y = size * 0.95;
+    barrel.position.z = size * 0.5;
     barrel.rotation.x = Math.PI / 2;
     group.add(barrel);
 
-    // Muzzle glow — additive red sphere telegraphs "this thing shoots"
-    const muzzleGeo = this._getCachedGeometry('tank_muzzle', () => new THREE.SphereGeometry(0.08, 8, 8));
-    const muzzleMat = new THREE.MeshBasicMaterial({
-      color: 0xff3322, transparent: true, opacity: 0.7,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const muzzle = new THREE.Mesh(muzzleGeo, muzzleMat);
+    // ── Muzzle glow at barrel tip ──
+    const muzzleGeo = this._getCachedGeometry('tank_muzzle', () => new THREE.SphereGeometry(0.1, 10, 10));
+    const muzzle = new THREE.Mesh(muzzleGeo, this._tankMatSensorGlow);
     muzzle.scale.setScalar(size);
-    muzzle.position.y = size * 0.78;
-    muzzle.position.z = size * 0.95;
+    muzzle.position.y = size * 0.95;
+    muzzle.position.z = size * 1.0;
     group.add(muzzle);
 
-    // Top hatch detail (small box) — gives the silhouette some character
-    const hatchGeo = this._getCachedGeometry('tank_hatch', () => new THREE.BoxGeometry(0.25, 0.08, 0.25));
-    const hatch = new THREE.Mesh(hatchGeo, hullMat);
-    hatch.scale.setScalar(size);
-    hatch.position.y = size * 0.6;
-    hatch.position.z = -size * 0.3;
-    group.add(hatch);
+    // ── Rear exhaust glow — additive orange sphere on the back of the hull ──
+    const exhaustGeo = this._getCachedGeometry('tank_exhaust', () => new THREE.SphereGeometry(0.1, 8, 8));
+    for (let side = -1; side <= 1; side += 2) {
+      const exhaust = new THREE.Mesh(exhaustGeo, this._tankMatExhaust);
+      exhaust.scale.setScalar(size);
+      exhaust.position.set(side * size * 0.3, size * 0.45, -size * 0.7);
+      group.add(exhaust);
+    }
+
+    // ── Antenna whip — thin rear cylinder — sells the silhouette ──
+    const antennaGeo = this._getCachedGeometry('tank_antenna', () => new THREE.CylinderGeometry(0.012, 0.018, 0.45, 6));
+    const antenna = new THREE.Mesh(antennaGeo, this._tankMatTrack);
+    antenna.scale.setScalar(size);
+    antenna.position.set(size * 0.3, size * 0.85, -size * 0.45);
+    group.add(antenna);
   }
 
-  // SAM SITE — stationary launcher: square base, 4 missile rails skyward, glowing radar dish.
-  // The radar dish gets tagged so update3DCombat can spin it for visual life.
-  createSamMesh(group: any, size: number, color: number, THREE: any) {
-    const baseMat = new THREE.MeshStandardMaterial({
-      color, metalness: 0.5, roughness: 0.7,
-      emissive: new THREE.Color(0x222200), emissiveIntensity: 0.1,
-    });
-    const railMat = new THREE.MeshStandardMaterial({
-      color: 0xdddddd, metalness: 0.4, roughness: 0.4,
-    });
-    const tipMat = new THREE.MeshBasicMaterial({
-      color: 0xff2222, transparent: true, opacity: 0.9,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const radarMat = new THREE.MeshStandardMaterial({
-      color: 0x223344, metalness: 0.6, roughness: 0.3,
-      emissive: new THREE.Color(0x00ffaa), emissiveIntensity: 0.5,
-    });
+  // SAM SITE — stationary launcher matching the enemy faction palette: dark gunmetal
+  // base, bright orange-red radar dish, 4 missile rails with hot-tipped warheads,
+  // emissive panel-line trim, indicator LEDs on the launcher box. Materials shared.
+  createSamMesh(group: any, size: number, _color: number, THREE: any) {
+    if (!this._samMatBase) {
+      this._samMatBase = new THREE.MeshStandardMaterial({
+        color: 0x1a1a22, metalness: 0.85, roughness: 0.4,
+        emissive: new THREE.Color(0x1a0408), emissiveIntensity: 0.3,
+      });
+      this._samMatRail = new THREE.MeshStandardMaterial({
+        color: 0x3a3a45, metalness: 0.6, roughness: 0.4,
+        emissive: new THREE.Color(0x100408), emissiveIntensity: 0.2,
+      });
+      this._samMatTip = new THREE.MeshBasicMaterial({
+        color: 0xff3322, transparent: true, opacity: 0.95,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      // Bright radar dish — the visual focal point of the SAM
+      this._samMatRadar = new THREE.MeshStandardMaterial({
+        color: 0xff5522, metalness: 0.6, roughness: 0.3,
+        emissive: new THREE.Color(0xff5522), emissiveIntensity: 1.4,
+      });
+      // Status LEDs (green/red blinking lights on the launcher)
+      this._samMatLed = new THREE.MeshBasicMaterial({
+        color: 0xff2244, transparent: true, opacity: 0.95,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+    }
 
-    // Base slab on the ground
-    const baseGeo = this._getCachedGeometry('sam_base', () => new THREE.BoxGeometry(1.3, 0.3, 1.3));
-    const base = new THREE.Mesh(baseGeo, baseMat);
+    // ── Base slab — bigger and chunkier than before ──
+    const baseGeo = this._getCachedGeometry('sam_base', () => new THREE.BoxGeometry(1.4, 0.35, 1.4));
+    const base = new THREE.Mesh(baseGeo, this._samMatBase);
     base.scale.setScalar(size);
-    base.position.y = size * 0.15;
+    base.position.y = size * 0.175;
     group.add(base);
 
-    // Launcher box (mid-height) — would rotate with turret, kept static for cost
-    const launcherGeo = this._getCachedGeometry('sam_launcher', () => new THREE.BoxGeometry(0.7, 0.45, 0.9));
-    const launcher = new THREE.Mesh(launcherGeo, baseMat);
+    // ── Side ammunition crates — 2 low boxes on the flanks ──
+    const crateGeo = this._getCachedGeometry('sam_crate', () => new THREE.BoxGeometry(0.4, 0.25, 0.7));
+    for (let side = -1; side <= 1; side += 2) {
+      const crate = new THREE.Mesh(crateGeo, this._samMatBase);
+      crate.scale.setScalar(size);
+      crate.position.set(side * size * 0.6, size * 0.17, 0);
+      group.add(crate);
+    }
+
+    // ── Edge panel trim around the base — emissive lines to define silhouette ──
+    const trimGeo = this._getCachedGeometry('sam_trim', () => new THREE.BoxGeometry(1.3, 0.05, 0.05));
+    for (let z = -1; z <= 1; z += 2) {
+      const trim = new THREE.Mesh(trimGeo, this._samMatTip);
+      trim.scale.setScalar(size);
+      trim.position.set(0, size * 0.36, z * size * 0.66);
+      group.add(trim);
+    }
+
+    // ── Launcher box (mid-tier housing) ──
+    const launcherGeo = this._getCachedGeometry('sam_launcher', () => new THREE.BoxGeometry(0.75, 0.45, 0.9));
+    const launcher = new THREE.Mesh(launcherGeo, this._samMatBase);
     launcher.scale.setScalar(size);
-    launcher.position.y = size * 0.55;
+    launcher.position.y = size * 0.58;
     group.add(launcher);
 
-    // 4 missile rails arranged in a square pattern, angled skyward + slightly forward
-    const railGeo = this._getCachedGeometry('sam_rail', () => new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8));
-    const tipGeo = this._getCachedGeometry('sam_tip', () => new THREE.ConeGeometry(0.08, 0.18, 8));
+    // ── Status LEDs on the launcher front (3 small glowing dots) ──
+    const ledGeo = this._getCachedGeometry('sam_led', () => new THREE.SphereGeometry(0.025, 6, 6));
+    for (let i = 0; i < 3; i++) {
+      const led = new THREE.Mesh(ledGeo, this._samMatLed);
+      led.scale.setScalar(size);
+      led.position.set((i - 1) * size * 0.12, size * 0.62, size * 0.46);
+      group.add(led);
+    }
+
+    // ── 4 missile rails arranged in a square, angled skyward + forward ──
+    const railGeo = this._getCachedGeometry('sam_rail', () => new THREE.CylinderGeometry(0.07, 0.07, 0.78, 10));
+    const tipGeo = this._getCachedGeometry('sam_tip', () => new THREE.ConeGeometry(0.09, 0.22, 10));
     for (let i = 0; i < 4; i++) {
       const xOff = (i % 2 === 0) ? -1 : 1;
       const zOff = (i < 2) ? -1 : 1;
-      const tilt = -0.3; // pitch back slightly toward sky
-      const rail = new THREE.Mesh(railGeo, railMat);
+      const tilt = -0.3; // skyward + forward
+      const rail = new THREE.Mesh(railGeo, this._samMatRail);
       rail.scale.setScalar(size);
-      rail.position.set(xOff * size * 0.22, size * 0.95, zOff * size * 0.25);
+      rail.position.set(xOff * size * 0.22, size * 1.0, zOff * size * 0.25);
       rail.rotation.x = tilt;
       group.add(rail);
 
-      const tip = new THREE.Mesh(tipGeo, tipMat);
+      const tip = new THREE.Mesh(tipGeo, this._samMatTip);
       tip.scale.setScalar(size);
-      tip.position.set(xOff * size * 0.22, size * 1.27, zOff * size * 0.25 - size * 0.06);
+      tip.position.set(xOff * size * 0.22, size * 1.36, zOff * size * 0.25 - size * 0.06);
       tip.rotation.x = tilt;
       group.add(tip);
     }
 
-    // Radar dish on top — tagged for per-frame spin
+    // ── Radar dish — bigger, brighter, prominent visual focal point ──
     const dishGeo = this._getCachedGeometry('sam_dish', () =>
-      new THREE.SphereGeometry(0.18, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2));
-    const dish = new THREE.Mesh(dishGeo, radarMat);
+      new THREE.SphereGeometry(0.24, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2));
+    const dish = new THREE.Mesh(dishGeo, this._samMatRadar);
     dish.scale.setScalar(size);
-    dish.position.y = size * 1.15;
-    dish.position.z = size * 0.35;
+    dish.position.y = size * 1.2;
+    dish.position.z = size * 0.4;
     dish.rotation.x = -0.4;
     (dish as any)._isRadarDish = true;
     group.add(dish);
 
-    // Antenna — thin spike from radar, sells the "scanning" feel
-    const antennaGeo = this._getCachedGeometry('sam_antenna', () => new THREE.CylinderGeometry(0.01, 0.015, 0.4, 6));
-    const antenna = new THREE.Mesh(antennaGeo, railMat);
+    // ── Antenna spike with glowing tip ──
+    const antennaGeo = this._getCachedGeometry('sam_antenna', () => new THREE.CylinderGeometry(0.012, 0.018, 0.5, 6));
+    const antenna = new THREE.Mesh(antennaGeo, this._samMatRail);
     antenna.scale.setScalar(size);
-    antenna.position.y = size * 1.45;
-    antenna.position.z = size * 0.35;
+    antenna.position.y = size * 1.55;
+    antenna.position.z = size * 0.4;
     group.add(antenna);
+
+    const antennaTipGeo = this._getCachedGeometry('sam_antenna_tip', () => new THREE.SphereGeometry(0.05, 8, 8));
+    const antennaTip = new THREE.Mesh(antennaTipGeo, this._samMatLed);
+    antennaTip.scale.setScalar(size);
+    antennaTip.position.y = size * 1.82;
+    antennaTip.position.z = size * 0.4;
+    group.add(antennaTip);
   }
 
   // FIGHTER - Ultra-sleek stealth-fighter inspired design
@@ -5696,6 +5821,10 @@ class MegabotScene {
     const rotateRight = this.keysPressed.has('d') || this.keysPressed.has('arrowright');
     if (rotateLeft)  this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
     if (rotateRight) this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
+    // "Last input wins": once the player rotates with the keyboard, suspend
+    // mouse-aim so the next mousemove is what re-engages it. Without this, the
+    // body snaps back to the cursor position the instant A/D is released.
+    if (rotateLeft || rotateRight) this._aimRequiresMouseMove = true;
 
     // ── Movement input — megabot-LOCAL frame ──
     // W/Up = forward (local +Z)   S/Down = back (local -Z)
@@ -6176,6 +6305,18 @@ class MegabotScene {
     const laserDamagePerSec = this.upgradeLevel >= 4 ? 10 : 5;
     const weaponRangeSq = this.ENEMY_LASER_RANGE * this.ENEMY_LASER_RANGE;
     const despawnDistSq = (this.SHIP_SPAWN_RADIUS * 2) * (this.SHIP_SPAWN_RADIUS * 2);
+
+    // Shared-material pulses — one write animates EVERY tank/SAM in the scene.
+    // Tank Cylon eyes (~1Hz pulse), SAM warhead tips/LEDs (~0.6Hz blink).
+    if (this._tankMatSensorGlow) {
+      this._tankMatSensorGlow.opacity = 0.7 + Math.sin(this.time * 6) * 0.25;
+    }
+    if (this._samMatLed) {
+      this._samMatLed.opacity = 0.55 + Math.sin(this.time * 3.5) * 0.4;
+    }
+    if (this._samMatTip) {
+      this._samMatTip.opacity = 0.8 + Math.sin(this.time * 2.5) * 0.15;
+    }
 
     // Update enemy ships
     for (let i = this.enemyShips.length - 1; i >= 0; i--) {
@@ -6703,6 +6844,9 @@ class MegabotScene {
           this._aimMouseLocalX = localX;
           this._aimMouseLocalY = localY;
           this._hasMouseAim = true;
+          // Mouse moved on canvas — re-engage mouse-aim if A/D had suspended it.
+          // (See _aimRequiresMouseMove for why this gate exists.)
+          this._aimRequiresMouseMove = false;
         } else {
           // Cursor left the canvas — release aim so megabot returns to walking auto-face / idle.
           this._hasMouseAim = false;
@@ -7154,9 +7298,12 @@ class MegabotScene {
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
         this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
         this.currentRotation.y = this.mainMegabot.rotation.y;
-      } else if (this._hasMouseAim && !isManualRotating) {
+      } else if (this._hasMouseAim && !isManualRotating && !this._aimRequiresMouseMove) {
         // MOUSE-AIM MODE: body smoothly yaws toward the world point under the cursor.
         // Local +Z is forward; atan2(dx, dz) yields the yaw whose forward vector hits (dx, dz).
+        // The _aimRequiresMouseMove gate suspends this whenever the player most
+        // recently used keyboard rotation, so releasing A/D doesn't yank the
+        // body back to where the cursor happens to be.
         const dx = this._aimWorldX - this.mainMegabot.position.x;
         const dz = this._aimWorldZ - this.mainMegabot.position.z;
         // Ignore degenerate aim (cursor on top of megabot) to avoid flipping.
@@ -7811,6 +7958,18 @@ class MegabotScene {
     this._gridQueryBuffer.length = 0;
     this._formationBomberIndex.clear();
     this._geometryCache.clear();
+    // Drop shared-material refs — the scene-traverse above already disposed them.
+    this._tankMatHull = null;
+    this._tankMatTrack = null;
+    this._tankMatTurret = null;
+    this._tankMatPanelGlow = null;
+    this._tankMatSensorGlow = null;
+    this._tankMatExhaust = null;
+    this._samMatBase = null;
+    this._samMatRail = null;
+    this._samMatTip = null;
+    this._samMatRadar = null;
+    this._samMatLed = null;
     this.formations = [];
     this.buildings = [];
     this.lastFrameTime = 0;
