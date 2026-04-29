@@ -126,6 +126,20 @@ class MegabotScene {
   cameraAngle: number = 0;      // Horizontal orbit angle for minigame camera
   cameraDistance: number = 1200; // Current distance (smoothed toward cameraTargetDistance)
 
+  // Mouse-aim: megabot's body smoothly yaws to face the world point under the cursor.
+  // Coords are container-local (already viewport-corrected) and get raycast onto a
+  // horizontal aim plane each frame — recomputed per-frame because the camera moves.
+  private _aimMouseLocalX: number = 0;
+  private _aimMouseLocalY: number = 0;
+  private _hasMouseAim: boolean = false;
+  private _aimWorldX: number = 0;
+  private _aimWorldZ: number = 0;
+  private _aimRaycaster = new THREE.Raycaster();
+  private _aimMouseNDC = new THREE.Vector2();
+  private _aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private _aimHit = new THREE.Vector3();
+  readonly MEGABOT_AIM_LERP = 0.12; // Body yaw slerp toward cursor (per frame)
+
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
   cameraPitch: number = 0.35;          // Vertical orbit angle (0 = horizon, PI/2 = top-down)
@@ -185,7 +199,7 @@ class MegabotScene {
   formations: any[] = []; // Active formations
   lastFormationSpawnTime: number = 0;
   formationIdCounter: number = 0;
-  readonly FORMATION_SPAWN_INTERVAL = 5000; // Spawn formation every 5 seconds
+  readonly FORMATION_SPAWN_INTERVAL = 3500; // Spawn formation every 3.5 seconds
   readonly FORMATION_TYPES = ['v-formation', 'pincer', 'bomber-escort', 'orbit-strafe'] as const;
 
   // Game state
@@ -260,6 +274,12 @@ class MegabotScene {
   // Performance: object pool for explosion particle systems (avoids per-explosion allocation)
   private _explosionPool: any[] = [];
   private _explosionPoolInitialized = false;
+
+  // Shockwave ring pool — flat expanding rings paired with every explosion and
+  // every building collapse. Pooled so high-action moments don't allocate.
+  private _shockwavePool: any[] = [];
+  private _shockwavePoolInitialized = false;
+  readonly MAX_SHOCKWAVES = 12;
   // Performance: shared geometry cache for ship types (avoids recreating identical geometries)
   private _geometryCache = new Map<string, any>();
 
@@ -348,10 +368,12 @@ class MegabotScene {
   // Wave system
   currentWave: number = 0;
   waveState: 'intermission' | 'active' | 'boss' = 'intermission';
-  waveTimer: number = 0;
+  // Start partway through the intermission so wave 1 kicks off ~0.5s after load
+  // instead of making the player wait the full intermission for the first wave.
+  waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
-  readonly WAVE_INTERMISSION_TIME = 4; // seconds between waves
+  readonly WAVE_INTERMISSION_TIME = 1.5; // seconds between waves (was 4 — kept the action moving)
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
 
   // Shield system
@@ -392,14 +414,14 @@ class MegabotScene {
   readonly MAX_MISSILES_3D = 50;
   readonly MAX_ENEMY_LASERS = 30;
   readonly MAX_EXPLOSIONS_3D = 30;
-  readonly SHIP_SPAWN_INTERVAL = 2000; // ms
-  readonly SHIP_SPEED_MIN = 200;
-  readonly SHIP_SPEED_MAX = 400;
+  readonly SHIP_SPAWN_INTERVAL = 900; // ms (was 2000 — much snappier, scales down further per wave)
+  readonly SHIP_SPEED_MIN = 280; // was 200 — ships close in faster
+  readonly SHIP_SPEED_MAX = 520; // was 400
   readonly MISSILE_SPEED_3D = 800;
   readonly ENEMY_LASER_SPEED = 1200;
   readonly ENEMY_LASER_RANGE = 1200;
-  readonly SHIP_SPAWN_RADIUS = 1800; // Distance from megabot where ships spawn
-  readonly _despawnRadiusSq = (1800 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
+  readonly SHIP_SPAWN_RADIUS = 1400; // was 1800 — shorter approach so combat starts sooner
+  readonly _despawnRadiusSq = (1400 * 2) ** 2; // SHIP_SPAWN_RADIUS * 2, pre-squared for distance checks
 
   constructor(
     container: HTMLDivElement,
@@ -445,6 +467,7 @@ class MegabotScene {
     this._particleContainDistSq = (this.MAIN_SIZE * 0.5) * (this.MAIN_SIZE * 0.5);
     this.init();
     this._initExplosionPool();
+    this._initShockwavePool();
     this.createStarField();
     this.createGroundPlane();
     this.createMainMegabot();
@@ -2816,6 +2839,12 @@ class MegabotScene {
 
     building.active = false;
     this._removeBuildingFromGrid(building); // pull out of spatial index immediately
+
+    // Big ground-level shockwave for every building takedown — sells the impact
+    // beat regardless of which collapse animation runs below.
+    const buildingFootprint = Math.max(building.width, building.depth);
+    this.spawnShockwave(building.group.position, buildingFootprint * 5.5, 0xff7733, 0.7);
+
     const dtype = building.destructionType || 'collapse';
 
     if (dtype === 'topple') {
@@ -3504,10 +3533,10 @@ class MegabotScene {
         break;
     }
 
-    // Add point light for ship glow - increased intensity for better visibility
-    const shipLight = new THREE.PointLight(color, 8, size * 6);
-    shipLight.position.set(0, 0, 0);
-    group.add(shipLight);
+    // Per-ship PointLights removed: with up to 15 ships × 3-5 lights each, fragment shaders
+    // were iterating 45-75 dynamic lights per pixel. Ships now read as bright via emissive
+    // hull materials + MeshBasicMaterial thruster glows (which are unaffected by lighting).
+    // Explosions still get pooled lights for dramatic flashes.
 
     // Performance: cache engine glow children to avoid forEach scanning every frame
     const engineColors = new Set([0x00ffff, 0xff6600, 0xffff00, 0xcc00ff]);
@@ -3532,13 +3561,14 @@ class MegabotScene {
 
   // FIGHTER - Ultra-sleek stealth-fighter inspired design
   createFighterMesh(group: any, size: number, color: number, THREE: any) {
-    // Sleek metallic materials with high polish
+    // Sleek metallic materials with high polish.
+    // Emissive bumped from 0.3 → 0.6 to compensate for removed per-ship PointLights.
     const primaryMaterial = new THREE.MeshStandardMaterial({
       color: color,
       metalness: 1.0,
       roughness: 0.1,
       emissive: new THREE.Color(color),
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.6,
     });
 
     const darkMaterial = new THREE.MeshStandardMaterial({
@@ -3628,11 +3658,7 @@ class MegabotScene {
       outerGlow.rotation.x = Math.PI / 2;
       outerGlow.position.set(side * size * 0.25, 0, -size * 1.0);
       group.add(outerGlow);
-
-      // Thruster point light for illumination
-      const thrusterLight = new THREE.PointLight(0x00ffff, 4, size * 2);
-      thrusterLight.position.set(side * size * 0.25, 0, -size * 0.85);
-      group.add(thrusterLight);
+      // (Per-thruster PointLight removed — see create3DShipGeometry comment.)
     }
 
     // Sleek laser cannons (integrated into wings)
@@ -3657,13 +3683,14 @@ class MegabotScene {
   }
 
   // BOMBER - Heavy assault craft with armor and weapon pods
+  // Emissive bumped from 0.3 → 0.55 to compensate for removed per-ship PointLights.
   createBomberMesh(group: any, size: number, color: number, THREE: any) {
     const primaryMaterial = new THREE.MeshStandardMaterial({
       color: color,
       metalness: 0.85,
       roughness: 0.3,
       emissive: new THREE.Color(color),
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.55,
     });
 
     const armorMaterial = new THREE.MeshStandardMaterial({
@@ -3770,11 +3797,7 @@ class MegabotScene {
         trail.rotation.x = Math.PI / 2;
         trail.position.set(x * size * 0.3, y * size * 0.2, -size * 1.5);
         group.add(trail);
-
-        // Thruster point light for illumination
-        const thrusterLight = new THREE.PointLight(0xff6600, 5, size * 2.5);
-        thrusterLight.position.set(x * size * 0.3, y * size * 0.2, -size * 1.05);
-        group.add(thrusterLight);
+        // (Per-thruster PointLight removed — see create3DShipGeometry comment.)
       }
     }
 
@@ -3912,11 +3935,7 @@ class MegabotScene {
       trail.rotation.x = Math.PI / 2;
       trail.position.set(pos.x, pos.y, -size * 1.5);
       group.add(trail);
-
-      // Thruster point light for illumination
-      const thrusterLight = new THREE.PointLight(0xffffaa, 4.5, size * 2);
-      thrusterLight.position.set(pos.x, pos.y, -size * 0.92);
-      group.add(thrusterLight);
+      // (Per-thruster PointLight removed — see create3DShipGeometry comment.)
     });
 
     // Weapon rails (integrated pulse cannons)
@@ -4514,95 +4533,79 @@ class MegabotScene {
     return missile;
   }
 
-  // Launch missile from megabot toward target
-  launch3DMissileFromMegabot(targetScreenPos: { x: number; y: number }) {
+  // Launch a single missile in megabot's facing direction.
+  // The mouse has already aimed megabot's body via updateAimFromMouse — clicking is
+  // now a pure trigger, so missiles always fire along the local +Z forward vector.
+  launch3DMissileFromMegabot() {
     if (!this.mainMegabot) return;
 
     const THREE = this.THREE;
+    const FORWARD_DIST = 4000; // Aim point well ahead of megabot — homing/collision handles the rest
 
-    // Get megabot shoulder position (launch point)
+    // Shoulder launch point
     const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
     launchOffset.applyQuaternion(this.mainMegabot.quaternion);
     const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
 
-    // Convert screen position to 3D world position
-    const vector = new THREE.Vector3(
-      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
-      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
-      0.5
-    );
-
-    vector.unproject(this.camera);
-    const dir = vector.sub(this.camera.position).normalize();
-    // Scale aim distance with camera distance so aiming stays accurate at all zoom levels
-    const distance = Math.max(2000, this.cameraDistance * 1.5);
-    const targetPos = this.camera.position.clone().add(dir.multiplyScalar(distance));
+    // Forward vector in world space (local +Z rotated by megabot's quaternion)
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mainMegabot.quaternion);
+    const targetPos = new THREE.Vector3().copy(launchPos).addScaledVector(forward, FORWARD_DIST);
 
     const missile = this.create3DMissile(launchPos, targetPos);
-    // Apply homing at upgrade level 1+
     if (missile && this.upgradeLevel >= 1) {
       (missile as any).homing = true;
     }
   }
 
-  // Launch cluster missiles (3 missiles in spread pattern) - Shift+Click
-  launchClusterMissiles(targetScreenPos: { x: number; y: number }) {
+  // Launch cluster missiles (3 missiles in horizontal forward fan) — Shift+Click.
+  // Stagger via the RAF-synced barrage queue so we don't leak setTimeout handles
+  // if the scene tears down mid-volley.
+  launchClusterMissiles() {
     if (!this.mainMegabot) return;
 
     const THREE = this.THREE;
+    const FORWARD_DIST = 4000;
+    const FAN_SPREAD = 0.18; // ~10° between missiles
 
-    // Get megabot shoulder position (launch point)
-    const launchOffset = new THREE.Vector3(0, this.MAIN_SIZE * 0.7, this.MAIN_SIZE * 0.2);
-    launchOffset.applyQuaternion(this.mainMegabot.quaternion);
-    const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, launchOffset);
+    // Forward and right vectors. In a right-handed system with local +Z forward and +Y up,
+    // world-right = up × forward (NOT forward × up — that yields the left vector).
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mainMegabot.quaternion);
+    const right = new THREE.Vector3().crossVectors(this._upVec, forward).normalize();
 
-    // Convert screen position to 3D world position
-    const vector = new THREE.Vector3(
-      (targetScreenPos.x / this.container.offsetWidth) * 2 - 1,
-      -(targetScreenPos.y / this.container.offsetHeight) * 2 + 1,
-      0.5
-    );
+    // 3 fan angles: center, left, right
+    const fanAngles = [0, -FAN_SPREAD, FAN_SPREAD];
+    const shoulderXOffsets = [0, -1, 1]; // center, left, right shoulders
+    const shoulderHomingApplies = this.upgradeLevel >= 1;
 
-    vector.unproject(this.camera);
-    const dir = vector.sub(this.camera.position).normalize();
-    // Scale aim distance with camera distance so cluster aiming stays accurate at all zoom levels
-    const distance = Math.max(2000, this.cameraDistance * 1.5);
-    const centerTarget = this.camera.position.clone().add(dir.clone().multiplyScalar(distance));
+    for (let i = 0; i < 3; i++) {
+      // Shoulder offset in megabot-local space
+      const shoulderOffset = new THREE.Vector3(
+        shoulderXOffsets[i] * this.MAIN_SIZE * 0.3,
+        this.MAIN_SIZE * 0.7,
+        this.MAIN_SIZE * 0.2,
+      );
+      shoulderOffset.applyQuaternion(this.mainMegabot.quaternion);
+      const launchPos = new THREE.Vector3().addVectors(this.mainMegabot.position, shoulderOffset);
 
-    // Calculate spread vectors perpendicular to the direction
-    const up = new THREE.Vector3(0, 1, 0);
-    const right = new THREE.Vector3().crossVectors(dir, up).normalize();
-    const spreadUp = new THREE.Vector3().crossVectors(right, dir).normalize();
+      // Rotate forward vector around world Y by the fan angle
+      const angle = fanAngles[i];
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const dir = new THREE.Vector3(
+        forward.x * cosA + right.x * sinA,
+        forward.y,
+        forward.z * cosA + right.z * sinA,
+      );
+      const targetPos = new THREE.Vector3().copy(launchPos).addScaledVector(dir, FORWARD_DIST);
 
-    const spreadAmount = 300; // Spread distance at target
-
-    // Fire 3 missiles in a spread pattern
-    const spreadOffsets = [
-      { x: 0, y: 0 },           // Center
-      { x: -spreadAmount, y: spreadAmount * 0.5 },  // Upper left
-      { x: spreadAmount, y: spreadAmount * 0.5 },   // Upper right
-    ];
-
-    spreadOffsets.forEach((offset, index) => {
-      const targetPos = centerTarget.clone();
-      targetPos.add(right.clone().multiplyScalar(offset.x));
-      targetPos.add(spreadUp.clone().multiplyScalar(offset.y));
-
-      // Slight delay between missiles for visual effect
-      setTimeout(() => {
-        // Alternate launch positions (left and right shoulders)
-        const shoulderOffset = new THREE.Vector3(
-          (index === 1 ? -1 : index === 2 ? 1 : 0) * this.MAIN_SIZE * 0.3,
-          this.MAIN_SIZE * 0.7,
-          this.MAIN_SIZE * 0.2
-        );
-        shoulderOffset.applyQuaternion(this.mainMegabot.quaternion);
-        const missileStart = new THREE.Vector3().addVectors(this.mainMegabot.position, shoulderOffset);
-
-        this.create3DMissile(missileStart, targetPos);
-      }, index * 50);
-    });
-
+      // Stagger by 40ms via the existing RAF-synced queue (no setTimeout leaks)
+      this._pendingBarrage.push({
+        launchPos,
+        targetPos,
+        homing: shoulderHomingApplies,
+        fireTime: this.time + i * 0.04,
+      });
+    }
   }
 
   // 3D collision detection (sphere-sphere)
@@ -4895,9 +4898,11 @@ class MegabotScene {
   }
 
   // Pre-allocate explosion pool to avoid per-explosion Three.js object creation
+  private readonly EXPLOSION_PARTICLES = 80; // was 50 — chunkier blooms
+  private readonly EXPLOSION_LIFETIME = 0.85; // was 0.5 — explosions actually read on screen
   private _initExplosionPool() {
     const THREE = this.THREE;
-    const particleCount = 50;
+    const particleCount = this.EXPLOSION_PARTICLES;
 
     for (let p = 0; p < this.MAX_EXPLOSIONS_3D; p++) {
       const geometry = new THREE.BufferGeometry();
@@ -4905,17 +4910,18 @@ class MegabotScene {
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
       const material = new THREE.PointsMaterial({
-        color: 0xff6600,
-        size: 25,
+        color: 0xffaa55, // hotter core color
+        size: 30,
         transparent: true,
         opacity: 1.0,
         blending: THREE.AdditiveBlending,
+        depthWrite: false, // additive sprites shouldn't occlude each other
       });
 
       const particles = new THREE.Points(geometry, material);
       particles.visible = false;
 
-      const light = new THREE.PointLight(0xff6600, 20, 250);
+      const light = new THREE.PointLight(0xffaa55, 30, 350);
       light.visible = false;
 
       // Pre-allocate velocity array with plain objects
@@ -4929,7 +4935,7 @@ class MegabotScene {
         velocities,
         light,
         lifetime: 0,
-        maxLifetime: 0.5,
+        maxLifetime: this.EXPLOSION_LIFETIME,
         active: false,
         size: 50,
         _pooled: true,
@@ -4939,6 +4945,85 @@ class MegabotScene {
       this.scene.add(light);
     }
     this._explosionPoolInitialized = true;
+  }
+
+  // Pre-allocate shockwave ring pool. Each entry is a thin RingGeometry mesh that
+  // gets scaled up + faded out from a spawn position. Additive, depthWrite=false so
+  // overlapping rings stack without z-fighting against the ground.
+  private _initShockwavePool() {
+    const THREE = this.THREE;
+    // Inner=0.94, outer=1.0 → ~6%-thick ring. Scaling sets the absolute radius.
+    const ringGeo = new THREE.RingGeometry(0.94, 1.0, 48);
+    ringGeo.rotateX(-Math.PI / 2); // lie flat on XZ plane
+
+    for (let i = 0; i < this.MAX_SHOCKWAVES; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffaa55,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(ringGeo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this._shockwavePool.push({
+        mesh,
+        lifetime: 0,
+        maxLifetime: 0.55,
+        maxRadius: 200,
+        active: false,
+      });
+    }
+    this._shockwavePoolInitialized = true;
+  }
+
+  // Spawn a flat expanding ring on the ground at `position`. Cheap: reuses one of
+  // MAX_SHOCKWAVES pre-built meshes; silently no-ops if all slots are in flight.
+  spawnShockwave(position: any, maxRadius: number, color: number = 0xffaa55, lifetime: number = 0.55) {
+    if (!this._shockwavePoolInitialized) return;
+    let wave: any = null;
+    for (let i = 0; i < this._shockwavePool.length; i++) {
+      if (!this._shockwavePool[i].active) {
+        wave = this._shockwavePool[i];
+        break;
+      }
+    }
+    if (!wave) return;
+
+    // Anchor at ground level (slightly above) — shockwaves read best when they
+    // sweep across the city floor, not at ship altitude.
+    wave.mesh.position.set(position.x, this.GROUND_Y + 4, position.z);
+    wave.mesh.material.color.setHex(color);
+    wave.mesh.material.opacity = 0.95;
+    wave.mesh.scale.setScalar(1);
+    wave.mesh.visible = true;
+    wave.lifetime = 0;
+    wave.maxLifetime = lifetime;
+    wave.maxRadius = maxRadius;
+    wave.active = true;
+  }
+
+  // Per-frame: ease-out radius growth, ease-in opacity fade.
+  private updateShockwaves(dt: number) {
+    for (let i = 0; i < this._shockwavePool.length; i++) {
+      const wave = this._shockwavePool[i];
+      if (!wave.active) continue;
+      wave.lifetime += dt;
+      if (wave.lifetime >= wave.maxLifetime) {
+        wave.active = false;
+        wave.mesh.visible = false;
+        continue;
+      }
+      const t = wave.lifetime / wave.maxLifetime;
+      // Ease-out radius: fast initial expansion, slows toward edge.
+      const radiusT = 1 - (1 - t) * (1 - t);
+      wave.mesh.scale.setScalar(wave.maxRadius * radiusT);
+      // Cubic opacity falloff so the ring punches at spawn then dims fast.
+      const fade = 1 - t;
+      wave.mesh.material.opacity = 0.95 * fade * fade * fade;
+    }
   }
 
   // Create 3D explosion effect - uses object pool to avoid allocation
@@ -4957,37 +5042,49 @@ class MegabotScene {
     if (!explosion) return; // All pool slots in use
 
     // Reset and configure the pooled explosion
-    const particleCount = 50;
+    const particleCount = this.EXPLOSION_PARTICLES;
     const positions = explosion.particles.geometry.attributes.position.array as Float32Array;
 
+    // Two-tier blast: 60% fast outer shell, 40% slower glowing core, plus an upward bias
+    // for that "rising fireball" silhouette instead of a uniform sphere.
+    const SHELL_SPEED = size * 2.4;
+    const CORE_SPEED = size * 0.9;
+    const shellCount = Math.floor(particleCount * 0.6);
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] = position.x;
       positions[i * 3 + 1] = position.y;
       positions[i * 3 + 2] = position.z;
 
-      explosion.velocities[i].x = (Math.random() - 0.5) * size * 2;
-      explosion.velocities[i].y = (Math.random() - 0.5) * size * 2;
-      explosion.velocities[i].z = (Math.random() - 0.5) * size * 2;
+      const isShell = i < shellCount;
+      const v = isShell ? SHELL_SPEED : CORE_SPEED;
+      explosion.velocities[i].x = (Math.random() - 0.5) * v;
+      explosion.velocities[i].y = (Math.random() - 0.5) * v + (isShell ? size * 0.3 : 0);
+      explosion.velocities[i].z = (Math.random() - 0.5) * v;
     }
     explosion.particles.geometry.attributes.position.needsUpdate = true;
 
-    // Update material size for this explosion
-    explosion.particles.material.size = size * 0.5;
+    // Hotter sprite/light at spawn — animation fades them to red.
+    explosion.particles.material.size = size * 0.55;
     explosion.particles.material.opacity = 1.0;
+    explosion.particles.material.color.setHex(0xffe2a8); // near-white core flash
     explosion.particles.visible = true;
 
-    // Update light
     explosion.light.position.copy(position);
-    explosion.light.distance = size * 5;
-    explosion.light.intensity = 20;
+    explosion.light.distance = size * 6;
+    explosion.light.intensity = 35;
+    explosion.light.color.setHex(0xffcc66);
     explosion.light.visible = true;
 
     explosion.lifetime = 0;
-    explosion.maxLifetime = 0.5;
+    explosion.maxLifetime = this.EXPLOSION_LIFETIME;
     explosion.active = true;
     explosion.size = size;
 
     this.explosions3D.push(explosion);
+
+    // Pair every explosion with a ground shockwave ring at megabot's foot height
+    // — gives every blast a clear silhouette beat regardless of camera angle.
+    this.spawnShockwave(position, size * 4.5, 0xffaa55, 0.55);
   }
 
   // Update Orbit & Strafe behavior
@@ -5167,6 +5264,33 @@ class MegabotScene {
     }
   }
 
+  // Recompute the world-space aim point each frame by raycasting the cursor
+  // through the camera onto a horizontal plane at megabot's torso height.
+  // Yaw-only aim: pitch is intentionally ignored so missiles fire level.
+  private updateAimFromMouse() {
+    if (!this._hasMouseAim || !this.mainMegabot || !this.camera) return;
+    if (this._isDragging || this._isPanning) return;
+
+    const rect = this.container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    this._aimMouseNDC.x = (this._aimMouseLocalX / rect.width) * 2 - 1;
+    this._aimMouseNDC.y = -(this._aimMouseLocalY / rect.height) * 2 + 1;
+
+    this._aimRaycaster.setFromCamera(this._aimMouseNDC, this.camera);
+
+    // Plane at megabot's torso height; constant = -planeY because Plane is `n·x + d = 0`
+    // and our normal is +Y, so a plane at y=h satisfies y - h = 0 ⇒ d = -h.
+    const planeY = this.mainMegabot.position.y;
+    this._aimPlane.constant = -planeY;
+
+    const hit = this._aimRaycaster.ray.intersectPlane(this._aimPlane, this._aimHit);
+    if (hit) {
+      this._aimWorldX = this._aimHit.x;
+      this._aimWorldZ = this._aimHit.z;
+    }
+  }
+
   // WASD / Arrow key movement for Megabot
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
@@ -5224,9 +5348,10 @@ class MegabotScene {
     const footfallDip = (1 - Math.abs(sinCycle)) * -4; // -4 unit dip at zero crossings
     this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
 
-    // Turn megabot to face movement direction (snappier lerp)
-    // Only auto-face when Q/E are NOT pressed — manual rotation takes priority
-    if (!this.trackingTarget && !manualRotating) {
+    // Turn megabot to face movement direction (snappier lerp).
+    // Skip when Q/E rotation, UI tracking, or mouse-aim is active — those drive yaw instead,
+    // letting megabot strafe while staying aimed at the cursor (3rd-person shooter feel).
+    if (!this.trackingTarget && !manualRotating && !this._hasMouseAim) {
       const targetAngle = Math.atan2(worldX, worldZ);
       const angleDiff = targetAngle - this.mainMegabot.rotation.y;
       const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
@@ -5501,8 +5626,8 @@ class MegabotScene {
 
       case 'active':
       case 'boss': {
-        // Spawn ships with increasing frequency per wave
-        const spawnInterval = Math.max(800, this.SHIP_SPAWN_INTERVAL - this.currentWave * 100);
+        // Spawn ships with increasing frequency per wave (was floor 800 / step -100; now floor 350 / step -60)
+        const spawnInterval = Math.max(350, this.SHIP_SPAWN_INTERVAL - this.currentWave * 60);
         if (this.waveShipsRemaining > 0 && currentTime - this.lastShipSpawnTime > spawnInterval) {
           this.spawn3DShip();
           this.waveShipsRemaining--;
@@ -5510,8 +5635,8 @@ class MegabotScene {
           this.lastShipSpawnTime = currentTime;
         }
 
-        // Spawn formations during waves
-        const formInterval = Math.max(3000, this.FORMATION_SPAWN_INTERVAL - this.currentWave * 200);
+        // Spawn formations during waves (was floor 3000 / step -200; now floor 1800 / step -150)
+        const formInterval = Math.max(1800, this.FORMATION_SPAWN_INTERVAL - this.currentWave * 150);
         if (this.waveShipsRemaining > 3 && currentTime - this.lastFormationSpawnTime > formInterval) {
           this.spawnFormation();
           this.waveShipsRemaining -= 3;
@@ -6008,20 +6133,35 @@ class MegabotScene {
         continue;
       }
 
-      // Update particles
+      // Update particles — light gravity drag on velocities for a "settling" smoke feel
       const positions = explosion.particles.geometry.attributes.position.array as Float32Array;
+      const drag = 1 - 1.4 * dt; // exponential slowdown
       for (let j = 0; j < explosion.velocities.length; j++) {
-        positions[j * 3] += explosion.velocities[j].x * dt;
-        positions[j * 3 + 1] += explosion.velocities[j].y * dt;
-        positions[j * 3 + 2] += explosion.velocities[j].z * dt;
+        const vel = explosion.velocities[j];
+        positions[j * 3] += vel.x * dt;
+        positions[j * 3 + 1] += vel.y * dt;
+        positions[j * 3 + 2] += vel.z * dt;
+        vel.x *= drag; vel.y *= drag; vel.z *= drag;
       }
       explosion.particles.geometry.attributes.position.needsUpdate = true;
 
-      // Fade out
+      // Fade out — sharper drop on the light (pow 1.6) sells the initial flash punch,
+      // sprites linger longer (pow 0.85) so smoke is visible after the pop.
       const progress = explosion.lifetime / explosion.maxLifetime;
-      explosion.particles.material.opacity = 1 - progress;
-      explosion.light.intensity = 20 * (1 - progress);
+      explosion.particles.material.opacity = Math.pow(1 - progress, 0.85);
+      explosion.light.intensity = 35 * Math.pow(1 - progress, 1.6);
+      // Color shift from white-hot → orange → dim red as the blast cools.
+      if (progress < 0.25) {
+        explosion.particles.material.color.setHex(0xffe2a8);
+      } else if (progress < 0.55) {
+        explosion.particles.material.color.setHex(0xff8833);
+      } else {
+        explosion.particles.material.color.setHex(0x882211);
+      }
     }
+
+    // Update shockwave rings (paired with explosions / building destruction)
+    this.updateShockwaves(dt);
 
     // Update destructible city buildings
     this.updateBuildings(dt);
@@ -6087,11 +6227,25 @@ class MegabotScene {
   }
 
   addEventListeners() {
-    // ── Mouse movement: subtle parallax + orbit/pan drag ──
+    // ── Mouse movement: aim megabot, orbit/pan drag ──
     this._boundMouseMove = (e: MouseEvent) => {
-      // Always track normalized mouse for subtle parallax
-      this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
-      this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2;
+      // Track mouse position for aim — convert to container-local so the
+      // raycast in animate() is correct even when the canvas isn't full-viewport.
+      // While orbiting/panning we don't update the aim coords (the cursor is
+      // being interpreted as a drag, not a target).
+      if (!this._isDragging && !this._isPanning) {
+        const rect = this.container.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const localY = e.clientY - rect.top;
+        if (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height) {
+          this._aimMouseLocalX = localX;
+          this._aimMouseLocalY = localY;
+          this._hasMouseAim = true;
+        } else {
+          // Cursor left the canvas — release aim so megabot returns to walking auto-face / idle.
+          this._hasMouseAim = false;
+        }
+      }
 
       // Right-click drag → orbit camera
       if (this._isDragging) {
@@ -6203,13 +6357,12 @@ class MegabotScene {
       const target = e.target as HTMLElement;
       if (target.closest('a, button, [role="button"], input, select, textarea')) return;
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
+      // Click is a pure trigger: missiles fire along megabot's facing direction.
+      // The mouse already aimed his body via updateAimFromMouse before this fires.
       if (e.shiftKey) {
-        this.launchClusterMissiles({ x, y });
+        this.launchClusterMissiles();
       } else {
-        this.launch3DMissileFromMegabot({ x, y });
+        this.launch3DMissileFromMegabot();
       }
     };
     document.addEventListener("click", this._boundClick);
@@ -6352,12 +6505,15 @@ class MegabotScene {
 
     this.camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
+    // Recompute mouse-aim world point now that the camera matrix is up to date.
+    this.updateAimFromMouse();
+
     // Animate main Megabot
     if (this.mainMegabot) {
       // Cache world pos for combat checks
       this.megabotWorldPos.copy(this.mainMegabot.position);
 
-      // Body rotation - track target, Q/E manual, or idle hold
+      // Body rotation - track target, Q/E manual, mouse-aim, or idle hold
       // Always sync currentRotation.y from actual rotation so tracking/idle don't clobber Q/E
       const isManualRotating = this.keysPressed.has('q') || this.keysPressed.has('e');
       if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
@@ -6367,6 +6523,19 @@ class MegabotScene {
         const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
         this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
+        this.currentRotation.y = this.mainMegabot.rotation.y;
+      } else if (this._hasMouseAim && !isManualRotating) {
+        // MOUSE-AIM MODE: body smoothly yaws toward the world point under the cursor.
+        // Local +Z is forward; atan2(dx, dz) yields the yaw whose forward vector hits (dx, dz).
+        const dx = this._aimWorldX - this.mainMegabot.position.x;
+        const dz = this._aimWorldZ - this.mainMegabot.position.z;
+        // Ignore degenerate aim (cursor on top of megabot) to avoid flipping.
+        if (dx * dx + dz * dz > 1) {
+          const targetYaw = Math.atan2(dx, dz);
+          const angleDiff = targetYaw - this.mainMegabot.rotation.y;
+          const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+          this.mainMegabot.rotation.y += normalizedDiff * this.MEGABOT_AIM_LERP;
+        }
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (!this.isWalking) {
         // IDLE MODE: Hold current facing direction (Q/E or last walk direction)
@@ -6998,6 +7167,8 @@ class MegabotScene {
     this.explosions3D = [];
     this._explosionPool = [];
     this._explosionPoolInitialized = false;
+    this._shockwavePool = [];
+    this._shockwavePoolInitialized = false;
     this._pendingBursts = [];
     this._pendingBarrage = [];
     this._buildingGrid.clear();
