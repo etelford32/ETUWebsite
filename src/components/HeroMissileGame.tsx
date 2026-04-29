@@ -161,8 +161,10 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
         <div className="mt-2 pt-2 border-t border-purple-500/30 space-y-1">
           <div className="text-purple-300 font-bold text-[10px] mb-1">CONTROLS</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Mouse</span> Aim Megabot</div>
-          <div className="text-gray-400 text-[10px]"><span className="text-white">WASD / Arrows</span> Move</div>
-          <div className="text-gray-400 text-[10px]"><span className="text-white">Q/E</span> Manual rotate</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">W / S</span> Forward / Back</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">A / D</span> Rotate left / right</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Q / E</span> Strafe left / right</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Arrows</span> Same as WASD</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Click</span> Fire forward</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+Click</span> Cluster fan</div>
           <div className="text-cyan-300 text-[10px] pt-1 border-t border-purple-500/20 mt-1">CAMERA</div>
