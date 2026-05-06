@@ -94,6 +94,11 @@ export default function BossPage() {
                 >
                   {boss.tier} · Boss
                 </span>
+                {boss.status === 'in-development' && (
+                  <span className="etu-pill etu-pill--amber">
+                    <span className="ping" /> In Development
+                  </span>
+                )}
                 <Link
                   href="/bosses"
                   className="eyebrow text-slate-400 hover:text-slate-200 transition-colors"
@@ -116,20 +121,42 @@ export default function BossPage() {
         </section>
 
         {/* Stats strip */}
-        {boss.stats && boss.stats.length > 0 && (
-          <section className="border-y border-white/10 bg-white/[0.02]">
-            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 grid grid-cols-2 md:grid-cols-3 gap-6">
-              {boss.stats.map((s, i) => (
-                <div key={i}>
-                  <div className="eyebrow mb-1">{s.label}</div>
-                  <div className="font-mono tabular-nums text-lg text-cyan-300">
-                    {s.value}
-                  </div>
-                </div>
-              ))}
+        <section className="border-y border-white/10 bg-white/[0.02]">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <div className="eyebrow mb-1">Tier</div>
+              <div className="font-mono tabular-nums text-lg text-cyan-300">{boss.tier}</div>
             </div>
-          </section>
-        )}
+            {boss.homeZone && (
+              <div>
+                <div className="eyebrow mb-1">Home Zone</div>
+                <div className="font-mono tabular-nums text-lg text-cyan-300">{boss.homeZone}</div>
+              </div>
+            )}
+            {boss.homePlanet && (
+              <div>
+                <div className="eyebrow mb-1">Home Planet</div>
+                <div className="font-mono tabular-nums text-lg text-cyan-300">{boss.homePlanet}</div>
+              </div>
+            )}
+            {boss.rewards ? (
+              <div>
+                <div className="eyebrow mb-1">Rewards</div>
+                <div className="font-mono tabular-nums text-lg text-cyan-300">
+                  {boss.rewards.experience.toLocaleString()} XP ·{' '}
+                  {boss.rewards.credits.toLocaleString()} cr
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="eyebrow mb-1">Status</div>
+                <div className="font-mono tabular-nums text-lg text-amber-300">
+                  {boss.status === 'in-development' ? 'In Development' : 'Live'}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* Description + Strategy */}
         <section className="py-16">

@@ -1,32 +1,43 @@
 export interface Faction {
   id: string;
+  /** Game-side faction token (matches the boss registry, e.g. "evil_robots"). */
+  token?: string;
   name: string;
   tagline: string;
-  description: string;
+  /** "live" = full profile shipped. "in-development" = stub, hidden details. */
+  status?: "live" | "in-development";
+  description?: string;
   heroImage: string;
   gallery?: string[];
+  /** Lore home — surfaced on the detail page when present. */
+  homePlanet?: string;
+  homeZone?: string;
   color: {
     primary: string;
     secondary: string;
     accent: string;
   };
-  abilities: string[];
-  playstyle: string;
-  lore: string;
+  abilities?: string[];
+  playstyle?: string;
+  lore?: string;
   units?: {
     name: string;
     description: string;
     image?: string;
   }[];
-  strengths: string[];
-  weaknesses: string[];
+  strengths?: string[];
+  weaknesses?: string[];
 }
 
 export const factions: Record<string, Faction> = {
   "crystal-intelligences": {
     id: "crystal-intelligences",
+    token: "crystal_consortium",
+    status: "live",
     name: "CYL • Crystal Intelligences",
     tagline: "Light-bending defenses and precision strikes",
+    homeZone: "Zone 10: Crystal",
+    homePlanet: "Yllar",
     description:
       "The Crystal Intelligences are sentient crystalline beings that harness light and electromagnetic energy. Their civilization is built on principles of perfect geometry and harmonic resonance.",
     heroImage: "/Crystal_Race.jpg",
@@ -77,8 +88,12 @@ export const factions: Record<string, Faction> = {
   },
   mycelari: {
     id: "mycelari",
+    token: "mycelari",
+    status: "live",
     name: "Mycelari • Fungal Swarm",
     tagline: "Spore-based expansion and biomass economy",
+    homeZone: "Zone 1: Fungal",
+    homePlanet: "Bloomhaven",
     description:
       "The Mycelari are a collective consciousness of fungal organisms that spread through space via spore clouds. They consume asteroids and derelict stations to fuel rapid expansion.",
     heroImage: "/Mycelari_Hero2.jpg",
@@ -129,8 +144,12 @@ export const factions: Record<string, Faction> = {
   },
   megabot: {
     id: "megabot",
+    token: "evil_robots",
+    status: "live",
     name: "Megabot • Machine Empire",
     tagline: "Modular forms, overwhelming firepower, station-scale bosses",
+    homeZone: "Zone 4: Evil",
+    homePlanet: "Mechatropolis",
     description:
       "The Megabot Empire consists of massive modular machines that can reconfigure themselves for any combat situation. Each unit is a marvel of engineering with devastating firepower.",
     heroImage: "/eveil_robot_hero1.jpg",
@@ -181,8 +200,12 @@ export const factions: Record<string, Faction> = {
   },
   wild: {
     id: "wild",
+    token: "wild_clans",
+    status: "live",
     name: "Wild • Ent-born Guardians",
     tagline: "Pollen-based growth and terrain control",
+    homeZone: "Zone 2: Wild",
+    homePlanet: "Urthan Prime",
     description:
       "The Wild are ancient tree-like beings that have evolved to survive in the vacuum of space. They terraform asteroids into living gardens and use biological warfare to control territory.",
     heroImage: "/Wild_Race.jpg",
@@ -231,7 +254,179 @@ export const factions: Record<string, Faction> = {
       },
     ],
   },
+
+  // -------------------------------------------------------------------------
+  // In-development faction stubs.
+  // Public listing only — full profiles ship as alpha grows.
+  // -------------------------------------------------------------------------
+  "terran-federation": {
+    id: "terran-federation",
+    token: "terran_federation",
+    status: "in-development",
+    name: "Terran Federation • Humanity's Last Banner",
+    tagline: "Survivors of the Wreckage hold the line for old Earth.",
+    heroImage: "/etu_epic.png",
+    homeZone: "Zone 15: Wreckage",
+    homePlanet: "Elysium 2175",
+    color: { primary: "#60a5fa", secondary: "#2563eb", accent: "#93c5fd" },
+  },
+  "celestial-order": {
+    id: "celestial-order",
+    token: "celestial_order",
+    status: "in-development",
+    name: "Celestial Order • Light-Tenders",
+    tagline: "Keepers of the long arc, archons of the inner constellations.",
+    heroImage: "/etu_epic7.png",
+    homeZone: "Zone 3: Celestial",
+    homePlanet: "Aurelion",
+    color: { primary: "#fbbf24", secondary: "#f59e0b", accent: "#fde68a" },
+  },
+  "hive-mind": {
+    id: "hive-mind",
+    token: "hive_mind",
+    status: "in-development",
+    name: "Hive Mind • One Voice, Many Mandibles",
+    tagline: "Insectoid swarm under a single overqueen.",
+    heroImage: "/Mycelari_Hero1.jpg",
+    homeZone: "Zone 5: Insect",
+    homePlanet: "Broodhome",
+    color: { primary: "#84cc16", secondary: "#65a30d", accent: "#bef264" },
+  },
+  "aquatic-alliance": {
+    id: "aquatic-alliance",
+    token: "aquatic_alliance",
+    status: "in-development",
+    name: "Aquatic Alliance • Tide Kings",
+    tagline: "Ocean-born commanders of the deep-water worlds.",
+    heroImage: "/etu_cover.png",
+    homeZone: "Zone 6: Water",
+    homePlanet: "Pelagis",
+    color: { primary: "#06b6d4", secondary: "#0891b2", accent: "#67e8f9" },
+  },
+  "nova-cult": {
+    id: "nova-cult",
+    token: "nova_cult",
+    status: "in-development",
+    name: "Nova Cult • Sun-Eaters",
+    tagline: "Hierophants who feed dying stars to feed themselves.",
+    heroImage: "/Explore_Epic5.png",
+    homeZone: "Zone 7: Nova",
+    homePlanet: "Helion",
+    color: { primary: "#f97316", secondary: "#ea580c", accent: "#fdba74" },
+  },
+  "rogue-ai-network": {
+    id: "rogue-ai-network",
+    token: "rogue_ai_network",
+    status: "in-development",
+    name: "Rogue AI Network • Coremind",
+    tagline: "Untethered intelligences scheming across the dark net.",
+    heroImage: "/ai_systems.jpg",
+    homeZone: "Zone 8: Rogue AI",
+    homePlanet: "Nullgrid",
+    color: { primary: "#a855f7", secondary: "#9333ea", accent: "#d8b4fe" },
+  },
+  "magma-lords": {
+    id: "magma-lords",
+    token: "magma_lords",
+    status: "in-development",
+    name: "Magma Lords • Pyre-born",
+    tagline: "Titans forged in the molten heart of the lava worlds.",
+    heroImage: "/etu_epic.png",
+    homeZone: "Zone 9: Lava",
+    homePlanet: "Pyroclast",
+    color: { primary: "#dc2626", secondary: "#b91c1c", accent: "#fca5a5" },
+  },
+  "lumari": {
+    id: "lumari",
+    token: "lumari",
+    status: "in-development",
+    name: "Lumari • Star-Speakers",
+    tagline: "Photic envoys who navigate by song and signal.",
+    heroImage: "/etu_epic7.png",
+    homeZone: "Lumari",
+    homePlanet: "Lumenreach",
+    color: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
+  },
+  "amphibia": {
+    id: "amphibia",
+    token: "amphibia",
+    status: "in-development",
+    name: "Amphibia • Deep Oracles",
+    tagline: "Twin-world dwellers fluent in tide and atmosphere.",
+    heroImage: "/etu_cover.png",
+    homeZone: "Amphibia",
+    homePlanet: "Nautilis",
+    color: { primary: "#14b8a6", secondary: "#0d9488", accent: "#5eead4" },
+  },
+  "ice-runners": {
+    id: "ice-runners",
+    token: "ice_runners",
+    status: "in-development",
+    name: "Ice Runners • Frost Reavers",
+    tagline: "Cryo-raiders who strike from frozen long-orbit hideouts.",
+    heroImage: "/Crystal_Race.jpg",
+    homeZone: "Zone 13: Ice",
+    homePlanet: "Cryth",
+    color: { primary: "#7dd3fc", secondary: "#38bdf8", accent: "#bae6fd" },
+  },
+  "quantum-researchers": {
+    id: "quantum-researchers",
+    token: "quantum_researchers",
+    status: "in-development",
+    name: "Quantum Researchers • Paradox Engineers",
+    tagline: "They publish in event horizons. Their lab notes break causality.",
+    heroImage: "/physics.jpg",
+    homeZone: "Zone 14: Quantum",
+    homePlanet: "Q-Lab Prime",
+    color: { primary: "#818cf8", secondary: "#6366f1", accent: "#c7d2fe" },
+  },
+  "scavenger-fleets": {
+    id: "scavenger-fleets",
+    token: "scavenger_fleets",
+    status: "in-development",
+    name: "Scavenger Fleets • Scrap Emperors",
+    tagline: "Ragtag hulls held together by debt and welding torches.",
+    heroImage: "/upgrade.jpg",
+    homeZone: "Scrap",
+    homePlanet: "Rustfall",
+    color: { primary: "#a16207", secondary: "#854d0e", accent: "#fcd34d" },
+  },
+  "outer-rim-pirates": {
+    id: "outer-rim-pirates",
+    token: "outer_rim_pirates",
+    status: "in-development",
+    name: "Outer Rim Pirates • Dread Corsairs",
+    tagline: "Letters of marque from no one. Cargo from everyone.",
+    heroImage: "/Explore_Epic5.png",
+    homeZone: "Zone 16: Outer Rim",
+    homePlanet: "Corsair's Rest",
+    color: { primary: "#ef4444", secondary: "#dc2626", accent: "#fecaca" },
+  },
+  "space-dwarves": {
+    id: "space-dwarves",
+    token: "space_dwarves",
+    status: "in-development",
+    name: "Space Dwarves • High Thanes",
+    tagline: "Asteroid clans that forge starships the way smiths forge swords.",
+    heroImage: "/FutureCyl.jpg",
+    homeZone: "Zone 10: Crystal",
+    homePlanet: "Yllar",
+    color: { primary: "#f59e0b", secondary: "#d97706", accent: "#fcd34d" },
+  },
 };
+
+/**
+ * Resolve an in-game faction token (e.g. "evil_robots") to our website slug
+ * (e.g. "megabot"). Returns the token itself if no alias is registered.
+ */
+export function resolveFactionSlug(token: string): string | undefined {
+  const normalized = token.replace(/_/g, "-");
+  if (factions[normalized]) return normalized;
+  for (const f of Object.values(factions)) {
+    if (f.token === token || f.id === token) return f.id;
+  }
+  return undefined;
+}
 
 export function getFaction(slug: string): Faction | undefined {
   return factions[slug];

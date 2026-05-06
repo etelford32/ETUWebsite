@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { getFaction } from '@/data/factions'
+import { getBossesForFaction } from '@/data/bosses'
 
 export default function FactionPage() {
   const params = useParams()
@@ -50,6 +51,8 @@ export default function FactionPage() {
   }
 
   const shortName = faction.name.split('•')[0].trim()
+  const isStub = faction.status === 'in-development'
+  const bosses = getBossesForFaction(faction.id)
 
   return (
     <>
@@ -94,6 +97,11 @@ export default function FactionPage() {
                 >
                   Playable Faction
                 </span>
+                {isStub && (
+                  <span className="etu-pill etu-pill--amber">
+                    <span className="ping" /> Profile In Development
+                  </span>
+                )}
                 <Link
                   href="/factions"
                   className="eyebrow text-slate-400 hover:text-slate-200 transition-colors"
@@ -115,136 +123,258 @@ export default function FactionPage() {
           </div>
         </section>
 
-        {/* Overview */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="grid lg:grid-cols-2 gap-8 items-start">
-              <div className="reveal">
-                <div className="eyebrow mb-3">Overview</div>
-                <h2 className="font-display text-3xl font-bold mb-5 etu-headline-grad">
-                  Who they are
-                </h2>
-                <p className="text-lg text-slate-300 leading-relaxed mb-6">
-                  {faction.description}
-                </p>
-                <div
-                  className="etu-glass p-6"
-                  style={{
-                    borderColor: faction.color.primary + '40',
-                    background: faction.color.primary + '0E',
-                  }}
-                >
-                  <div className="eyebrow mb-2" style={{ color: faction.color.accent }}>
-                    Playstyle
+        {/* Home zone / planet strip */}
+        {(faction.homeZone || faction.homePlanet) && (
+          <section className="border-y border-white/10 bg-white/[0.02]">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 grid grid-cols-2 md:grid-cols-3 gap-6">
+              {faction.homeZone && (
+                <div>
+                  <div className="eyebrow mb-1">Home Zone</div>
+                  <div className="font-mono tabular-nums text-lg text-cyan-300">
+                    {faction.homeZone}
                   </div>
-                  <p className="text-slate-200 leading-relaxed">{faction.playstyle}</p>
+                </div>
+              )}
+              {faction.homePlanet && (
+                <div>
+                  <div className="eyebrow mb-1">Home Planet</div>
+                  <div className="font-mono tabular-nums text-lg text-cyan-300">
+                    {faction.homePlanet}
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="eyebrow mb-1">Status</div>
+                <div
+                  className={`font-mono tabular-nums text-lg ${
+                    isStub ? 'text-amber-300' : 'text-emerald-300'
+                  }`}
+                >
+                  {isStub ? 'In Development' : 'Live'}
                 </div>
               </div>
+            </div>
+          </section>
+        )}
 
-              <div className="reveal">
-                <div className="eyebrow mb-3">Doctrine</div>
-                <h2 className="font-display text-3xl font-bold mb-5 etu-headline-grad">
-                  Key Abilities
-                </h2>
-                <div className="space-y-3">
-                  {faction.abilities.map((ability, idx) => (
-                    <div
-                      key={idx}
-                      className="etu-glass flex items-start gap-3 p-4"
-                    >
+        {/* Overview — only when faction has a full profile */}
+        {(faction.description || faction.playstyle || faction.abilities) && (
+          <section className="py-16">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="grid lg:grid-cols-2 gap-8 items-start">
+                {(faction.description || faction.playstyle) && (
+                  <div className="reveal">
+                    <div className="eyebrow mb-3">Overview</div>
+                    <h2 className="font-display text-3xl font-bold mb-5 etu-headline-grad">
+                      Who they are
+                    </h2>
+                    {faction.description && (
+                      <p className="text-lg text-slate-300 leading-relaxed mb-6">
+                        {faction.description}
+                      </p>
+                    )}
+                    {faction.playstyle && (
                       <div
-                        className="font-mono tabular-nums w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
+                        className="etu-glass p-6"
                         style={{
-                          background: faction.color.primary + '24',
-                          color: faction.color.accent,
-                          border: `1px solid ${faction.color.primary}55`,
+                          borderColor: faction.color.primary + '40',
+                          background: faction.color.primary + '0E',
                         }}
                       >
-                        {String(idx + 1).padStart(2, '0')}
+                        <div className="eyebrow mb-2" style={{ color: faction.color.accent }}>
+                          Playstyle
+                        </div>
+                        <p className="text-slate-200 leading-relaxed">{faction.playstyle}</p>
                       </div>
-                      <div className="font-display text-sm font-semibold tracking-wide">
-                        {ability}
-                      </div>
+                    )}
+                  </div>
+                )}
+
+                {faction.abilities && faction.abilities.length > 0 && (
+                  <div className="reveal">
+                    <div className="eyebrow mb-3">Doctrine</div>
+                    <h2 className="font-display text-3xl font-bold mb-5 etu-headline-grad">
+                      Key Abilities
+                    </h2>
+                    <div className="space-y-3">
+                      {faction.abilities.map((ability, idx) => (
+                        <div
+                          key={idx}
+                          className="etu-glass flex items-start gap-3 p-4"
+                        >
+                          <div
+                            className="font-mono tabular-nums w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
+                            style={{
+                              background: faction.color.primary + '24',
+                              color: faction.color.accent,
+                              border: `1px solid ${faction.color.primary}55`,
+                            }}
+                          >
+                            {String(idx + 1).padStart(2, '0')}
+                          </div>
+                          <div className="font-display text-sm font-semibold tracking-wide">
+                            {ability}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* Stub fallback — shown when the faction profile is still in development */}
+        {isStub && !faction.description && (
+          <section className="py-16">
+            <div className="max-w-3xl mx-auto px-4 lg:px-6 text-center">
+              <div className="reveal etu-glass p-10">
+                <div className="eyebrow mb-3 text-amber-300">Profile In Development</div>
+                <h2 className="font-display text-3xl font-bold mb-4 etu-headline-grad">
+                  Full dossier ships as the alpha grows
+                </h2>
+                <p className="text-slate-300 leading-relaxed">
+                  {shortName} is canon — playable in time, on the roadmap now. We&apos;re
+                  publishing faction profiles in waves alongside the alpha builds.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Strengths & Weaknesses */}
-        <section className="py-16 border-t border-white/10">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="reveal etu-glass p-7">
-                <div className="flex items-center gap-3 mb-5">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ background: faction.color.primary + '24' }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 13l4 4L19 7"
-                        style={{ color: faction.color.accent }}
-                      />
-                    </svg>
-                  </div>
-                  <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
-                    Strengths
-                  </h2>
-                </div>
-                <ul className="space-y-3">
-                  {faction.strengths.map((s, i) => (
-                    <li key={i} className="flex items-start gap-3 text-slate-200">
-                      <span
-                        className="text-lg mt-0.5"
-                        style={{ color: faction.color.primary }}
+        {((faction.strengths && faction.strengths.length > 0) ||
+          (faction.weaknesses && faction.weaknesses.length > 0)) && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {faction.strengths && faction.strengths.length > 0 && (
+                  <div className="reveal etu-glass p-7">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ background: faction.color.primary + '24' }}
                       >
-                        ✦
-                      </span>
-                      <span>{s}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="reveal etu-glass p-7">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-500/20">
-                    <svg
-                      className="w-5 h-5 text-rose-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                            style={{ color: faction.color.accent }}
+                          />
+                        </svg>
+                      </div>
+                      <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
+                        Strengths
+                      </h2>
+                    </div>
+                    <ul className="space-y-3">
+                      {faction.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-3 text-slate-200">
+                          <span
+                            className="text-lg mt-0.5"
+                            style={{ color: faction.color.primary }}
+                          >
+                            ✦
+                          </span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
-                    Weaknesses
-                  </h2>
-                </div>
-                <ul className="space-y-3">
-                  {faction.weaknesses.map((w, i) => (
-                    <li key={i} className="flex items-start gap-3 text-slate-200">
-                      <span className="text-lg mt-0.5 text-rose-400">✦</span>
-                      <span>{w}</span>
-                    </li>
-                  ))}
-                </ul>
+                )}
+
+                {faction.weaknesses && faction.weaknesses.length > 0 && (
+                  <div className="reveal etu-glass p-7">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-500/20">
+                        <svg
+                          className="w-5 h-5 text-rose-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </div>
+                      <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
+                        Weaknesses
+                      </h2>
+                    </div>
+                    <ul className="space-y-3">
+                      {faction.weaknesses.map((w, i) => (
+                        <li key={i} className="flex items-start gap-3 text-slate-200">
+                          <span className="text-lg mt-0.5 text-rose-400">✦</span>
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* Boss Roster — links to bosses for this faction */}
+        {bosses.length > 0 && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="reveal mb-8">
+                <div className="eyebrow mb-3">Boss Roster</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
+                  {shortName} Bosses
+                </h2>
+                <p className="text-slate-400 mt-2">
+                  <span className="font-mono text-cyan-300">{bosses.length}</span>{' '}
+                  boss{bosses.length === 1 ? '' : 'es'} flying this faction&apos;s flag.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {bosses.map(boss => (
+                  <Link
+                    key={boss.id}
+                    href={`/bosses/${boss.id}`}
+                    className="etu-glass p-5 group transition-transform hover:-translate-y-0.5"
+                    style={{ borderColor: boss.color.primary + '40' }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div
+                        className="font-display text-sm font-bold uppercase tracking-[0.14em]"
+                        style={{ color: boss.color.accent }}
+                      >
+                        {boss.name}
+                      </div>
+                      <span
+                        className="etu-pill text-[9px]"
+                        style={{
+                          borderColor: boss.color.primary + '66',
+                          background: boss.color.primary + '14',
+                          color: boss.color.accent,
+                        }}
+                      >
+                        {boss.tier}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-2">{boss.tagline}</p>
+                    {boss.status === 'in-development' && (
+                      <div className="mt-3 text-[10px] font-display uppercase tracking-[0.18em] text-amber-300">
+                        In Development
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Units */}
         {faction.units && faction.units.length > 0 && (
@@ -282,27 +412,29 @@ export default function FactionPage() {
         )}
 
         {/* Lore */}
-        <section className="py-16 border-t border-white/10">
-          <div className="max-w-4xl mx-auto px-4 lg:px-6">
-            <div className="reveal">
-              <div className="eyebrow mb-3">Origin & Lore</div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-6 etu-headline-grad">
-                How they came to be
-              </h2>
-              <div
-                className="etu-glass p-8 border-l-2"
-                style={{
-                  borderLeftColor: faction.color.primary,
-                  background: faction.color.primary + '0A',
-                }}
-              >
-                <p className="text-lg text-slate-200 leading-relaxed italic">
-                  {faction.lore}
-                </p>
+        {faction.lore && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-4xl mx-auto px-4 lg:px-6">
+              <div className="reveal">
+                <div className="eyebrow mb-3">Origin & Lore</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold mb-6 etu-headline-grad">
+                  How they came to be
+                </h2>
+                <div
+                  className="etu-glass p-8 border-l-2"
+                  style={{
+                    borderLeftColor: faction.color.primary,
+                    background: faction.color.primary + '0A',
+                  }}
+                >
+                  <p className="text-lg text-slate-200 leading-relaxed italic">
+                    {faction.lore}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* CTA */}
         <section className="py-20 border-t border-white/10">
