@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import CountdownTimer from "@/components/CountdownTimer";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
+import Experiment from "@/components/Experiment";
 import { initPerformanceOptimizations } from "@/lib/performance";
 
 export default function HomePage() {
@@ -178,16 +179,34 @@ export default function HomePage() {
             Explore the<br />Universe 2175
           </h1>
 
-          <p
-            className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
-            style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
-          >
-            Beta launches{" "}
-            <span className="headline-gradient font-semibold">June 6</span>.
-            Wishlist on Steam to be ready — or join the{" "}
-            <span className="text-amber-300 font-semibold">alpha</span> right
-            now and help shape the galaxy.
-          </p>
+          <Experiment
+            id="home_hero_subhead"
+            variants={{
+              control: (
+                <p
+                  className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
+                  style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+                >
+                  Beta launches{" "}
+                  <span className="headline-gradient font-semibold">June 6</span>.
+                  Wishlist on Steam to be ready — or join the{" "}
+                  <span className="text-amber-300 font-semibold">alpha</span> right
+                  now and help shape the galaxy.
+                </p>
+              ),
+              urgency: (
+                <p
+                  className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
+                  style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+                >
+                  <span className="headline-gradient font-semibold">Beta opens June 6</span>{" "}
+                  — limited alpha seats are filling now. Wishlist to lock your slot, or{" "}
+                  <span className="text-amber-300 font-semibold">apply for alpha</span> and
+                  help shape the galaxy.
+                </p>
+              ),
+            }}
+          />
 
           {/* Co-primary CTAs — Wishlist + Alpha Testing */}
           <div className="reveal mt-10 flex flex-wrap items-center gap-4">
