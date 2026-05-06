@@ -27,6 +27,17 @@ export default function Footer() {
               An open-world space adventure by Telford Projects. Built with
               science, art, and a pinch of chaos.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="etu-pill etu-pill--cyan"
+              >
+                <span className="ping" />Live · Steam Page
+              </a>
+              <span className="etu-pill etu-pill--amber">☢ Alpha 0.7</span>
+            </div>
           </div>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Game</h4>
@@ -80,9 +91,12 @@ export default function Footer() {
             </Link>
           </nav>
         </div>
-        <p className="mt-8 text-xs">
-          © {year} Telford Projects. All rights reserved.
-        </p>
+        <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <p>© {year} Telford Projects. All rights reserved.</p>
+          <p className="font-mono tracking-[0.16em] text-slate-500 uppercase">
+            Build 0.7.3-α
+          </p>
+        </div>
       </div>
     </footer>
   );

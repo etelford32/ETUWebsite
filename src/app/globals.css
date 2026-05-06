@@ -1,14 +1,317 @@
-/* Import Orbitron font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+/* =====================================================================
+   ETU 2175 — Design System (imported from ETU 2175 Design System v1)
+   Orbitron (display) + Exo 2 (body) + JetBrains Mono (data)
+   ===================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ETU theme tokens */
 :root {
+  /* ---- Legacy aliases (kept for backwards compatibility) ---- */
   --font-orbitron: 'Orbitron', sans-serif;
-  --etu-accent: #7c3aed; /* neon indigo/violet */
-  --etu-space-1: #0a0614;
-  --etu-space-2: #0b1023;
-  --etu-space-3: #111936;
+  --etu-accent: #7c3aed;
+
+  /* ---- Core space palette ---- */
+  --etu-black:        #000000;
+  --etu-space-1:      #0a0614;
+  --etu-space-2:      #0b1023;
+  --etu-space-3:      #111936;
+  --etu-deep-900:     #020617;
+  --etu-deep-800:     #0f172a;
+  --etu-deep-700:     #1e293b;
+  --etu-deep-600:     #334155;
+
+  /* ---- Neon accents ---- */
+  --etu-cyan-300:     #67e8f9;
+  --etu-cyan-400:     #22d3ee;
+  --etu-cyan-500:     #06b6d4;
+  --etu-cyan-600:     #0891b2;
+
+  --etu-blue-400:     #60a5fa;
+  --etu-blue-500:     #3b82f6;
+  --etu-blue-600:     #2563eb;
+
+  --etu-indigo-400:   #818cf8;
+  --etu-indigo-500:   #6366f1;
+  --etu-indigo-600:   #4f46e5;
+
+  --etu-purple-400:   #a78bfa;
+  --etu-purple-500:   #8b5cf6;
+  --etu-purple-600:   #7c3aed;
+  --etu-purple-700:   #6d28d9;
+
+  --etu-pink-400:     #f472b6;
+  --etu-pink-500:     #ec4899;
+  --etu-pink-600:     #db2777;
+
+  --etu-amber-300:    #fcd34d;
+  --etu-amber-400:    #fbbf24;
+  --etu-orange-500:   #f97316;
+
+  --etu-emerald-300:  #6ee7b7;
+  --etu-emerald-400:  #34d399;
+  --etu-green-400:    #4ade80;
+
+  --etu-rose-400:     #fb7185;
+  --etu-rose-500:     #f43f5e;
+  --etu-red-500:      #ef4444;
+
+  --etu-rebel-yellow: #fbbf24;
+  --etu-rust-amber:   #f4a64a;
+  --etu-neon-green:   #39ff7a;
+  --etu-neon-orange:  #ff7a1a;
+  --etu-neon-pink:    #ff2d95;
+  --etu-purple-deep:  #4c1d95;
+  --etu-purple-vault: #3b1078;
+  --etu-purple-noir:  #2a1455;
+
+  /* ---- Semantic tokens ---- */
+  --bg-page:          var(--etu-deep-900);
+  --bg-surface:       rgba(255, 255, 255, 0.05);
+  --bg-surface-2:     rgba(255, 255, 255, 0.10);
+  --bg-panel:         rgba(15, 23, 42, 0.60);
+  --bg-panel-glass:   rgba(2, 6, 23, 0.80);
+  --bg-elevated:      rgba(15, 23, 42, 0.95);
+
+  --fg-primary:       #f1f5f9;
+  --fg-secondary:     #cbd5e1;
+  --fg-muted:         #94a3b8;
+  --fg-subtle:        #64748b;
+  --fg-accent:        var(--etu-cyan-400);
+  --fg-on-accent:     #ffffff;
+
+  --border-hairline:  rgba(255, 255, 255, 0.10);
+  --border-soft:      rgba(255, 255, 255, 0.20);
+  --border-cyan:      rgba(34, 211, 238, 0.20);
+  --border-cyan-hi:   rgba(34, 211, 238, 0.40);
+  --border-purple:    rgba(124, 58, 237, 0.30);
+
+  /* ---- Signature gradients ---- */
+  --grad-headline:    linear-gradient(90deg, var(--etu-cyan-400), var(--etu-blue-400), var(--etu-indigo-400));
+  --grad-devlog:      linear-gradient(90deg, var(--etu-purple-600), var(--etu-pink-500), var(--etu-cyan-600));
+  --grad-cta:         linear-gradient(90deg, var(--etu-indigo-600), var(--etu-purple-600));
+  --grad-page-bg:     linear-gradient(180deg, var(--etu-deep-900), var(--etu-deep-800), #000000);
+  --grad-cosmic:
+      radial-gradient(1200px 600px at 50% -10%, rgba(124,58,237,0.35), transparent 60%),
+      radial-gradient(800px 400px at 10% 20%, rgba(56,189,248,0.25), transparent 60%),
+      radial-gradient(600px 300px at 90% 30%, rgba(236,72,153,0.15), transparent 60%),
+      linear-gradient(180deg, var(--etu-space-2), var(--etu-space-3) 70%, var(--etu-space-1));
+
+  /* ---- Glow + shadow system ---- */
+  --glow-cyan-sm:     0 0 12px rgba(34, 211, 238, 0.30);
+  --glow-cyan:        0 0 20px rgba(34, 211, 238, 0.40);
+  --glow-cyan-lg:     0 0 50px rgba(34, 211, 238, 0.50);
+  --glow-purple:      0 0 30px rgba(168, 85, 247, 0.40);
+  --glow-purple-lg:   0 0 50px rgba(124, 58, 237, 0.50);
+  --glow-indigo:      0 0 20px rgba(99, 102, 241, 0.50);
+  --glow-pink:        0 0 30px rgba(236, 72, 153, 0.60);
+
+  --shadow-panel:     0 8px 32px rgba(0, 0, 0, 0.80);
+  --shadow-card:      0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-cta:       0 8px 20px rgba(0, 0, 0, 0.40), 0 0 30px rgba(59, 130, 246, 0.30);
+
+  /* ---- Type ---- */
+  --font-display:   'Orbitron', 'Exo 2', system-ui, sans-serif;
+  --font-body:      'Exo 2', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:      'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  --fs-display-1:   clamp(2.5rem, 5vw, 4rem);
+  --fs-display-2:   clamp(2rem, 4vw, 3rem);
+  --fs-h1:          2.25rem;
+  --fs-h2:          1.875rem;
+  --fs-h3:          1.5rem;
+  --fs-h4:          1.25rem;
+  --fs-body:        1rem;
+  --fs-small:       0.875rem;
+  --fs-tiny:        0.75rem;
+
+  --lh-tight:       1.15;
+  --lh-snug:        1.3;
+  --lh-normal:      1.55;
+
+  --tracking-display: 0.08em;
+  --tracking-eyebrow: 0.20em;
+  --tracking-body:    0.01em;
+
+  /* ---- Spacing / radius / motion ---- */
+  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
+  --space-5: 24px;  --space-6: 32px;  --space-7: 48px;  --space-8: 64px;
+  --space-9: 96px;  --space-10: 128px;
+
+  --radius-sm:  6px;
+  --radius:     8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-pill: 9999px;
+
+  --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast:     150ms;
+  --dur:          300ms;
+  --dur-slow:     500ms;
 }
+
+/* =====================================================================
+   ETU 2175 — Design utilities
+   New classes from the ETU 2175 design system. Tailwind-friendly,
+   safe to mix with existing styles.
+   ===================================================================== */
+
+/* Body font now defaults to Exo 2; Orbitron remains for headings/.font-orbitron */
+body { font-family: var(--font-body); }
+
+::selection { background: rgba(99, 102, 241, 0.40); color: #fff; }
+
+.font-display { font-family: var(--font-display); }
+.font-body    { font-family: var(--font-body); }
+.font-mono    { font-family: var(--font-mono); }
+
+/* Eyebrow — uppercase wide-tracked label */
+.eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+/* Engraved/etched eyebrow — silver pressed into dark metal */
+.eyebrow-etched {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  text-shadow: 0 1px 0 rgba(0,0,0,.9), 0 -1px 0 rgba(255,255,255,.06);
+}
+
+/* Signature cyan→blue→indigo headline gradient (used on section H2s) */
+.headline-gradient,
+.etu-headline-grad {
+  background: var(--grad-headline);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+/* Devlog "candy" gradient — purple → pink → cyan */
+.devlog-gradient,
+.etu-devlog-grad {
+  background: var(--grad-devlog);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+/* Metal display headline — chrome bevel + stamped shadow */
+.display-metal {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-1);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #f8fbff 0%, #b8c8d8 30%, #5e6f82 55%, #2a3344 70%, #6a7d92 90%, #cfd8e3 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 1px 0 rgba(255,255,255,.25))
+    drop-shadow(0 -1px 0 rgba(0,0,0,.6))
+    drop-shadow(0 4px 0 #050a18)
+    drop-shadow(0 8px 0 #03060f)
+    drop-shadow(0 18px 28px rgba(0,0,0,.85))
+    drop-shadow(0 0 24px rgba(147,197,253,.25));
+}
+
+/* Outlined neon-sign headline — quieter, sci-fi signage */
+.display-neon {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--etu-deep-900);
+  -webkit-text-stroke: 1.5px var(--etu-cyan-300);
+  text-shadow:
+    0 0 6px var(--etu-cyan-400),
+    0 0 14px var(--etu-cyan-400),
+    0 0 28px rgba(34,211,238,.6),
+    0 4px 0 rgba(0,0,0,.7),
+    0 8px 22px rgba(0,0,0,.7);
+}
+
+/* Glass card — translucent panel over imagery/animation */
+.etu-glass {
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+.etu-glass:hover {
+  border-color: var(--border-cyan-hi);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.18);
+}
+
+/* Pill — uppercase status / tag with optional pulsing ping */
+.etu-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-surface);
+  color: var(--fg-secondary);
+}
+.etu-pill .ping {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--etu-rose-500);
+  box-shadow: 0 0 10px var(--etu-rose-500);
+  animation: etu-pulse 1.6s infinite;
+}
+.etu-pill--cyan   { border-color: rgba(34,211,238,.45); color: var(--etu-cyan-300); background: rgba(34,211,238,.06); }
+.etu-pill--amber  { border-color: rgba(251,191,36,.45); color: var(--etu-amber-300); background: rgba(251,191,36,.06); }
+.etu-pill--purple { border-color: rgba(168,85,247,.45); color: #c4b5fd;              background: rgba(168,85,247,.06); }
+.etu-pill--green  { border-color: rgba(52,211,153,.45); color: var(--etu-emerald-300);background: rgba(52,211,153,.06); }
+@keyframes etu-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+/* Ghost button — outlined cyan, all-caps */
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-cyan);
+  background: rgba(34,211,238,.04);
+  color: var(--etu-cyan-300);
+  font-family: var(--font-display);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out),
+              background var(--dur) var(--ease-out),
+              box-shadow var(--dur) var(--ease-out);
+}
+.btn-ghost:hover {
+  border-color: rgba(34,211,238,.6);
+  background: rgba(34,211,238,.08);
+  box-shadow: 0 0 24px rgba(34,211,238,.3);
+}
+
+/* Sticky-header glow lines — apply alongside Tailwind sticky header */
+.etu-header-glow { position: relative; }
+.etu-header-glow::before,
+.etu-header-glow::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--etu-cyan-400), transparent);
+  opacity: .55;
+}
+.etu-header-glow::before { top: 0; }
+.etu-header-glow::after  { bottom: 0; opacity: .25; }
 
 .text-etu-accent { color: var(--etu-accent); }
 .bg-etu-accent { background-color: var(--etu-accent); }
