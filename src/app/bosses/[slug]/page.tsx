@@ -110,10 +110,10 @@ export default function BossPage() {
                 </Link>
               </div>
               <h1
-                className="font-display text-5xl md:text-7xl font-bold tracking-tight"
-                style={{ textShadow: '0 4px 24px rgba(0,0,0,.6)' }}
+                className="cinematic-title text-5xl md:text-7xl"
+                style={{ textShadow: '0 4px 24px rgba(0,0,0,.7), 0 0 30px rgba(147,197,253,.35)' }}
               >
-                <span className="etu-headline-grad">{boss.name}</span>
+                {boss.name}
               </h1>
               <p className="mt-4 text-xl md:text-2xl text-slate-200 max-w-2xl">
                 {boss.tagline}
@@ -275,20 +275,27 @@ export default function BossPage() {
                 Ready to face {boss.name}?
               </h2>
               <p className="text-lg text-slate-300 mb-8">
-                Climb the Megabot Arena leaderboard, or wishlist on Steam to be ready for the beta.
+                Drop into the Megabot Arena right now to test your reflexes, climb the
+                leaderboard, then wishlist on Steam to face the full roster at beta.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Link href="/leaderboard" className="btn-ghost">
-                  Megabot Arena Leaderboard
+                <Link
+                  href="/missile-game"
+                  className="btn-3d btn-3d-red px-6 py-3 text-sm"
+                >
+                  ▶ Play Megabot Arena
                 </Link>
                 <a
                   href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-ghost"
+                  className="btn-3d btn-3d-steam px-6 py-3 text-sm"
                 >
                   Wishlist on Steam
                 </a>
+                <Link href="/leaderboard?mode=megabot" className="btn-ghost">
+                  🏆 Arena Leaderboard
+                </Link>
               </div>
             </div>
           </div>
