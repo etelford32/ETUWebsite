@@ -135,6 +135,9 @@ export default function Header() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <span className="etu-pill etu-pill--cyan" title="Current build">
+              <span className="ping" />Live · Alpha
+            </span>
             <Link
               href="/login"
               className="relative px-4 py-2 rounded-lg font-medium text-cyan-300 overflow-hidden group"
