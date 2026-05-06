@@ -161,7 +161,19 @@ class MegabotScene {
   private _aimMouseNDC = new THREE.Vector2();
   private _aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private _aimHit = new THREE.Vector3();
-  readonly MEGABOT_AIM_LERP = 0.12; // Body yaw slerp toward cursor (per frame)
+  readonly MEGABOT_AIM_LERP = 0.12; // (legacy) Body yaw slerp toward cursor (per frame)
+  // Frame-rate-independent rate (1/s). Used as: k = 1 - exp(-rate * dt).
+  readonly MEGABOT_AIM_RATE = 4.5;
+  // Mouse-aim re-engagement gates — keep the body from "snapping back" after A/D.
+  readonly AIM_REENGAGE_PX = 60;       // require this much cumulative mouse motion
+  readonly AIM_REENGAGE_DELAY = 0.9;   // and this many seconds after the last A/D input
+  private _aimMouseAccum: number = 0;
+  private _lastManualRotateTime: number = -999;
+
+  // Smooth A/D angular velocity (accelerates and decelerates rather than starting/stopping abruptly).
+  private _angularVelocity: number = 0;
+  readonly MEGABOT_TURN_ACCEL = 18;    // rad/s² ramp-up toward target turn rate
+  readonly MEGABOT_TURN_DAMPING = 14;  // rad/s² decay back to zero when no input
 
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
@@ -6017,18 +6029,38 @@ class MegabotScene {
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
 
-    // ── Manual yaw rotation: A/D + Arrow Left/Right ──
-    // A = turn left, D = turn right (sign empirically picked to match player
-    // intent in 3rd-person/free cameras — note that the math depends on which
-    // side of megabot the camera sits on, so we just match the perception).
+    // ── Manual yaw rotation: A/D + Arrow Left/Right (eased) ──
+    // A = turn left, D = turn right. Instead of slamming rotation.y by a fixed
+    // amount per frame (which feels jerky on press/release), we accelerate an
+    // angular velocity toward the target turn rate and damp it back to zero
+    // when input is released. The result is a smooth start/stop turn.
     const rotateLeft  = this.keysPressed.has('a') || this.keysPressed.has('arrowleft');
     const rotateRight = this.keysPressed.has('d') || this.keysPressed.has('arrowright');
-    if (rotateLeft)  this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
-    if (rotateRight) this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
+    const turnInput = (rotateLeft ? 1 : 0) - (rotateRight ? 1 : 0);
+    const targetAngVel = turnInput * this.MEGABOT_ROTATE_SPEED;
+    const accel = turnInput !== 0 ? this.MEGABOT_TURN_ACCEL : this.MEGABOT_TURN_DAMPING;
+    const angDiff = targetAngVel - this._angularVelocity;
+    const angStep = Math.sign(angDiff) * Math.min(Math.abs(angDiff), accel * dt);
+    this._angularVelocity += angStep;
+    // Snap to zero once input is released and velocity is tiny — stops slow drift.
+    if (turnInput === 0 && Math.abs(this._angularVelocity) < 0.05) this._angularVelocity = 0;
+    this.mainMegabot.rotation.y += this._angularVelocity * dt;
+
     // "Last input wins": once the player rotates with the keyboard, suspend
-    // mouse-aim so the next mousemove is what re-engages it. Without this, the
-    // body snaps back to the cursor position the instant A/D is released.
-    if (rotateLeft || rotateRight) this._aimRequiresMouseMove = true;
+    // mouse-aim until the cursor has moved a meaningful distance AND a short
+    // grace period has elapsed. Without this, casual cursor jitter after
+    // releasing A/D yanks the body back toward the cursor.
+    if (turnInput !== 0) {
+      this._aimRequiresMouseMove = true;
+      this._aimMouseAccum = 0;
+      this._lastManualRotateTime = this.time;
+    }
+    // Re-engage mouse-aim only after both gates are satisfied.
+    if (this._aimRequiresMouseMove
+        && this._aimMouseAccum >= this.AIM_REENGAGE_PX
+        && (this.time - this._lastManualRotateTime) >= this.AIM_REENGAGE_DELAY) {
+      this._aimRequiresMouseMove = false;
+    }
 
     // ── Movement input — megabot-LOCAL frame ──
     // W/Up = forward (local +Z)   S/Down = back (local -Z)
@@ -7135,12 +7167,14 @@ class MegabotScene {
         const localX = e.clientX - rect.left;
         const localY = e.clientY - rect.top;
         if (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height) {
+          // Accumulate distance moved so the rotation update can decide when to
+          // re-engage mouse-aim after A/D — see _aimRequiresMouseMove gate.
+          if (this._hasMouseAim) {
+            this._aimMouseAccum += Math.abs(localX - this._aimMouseLocalX) + Math.abs(localY - this._aimMouseLocalY);
+          }
           this._aimMouseLocalX = localX;
           this._aimMouseLocalY = localY;
           this._hasMouseAim = true;
-          // Mouse moved on canvas — re-engage mouse-aim if A/D had suspended it.
-          // (See _aimRequiresMouseMove for why this gate exists.)
-          this._aimRequiresMouseMove = false;
         } else {
           // Cursor left the canvas — release aim so megabot returns to walking auto-face / idle.
           this._hasMouseAim = false;
@@ -7603,25 +7637,32 @@ class MegabotScene {
       if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
         // Skip when player is manually rotating with Q/E — let them do a full 360°
-        const lerpSpeed = 0.14;
+        // Frame-rate-independent slerp + per-frame cap so it can't snap.
         const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-        this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
+        const k = 1 - Math.exp(-5.5 * deltaTime);
+        const maxStep = this.MEGABOT_ROTATE_SPEED * 1.4 * deltaTime;
+        let step = normalizedDiff * k;
+        if (Math.abs(step) > maxStep) step = Math.sign(step) * maxStep;
+        this.mainMegabot.rotation.y += step;
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (this._hasMouseAim && !isManualRotating && !this._aimRequiresMouseMove) {
         // MOUSE-AIM MODE: body smoothly yaws toward the world point under the cursor.
         // Local +Z is forward; atan2(dx, dz) yields the yaw whose forward vector hits (dx, dz).
-        // The _aimRequiresMouseMove gate suspends this whenever the player most
-        // recently used keyboard rotation, so releasing A/D doesn't yank the
-        // body back to where the cursor happens to be.
+        // Frame-rate-independent slerp (k = 1 - exp(-rate * dt)) plus a per-frame
+        // angular cap so big cursor jumps don't snap the body around — keeps the
+        // turn feeling smooth even when the cursor teleports across the screen.
         const dx = this._aimWorldX - this.mainMegabot.position.x;
         const dz = this._aimWorldZ - this.mainMegabot.position.z;
-        // Ignore degenerate aim (cursor on top of megabot) to avoid flipping.
         if (dx * dx + dz * dz > 1) {
           const targetYaw = Math.atan2(dx, dz);
           const angleDiff = targetYaw - this.mainMegabot.rotation.y;
           const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-          this.mainMegabot.rotation.y += normalizedDiff * this.MEGABOT_AIM_LERP;
+          const k = 1 - Math.exp(-this.MEGABOT_AIM_RATE * deltaTime);
+          const maxStep = this.MEGABOT_ROTATE_SPEED * deltaTime;
+          let step = normalizedDiff * k;
+          if (Math.abs(step) > maxStep) step = Math.sign(step) * maxStep;
+          this.mainMegabot.rotation.y += step;
         }
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (!this.isWalking) {
