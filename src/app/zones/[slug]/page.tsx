@@ -127,10 +127,10 @@ export default function ZonePage() {
                 </Link>
               </div>
               <h1
-                className="font-display text-5xl md:text-7xl font-bold tracking-tight"
-                style={{ textShadow: '0 4px 24px rgba(0,0,0,.6)' }}
+                className="cinematic-title text-5xl md:text-7xl"
+                style={{ textShadow: '0 4px 24px rgba(0,0,0,.7), 0 0 30px rgba(147,197,253,.35)' }}
               >
-                <span className="etu-headline-grad">{zone.name}</span>
+                {zone.name}
               </h1>
               <p className="mt-4 text-xl md:text-2xl text-slate-200 max-w-2xl">
                 {zone.tagline}
@@ -312,6 +312,35 @@ export default function ZonePage() {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Arena callout — connects sector lore to the only currently-playable surface */}
+        <section className="py-12 border-t border-white/10">
+          <div className="max-w-5xl mx-auto px-4 lg:px-6">
+            <div className="etu-glass p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+              <div className="flex-1">
+                <div className="eyebrow mb-2">Active Theatre</div>
+                <h3 className="font-display text-2xl font-bold etu-headline-grad mb-2">
+                  Take the Arena now
+                </h3>
+                <p className="text-slate-300">
+                  The full {zone.name} sector ships with the alpha; the Megabot Arena is
+                  live today — same engine, same AI, smaller stage.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <Link
+                  href="/missile-game"
+                  className="btn-3d btn-3d-red px-6 py-3 text-sm"
+                >
+                  ▶ Play Megabot Arena
+                </Link>
+                <Link href="/leaderboard?mode=megabot" className="btn-ghost">
+                  🏆 Leaderboard
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 

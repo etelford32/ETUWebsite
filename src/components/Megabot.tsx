@@ -25,9 +25,13 @@ interface MegabotProps {
     wave: number;
     waveState: string;
     waveCountdown: number;
-    waveBonus: { wave: number; amount: number } | null;
+    waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
     waveShipsRemaining: number;
     waveShipsTotal: number;
+    waveElapsed: number;
+    waveParTime: number;
+    recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+    complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -272,9 +276,13 @@ class MegabotScene {
     wave: number;
     waveState: string;
     waveCountdown: number;
-    waveBonus: { wave: number; amount: number } | null;
+    waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
     waveShipsRemaining: number;
     waveShipsTotal: number;
+    waveElapsed: number;
+    waveParTime: number;
+    recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+    complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -293,6 +301,8 @@ class MegabotScene {
   private _prevWaveCountdown = -1;
   private _prevWaveShipsRemaining = -1;
   private _prevWaveShipsTotal = -1;
+  private _prevWaveElapsed = -1;
+  private _prevKillId = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -457,21 +467,60 @@ class MegabotScene {
 
   // Wave system
   currentWave: number = 0;
-  waveState: 'intermission' | 'active' | 'boss' = 'intermission';
+  waveState: 'intermission' | 'active' | 'boss' | 'siege' = 'intermission';
   // Start the first intermission ~1.5s in so wave 1 kicks off shortly after load
   // (the full WAVE_INTERMISSION_TIME tick still runs; this just trims the wait).
   waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
   waveShipsTotal: number = 0; // Total ship budget for this wave (for HUD progress bar)
+  waveActiveStart: number = 0; // Time the current active/boss wave began (sec) — used for clear-time tier
+  siegeTimer: number = 0; // Seconds elapsed in the current siege beat
   readonly WAVE_INTERMISSION_TIME = 2.5; // seconds between waves — long enough for the "WAVE N · INCOMING" telegraph to read
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
+  readonly SIEGE_WAVE_INTERVAL = 7; // Siege every 7th wave (boss + siege never collide: lcm(5,7)=35)
+  readonly SIEGE_INTERMISSION_TIME = 0.5; // very short — siege should hit fast
+  readonly SIEGE_DURATION_S = 25; // hard cap on a single siege beat
+  readonly SIEGE_GROUND_INTERVAL_MS = 1100; // tank/SAM cadence during siege
+  readonly SIEGE_AERIAL_INTERVAL_MS = 600;  // ship cadence during siege
+  readonly SIEGE_FORMATION_INTERVAL_MS = 4500;
+  lastSiegeGroundSpawnTime: number = 0;
   readonly MAX_SHIPS_PER_WAVE = 18; // Cap on regular-wave spawn budget so late waves don't become a firehose
   // End-of-wave bonus toast (consumed by HUD via onGameStateUpdate.waveBonus).
   // ttl counts down each frame; while ttl > 0 the toast is "live".
-  waveBonus: { wave: number; amount: number; ttl: number } = { wave: 0, amount: 0, ttl: 0 };
+  waveBonus: { wave: number; amount: number; ttl: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } = { wave: 0, amount: 0, ttl: 0, tier: null };
   readonly WAVE_BONUS_TTL = 2.4; // seconds the toast stays visible
   private _prevWaveBonusKey: string = '';
+
+  // Kill-feed ring buffer. Each ship kill pushes a new entry; the HUD reads
+  // the array via onGameStateUpdate.recentKills, animates new entries in,
+  // and items naturally drop out as the ring rotates. Cap small so we never
+  // ship a huge array per emit.
+  private _recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }> = [];
+  private _killIdCounter = 0;
+  readonly RECENT_KILLS_CAP = 6;
+
+  // Complications — picked once at game start, applied at relevant gates.
+  // Every run rolls one of:
+  //   - 'none'         (25%): vanilla rules
+  //   - 'bossier'      (25%): boss wave every 3rd instead of every 5th
+  //   - 'fast-enemies' (25%): aerial spawn velocity ×1.35
+  //   - 'no-upgrades'  (25%): UPGRADE_THRESHOLDS effectively ignored
+  // The HUD reads this off gameState to render a persistent banner.
+  complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades' = 'none';
+  // Mutable per-run boss interval (defaults to BOSS_WAVE_INTERVAL, gets
+  // overridden to 3 by the 'bossier' complication).
+  bossInterval: number = 5;
+  // Aerial spawn-velocity multiplier (1 normally; 1.35 under fast-enemies).
+  enemySpeedMul: number = 1;
+
+  // Interceptor pincer-pair coordination — when two interceptors spawn close
+  // in time we want them to take opposing flank sides instead of independently
+  // rolling random angles. Stamped at spawn; used at the next spawn to prefer
+  // the opposite sign within PINCER_PAIR_WINDOW_S.
+  private _lastInterceptorFlankSign = 0;
+  private _lastInterceptorFlankT = -999;
+  readonly PINCER_PAIR_WINDOW_S = 4;
 
   // Shield system
   shieldHP: number = 3000;
@@ -538,9 +587,13 @@ class MegabotScene {
       wave: number;
       waveState: string;
       waveCountdown: number;
-      waveBonus: { wave: number; amount: number } | null;
+      waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
       waveShipsRemaining: number;
       waveShipsTotal: number;
+      waveElapsed: number;
+      waveParTime: number;
+      recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+      complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -566,6 +619,12 @@ class MegabotScene {
     }
 
     this._particleContainDistSq = (this.MAIN_SIZE * 0.5) * (this.MAIN_SIZE * 0.5);
+    // Roll the per-run complication. 25% none / 25% each modifier. We do
+    // this before init() so any modifier-affected constants (bossInterval,
+    // enemySpeedMul) are correct from frame zero. A future server-issued
+    // run-token can override this — the field stays mutable.
+    this._rollComplication();
+
     this.init();
     this._initExplosionPool();
     this._initShockwavePool();
@@ -4781,7 +4840,10 @@ class MegabotScene {
     const dirY = mp.y - spawnY;
     const dirZ = mp.z - spawnZ;
     const distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-    const speed = this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN);
+    // Apply the 'fast-enemies' complication multiplier to aerial spawn
+    // velocity. Ground units use their own creep cadence and aren't
+    // affected (skipped above by the early-return ground-spawn branch).
+    const speed = (this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN)) * this.enemySpeedMul;
     const velocity = new THREE.Vector3(
       (dirX / distance) * speed,
       (dirY / distance) * speed,
@@ -4801,6 +4863,30 @@ class MegabotScene {
     if (type === 'bomber') {
       enemyShip.behavior = 'bomb-run';
       enemyShip.bombRunPhase = 'approach';
+
+      // Bomber escort wing: re-tag up to 2 active solo fighters as
+      // escorts so the bomber's run isn't naked. Escorts orbit the
+      // bomber, screen incoming missiles by being closer hit-targets,
+      // and revert to default kamikaze when the bomber drops its bomb
+      // (egress) or dies. Skip wingmen / leaders so we don't shred an
+      // existing pair.
+      let assigned = 0;
+      for (let s = this.enemyShips.length - 1; s >= 0 && assigned < 2; s--) {
+        const candidate = this.enemyShips[s];
+        if (
+          candidate.active &&
+          candidate.type === 'fighter' &&
+          !candidate.behavior &&
+          !candidate._wingman &&
+          !candidate._wingmanOf
+        ) {
+          candidate.behavior = 'bomb-escort';
+          candidate._escortBomber = enemyShip;
+          // Stagger the orbit phase so the two escorts don't overlap.
+          candidate._escortOrbitAngle = (assigned * Math.PI) + Math.random() * 0.4;
+          assigned++;
+        }
+      }
     }
     // Interceptors flank instead of charging head-on: rotate the initial
     // velocity ±[35°, 55°] around the world Y axis. Default lookAt(megabot)
@@ -4809,7 +4895,18 @@ class MegabotScene {
     // the close-range juke they inherit, late-wave interceptors come in
     // from oblique angles instead of stacking on top of each other.
     if (type === 'interceptor') {
-      const sign = Math.random() < 0.5 ? -1 : 1;
+      // Pincer-pair coordination: if the previous interceptor spawned
+      // within PINCER_PAIR_WINDOW_S seconds, take the opposite flank
+      // sign so two adjacent interceptors converge from opposing sides
+      // instead of rolling independent random angles. Otherwise roll
+      // randomly as before.
+      const recent = (this.time - this._lastInterceptorFlankT) < this.PINCER_PAIR_WINDOW_S;
+      const sign = recent
+        ? -this._lastInterceptorFlankSign
+        : (Math.random() < 0.5 ? -1 : 1);
+      this._lastInterceptorFlankSign = sign;
+      this._lastInterceptorFlankT = this.time;
+
       const flankAngle = sign * (35 + Math.random() * 20) * (Math.PI / 180);
       const cos = Math.cos(flankAngle);
       const sin = Math.sin(flankAngle);
@@ -6285,6 +6382,100 @@ class MegabotScene {
     }
   }
 
+  // Bomb-escort behavior — fighters auto-tagged at bomber spawn. They orbit
+  // the bomber at radius BOMB_ESCORT_RADIUS, screening incoming fire by
+  // being closer hit-targets, and revert to default kamikaze when the
+  // bomber transitions to egress (its run is done) or dies.
+  updateBombEscortBehavior(ship: any, dt: number) {
+    const bomber = ship._escortBomber;
+    const bomberAlive = bomber && bomber.active && bomber.health > 0;
+    const bomberStillAttacking =
+      bomberAlive && (bomber.bombRunPhase === 'approach' || bomber.bombRunPhase === undefined);
+
+    if (!bomberStillAttacking) {
+      // Mission complete (bomb dropped, bomber dead, or bomber retasked):
+      // drop the role and re-enter the default kamikaze loop. The next
+      // frame's else-branch picks them up with a fresh juke cooldown.
+      ship._escortBomber = null;
+      ship.behavior = undefined;
+      return;
+    }
+
+    const BOMB_ESCORT_RADIUS = 90;
+    const ORBIT_RATE = 1.2; // rad/s
+    ship._escortOrbitAngle = (ship._escortOrbitAngle ?? 0) + ORBIT_RATE * dt;
+
+    // Target = bomber.position + (cosθ, 0, sinθ) * radius. Lerp the
+    // escort toward it with a smoothing factor that lets the model fall
+    // a beat behind the bomber's maneuver — reads as actively keeping
+    // station rather than rigidly snapped.
+    const a = ship._escortOrbitAngle;
+    const targetX = bomber.group.position.x + Math.cos(a) * BOMB_ESCORT_RADIUS;
+    const targetY = bomber.group.position.y + Math.sin(a * 0.5) * 25;
+    const targetZ = bomber.group.position.z + Math.sin(a) * BOMB_ESCORT_RADIUS;
+    const k = Math.min(3 * dt, 1);
+    ship.group.position.x += (targetX - ship.group.position.x) * k;
+    ship.group.position.y += (targetY - ship.group.position.y) * k;
+    ship.group.position.z += (targetZ - ship.group.position.z) * k;
+
+    // Face megabot so the existing firing block lights off lasers cleanly.
+    ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+  }
+
+  // Cruiser SOS — escort behavior triggered when a cruiser flips to flee.
+  // Recruited fighters/interceptors fly to the rear arc of the cruiser
+  // (between megabot and the cruiser, slightly trailing) so they form a
+  // moving screen that intercepts incoming fire and missiles. When the
+  // cruiser dies or despawns they drop the role and re-enter the default
+  // kamikaze loop.
+  updateCoverFleeBehavior(ship: any, dt: number) {
+    const cruiser = ship._coverTarget;
+    const cruiserAlive = cruiser && cruiser.active && cruiser.health > 0;
+    if (!cruiserAlive) {
+      // Mission complete — revert to default kamikaze.
+      ship._coverTarget = null;
+      ship.behavior = undefined;
+      return;
+    }
+
+    // Target screen position: between megabot and cruiser, biased slightly
+    // toward the cruiser (so escorts arrive in time to actually screen).
+    // The screen offset spreads recruits across the rear arc using
+    // _coverScreenSide ∈ {-1, 0, +1}.
+    const SCREEN_BIAS = 0.65; // 0..1 — closer to 1 = closer to cruiser
+    const SCREEN_SPREAD = 70; // u — lateral spread between escorts
+    const lerpX = this.megabotWorldPos.x + (cruiser.group.position.x - this.megabotWorldPos.x) * SCREEN_BIAS;
+    const lerpY = this.megabotWorldPos.y + (cruiser.group.position.y - this.megabotWorldPos.y) * SCREEN_BIAS;
+    const lerpZ = this.megabotWorldPos.z + (cruiser.group.position.z - this.megabotWorldPos.z) * SCREEN_BIAS;
+
+    // Perpendicular vector (in XZ) to spread screens left/right of the
+    // megabot→cruiser line.
+    const dx = cruiser.group.position.x - this.megabotWorldPos.x;
+    const dz = cruiser.group.position.z - this.megabotWorldPos.z;
+    const horizLen = Math.sqrt(dx * dx + dz * dz) || 1;
+    const perpX = -dz / horizLen;
+    const perpZ =  dx / horizLen;
+    const targetX = lerpX + perpX * SCREEN_SPREAD * (ship._coverScreenSide ?? 0);
+    const targetZ = lerpZ + perpZ * SCREEN_SPREAD * (ship._coverScreenSide ?? 0);
+
+    // Pull velocity toward the screen position. Higher coefficient than
+    // bomb-escort because the cruiser is moving fast away — escorts need
+    // to chase, not glide.
+    const PULL = 2.2 * dt;
+    const k = Math.min(PULL, 1);
+    ship.velocity.x += (targetX - ship.group.position.x) * k;
+    ship.velocity.z += (targetZ - ship.group.position.z) * k;
+    ship.velocity.y += (lerpY - ship.group.position.y) * k * 0.5;
+
+    ship.group.position.x += ship.velocity.x * dt;
+    ship.group.position.y += ship.velocity.y * dt;
+    ship.group.position.z += ship.velocity.z * dt;
+
+    // Face megabot so they fire backward into pursuit (existing firing
+    // block lights off lasers; we just orient the model).
+    ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+  }
+
   // Recompute the world-space aim point each frame by raycasting the cursor
   // through the camera. The result is yaw-only (pitch ignored — megabot's
   // body can't pitch and missiles fire level).
@@ -6701,8 +6892,31 @@ class MegabotScene {
     this.scene.add(this.shieldMesh);
   }
 
-  // Check and apply weapon upgrades based on score
+  // Roll per-run complication. Equal odds for none + each modifier.
+  // Modifier effects:
+  //   - 'bossier'      : boss wave every 3rd instead of 5th
+  //   - 'fast-enemies' : aerial spawn velocity ×1.35
+  //   - 'no-upgrades'  : weapon upgrades stay at level 0 all run
+  private _rollComplication() {
+    const roll = Math.random();
+    this.complication =
+      roll < 0.25 ? 'none' :
+      roll < 0.50 ? 'bossier' :
+      roll < 0.75 ? 'fast-enemies' :
+                    'no-upgrades';
+    this.bossInterval = this.complication === 'bossier' ? 3 : this.BOSS_WAVE_INTERVAL;
+    this.enemySpeedMul = this.complication === 'fast-enemies' ? 1.35 : 1;
+  }
+
+  // Check and apply weapon upgrades based on score. The 'no-upgrades'
+  // complication clamps the level to 0 so the player never gets the
+  // homing-missile / wide-laser / barrage perks for the duration of
+  // the run.
   checkUpgrades() {
+    if (this.complication === 'no-upgrades') {
+      this.upgradeLevel = 0;
+      return;
+    }
     let newLevel = 0;
     for (let i = 0; i < this.UPGRADE_THRESHOLDS.length; i++) {
       if (this.gameScore >= this.UPGRADE_THRESHOLDS[i]) {
@@ -6756,17 +6970,39 @@ class MegabotScene {
     }
 
     switch (this.waveState) {
-      case 'intermission':
+      case 'intermission': {
         this.waveTimer += dt;
-        if (this.waveTimer >= this.WAVE_INTERMISSION_TIME) {
+        // Look one wave ahead so we know whether this intermission is short
+        // (siege incoming) or normal. Siege intermissions collapse to 0.5s
+        // so the siege beat hits fast after the previous wave clears.
+        const nextWave = this.currentWave + 1;
+        const nextIsSiege = nextWave % this.SIEGE_WAVE_INTERVAL === 0;
+        const intermissionTime = nextIsSiege
+          ? this.SIEGE_INTERMISSION_TIME
+          : this.WAVE_INTERMISSION_TIME;
+        if (this.waveTimer >= intermissionTime) {
           // Start next wave
           this.currentWave++;
           this.waveTimer = 0;
 
-          const isBossWave = this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
-          this.waveState = isBossWave ? 'boss' : 'active';
+          // Siege overrides boss when both align (lcm(5,7)=35 → wave 35
+          // would be a tossup; siege wins because it's the more dramatic
+          // beat). In the typical 0..30 range they never collide.
+          const isSiege = this.currentWave % this.SIEGE_WAVE_INTERVAL === 0;
+          const isBossWave = !isSiege && this.currentWave % this.bossInterval === 0;
+          this.waveState = isSiege ? 'siege' : isBossWave ? 'boss' : 'active';
+          this.waveActiveStart = this.time;
 
-          if (isBossWave) {
+          if (isSiege) {
+            // Siege beat: no ship budget — we spawn freely until the timer
+            // elapses or megabot dies. waveShipsTotal is left at 0 so the
+            // kill-progress bar correctly hides during siege (HUD branches
+            // on waveState anyway).
+            this.waveShipsRemaining = 0;
+            this.waveShipsTotal = 0;
+            this.siegeTimer = 0;
+            this.lastSiegeGroundSpawnTime = currentTime;
+          } else if (isBossWave) {
             // Boss wave: boss formation only (boss + escorts). No ship-stream
             // running on top, so the player has a quiet moment to read the
             // boss + plan the engagement.
@@ -6786,6 +7022,7 @@ class MegabotScene {
           this.lastFormationSpawnTime = currentTime;
         }
         break;
+      }
 
       case 'active': {
         // Spawn ships with increasing frequency per wave (was floor 800 / step -100; now floor 350 / step -60)
@@ -6820,7 +7057,57 @@ class MegabotScene {
         }
         break;
       }
+
+      case 'siege': {
+        // Sustained-fire siege: ground + air spawn simultaneously without a
+        // wave-end check. Ends when the duration timer elapses (or when
+        // megabot dies — handled by the game-over path elsewhere). No
+        // budget; the spawn caps in spawn3DShip / spawnGroundUnit
+        // (MAX_SHIPS_3D = 15) keep the field bounded.
+        this.siegeTimer += dt;
+
+        // Aerial cadence — faster than a normal active wave so the field
+        // stays full.
+        if (currentTime - this.lastShipSpawnTime > this.SIEGE_AERIAL_INTERVAL_MS) {
+          this.spawn3DShip();
+          this.lastShipSpawnTime = currentTime;
+        }
+
+        // Ground cadence — separate timer so ground threats arrive on
+        // their own beat. spawn3DShip rolls the type weights so we just
+        // call it and let the dice fall; if a tank/SAM rolls during this
+        // pass the field gets a ground threat. Cheap enough.
+        if (currentTime - this.lastSiegeGroundSpawnTime > this.SIEGE_GROUND_INTERVAL_MS) {
+          this.spawn3DShip();
+          this.lastSiegeGroundSpawnTime = currentTime;
+        }
+
+        // Formation cadence — relatively rare during siege; the chaos
+        // is already from the constant single-spawn stream.
+        if (currentTime - this.lastFormationSpawnTime > this.SIEGE_FORMATION_INTERVAL_MS) {
+          this.spawnFormation();
+          this.lastFormationSpawnTime = currentTime;
+        }
+
+        if (this.siegeTimer >= this.SIEGE_DURATION_S) {
+          this._completeWave();
+        }
+        break;
+      }
     }
+  }
+
+  /**
+   * Soft target time (seconds) for clearing the current wave. Reads off
+   * waveShipsTotal so the value scales with how busy the wave is. Boss
+   * waves use the same scaling — the boss + escort count already comes
+   * out small (3-7 ships) so par lands ~10-15s, which is the right zone
+   * for a quick kill.
+   */
+  private _waveParTime(): number {
+    if (this.waveShipsTotal <= 0) return 0;
+    // 5s base + 1.5s per ship → wave-1 (4 ships) = 11s, wave-7 (18-cap) = 32s.
+    return 5 + this.waveShipsTotal * 1.5;
   }
 
   // Count active enemy ships without allocating (called every frame).
@@ -6833,16 +7120,52 @@ class MegabotScene {
   }
 
   // End-of-wave: award bonus, fire the toast, and drop into intermission.
-  // Boss waves are worth more because they're one-shot fights.
+  // Boss + siege beats are worth more because they're one-shot fights.
+  // Active/boss waves earn an additional clear-time tier multiplier
+  // (1.5× under par, 2× halfway, 3× flawless) so reflexes-not-grind is
+  // rewarded. Siege beats use a different bonus formula and are flagged
+  // with tier='siege' so the HUD can show a distinct toast.
   private _completeWave() {
     const isBossWave = this.waveState === 'boss';
-    const bonus = isBossWave
-      ? this.currentWave * 250 + 1000
-      : this.currentWave * 100;
+    const isSiege = this.waveState === 'siege';
+
+    let bonus = 0;
+    let tier: 'flawless' | 'halfway' | 'par' | 'siege' | null = null;
+
+    if (isSiege) {
+      // Survived a siege beat — flat reward + a per-second-survived
+      // contribution. Capped at SIEGE_DURATION_S seconds, but if the
+      // player breaks the siege early (e.g. all enemies happen to die
+      // during the elapsed window), partial credit is still meaningful.
+      const survivedS = Math.min(this.siegeTimer, this.SIEGE_DURATION_S);
+      bonus = Math.round(this.currentWave * 500 + 5000 + survivedS * 60);
+      tier = 'siege';
+    } else {
+      // Active / boss wave: base reward then clear-time multiplier.
+      const base = isBossWave ? this.currentWave * 250 + 1000 : this.currentWave * 100;
+      const par = this._waveParTime();
+      const clearTime = par > 0 ? Math.max(0, this.time - this.waveActiveStart) : 0;
+      let mult = 1;
+      if (par > 0) {
+        if (clearTime <= par * 0.5) {
+          mult = 3;
+          tier = 'flawless';
+        } else if (clearTime <= par * 0.75) {
+          mult = 2;
+          tier = 'halfway';
+        } else if (clearTime <= par) {
+          mult = 1.5;
+          tier = 'par';
+        }
+      }
+      bonus = Math.round(base * mult);
+    }
+
     this.gameScore += bonus;
-    this.waveBonus = { wave: this.currentWave, amount: bonus, ttl: this.WAVE_BONUS_TTL };
+    this.waveBonus = { wave: this.currentWave, amount: bonus, ttl: this.WAVE_BONUS_TTL, tier };
     this.waveState = 'intermission';
     this.waveTimer = 0;
+    this.siegeTimer = 0;
   }
 
   // Boss wave: spawn a large cruiser escort formation
@@ -6925,25 +7248,53 @@ class MegabotScene {
     }
 
     if (ship.health <= 0) {
-      const base = ship.type === 'cruiser' ? 500
-        : ship.type === 'bomber' ? 300
-        : ship.type === 'sam' ? 250
-        : ship.type === 'tank' ? 220
-        : ship.type === 'interceptor' ? 200
-        : 100;
-      this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
-      this.comboTimer = this.COMBO_WINDOW;
-      this.gameScore += base * Math.min(this.comboCount, 8);
-      const blastScale = ship.type === 'cruiser' ? 5.0
-        : ship.type === 'bomber' ? 4.0
-        : ship.type === 'sam' ? 3.5      // ammo cooks off
-        : ship.type === 'tank' ? 3.2     // armor + fuel
-        : ship.type === 'interceptor' ? 2.0
-        : 2.5;
-      this.create3DExplosion(ship.group.position, ship.size * blastScale);
+      this._scoreKill(ship);
       return true;
     }
     return false;
+  }
+
+  /**
+   * Centralised ship-kill bookkeeping. Awards score (base × combo, capped at
+   * 8×), advances the combo counter, pushes a kill-feed entry into
+   * _recentKills, and triggers the type-scaled explosion. Called from both
+   * laser and missile kill paths so the scoring + feed logic stays in one
+   * place.
+   */
+  private _scoreKill(ship: any) {
+    const base = ship.type === 'cruiser' ? 500
+      : ship.type === 'bomber' ? 300
+      : ship.type === 'sam' ? 250
+      : ship.type === 'tank' ? 220
+      : ship.type === 'interceptor' ? 200
+      : 100;
+    this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
+    this.comboTimer = this.COMBO_WINDOW;
+    const comboMul = Math.min(this.comboCount, 8);
+    const awarded = base * comboMul;
+    this.gameScore += awarded;
+
+    // Push into kill-feed ring. Cap small (RECENT_KILLS_CAP) so the array
+    // we ship in onGameStateUpdate stays cheap.
+    const id = ++this._killIdCounter;
+    this._recentKills.push({
+      id,
+      type: ship.type,
+      score: awarded,
+      combo: comboMul,
+      t: this.time,
+    });
+    if (this._recentKills.length > this.RECENT_KILLS_CAP) {
+      this._recentKills.shift();
+    }
+
+    const blastScale = ship.type === 'cruiser' ? 5.0
+      : ship.type === 'bomber' ? 4.0
+      : ship.type === 'sam' ? 3.5      // ammo cooks off
+      : ship.type === 'tank' ? 3.2     // armor + fuel
+      : ship.type === 'interceptor' ? 2.0
+      : 2.5;
+    this.create3DExplosion(ship.group.position, ship.size * blastScale);
   }
 
   // Update 3D combat system
@@ -7020,6 +7371,34 @@ class MegabotScene {
           ship.group.position.y + ship.velocity.y,
           ship.group.position.z + ship.velocity.z,
         );
+
+        // Cruiser SOS: rally up to 3 nearby unattached fighters/interceptors
+        // to cover the retreat. They fly toward the cruiser, screen incoming
+        // fire by interposing themselves between megabot and the cruiser,
+        // and revert to default kamikaze when the cruiser dies/despawns.
+        // Skips bombers (bomb-run is mission-critical), wingmen/leaders
+        // (don't shred existing formations), already-tagged ships.
+        const SOS_RANGE_SQ = 700 * 700;
+        let recruited = 0;
+        for (let s = 0; s < this.enemyShips.length && recruited < 3; s++) {
+          const candidate = this.enemyShips[s];
+          if (
+            candidate === ship ||
+            !candidate.active ||
+            candidate.behavior ||
+            candidate._wingman ||
+            candidate._wingmanOf ||
+            candidate.isGroundUnit
+          ) continue;
+          if (candidate.type !== 'fighter' && candidate.type !== 'interceptor') continue;
+          const cdSq = candidate.group.position.distanceToSquared(ship.group.position);
+          if (cdSq > SOS_RANGE_SQ) continue;
+
+          candidate.behavior = 'cover-flee';
+          candidate._coverTarget = ship;
+          candidate._coverScreenSide = recruited - 1; // -1, 0, +1: spread across the rear arc
+          recruited++;
+        }
       }
 
       // Update position based on behavior type
@@ -7031,6 +7410,10 @@ class MegabotScene {
         this.updateEscortBehavior(ship, dt);
       } else if (ship.behavior === 'bomb-run') {
         this.updateBombRunBehavior(ship, dt, distToMegabotSq);
+      } else if (ship.behavior === 'bomb-escort') {
+        this.updateBombEscortBehavior(ship, dt);
+      } else if (ship.behavior === 'cover-flee') {
+        this.updateCoverFleeBehavior(ship, dt);
       } else if (ship.behavior === 'cruiser-flee') {
         // Pure ballistic escape — keep flying outward at the velocity set
         // when retreat triggered. Despawn handled by the out-of-bounds
@@ -7446,22 +7829,7 @@ class MegabotScene {
           hitShip = true;
 
           if (ship.health <= 0) {
-            const base = ship.type === 'cruiser' ? 500
-        : ship.type === 'bomber' ? 300
-        : ship.type === 'sam' ? 250
-        : ship.type === 'tank' ? 220
-        : ship.type === 'interceptor' ? 200
-        : 100;
-            this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
-            this.comboTimer = this.COMBO_WINDOW;
-            this.gameScore += base * Math.min(this.comboCount, 8);
-            const blastScale = ship.type === 'cruiser' ? 5.0
-        : ship.type === 'bomber' ? 4.0
-        : ship.type === 'sam' ? 3.5      // ammo cooks off
-        : ship.type === 'tank' ? 3.2     // armor + fuel
-        : ship.type === 'interceptor' ? 2.0
-        : 2.5;
-            this.create3DExplosion(ship.group.position, ship.size * blastScale);
+            this._scoreKill(ship);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
           } else {
@@ -7688,18 +8056,35 @@ class MegabotScene {
       }
       const flooredShield = Math.floor(this.shieldHP);
 
-      // Wave countdown: seconds remaining in the intermission, rounded to one
-      // decimal so the HUD updates ~10x/sec without firing on every frame.
-      const rawCountdown =
-        this.waveState === 'intermission'
-          ? Math.max(0, this.WAVE_INTERMISSION_TIME - this.waveTimer)
-          : 0;
+      // Wave countdown — multipurpose:
+      //  - intermission: seconds left until next wave starts (looks ahead
+      //    at SIEGE_INTERMISSION_TIME if the next wave is a siege beat)
+      //  - siege:       seconds left until the siege ends
+      //  - active/boss: 0
+      // Rounded to one decimal so the HUD updates ~10x/sec without firing
+      // on every frame.
+      let rawCountdown = 0;
+      if (this.waveState === 'intermission') {
+        const nextIsSiege = (this.currentWave + 1) % this.SIEGE_WAVE_INTERVAL === 0;
+        const intermissionTime = nextIsSiege
+          ? this.SIEGE_INTERMISSION_TIME
+          : this.WAVE_INTERMISSION_TIME;
+        rawCountdown = Math.max(0, intermissionTime - this.waveTimer);
+      } else if (this.waveState === 'siege') {
+        rawCountdown = Math.max(0, this.SIEGE_DURATION_S - this.siegeTimer);
+      }
       const waveCountdown = Math.round(rawCountdown * 10) / 10;
+
+      // Active / boss elapsed time + par target — drives the par-time bar.
+      const isClock = this.waveState === 'active' || this.waveState === 'boss';
+      const rawElapsed = isClock ? Math.max(0, this.time - this.waveActiveStart) : 0;
+      const waveElapsed = Math.round(rawElapsed * 10) / 10;
+      const waveParTime = isClock ? this._waveParTime() : 0;
 
       // Bonus toast: emit while ttl > 0, suppress once it's expired. Key
       // changes when a new bonus arrives or when the toast expires.
       const bonusKey = this.waveBonus.ttl > 0
-        ? `${this.waveBonus.wave}:${this.waveBonus.amount}`
+        ? `${this.waveBonus.wave}:${this.waveBonus.amount}:${this.waveBonus.tier ?? ''}`
         : '';
 
       if (this.gameScore !== this._prevScore ||
@@ -7711,6 +8096,8 @@ class MegabotScene {
           waveCountdown !== this._prevWaveCountdown ||
           this.waveShipsRemaining !== this._prevWaveShipsRemaining ||
           this.waveShipsTotal !== this._prevWaveShipsTotal ||
+          waveElapsed !== this._prevWaveElapsed ||
+          this._killIdCounter !== this._prevKillId ||
           bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
@@ -7724,6 +8111,8 @@ class MegabotScene {
         this._prevWaveCountdown = waveCountdown;
         this._prevWaveShipsRemaining = this.waveShipsRemaining;
         this._prevWaveShipsTotal = this.waveShipsTotal;
+        this._prevWaveElapsed = waveElapsed;
+        this._prevKillId = this._killIdCounter;
         this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
@@ -7737,10 +8126,16 @@ class MegabotScene {
           waveState: this.waveState,
           waveCountdown,
           waveBonus: this.waveBonus.ttl > 0
-            ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount }
+            ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount, tier: this.waveBonus.tier ?? null }
             : null,
           waveShipsRemaining: this.waveShipsRemaining,
           waveShipsTotal: this.waveShipsTotal,
+          waveElapsed,
+          waveParTime,
+          // Snapshot copy so the consumer can mutate without affecting the
+          // ring. Cheap — capped at RECENT_KILLS_CAP.
+          recentKills: this._recentKills.slice(),
+          complication: this.complication,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,

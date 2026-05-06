@@ -74,7 +74,7 @@ export default function BossesIndexPage() {
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-24">
+        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-12">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(b => (
               <Link
@@ -141,6 +141,34 @@ export default function BossesIndexPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+
+        {/* Arena strip — bosses get more terrifying when you've actually fought one */}
+        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-24">
+          <div className="etu-glass p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <div className="flex-1">
+              <div className="eyebrow mb-2">Active Theatre</div>
+              <h3 className="font-display text-2xl font-bold etu-headline-grad mb-2">
+                Adaptive AI you can fight today
+              </h3>
+              <p className="text-slate-300">
+                The Megabot Arena runs the same adaptive AI you&apos;ll see across the
+                full roster — every fifth wave is a boss formation. See how far you can
+                push before it answers in kind.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Link
+                href="/missile-game"
+                className="btn-3d btn-3d-red px-6 py-3 text-sm"
+              >
+                ▶ Play Megabot Arena
+              </Link>
+              <Link href="/leaderboard?mode=megabot" className="btn-ghost">
+                🏆 Leaderboard
+              </Link>
+            </div>
           </div>
         </section>
       </main>

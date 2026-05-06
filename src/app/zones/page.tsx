@@ -28,7 +28,7 @@ export default function ZonesIndexPage() {
           </p>
         </section>
 
-        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-24">
+        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-12">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {zones.map(z => {
               const bossCount = getBossesForZone(z.id).length
@@ -97,6 +97,34 @@ export default function ZonesIndexPage() {
                 </Link>
               )
             })}
+          </div>
+        </section>
+
+        {/* Arena strip — connects the atlas to the only currently-playable surface */}
+        <section className="max-w-7xl mx-auto px-4 lg:px-6 pb-24">
+          <div className="etu-glass p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <div className="flex-1">
+              <div className="eyebrow mb-2">Live Theatre</div>
+              <h3 className="font-display text-2xl font-bold etu-headline-grad mb-2">
+                The Atlas ships with the alpha. The Arena ships today.
+              </h3>
+              <p className="text-slate-300">
+                Megabot Missile Defense runs the same engine, AI, and projectile system
+                you&apos;ll meet across all sixteen zones — pared down to one ridge, one
+                station, sixteen escalating waves.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Link
+                href="/missile-game"
+                className="btn-3d btn-3d-red px-6 py-3 text-sm"
+              >
+                ▶ Play Megabot Arena
+              </Link>
+              <Link href="/leaderboard?mode=megabot" className="btn-ghost">
+                🏆 Leaderboard
+              </Link>
+            </div>
           </div>
         </section>
       </main>
