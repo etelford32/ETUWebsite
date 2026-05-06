@@ -63,11 +63,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Mode filter (no-op for 'all'). Whitelisted above so this is safe.
-    if (mode !== 'all') {
-      query = query.eq('mode', mode)
-    }
-
-    // Filter by mode (e.g. 'megabot', 'speedrun'). 'all' = no filter.
     if (mode && mode !== 'all') {
       query = query.eq('mode', mode)
     }
