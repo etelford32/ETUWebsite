@@ -152,9 +152,16 @@ export default function HomePage() {
 
         {/* Hero content */}
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 py-24 md:py-32">
+          <div className="reveal mb-6">
+            <CountdownTimer
+              targetDate="2026-06-06T00:00:00"
+              label="BETA LAUNCHES IN"
+            />
+          </div>
+
           <div className="reveal flex items-center gap-3 mb-5 flex-wrap">
             <span className="etu-pill etu-pill--amber">
-              <span className="ping" /> Alpha · In Development
+              <span className="ping" /> Alpha · Recruiting Testers
             </span>
             <span
               className="eyebrow"
@@ -175,50 +182,63 @@ export default function HomePage() {
             className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            The first real-time space RPG with{" "}
-            <span className="headline-gradient font-semibold">adaptive AI</span>.
-            17 factions at war, an evil AI hunting you, real-time combat, alien
-            diplomacy — and a galaxy that remembers.
+            Beta launches{" "}
+            <span className="headline-gradient font-semibold">June 6</span>.
+            Wishlist on Steam to be ready — or join the{" "}
+            <span className="text-amber-300 font-semibold">alpha</span> right
+            now and help shape the galaxy.
           </p>
 
+          {/* Co-primary CTAs — Wishlist + Alpha Testing */}
           <div className="reveal mt-10 flex flex-wrap items-center gap-4">
-            <Link
-              href="/alpha-testing"
-              className="btn-3d btn-3d-steam group text-sm px-6 py-3"
+            <a
+              href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-3d btn-3d-steam group text-base px-8 py-4"
             >
               <svg
-                className="w-5 h-5 transition-transform group-hover:scale-110"
+                className="w-6 h-6 transition-transform group-hover:scale-110"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
                 <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
               </svg>
-              <span>Alpha Testing</span>
-            </Link>
+              <span>Wishlist on Steam</span>
+              <span className="ml-1 text-xs font-bold opacity-80 uppercase tracking-wider">
+                · It's Free
+              </span>
+            </a>
 
             <Link
-              href="/missile-game"
-              className="btn-3d btn-3d-red group text-sm px-6 py-3"
+              href="/alpha-testing"
+              className="btn-3d btn-3d-red group text-base px-8 py-4"
             >
               <svg
-                className="w-5 h-5 transition-transform group-hover:scale-110"
+                className="w-6 h-6 transition-transform group-hover:scale-110"
                 viewBox="0 0 24 24"
-                fill="currentColor"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M8 5v14l11-7z" />
+                <path d="M12 2 L3 7 V17 L12 22 L21 17 V7 Z" />
+                <path d="M3 7 L12 12 L21 7" />
+                <path d="M12 12 V22" />
               </svg>
-              <span>Play Megabot</span>
+              <span>Become an Alpha Tester</span>
             </Link>
 
-            <a href="#features" className="btn-ghost">
-              Learn More
-            </a>
+            <Link href="/missile-game" className="btn-ghost">
+              ▶ Play Megabot
+            </Link>
           </div>
 
           {/* 3-up stat row */}
           <div className="reveal mt-14 flex flex-wrap gap-x-12 gap-y-5">
-            <HeroStat label="Engine" value="ETU Game Engine" />
-            <HeroStat label="Factions" value="17" />
+            <HeroStat label="Beta Launch" value="June 6, 2026" />
+            <HeroStat label="Alpha Testers" value="1 · Spots Open" />
             <HeroStat label="Platform" value="Steam · PC" />
           </div>
         </div>
@@ -1334,7 +1354,7 @@ export default function HomePage() {
             </p>
 
             <div className="flex justify-center mb-8">
-              <CountdownTimer targetDate="2025-12-31T23:59:59" label="ALPHA TESTING STARTS IN" />
+              <CountdownTimer targetDate="2026-06-06T00:00:00" label="JOIN ALPHA BEFORE BETA LAUNCHES IN" />
             </div>
           </div>
 
