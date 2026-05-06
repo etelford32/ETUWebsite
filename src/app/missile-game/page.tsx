@@ -29,6 +29,12 @@ export default function MissileGamePage() {
   const [authUser, setAuthUser] = useState<{ id: string; username?: string } | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
+  // Run token issued by /api/megabot/run-token at game start. Submit-score
+  // verifies the token (signature + age + ownership + score-vs-wave ceiling)
+  // before flipping is_verified=true. Logged-out players don't have one;
+  // their score still inserts but stays unverified.
+  const runTokenRef = useRef<string | null>(null);
+
   // Score-submission status (drives the bottom-center pill).
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({ kind: 'idle' });
   const submittedRef = useRef(false);
@@ -74,11 +80,26 @@ export default function MissileGamePage() {
     if (!saved) setAnimationQuality(detectConnectionQuality());
 
     // Check session once on mount; the score-submit effect waits on this.
+    // If authenticated, immediately request a run-token so the moment-of-
+    // submit doesn't have to round-trip for it. Token failures are non-fatal
+    // (the run still plays, just submits unverified).
     fetch('/api/auth/session', { credentials: 'include' })
       .then(r => r.json())
-      .then(data => {
+      .then(async data => {
         if (data?.authenticated && data?.user) {
           setAuthUser({ id: data.user.id, username: data.user.username });
+          try {
+            const tokRes = await fetch('/api/megabot/run-token', {
+              method: 'POST',
+              credentials: 'include',
+            });
+            if (tokRes.ok) {
+              const tokJson = await tokRes.json();
+              if (tokJson?.token) runTokenRef.current = tokJson.token;
+            }
+          } catch {
+            /* leave runTokenRef null; submit-score will mark unverified */
+          }
         }
       })
       .catch(() => { /* leave authUser null */ })
@@ -121,6 +142,10 @@ export default function MissileGamePage() {
           // Mark the source so server-side verification can later filter
           // on it without inferring from `mode` alone.
           source: 'web-megabot-arena',
+          // Stripped server-side before persistence; used only for the
+          // is_verified gate. Null when the token fetch failed at game
+          // start — score still inserts, just stays unverified.
+          runToken: runTokenRef.current,
         },
       }),
     })
