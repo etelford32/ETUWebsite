@@ -238,7 +238,7 @@ export default function HomePage() {
           {/* 3-up stat row */}
           <div className="reveal mt-14 flex flex-wrap gap-x-12 gap-y-5">
             <HeroStat label="Beta Launch" value="June 6, 2026" />
-            <HeroStat label="Alpha Testers" value="1 · Spots Open" />
+            <HeroStat label="Alpha" value="Now Recruiting Testers" />
             <HeroStat label="Platform" value="Steam · PC" />
           </div>
         </div>
