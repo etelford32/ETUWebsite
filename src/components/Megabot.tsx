@@ -24,6 +24,8 @@ interface MegabotProps {
     missileCount: number;
     wave: number;
     waveState: string;
+    waveCountdown: number;
+    waveBonus: { wave: number; amount: number } | null;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -255,6 +257,8 @@ class MegabotScene {
     missileCount: number;
     wave: number;
     waveState: string;
+    waveCountdown: number;
+    waveBonus: { wave: number; amount: number } | null;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -270,6 +274,7 @@ class MegabotScene {
   private _prevMissileCount = -1;
   private _prevWave = -1;
   private _prevWaveState = '';
+  private _prevWaveCountdown = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -418,13 +423,19 @@ class MegabotScene {
   // Wave system
   currentWave: number = 0;
   waveState: 'intermission' | 'active' | 'boss' = 'intermission';
-  // Start partway through the intermission so wave 1 kicks off ~0.5s after load
-  // instead of making the player wait the full intermission for the first wave.
+  // Start the first intermission ~1.5s in so wave 1 kicks off shortly after load
+  // (the full WAVE_INTERMISSION_TIME tick still runs; this just trims the wait).
   waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
-  readonly WAVE_INTERMISSION_TIME = 1.5; // seconds between waves (was 4 — kept the action moving)
+  readonly WAVE_INTERMISSION_TIME = 2.5; // seconds between waves — long enough for the "WAVE N · INCOMING" telegraph to read
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
+  readonly MAX_SHIPS_PER_WAVE = 18; // Cap on regular-wave spawn budget so late waves don't become a firehose
+  // End-of-wave bonus toast (consumed by HUD via onGameStateUpdate.waveBonus).
+  // ttl counts down each frame; while ttl > 0 the toast is "live".
+  waveBonus: { wave: number; amount: number; ttl: number } = { wave: 0, amount: 0, ttl: 0 };
+  readonly WAVE_BONUS_TTL = 2.4; // seconds the toast stays visible
+  private _prevWaveBonusKey: string = '';
 
   // Shield system
   shieldHP: number = 3000;
@@ -490,6 +501,8 @@ class MegabotScene {
       missileCount: number;
       wave: number;
       waveState: string;
+      waveCountdown: number;
+      waveBonus: { wave: number; amount: number } | null;
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -6198,6 +6211,11 @@ class MegabotScene {
   updateWaveSystem(dt: number) {
     const currentTime = this.time * 1000;
 
+    // Tick the bonus-toast timer regardless of state so it expires cleanly.
+    if (this.waveBonus.ttl > 0) {
+      this.waveBonus.ttl = Math.max(0, this.waveBonus.ttl - dt);
+    }
+
     switch (this.waveState) {
       case 'intermission':
         this.waveTimer += dt;
@@ -6209,14 +6227,16 @@ class MegabotScene {
           const isBossWave = this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
           this.waveState = isBossWave ? 'boss' : 'active';
 
-          // Calculate ships for this wave
           if (isBossWave) {
-            // Boss wave: fewer but tougher ships + a boss formation
-            this.waveShipsRemaining = 3 + Math.floor(this.currentWave / 5);
+            // Boss wave: boss formation only (boss + escorts). No ship-stream
+            // running on top, so the player has a quiet moment to read the
+            // boss + plan the engagement.
+            this.waveShipsRemaining = 0;
             this.spawnBossWave();
           } else {
-            // Normal wave: escalating ship count
-            this.waveShipsRemaining = 4 + this.currentWave * 2;
+            // Normal wave: escalating ship count, capped so late waves stay
+            // readable instead of becoming a firehose.
+            this.waveShipsRemaining = Math.min(4 + this.currentWave * 2, this.MAX_SHIPS_PER_WAVE);
           }
           this.waveShipsAlive = 0;
           this.lastShipSpawnTime = currentTime;
@@ -6224,8 +6244,7 @@ class MegabotScene {
         }
         break;
 
-      case 'active':
-      case 'boss': {
+      case 'active': {
         // Spawn ships with increasing frequency per wave (was floor 800 / step -100; now floor 350 / step -60)
         const spawnInterval = Math.max(350, this.SHIP_SPAWN_INTERVAL - this.currentWave * 60);
         if (this.waveShipsRemaining > 0 && currentTime - this.lastShipSpawnTime > spawnInterval) {
@@ -6244,20 +6263,43 @@ class MegabotScene {
           this.lastFormationSpawnTime = currentTime;
         }
 
-        // Check if wave is complete (all spawned and all destroyed) - count directly to avoid GC
-        let shipsLeft = 0;
-        for (let si = 0; si < this.enemyShips.length; si++) {
-          if (this.enemyShips[si].active) shipsLeft++;
+        if (this.waveShipsRemaining <= 0 && this._countActiveShips() === 0) {
+          this._completeWave();
         }
-        if (this.waveShipsRemaining <= 0 && shipsLeft === 0) {
-          this.waveState = 'intermission';
-          this.waveTimer = 0;
-          // Wave completion bonus
-          this.gameScore += this.currentWave * 100;
+        break;
+      }
+
+      case 'boss': {
+        // Boss wave is "boss formation only" — the formation was spawned at
+        // wave-start. We just wait for everything to die.
+        if (this._countActiveShips() === 0) {
+          this._completeWave();
         }
         break;
       }
     }
+  }
+
+  // Count active enemy ships without allocating (called every frame).
+  private _countActiveShips(): number {
+    let n = 0;
+    for (let si = 0; si < this.enemyShips.length; si++) {
+      if (this.enemyShips[si].active) n++;
+    }
+    return n;
+  }
+
+  // End-of-wave: award bonus, fire the toast, and drop into intermission.
+  // Boss waves are worth more because they're one-shot fights.
+  private _completeWave() {
+    const isBossWave = this.waveState === 'boss';
+    const bonus = isBossWave
+      ? this.currentWave * 250 + 1000
+      : this.currentWave * 100;
+    this.gameScore += bonus;
+    this.waveBonus = { wave: this.currentWave, amount: bonus, ttl: this.WAVE_BONUS_TTL };
+    this.waveState = 'intermission';
+    this.waveTimer = 0;
   }
 
   // Boss wave: spawn a large cruiser escort formation
@@ -6864,12 +6906,29 @@ class MegabotScene {
         if (this.missiles3D[i].active) activeMissiles++;
       }
       const flooredShield = Math.floor(this.shieldHP);
+
+      // Wave countdown: seconds remaining in the intermission, rounded to one
+      // decimal so the HUD updates ~10x/sec without firing on every frame.
+      const rawCountdown =
+        this.waveState === 'intermission'
+          ? Math.max(0, this.WAVE_INTERMISSION_TIME - this.waveTimer)
+          : 0;
+      const waveCountdown = Math.round(rawCountdown * 10) / 10;
+
+      // Bonus toast: emit while ttl > 0, suppress once it's expired. Key
+      // changes when a new bonus arrives or when the toast expires.
+      const bonusKey = this.waveBonus.ttl > 0
+        ? `${this.waveBonus.wave}:${this.waveBonus.amount}`
+        : '';
+
       if (this.gameScore !== this._prevScore ||
           this.megabotHealth !== this._prevHealth ||
           activeShips !== this._prevShipCount ||
           activeMissiles !== this._prevMissileCount ||
           this.currentWave !== this._prevWave ||
           this.waveState !== this._prevWaveState ||
+          waveCountdown !== this._prevWaveCountdown ||
+          bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
           this.comboCount !== this._prevCombo) {
@@ -6879,6 +6938,8 @@ class MegabotScene {
         this._prevMissileCount = activeMissiles;
         this._prevWave = this.currentWave;
         this._prevWaveState = this.waveState;
+        this._prevWaveCountdown = waveCountdown;
+        this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
         this._prevCombo = this.comboCount;
@@ -6889,6 +6950,10 @@ class MegabotScene {
           missileCount: activeMissiles,
           wave: this.currentWave,
           waveState: this.waveState,
+          waveCountdown,
+          waveBonus: this.waveBonus.ttl > 0
+            ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount }
+            : null,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,

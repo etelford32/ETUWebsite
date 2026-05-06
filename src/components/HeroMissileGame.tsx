@@ -10,6 +10,8 @@ interface HeroMissileGameProps {
     missileCount: number;
     wave: number;
     waveState: string;
+    waveCountdown?: number;
+    waveBonus?: { wave: number; amount: number } | null;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -39,12 +41,108 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
   const MAX_MISSILES = 50;
   const MAX_SHIPS = 15;
 
+  // Telegraph fires during the intermission once wave 1+ has started. The
+  // *next* wave the player is about to face is currentWave + 1.
+  const isIntermission = gameState.waveState === 'intermission';
+  const showTelegraph = isIntermission && gameState.wave > 0;
+  const nextWave = gameState.wave + 1;
+  const isBossNext = nextWave % 5 === 0;
+  const countdown = gameState.waveCountdown ?? 0;
+  const bonus = gameState.waveBonus ?? null;
+
   return (
     <div
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 999 }}
       aria-hidden="true"
     >
+      {/* WAVE INCOMING TELEGRAPH — fullscreen, brief, big */}
+      {showTelegraph && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Subtle radial vignette behind the text so it reads over busy 3D scenes */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(circle at center, rgba(2,6,23,0.55) 0%, rgba(2,6,23,0) 55%)',
+            }}
+          />
+          <div className="relative text-center" style={{ animation: 'etu-telegraph 2.5s ease-out forwards' }}>
+            <div
+              className="font-orbitron uppercase text-[10px] md:text-xs tracking-[0.3em]"
+              style={{
+                color: isBossNext ? '#fda4af' : '#67e8f9',
+                textShadow: '0 2px 8px rgba(0,0,0,0.85)',
+              }}
+            >
+              {isBossNext ? '☠ Boss Wave Incoming' : 'Wave Incoming'}
+            </div>
+            <div
+              className="font-orbitron font-bold text-5xl md:text-7xl tracking-[0.08em] leading-none mt-2"
+              style={{
+                color: '#c7d9e8',
+                textShadow:
+                  '0 0 30px rgba(147,197,253,0.45), 0 0 60px rgba(147,197,253,0.25), 0 4px 12px rgba(0,0,0,0.95)',
+              }}
+            >
+              WAVE {nextWave}
+            </div>
+            <div
+              className="font-mono mt-3 text-2xl md:text-3xl tabular-nums"
+              style={{
+                color: isBossNext ? '#f43f5e' : '#22d3ee',
+                textShadow: '0 2px 8px rgba(0,0,0,0.85)',
+              }}
+            >
+              {countdown.toFixed(1)}s
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WAVE BONUS TOAST — drifts up from center after a wave ends */}
+      {bonus && (
+        <div
+          key={`${bonus.wave}-${bonus.amount}`}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 pointer-events-none"
+          style={{ animation: 'etu-bonus-toast 2.4s ease-out forwards' }}
+        >
+          <div className="text-center font-orbitron uppercase">
+            <div
+              className="text-xs tracking-[0.28em]"
+              style={{ color: '#86efac', textShadow: '0 2px 8px rgba(0,0,0,0.85)' }}
+            >
+              Wave {bonus.wave} Cleared
+            </div>
+            <div
+              className="font-bold text-4xl md:text-5xl tabular-nums mt-1"
+              style={{
+                color: '#fde68a',
+                textShadow:
+                  '0 0 30px rgba(253,230,138,0.45), 0 4px 12px rgba(0,0,0,0.95)',
+              }}
+            >
+              +{bonus.amount.toLocaleString()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline keyframes for the two effects above */}
+      <style jsx>{`
+        @keyframes etu-telegraph {
+          0%   { opacity: 0; transform: scale(0.85); }
+          12%  { opacity: 1; transform: scale(1); }
+          88%  { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.05); }
+        }
+        @keyframes etu-bonus-toast {
+          0%   { opacity: 0; transform: translate(-50%, 20px); }
+          15%  { opacity: 1; transform: translate(-50%, -10px); }
+          70%  { opacity: 1; transform: translate(-50%, -40px); }
+          100% { opacity: 0; transform: translate(-50%, -80px); }
+        }
+      `}</style>
       {/* Game UI - Top Left */}
       <div
         className="absolute top-4 left-4 bg-black/70 text-white text-sm p-3 rounded-lg border-2 border-cyan-500/50"
@@ -55,9 +153,37 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           {gameState.wave === 0 ? (
             <div className="text-yellow-400 text-xs font-bold animate-pulse">GET READY...</div>
           ) : gameState.waveState === 'intermission' ? (
-            <div className="text-green-400 text-xs font-bold animate-pulse">WAVE {gameState.wave} COMPLETE</div>
+            <div className="space-y-1">
+              {/* Big "CLEAR" pill — green, checkmark, mono caps */}
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-orbitron text-[11px] font-bold uppercase tracking-[0.18em]"
+                style={{
+                  background: 'rgba(52,211,153,0.12)',
+                  border: '1px solid rgba(52,211,153,0.45)',
+                  color: '#6ee7b7',
+                  boxShadow: '0 0 14px rgba(52,211,153,0.25)',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                Wave {gameState.wave} · Clear
+              </div>
+              {/* Bonus stamp — mirrors the floating toast for ~the same window */}
+              {bonus && bonus.wave === gameState.wave && (
+                <div className="font-mono text-[11px] tabular-nums text-amber-300">
+                  +{bonus.amount.toLocaleString()} bonus
+                </div>
+              )}
+              {/* Next-wave countdown */}
+              {countdown > 0 && (
+                <div className="font-mono text-[10px] tabular-nums text-slate-400">
+                  Next: Wave {gameState.wave + 1} in {countdown.toFixed(1)}s
+                </div>
+              )}
+            </div>
           ) : gameState.waveState === 'boss' ? (
-            <div className="text-red-400 text-sm font-bold animate-pulse">BOSS WAVE {gameState.wave}</div>
+            <div className="text-red-400 text-sm font-bold animate-pulse">☠ BOSS WAVE {gameState.wave}</div>
           ) : (
             <div className="text-cyan-400 text-xs font-bold">WAVE {gameState.wave}</div>
           )}

@@ -25,9 +25,13 @@ export default function MissileGamePage() {
     missileCount: number;
     wave: number;
     waveState: string;
+    waveCountdown: number;
+    waveBonus: { wave: number; amount: number } | null;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    combo?: number;
+    comboTimer?: number;
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }>({
     score: 0,
@@ -36,6 +40,8 @@ export default function MissileGamePage() {
     missileCount: 0,
     wave: 0,
     waveState: 'intermission',
+    waveCountdown: 0,
+    waveBonus: null,
     shieldHP: 3000,
     maxShieldHP: 3000,
     upgradeLevel: 0,
