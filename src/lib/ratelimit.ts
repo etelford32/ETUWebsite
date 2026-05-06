@@ -161,13 +161,17 @@ export function rateLimitMiddleware(
  * Predefined rate limiters for common use cases
  */
 export const RateLimiters = {
-  // Very strict - for authentication endpoints
+  // Strict — for password login. Bumped 5 -> 10 per 15 min so testing
+  // sessions don't trip on a few mistyped passwords or browser-autofill
+  // retries; still tight enough to slow brute-force.
   auth: (identifier: string) =>
-    checkRateLimit(identifier, 5, 15 * 60 * 1000), // 5 attempts per 15 min
+    checkRateLimit(identifier, 10, 15 * 60 * 1000),
 
-  // Strict - for signup
+  // Strict — for signup + magic-link sends. Bumped 3 -> 6 per hour for
+  // the same reason: a user testing the magic-link flow + a real signup
+  // shouldn't blow the bucket.
   signup: (identifier: string) =>
-    checkRateLimit(identifier, 3, 60 * 60 * 1000), // 3 attempts per hour
+    checkRateLimit(identifier, 6, 60 * 60 * 1000),
 
   // Moderate - for profile updates
   profileUpdate: (identifier: string) =>
@@ -191,6 +195,23 @@ export const RateLimiters = {
  */
 export function resetRateLimit(identifier: string): void {
   attempts.delete(identifier);
+}
+
+/**
+ * Reset every bucket whose identifier starts with `prefix`. Used by the
+ * admin clear-rate-limit endpoint so we can wipe all (email, IP,
+ * userAgent) tuples for a given email in one shot. Returns how many
+ * buckets were cleared.
+ */
+export function resetRateLimitByPrefix(prefix: string): number {
+  let cleared = 0;
+  for (const key of attempts.keys()) {
+    if (key.startsWith(prefix)) {
+      attempts.delete(key);
+      cleared++;
+    }
+  }
+  return cleared;
 }
 
 /**
