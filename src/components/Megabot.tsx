@@ -26,6 +26,8 @@ interface MegabotProps {
     waveState: string;
     waveCountdown: number;
     waveBonus: { wave: number; amount: number } | null;
+    waveShipsRemaining: number;
+    waveShipsTotal: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -271,6 +273,8 @@ class MegabotScene {
     waveState: string;
     waveCountdown: number;
     waveBonus: { wave: number; amount: number } | null;
+    waveShipsRemaining: number;
+    waveShipsTotal: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -287,6 +291,8 @@ class MegabotScene {
   private _prevWave = -1;
   private _prevWaveState = '';
   private _prevWaveCountdown = -1;
+  private _prevWaveShipsRemaining = -1;
+  private _prevWaveShipsTotal = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -457,6 +463,7 @@ class MegabotScene {
   waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
+  waveShipsTotal: number = 0; // Total ship budget for this wave (for HUD progress bar)
   readonly WAVE_INTERMISSION_TIME = 2.5; // seconds between waves — long enough for the "WAVE N · INCOMING" telegraph to read
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
   readonly MAX_SHIPS_PER_WAVE = 18; // Cap on regular-wave spawn budget so late waves don't become a firehose
@@ -532,6 +539,8 @@ class MegabotScene {
       waveState: string;
       waveCountdown: number;
       waveBonus: { wave: number; amount: number } | null;
+      waveShipsRemaining: number;
+      waveShipsTotal: number;
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -4780,12 +4789,20 @@ class MegabotScene {
     );
     ship.group.lookAt(mp.x, mp.y, mp.z);
 
-    this.enemyShips.push({
+    const enemyShip: any = {
       ...ship,
       velocity,
       active: true,
       lastLaserTime: 0,
-    });
+    };
+    // Bombers run a "bomb-run" state machine: approach, fire once, peel off.
+    // Tagged here at spawn so updateShips dispatches via the named behavior
+    // branch instead of the default kamikaze / juke path.
+    if (type === 'bomber') {
+      enemyShip.behavior = 'bomb-run';
+      enemyShip.bombRunPhase = 'approach';
+    }
+    this.enemyShips.push(enemyShip);
     this.scene.add(ship.group);
   }
 
@@ -5995,6 +6012,58 @@ class MegabotScene {
     }
   }
 
+  // Bomb-run state machine — used by every basic-spawned bomber. They fly in
+  // toward megabot, fire once at standoff range, then peel off perpendicular
+  // and disengage. Despawn happens via the existing out-of-bounds check.
+  updateBombRunBehavior(ship: any, dt: number, distToMegabotSq: number) {
+    if (ship.bombRunPhase === 'egress') {
+      // Pure ballistic egress — fly out at the velocity we set when the
+      // bomb-run completed, no homing.
+      ship.group.position.x += ship.velocity.x * dt;
+      ship.group.position.y += ship.velocity.y * dt;
+      ship.group.position.z += ship.velocity.z * dt;
+      return;
+    }
+
+    // Approach: fly toward megabot at spawn velocity. The default lookAt
+    // pass below skips us (behavior !== formation-attack), so we set it
+    // ourselves once per frame so the bomber visibly tracks the target.
+    ship.group.position.x += ship.velocity.x * dt;
+    ship.group.position.y += ship.velocity.y * dt;
+    ship.group.position.z += ship.velocity.z * dt;
+    ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+
+    // Trigger egress once we're inside the bomb-drop window. 1100u sits
+    // just inside the bomber's plasma cannon range (1.2 * ENEMY_LASER_RANGE
+    // = 1440u), so the firing block in updateShips will already be lighting
+    // off plasma when this trips.
+    const TURN_RANGE_SQ = 1100 * 1100;
+    if (distToMegabotSq < TURN_RANGE_SQ) {
+      ship.bombRunPhase = 'egress';
+      // Build an egress vector perpendicular (in XZ) to the current heading.
+      // sign picks left or right at random so two bombers approaching the
+      // same target peel different directions.
+      const vx = ship.velocity.x;
+      const vy = ship.velocity.y;
+      const vz = ship.velocity.z;
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      const horizLen = Math.sqrt(vx * vx + vz * vz) || 1;
+      const EGRESS_SPEED = 460;
+      ship.velocity.set(
+        (-vz / horizLen) * EGRESS_SPEED * sign,
+        vy * 0.4, // gentle climb/descent — keeps the silhouette cinematic
+        ( vx / horizLen) * EGRESS_SPEED * sign,
+      );
+      // Snap the bomber's facing to the egress vector so the model visibly
+      // banks into the turn instead of continuing to point at megabot.
+      ship.group.lookAt(
+        ship.group.position.x + ship.velocity.x,
+        ship.group.position.y + ship.velocity.y,
+        ship.group.position.z + ship.velocity.z,
+      );
+    }
+  }
+
   // Recompute the world-space aim point each frame by raycasting the cursor
   // through the camera. The result is yaw-only (pitch ignored — megabot's
   // body can't pitch and missiles fire level).
@@ -6482,10 +6551,14 @@ class MegabotScene {
             // boss + plan the engagement.
             this.waveShipsRemaining = 0;
             this.spawnBossWave();
+            // Boss-wave "total" = boss + escorts already on the field, used
+            // by the HUD to render a kill-progress bar.
+            this.waveShipsTotal = this._countActiveShips();
           } else {
             // Normal wave: escalating ship count, capped so late waves stay
             // readable instead of becoming a firehose.
             this.waveShipsRemaining = Math.min(4 + this.currentWave * 2, this.MAX_SHIPS_PER_WAVE);
+            this.waveShipsTotal = this.waveShipsRemaining;
           }
           this.waveShipsAlive = 0;
           this.lastShipSpawnTime = currentTime;
@@ -6698,6 +6771,36 @@ class MegabotScene {
         ? Math.sqrt(distToMegabotSq)
         : 0; // unused for other behaviors
 
+      // Cruiser retreat trigger — once they drop below 30% HP, capital ships
+      // peel away from megabot at high speed and stop ramming. They keep
+      // firing parting volleys (the firing block below isn't gated on
+      // behavior, only on weaponRange + cooldown).
+      if (
+        ship.type === 'cruiser' &&
+        !ship._fleeing &&
+        ship.health < ship.maxHealth * 0.3
+      ) {
+        ship._fleeing = true;
+        ship.behavior = 'cruiser-flee';
+        const dx = ship.group.position.x - this.megabotWorldPos.x;
+        const dy = ship.group.position.y - this.megabotWorldPos.y;
+        const dz = ship.group.position.z - this.megabotWorldPos.z;
+        const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const ESCAPE_SPEED = 420;
+        ship.velocity.set(
+          (dx / len) * ESCAPE_SPEED,
+          (dy / len) * ESCAPE_SPEED * 0.5,
+          (dz / len) * ESCAPE_SPEED,
+        );
+        // Snap orientation to the escape vector so the cruiser visibly
+        // turns tail rather than continuing to face megabot for a frame.
+        ship.group.lookAt(
+          ship.group.position.x + ship.velocity.x,
+          ship.group.position.y + ship.velocity.y,
+          ship.group.position.z + ship.velocity.z,
+        );
+      }
+
       // Update position based on behavior type
       if (ship.behavior === 'orbit-strafe') {
         this.updateOrbitStrafeBehavior(ship, dt, distToMegabot);
@@ -6705,6 +6808,15 @@ class MegabotScene {
         this.updatePincerBehavior(ship, dt, distToMegabot);
       } else if (ship.behavior === 'escort-protect') {
         this.updateEscortBehavior(ship, dt);
+      } else if (ship.behavior === 'bomb-run') {
+        this.updateBombRunBehavior(ship, dt, distToMegabotSq);
+      } else if (ship.behavior === 'cruiser-flee') {
+        // Pure ballistic escape — keep flying outward at the velocity set
+        // when retreat triggered. Despawn handled by the out-of-bounds
+        // check at the bottom of the per-ship loop.
+        ship.group.position.x += ship.velocity.x * dt;
+        ship.group.position.y += ship.velocity.y * dt;
+        ship.group.position.z += ship.velocity.z * dt;
       } else if (ship.isGroundUnit) {
         // Ground units: SAM is stationary, tanks creep in until standoff distance,
         // then stop and fire from range. Y is clamped so they ride the ground plane
@@ -6731,6 +6843,35 @@ class MegabotScene {
         }
         ship.group.position.y = this.GROUND_Y;
       } else {
+        // Default kamikaze + formation-attack: add a "last-second juke" so
+        // ships don't arrow-straight into Megabot's reticle. Once inside
+        // JUKE_RANGE we periodically (every JUKE_RECHARGE_S seconds)
+        // inject a perpendicular kick to velocity for JUKE_DURATION_S.
+        // Cheap to compute, reads as evasive piloting; ground/special
+        // behaviors (orbit-strafe / pincer-attack / escort-protect) all
+        // branched out above so this only fires on default flyers.
+        if (!ship.behavior || ship.behavior === 'formation-attack') {
+          const JUKE_RANGE_SQ = 600 * 600;
+          const JUKE_RECHARGE_S = 1.6;
+          const JUKE_DURATION_S = 0.55;
+          const JUKE_KICK = 220;
+          if (distToMegabotSq < JUKE_RANGE_SQ) {
+            if (ship._jukeT === undefined) ship._jukeT = 0;
+            if (ship._jukeCooldown === undefined) ship._jukeCooldown = JUKE_RECHARGE_S * Math.random();
+            ship._jukeT -= dt;
+            ship._jukeCooldown -= dt;
+            if (ship._jukeT <= 0 && ship._jukeCooldown <= 0) {
+              const toMegaX = this.megabotWorldPos.x - ship.group.position.x;
+              const toMegaZ = this.megabotWorldPos.z - ship.group.position.z;
+              const len = Math.sqrt(toMegaX * toMegaX + toMegaZ * toMegaZ) || 1;
+              const sign = Math.random() < 0.5 ? -1 : 1;
+              ship.velocity.x += (-toMegaZ / len) * JUKE_KICK * sign;
+              ship.velocity.z += ( toMegaX / len) * JUKE_KICK * sign;
+              ship._jukeT = JUKE_DURATION_S;
+              ship._jukeCooldown = JUKE_RECHARGE_S;
+            }
+          }
+        }
         ship.group.position.x += ship.velocity.x * dt;
         ship.group.position.y += ship.velocity.y * dt;
         ship.group.position.z += ship.velocity.z * dt;
@@ -6863,8 +7004,35 @@ class MegabotScene {
           // Tanks fire heavy plasma shells from the ground
           this.createPlasmaCannon(ship);
         } else if (ship.type === 'sam') {
-          // SAM sites fire homing missiles — reuse the homing-laser primitive
-          this.createEnemyLaser(ship);
+          // SAMs prioritize incoming player missiles over megabot. Scan for
+          // the closest active missile inside weaponRange; if found, intercept
+          // it (instant kill + puff + muzzle flash). Otherwise fall back to
+          // the standard fire-at-megabot homing laser. weaponRangeSqScaled
+          // for SAMs is (ENEMY_LASER_RANGE * 1.6) ** 2 — covers most of the
+          // engagement bowl.
+          let interceptIdx = -1;
+          let interceptDistSq = weaponRangeSqScaled;
+          for (let m = 0; m < this.missiles3D.length; m++) {
+            const missile = this.missiles3D[m];
+            if (!missile.active) continue;
+            const d = ship.group.position.distanceToSquared(missile.group.position);
+            if (d < interceptDistSq) {
+              interceptDistSq = d;
+              interceptIdx = m;
+            }
+          }
+          if (interceptIdx >= 0) {
+            const missile = this.missiles3D[interceptIdx];
+            const hitPos = missile.group.position.clone();
+            // Small puff at the missile + muzzle flash at the SAM. Re-uses
+            // the explosion pool so we don't allocate extra meshes.
+            this.create3DExplosion(hitPos, 8);
+            this.create3DExplosion(ship.group.position, ship.size * 0.5);
+            this.scene.remove(missile.group);
+            this.missiles3D.splice(interceptIdx, 1);
+          } else {
+            this.createEnemyLaser(ship);
+          }
         } else {
           // Fighters use standard lasers
           this.createEnemyLaser(ship);
@@ -6875,7 +7043,12 @@ class MegabotScene {
 
       // Kamikaze damage — only aerial units can ram megabot. Ground units stand
       // off and fire from range, so they should never be deleted by proximity.
-      if (!ship.isGroundUnit) {
+      // Bombers in egress / cruisers in retreat also don't ram (they're trying
+      // to escape, not crash).
+      const skipKamikaze =
+        ship.behavior === 'cruiser-flee' ||
+        (ship.behavior === 'bomb-run' && ship.bombRunPhase === 'egress');
+      if (!ship.isGroundUnit && !skipKamikaze) {
         const megabotHitRadius = this.MAIN_SIZE + ship.size;
         if (distToMegabotSq < megabotHitRadius * megabotHitRadius) {
           this.applyDamageToMegabot(10);
@@ -7177,6 +7350,8 @@ class MegabotScene {
           this.currentWave !== this._prevWave ||
           this.waveState !== this._prevWaveState ||
           waveCountdown !== this._prevWaveCountdown ||
+          this.waveShipsRemaining !== this._prevWaveShipsRemaining ||
+          this.waveShipsTotal !== this._prevWaveShipsTotal ||
           bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
@@ -7188,6 +7363,8 @@ class MegabotScene {
         this._prevWave = this.currentWave;
         this._prevWaveState = this.waveState;
         this._prevWaveCountdown = waveCountdown;
+        this._prevWaveShipsRemaining = this.waveShipsRemaining;
+        this._prevWaveShipsTotal = this.waveShipsTotal;
         this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
@@ -7203,6 +7380,8 @@ class MegabotScene {
           waveBonus: this.waveBonus.ttl > 0
             ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount }
             : null,
+          waveShipsRemaining: this.waveShipsRemaining,
+          waveShipsTotal: this.waveShipsTotal,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,
