@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { getFaction } from '@/data/factions'
 import { getBossesForFaction } from '@/data/bosses'
+import { getAllZones } from '@/data/zones'
 
 export default function FactionPage() {
   const params = useParams()
@@ -53,6 +54,11 @@ export default function FactionPage() {
   const shortName = faction.name.split('•')[0].trim()
   const isStub = faction.status === 'in-development'
   const bosses = getBossesForFaction(faction.id)
+  const homeZoneObj = (() => {
+    if (!faction.homeZone) return undefined
+    const haystack = faction.homeZone.toLowerCase()
+    return getAllZones().find(z => z.aliases.some(a => haystack.includes(a)))
+  })()
 
   return (
     <>
@@ -130,9 +136,18 @@ export default function FactionPage() {
               {faction.homeZone && (
                 <div>
                   <div className="eyebrow mb-1">Home Zone</div>
-                  <div className="font-mono tabular-nums text-lg text-cyan-300">
-                    {faction.homeZone}
-                  </div>
+                  {homeZoneObj ? (
+                    <Link
+                      href={`/zones/${homeZoneObj.id}`}
+                      className="font-mono tabular-nums text-lg text-cyan-300 hover:text-cyan-200 hover:underline"
+                    >
+                      {faction.homeZone}
+                    </Link>
+                  ) : (
+                    <div className="font-mono tabular-nums text-lg text-cyan-300">
+                      {faction.homeZone}
+                    </div>
+                  )}
                 </div>
               )}
               {faction.homePlanet && (

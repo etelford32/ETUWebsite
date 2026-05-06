@@ -8,12 +8,14 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { getBoss } from '@/data/bosses'
 import { getFaction } from '@/data/factions'
+import { getZoneForBoss } from '@/data/zones'
 
 export default function BossPage() {
   const params = useParams()
   const slug = params?.slug as string
   const boss = getBoss(slug)
   const faction = boss?.factionId ? getFaction(boss.factionId) : undefined
+  const zone = boss ? getZoneForBoss(boss) : undefined
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -130,7 +132,16 @@ export default function BossPage() {
             {boss.homeZone && (
               <div>
                 <div className="eyebrow mb-1">Home Zone</div>
-                <div className="font-mono tabular-nums text-lg text-cyan-300">{boss.homeZone}</div>
+                {zone ? (
+                  <Link
+                    href={`/zones/${zone.id}`}
+                    className="font-mono tabular-nums text-lg text-cyan-300 hover:text-cyan-200 hover:underline"
+                  >
+                    {boss.homeZone}
+                  </Link>
+                ) : (
+                  <div className="font-mono tabular-nums text-lg text-cyan-300">{boss.homeZone}</div>
+                )}
               </div>
             )}
             {boss.homePlanet && (
