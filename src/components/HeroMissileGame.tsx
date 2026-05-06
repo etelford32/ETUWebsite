@@ -34,6 +34,9 @@ interface HeroMissileGameProps {
     upgradeLevel: number;
     combo?: number;
     comboTimer?: number;
+    ionCannonReady?: boolean;
+    ionCannonCooldown?: number;
+    ionCannonCooldownMax?: number;
     perf?: {
       fps: number;
       frameMs: number;
@@ -660,6 +663,34 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           </div>
         </div>
 
+        {/* Ion Pulse Cannon readout */}
+        {gameState.ionCannonCooldownMax !== undefined && (() => {
+          const cdMax = gameState.ionCannonCooldownMax || 1;
+          const cd = gameState.ionCannonCooldown ?? 0;
+          const ready = gameState.ionCannonReady ?? cd <= 0;
+          const readyFrac = Math.max(0, Math.min(1, 1 - cd / cdMax));
+          return (
+            <div className="mt-2 pt-2 border-t border-purple-500/30">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-cyan-300 text-[10px] font-bold tracking-wider">ION CANNON</span>
+                <span className={`text-[10px] font-bold ${ready ? 'text-cyan-400' : 'text-pink-400'}`}>
+                  {ready ? 'READY' : `${cd.toFixed(1)}s`}
+                </span>
+              </div>
+              <div className="relative w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-cyan-500/30">
+                <div
+                  className={`absolute inset-y-0 left-0 transition-all ${
+                    ready
+                      ? 'bg-gradient-to-r from-cyan-400 to-cyan-200 animate-pulse'
+                      : 'bg-gradient-to-r from-fuchsia-600 to-cyan-400'
+                  }`}
+                  style={{ width: `${readyFrac * 100}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Controls guide */}
         <div className="mt-2 pt-2 border-t border-purple-500/30 space-y-1">
           <div className="text-purple-300 font-bold text-[10px] mb-1">CONTROLS</div>
@@ -668,8 +699,10 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           <div className="text-gray-400 text-[10px]"><span className="text-white">A / D</span> Rotate left / right</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Q / E</span> Strafe left / right</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">Arrows</span> Same as WASD</div>
-          <div className="text-gray-400 text-[10px]"><span className="text-white">Click</span> Fire forward</div>
-          <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+Click</span> Cluster fan</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Click</span> Fire forward + ion pulse</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+Click</span> Cluster fan + ion pulse</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">C</span> Ion pulse cannon</div>
+          <div className="text-gray-400 text-[10px]"><span className="text-white">Shift+W / ↑</span> Rocket pack</div>
           <div className="text-cyan-300 text-[10px] pt-1 border-t border-purple-500/20 mt-1">CAMERA</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">V</span> Cycle: 3rd / FPS / Free</div>
           <div className="text-gray-400 text-[10px]"><span className="text-white">1 / 2 / 3</span> Pick mode directly</div>
