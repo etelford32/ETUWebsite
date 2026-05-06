@@ -18,6 +18,7 @@ const WINDOWS = [
 
 const MODES = [
   { key: 'all', label: 'All Modes', icon: '🌌' },
+  { key: 'megabot', label: 'Megabot Arena', icon: '🤖' },
   { key: 'speedrun', label: 'Speedrun', icon: '⚡' },
   { key: 'survival', label: 'Survival', icon: '🛡️' },
   { key: 'discovery', label: 'Discovery', icon: '🔭' },
@@ -37,6 +38,19 @@ export default function LeaderboardPage() {
   const [mode, setMode] = useState('all')
   const [platform, setPlatform] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Deep-link: /leaderboard?mode=megabot lands directly on the Megabot
+  // Arena tab. We read this on mount via window.location instead of
+  // useSearchParams to avoid forcing a top-level <Suspense> boundary
+  // around the whole page (Next 14 client-component rule).
+  useEffect(() => {
+    if (typeof globalThis.window === 'undefined') return
+    const params = new URLSearchParams(globalThis.window.location.search)
+    const m = params.get('mode')
+    if (m && MODES.some(x => x.key === m)) {
+      setMode(m)
+    }
+  }, [])
 
   // Pagination
   const [page, setPage] = useState(1)
