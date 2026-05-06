@@ -31,25 +31,25 @@ const ALGO = 'sha256'
 
 /**
  * Resolve the signing secret. We read RUN_TOKEN_SECRET from the env and
- * fall back to ETU_SESSION_SECRET (already used in this project) so we
- * don't need a separate env config in dev. Throws in production if
- * neither is set, since silently signing with a static fallback would be
- * a quiet anti-pattern.
+ * fall back to SESSION_SECRET (already used in this project) so we don't
+ * need a separate env config in dev. Throws in production if neither is
+ * set, since silently signing with a static fallback would be a quiet
+ * anti-pattern.
  */
 function getSecret(): string {
   const explicit = process.env.RUN_TOKEN_SECRET
   if (explicit) return explicit
-  const fallback = process.env.ETU_SESSION_SECRET
+  const fallback = process.env.SESSION_SECRET
   if (fallback) return fallback
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'RUN_TOKEN_SECRET (or ETU_SESSION_SECRET) must be set in production'
+      'RUN_TOKEN_SECRET (or SESSION_SECRET) must be set in production'
     )
   }
   // Dev-only fallback so local dev doesn't error before secrets are wired
   // up. Log so it's obvious in the dev console.
   console.warn(
-    '[runToken] No RUN_TOKEN_SECRET / ETU_SESSION_SECRET set; using insecure dev fallback.'
+    '[runToken] No RUN_TOKEN_SECRET / SESSION_SECRET set; using insecure dev fallback.'
   )
   return 'etu-megabot-dev-only-fallback'
 }
