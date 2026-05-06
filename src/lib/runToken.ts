@@ -155,3 +155,111 @@ export function megabotScoreCeiling(wave: number): number {
 /** Minimum + maximum age (ms) we'll accept for a Megabot run. */
 export const RUN_TOKEN_MIN_AGE_MS = 3_000        // 3s — block instant-submit attacks
 export const RUN_TOKEN_MAX_AGE_MS = 60 * 60_000  // 60min — generous but bounded
+
+// -----------------------------------------------------------------------------
+// Heartbeat chain tokens
+//
+// In addition to the start-of-run token, the client posts a heartbeat at the
+// end of every cleared wave. Each heartbeat returns a new chain token bound
+// to (userId, runId, wave, score, issuedAt). The next heartbeat sends the
+// previous chain token back so the server can:
+//   - confirm the chain hasn't been forged
+//   - confirm the run belongs to the same user + runId
+//   - confirm wave + score only ever grow
+//   - confirm score rate between beats is plausible
+//
+// At submit time, the client sends the most recent chain token; submit-score
+// verifies the chain's claimed wave + score matches the submission. This
+// closes the obvious "submit any score after waiting 3s" hole the pure
+// run-token approach left open.
+// -----------------------------------------------------------------------------
+
+export interface HeartbeatPayload {
+  /** User who started the run. */
+  u: string
+  /** Run identifier (matches the underlying run-token). */
+  r: string
+  /** Wave cleared at time of beat. */
+  w: number
+  /** Cumulative score at time of beat. */
+  s: number
+  /** issuedAt (ms since epoch). */
+  t: number
+}
+
+export function issueHeartbeatToken(
+  userId: string,
+  runId: string,
+  wave: number,
+  score: number,
+): { token: string; issuedAt: number } {
+  const payload: HeartbeatPayload = {
+    u: userId,
+    r: runId,
+    w: Math.max(0, Math.floor(wave)),
+    s: Math.max(0, Math.floor(score)),
+    t: Date.now(),
+  }
+  const body = base64url(JSON.stringify(payload))
+  const sig = sign(body)
+  return { token: `${body}.${sig}`, issuedAt: payload.t }
+}
+
+export type VerifyHeartbeatResult =
+  | { valid: true; payload: HeartbeatPayload }
+  | { valid: false; reason: string }
+
+export function verifyHeartbeatToken(
+  token: string,
+  expectedUserId: string,
+): VerifyHeartbeatResult {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, reason: 'missing heartbeat' }
+  }
+  const dot = token.indexOf('.')
+  if (dot < 1 || dot === token.length - 1) {
+    return { valid: false, reason: 'malformed heartbeat' }
+  }
+  const body = token.slice(0, dot)
+  const sig = token.slice(dot + 1)
+  const expected = sign(body)
+  let sigBuf: Buffer, expBuf: Buffer
+  try {
+    sigBuf = fromBase64url(sig)
+    expBuf = fromBase64url(expected)
+  } catch {
+    return { valid: false, reason: 'malformed heartbeat sig' }
+  }
+  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+    return { valid: false, reason: 'bad heartbeat sig' }
+  }
+  let payload: HeartbeatPayload
+  try {
+    payload = JSON.parse(fromBase64url(body).toString('utf8')) as HeartbeatPayload
+  } catch {
+    return { valid: false, reason: 'malformed heartbeat payload' }
+  }
+  if (
+    !payload ||
+    typeof payload.u !== 'string' ||
+    typeof payload.r !== 'string' ||
+    typeof payload.w !== 'number' ||
+    typeof payload.s !== 'number' ||
+    typeof payload.t !== 'number'
+  ) {
+    return { valid: false, reason: 'invalid heartbeat payload' }
+  }
+  if (payload.u !== expectedUserId) {
+    return { valid: false, reason: 'heartbeat owner mismatch' }
+  }
+  return { valid: true, payload }
+}
+
+/** Maximum legitimate score increase per second between heartbeats. */
+export const MAX_SCORE_PER_SECOND = 10_000
+
+/** Tolerance (in score units) when matching submitted score to the latest heartbeat. */
+export const HEARTBEAT_SCORE_TOLERANCE = 4_000
+
+/** Tolerance (in waves) — submission's level may be heartbeat.w or heartbeat.w + 1 (mid-wave death). */
+export const HEARTBEAT_WAVE_TOLERANCE = 1

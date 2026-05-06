@@ -34,6 +34,15 @@ export default function MissileGamePage() {
   // before flipping is_verified=true. Logged-out players don't have one;
   // their score still inserts but stays unverified.
   const runTokenRef = useRef<string | null>(null);
+  // Latest heartbeat chain token. Each cleared wave we POST a heartbeat with
+  // (current score, wave just cleared, prevHeartbeat) and stash the
+  // returned token here. The final submit sends this token alongside
+  // runToken; submit-score verifies score + wave match the heartbeat.
+  const heartbeatTokenRef = useRef<string | null>(null);
+  // Highest cleared wave we've already heartbeated, so we don't double-beat
+  // the same intermission.
+  const lastHeartbeatWaveRef = useRef(0);
+  const heartbeatInFlightRef = useRef(false);
 
   // Score-submission status (drives the bottom-center pill).
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({ kind: 'idle' });
@@ -106,6 +115,48 @@ export default function MissileGamePage() {
       .finally(() => setAuthChecked(true));
   }, []);
 
+  // Heartbeat watcher: when waveState transitions back to 'intermission'
+  // and a wave was actually cleared (wave > lastHeartbeatWave), post a
+  // heartbeat with the current score + cleared wave count. Server returns
+  // a fresh chain token bound to (runId, wave, score, t) which we keep
+  // for the next beat or for the final submit.
+  useEffect(() => {
+    if (!authChecked || !authUser) return;
+    if (!runTokenRef.current) return;
+    if (gameState.waveState !== 'intermission') return;
+    if (gameState.wave <= 0) return;
+    if (gameState.wave <= lastHeartbeatWaveRef.current) return;
+    if (heartbeatInFlightRef.current) return;
+
+    heartbeatInFlightRef.current = true;
+    const wave = gameState.wave;
+    const snapshotScore = gameState.score;
+    fetch('/api/megabot/heartbeat', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        runToken: runTokenRef.current,
+        prevHeartbeat: heartbeatTokenRef.current,
+        currentWave: wave,
+        currentScore: snapshotScore,
+      }),
+    })
+      .then(async r => {
+        const json = await r.json().catch(() => ({}));
+        if (r.ok && json?.token) {
+          heartbeatTokenRef.current = json.token;
+          lastHeartbeatWaveRef.current = wave;
+        }
+        // Non-fatal: if the heartbeat is rejected (e.g. score-rate spike)
+        // we just keep the previous chain token and stop trying for this
+        // wave. The final submit will fail the verified gate; the run
+        // still records.
+      })
+      .catch(() => { /* network blip — best effort */ })
+      .finally(() => { heartbeatInFlightRef.current = false; });
+  }, [authChecked, authUser, gameState.wave, gameState.waveState, gameState.score]);
+
   // Game-over watcher: when Megabot's HP hits zero we submit the run once.
   // We gate on `authChecked` so we don't race with the session check, and on
   // submittedRef so a re-render can't trigger a second POST.
@@ -146,6 +197,10 @@ export default function MissileGamePage() {
           // is_verified gate. Null when the token fetch failed at game
           // start — score still inserts, just stays unverified.
           runToken: runTokenRef.current,
+          // Latest chain heartbeat. Required for is_verified=true; if
+          // null (no waves cleared, or all heartbeats failed) the score
+          // still records, just unverified.
+          heartbeatToken: heartbeatTokenRef.current,
         },
       }),
     })

@@ -6368,6 +6368,60 @@ class MegabotScene {
     ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
   }
 
+  // Cruiser SOS — escort behavior triggered when a cruiser flips to flee.
+  // Recruited fighters/interceptors fly to the rear arc of the cruiser
+  // (between megabot and the cruiser, slightly trailing) so they form a
+  // moving screen that intercepts incoming fire and missiles. When the
+  // cruiser dies or despawns they drop the role and re-enter the default
+  // kamikaze loop.
+  updateCoverFleeBehavior(ship: any, dt: number) {
+    const cruiser = ship._coverTarget;
+    const cruiserAlive = cruiser && cruiser.active && cruiser.health > 0;
+    if (!cruiserAlive) {
+      // Mission complete — revert to default kamikaze.
+      ship._coverTarget = null;
+      ship.behavior = undefined;
+      return;
+    }
+
+    // Target screen position: between megabot and cruiser, biased slightly
+    // toward the cruiser (so escorts arrive in time to actually screen).
+    // The screen offset spreads recruits across the rear arc using
+    // _coverScreenSide ∈ {-1, 0, +1}.
+    const SCREEN_BIAS = 0.65; // 0..1 — closer to 1 = closer to cruiser
+    const SCREEN_SPREAD = 70; // u — lateral spread between escorts
+    const lerpX = this.megabotWorldPos.x + (cruiser.group.position.x - this.megabotWorldPos.x) * SCREEN_BIAS;
+    const lerpY = this.megabotWorldPos.y + (cruiser.group.position.y - this.megabotWorldPos.y) * SCREEN_BIAS;
+    const lerpZ = this.megabotWorldPos.z + (cruiser.group.position.z - this.megabotWorldPos.z) * SCREEN_BIAS;
+
+    // Perpendicular vector (in XZ) to spread screens left/right of the
+    // megabot→cruiser line.
+    const dx = cruiser.group.position.x - this.megabotWorldPos.x;
+    const dz = cruiser.group.position.z - this.megabotWorldPos.z;
+    const horizLen = Math.sqrt(dx * dx + dz * dz) || 1;
+    const perpX = -dz / horizLen;
+    const perpZ =  dx / horizLen;
+    const targetX = lerpX + perpX * SCREEN_SPREAD * (ship._coverScreenSide ?? 0);
+    const targetZ = lerpZ + perpZ * SCREEN_SPREAD * (ship._coverScreenSide ?? 0);
+
+    // Pull velocity toward the screen position. Higher coefficient than
+    // bomb-escort because the cruiser is moving fast away — escorts need
+    // to chase, not glide.
+    const PULL = 2.2 * dt;
+    const k = Math.min(PULL, 1);
+    ship.velocity.x += (targetX - ship.group.position.x) * k;
+    ship.velocity.z += (targetZ - ship.group.position.z) * k;
+    ship.velocity.y += (lerpY - ship.group.position.y) * k * 0.5;
+
+    ship.group.position.x += ship.velocity.x * dt;
+    ship.group.position.y += ship.velocity.y * dt;
+    ship.group.position.z += ship.velocity.z * dt;
+
+    // Face megabot so they fire backward into pursuit (existing firing
+    // block lights off lasers; we just orient the model).
+    ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+  }
+
   // Recompute the world-space aim point each frame by raycasting the cursor
   // through the camera. The result is yaw-only (pitch ignored — megabot's
   // body can't pitch and missiles fire level).
@@ -7103,6 +7157,34 @@ class MegabotScene {
           ship.group.position.y + ship.velocity.y,
           ship.group.position.z + ship.velocity.z,
         );
+
+        // Cruiser SOS: rally up to 3 nearby unattached fighters/interceptors
+        // to cover the retreat. They fly toward the cruiser, screen incoming
+        // fire by interposing themselves between megabot and the cruiser,
+        // and revert to default kamikaze when the cruiser dies/despawns.
+        // Skips bombers (bomb-run is mission-critical), wingmen/leaders
+        // (don't shred existing formations), already-tagged ships.
+        const SOS_RANGE_SQ = 700 * 700;
+        let recruited = 0;
+        for (let s = 0; s < this.enemyShips.length && recruited < 3; s++) {
+          const candidate = this.enemyShips[s];
+          if (
+            candidate === ship ||
+            !candidate.active ||
+            candidate.behavior ||
+            candidate._wingman ||
+            candidate._wingmanOf ||
+            candidate.isGroundUnit
+          ) continue;
+          if (candidate.type !== 'fighter' && candidate.type !== 'interceptor') continue;
+          const cdSq = candidate.group.position.distanceToSquared(ship.group.position);
+          if (cdSq > SOS_RANGE_SQ) continue;
+
+          candidate.behavior = 'cover-flee';
+          candidate._coverTarget = ship;
+          candidate._coverScreenSide = recruited - 1; // -1, 0, +1: spread across the rear arc
+          recruited++;
+        }
       }
 
       // Update position based on behavior type
@@ -7116,6 +7198,8 @@ class MegabotScene {
         this.updateBombRunBehavior(ship, dt, distToMegabotSq);
       } else if (ship.behavior === 'bomb-escort') {
         this.updateBombEscortBehavior(ship, dt);
+      } else if (ship.behavior === 'cover-flee') {
+        this.updateCoverFleeBehavior(ship, dt);
       } else if (ship.behavior === 'cruiser-flee') {
         // Pure ballistic escape — keep flying outward at the velocity set
         // when retreat triggered. Despawn handled by the out-of-bounds

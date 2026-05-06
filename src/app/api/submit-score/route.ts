@@ -3,9 +3,12 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest, validateSession } from '@/lib/session'
 import {
   verifyRunToken,
+  verifyHeartbeatToken,
   megabotScoreCeiling,
   RUN_TOKEN_MIN_AGE_MS,
   RUN_TOKEN_MAX_AGE_MS,
+  HEARTBEAT_SCORE_TOLERANCE,
+  HEARTBEAT_WAVE_TOLERANCE,
 } from '@/lib/runToken'
 
 const VALID_MODES = ['speedrun', 'survival', 'discovery', 'boss_rush', 'megabot', 'global']
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
     let verifyReason: string | null = null
     if (mode === 'megabot') {
       const token = (metadata && typeof metadata === 'object' && metadata.runToken) as string | undefined
+      const heartbeat = (metadata && typeof metadata === 'object' && metadata.heartbeatToken) as string | undefined
       const wave = typeof level === 'number' ? level : parseInt(level, 10)
       if (!token) {
         verifyReason = 'no run token'
@@ -80,8 +84,25 @@ export async function POST(request: NextRequest) {
             const ceiling = megabotScoreCeiling(Number.isFinite(wave) ? wave : 0)
             if (score > ceiling) {
               verifyReason = `score above wave ceiling (${score} > ${ceiling})`
+            } else if (!heartbeat) {
+              // Pre-heartbeat clients (no chain) can't pass the verified bar
+              // anymore — but they still record the run, just unverified.
+              verifyReason = 'no heartbeat'
             } else {
-              is_verified = true
+              const hb = verifyHeartbeatToken(heartbeat, user.id)
+              if (!hb.valid) {
+                verifyReason = `heartbeat: ${hb.reason}`
+              } else if (hb.payload.r !== r.payload.r) {
+                verifyReason = 'heartbeat: run mismatch'
+              } else if (
+                Math.abs((Number.isFinite(wave) ? wave : 0) - hb.payload.w) > HEARTBEAT_WAVE_TOLERANCE
+              ) {
+                verifyReason = `heartbeat: wave drift (${wave} vs ${hb.payload.w})`
+              } else if (Math.abs(score - hb.payload.s) > HEARTBEAT_SCORE_TOLERANCE) {
+                verifyReason = `heartbeat: score drift (${score} vs ${hb.payload.s})`
+              } else {
+                is_verified = true
+              }
             }
           }
         }
@@ -93,6 +114,7 @@ export async function POST(request: NextRequest) {
     // when applicable). Any other client-supplied metadata passes through.
     const persistedMetadata: Record<string, any> = { ...(metadata || {}) }
     delete persistedMetadata.runToken
+    delete persistedMetadata.heartbeatToken
     if (mode === 'megabot') {
       persistedMetadata.verifyReason = verifyReason // null when verified, string otherwise
     }
