@@ -424,6 +424,21 @@ class MegabotScene {
   readonly JETPACK_MAX_RISE_SPEED = 1500; // cap on upward velocity
   readonly GRAVITY = 1900; // downward acceleration when airborne
 
+  // Ion Pulse Cannon — left forearm energy weapon (key: C)
+  ionPulses: any[] = [];                  // Active projectiles
+  ionCannonCooldown: number = 0;          // Seconds remaining before next shot
+  ionCannonHeat: number = 0;              // 0..1, drives the cooldown ring opacity
+  ionCannonMuzzle: any = null;            // Muzzle world-space anchor (Object3D on forearm)
+  ionCannonMuzzleFlash: any = null;       // Flash mesh at the barrel tip (visible briefly after firing)
+  ionCannonMuzzleFlashTimer: number = 0;
+  ionCannonChargeRing: any = null;        // Glow ring on the side that drains while cooling down
+  ionCannonChargeRingMat: any = null;     // Cached material so we can pulse opacity / emissive
+  readonly ION_CANNON_COOLDOWN = 1.6;     // Seconds between shots
+  readonly ION_PULSE_SPEED = 2400;        // Projectile speed (units/sec) — much faster than missiles
+  readonly ION_PULSE_DAMAGE = 3;          // Hits per pulse (one-shots most light ships)
+  readonly ION_PULSE_LIFETIME = 1.6;      // Self-destruct timer
+  readonly ION_PULSE_HIT_RADIUS = 28;     // Generous hit sphere around the bolt
+
   // Camera shake system
   cameraShakeX: number = 0;
   cameraShakeY: number = 0;
@@ -2301,6 +2316,127 @@ class MegabotScene {
           forearmBlade.rotation.x = -Math.PI * 0.3;
           armGroup.add(forearmBlade);
         }
+      }
+
+      // ── ION PULSE CANNON — left forearm energy weapon attachment ──
+      // Forward-facing cannon riding atop the lower forearm. Stored references
+      // power the muzzle flash and cooldown glow ring used in fireIonPulse() /
+      // updateIonPulses(). Anchored via an empty Object3D at the muzzle so we
+      // can read its world transform when spawning a projectile.
+      if (side === -1) {
+        const ionGroup = new THREE.Group();
+        // Base mounting block — clamps onto the top of the forearm
+        const baseGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.20, this.MAIN_SIZE * 0.16, this.MAIN_SIZE * 0.32);
+        const baseMesh = new THREE.Mesh(baseGeo, accentMaterial);
+        baseMesh.position.set(0, this.MAIN_SIZE * 0.10, 0);
+        ionGroup.add(baseMesh);
+
+        // Mid housing — chamfered block where the energy core sits
+        const housingGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.16, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.42);
+        const housing = new THREE.Mesh(housingGeo, mechaMaterial);
+        housing.position.set(0, this.MAIN_SIZE * 0.20, this.MAIN_SIZE * 0.06);
+        ionGroup.add(housing);
+
+        // Glowing energy core — the visible reactor of the cannon
+        const coreMat = new THREE.MeshStandardMaterial({
+          color: 0x00ffff,
+          emissive: new THREE.Color(0x00f6ff),
+          emissiveIntensity: 2.4,
+          metalness: 0.3,
+          roughness: 0.2,
+          transparent: true,
+          opacity: 0.95,
+        });
+        const coreGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.045, this.MAIN_SIZE * 0.045, this.MAIN_SIZE * 0.22, 16);
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.rotation.x = Math.PI / 2;
+        core.position.set(0, this.MAIN_SIZE * 0.20, this.MAIN_SIZE * 0.08);
+        ionGroup.add(core);
+
+        // Cooldown ring — sits on the side of the housing and dims while reloading
+        const ringGeo = new THREE.RingGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.085, 24);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0x00ffff,
+          transparent: true,
+          opacity: 0.9,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.y = Math.PI / 2;
+        ring.position.set(this.MAIN_SIZE * 0.085, this.MAIN_SIZE * 0.20, this.MAIN_SIZE * 0.05);
+        ionGroup.add(ring);
+        this.ionCannonChargeRing = ring;
+        this.ionCannonChargeRingMat = ringMat;
+
+        // Main barrel — the long forward-pointing cannon
+        const barrelGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.055, this.MAIN_SIZE * 0.045, this.MAIN_SIZE * 0.55, 20);
+        const barrel = new THREE.Mesh(barrelGeo, mechaMaterial);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5);
+        ionGroup.add(barrel);
+
+        // Inner barrel sleeve — emissive, peeks out the muzzle
+        const sleeveGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.028, this.MAIN_SIZE * 0.6, 16);
+        const sleeveMat = new THREE.MeshBasicMaterial({
+          color: 0x00ddff,
+          transparent: true,
+          opacity: 0.85,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const sleeve = new THREE.Mesh(sleeveGeo, sleeveMat);
+        sleeve.rotation.x = Math.PI / 2;
+        sleeve.position.set(0, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.5);
+        ionGroup.add(sleeve);
+
+        // Muzzle brake — wider tip with vents
+        const brakeGeo = new THREE.CylinderGeometry(this.MAIN_SIZE * 0.075, this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.1, 16);
+        const brake = new THREE.Mesh(brakeGeo, accentMaterial);
+        brake.rotation.x = Math.PI / 2;
+        brake.position.set(0, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.78);
+        ionGroup.add(brake);
+
+        // Muzzle anchor (empty) — used to compute the world spawn point of the bolt
+        const muzzle = new THREE.Object3D();
+        muzzle.position.set(0, this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.86);
+        ionGroup.add(muzzle);
+        this.ionCannonMuzzle = muzzle;
+
+        // Muzzle flash — bright additive sphere, hidden until firing
+        const flashGeo = new THREE.SphereGeometry(this.MAIN_SIZE * 0.09, 12, 12);
+        const flashMat = new THREE.MeshBasicMaterial({
+          color: 0x66ffff,
+          transparent: true,
+          opacity: 0.0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const flash = new THREE.Mesh(flashGeo, flashMat);
+        flash.position.copy(muzzle.position);
+        ionGroup.add(flash);
+        this.ionCannonMuzzleFlash = flash;
+
+        // Sight rail with two glowing accent strips
+        for (let s = -1; s <= 1; s += 2) {
+          const railGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.012, this.MAIN_SIZE * 0.012, this.MAIN_SIZE * 0.42);
+          const railMat = new THREE.MeshStandardMaterial({
+            color: 0x00ddff,
+            emissive: new THREE.Color(0x00d8ff),
+            emissiveIntensity: 1.8,
+            metalness: 0.4,
+            roughness: 0.3,
+          });
+          const rail = new THREE.Mesh(railGeo, railMat);
+          rail.position.set(s * this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.27, this.MAIN_SIZE * 0.18);
+          ionGroup.add(rail);
+        }
+
+        // Mount the whole cannon onto the forearm. Forearm cylinders sit at
+        // y ≈ -MAIN_SIZE * 1.5 within armGroup; the cannon needs to ride on top.
+        ionGroup.position.set(0, -this.MAIN_SIZE * 1.5, this.MAIN_SIZE * 0.0);
+        armGroup.add(ionGroup);
       }
 
       // Wrist joint
@@ -5202,6 +5338,178 @@ class MegabotScene {
     }
   }
 
+  // ── ION PULSE CANNON — left-forearm energy weapon ──
+  // Press C to fire. Has its own cooldown (ION_CANNON_COOLDOWN). The bolt
+  // spawns at the forearm muzzle and travels along megabot's local +Z forward.
+  fireIonPulse() {
+    if (!this.mainMegabot) return;
+    if (this.ionCannonCooldown > 0) return;
+    if (!this.ionCannonMuzzle) return;
+
+    const THREE = this.THREE;
+
+    // Spawn point: world transform of the muzzle anchor on the forearm
+    const launchPos = new THREE.Vector3();
+    this.ionCannonMuzzle.getWorldPosition(launchPos);
+
+    // Direction: megabot's local +Z forward in world space (matches mouse-aim yaw)
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mainMegabot.quaternion);
+    forward.y = 0; // keep bolts roughly level — projectile climbs/dives feel bad here
+    forward.normalize();
+
+    // Build the bolt visual: emissive cylinder + softer halo + point light
+    const bolt = new THREE.Group();
+    const boltCoreGeo = new THREE.CylinderGeometry(2.6, 2.6, 36, 8);
+    const boltCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const boltCore = new THREE.Mesh(boltCoreGeo, boltCoreMat);
+    boltCore.rotation.x = Math.PI / 2;
+    bolt.add(boltCore);
+
+    const haloGeo = new THREE.CylinderGeometry(6, 6, 44, 12);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x33eaff,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const halo = new THREE.Mesh(haloGeo, haloMat);
+    halo.rotation.x = Math.PI / 2;
+    bolt.add(halo);
+
+    const boltLight = new THREE.PointLight(0x33eaff, 5, 220);
+    bolt.add(boltLight);
+
+    bolt.position.copy(launchPos);
+    // Aim the cylinder along its travel direction
+    const lookTarget = launchPos.clone().add(forward);
+    bolt.lookAt(lookTarget);
+
+    const velocity = forward.clone().multiplyScalar(this.ION_PULSE_SPEED);
+    this.ionPulses.push({
+      group: bolt,
+      velocity,
+      lifetime: 0,
+      maxLifetime: this.ION_PULSE_LIFETIME,
+      damage: this.ION_PULSE_DAMAGE,
+      active: true,
+    });
+    this.scene.add(bolt);
+
+    // Trigger cooldown + visual feedback
+    this.ionCannonCooldown = this.ION_CANNON_COOLDOWN;
+    this.ionCannonHeat = 1.0;
+    this.ionCannonMuzzleFlashTimer = 0.18;
+    if (this.ionCannonMuzzleFlash) {
+      this.ionCannonMuzzleFlash.material.opacity = 1.0;
+      this.ionCannonMuzzleFlash.scale.setScalar(1.0);
+    }
+    this.triggerCameraShake(4);
+  }
+
+  // Per-frame: integrate ion pulses, check ship hits, expire on lifetime,
+  // and animate the muzzle flash + cooldown ring.
+  updateIonPulses(dt: number) {
+    // Tick down cooldown and update the side cooldown ring's opacity/glow
+    if (this.ionCannonCooldown > 0) {
+      this.ionCannonCooldown = Math.max(0, this.ionCannonCooldown - dt);
+    }
+    this.ionCannonHeat += (this._ionTargetHeat() - this.ionCannonHeat) * Math.min(1, 8 * dt);
+    if (this.ionCannonChargeRingMat) {
+      // Ready = bright cyan; cooling = dim and shifted toward magenta
+      const readyFrac = 1 - (this.ionCannonCooldown / this.ION_CANNON_COOLDOWN);
+      this.ionCannonChargeRingMat.opacity = 0.35 + 0.65 * readyFrac;
+      const c = this.ionCannonChargeRingMat.color;
+      // Blend 0xff44aa (cooling) -> 0x00ffff (ready)
+      c.r = 1 - readyFrac;          // 1 -> 0
+      c.g = 0.27 + 0.73 * readyFrac; // 0.27 -> 1
+      c.b = 0.67 + 0.33 * readyFrac; // 0.67 -> 1
+    }
+
+    // Muzzle flash decay
+    if (this.ionCannonMuzzleFlash && this.ionCannonMuzzleFlashTimer > 0) {
+      this.ionCannonMuzzleFlashTimer -= dt;
+      const f = Math.max(0, this.ionCannonMuzzleFlashTimer / 0.18);
+      this.ionCannonMuzzleFlash.material.opacity = f;
+      this.ionCannonMuzzleFlash.scale.setScalar(0.6 + 1.2 * f);
+    }
+
+    if (this.ionPulses.length === 0) return;
+
+    for (let i = this.ionPulses.length - 1; i >= 0; i--) {
+      const pulse = this.ionPulses[i];
+      if (!pulse.active) continue;
+
+      // Integrate position
+      pulse.group.position.x += pulse.velocity.x * dt;
+      pulse.group.position.y += pulse.velocity.y * dt;
+      pulse.group.position.z += pulse.velocity.z * dt;
+
+      // Lifetime
+      pulse.lifetime += dt;
+      if (pulse.lifetime > pulse.maxLifetime) {
+        this.scene.remove(pulse.group);
+        this.ionPulses.splice(i, 1);
+        continue;
+      }
+
+      // Out of range — clean up so the array doesn't grow on misses
+      if (pulse.group.position.distanceToSquared(this.megabotWorldPos) > 25000000) { // 5000²
+        this.scene.remove(pulse.group);
+        this.ionPulses.splice(i, 1);
+        continue;
+      }
+
+      // Collision vs enemy ships — apply damage equal to pulse.damage
+      let consumed = false;
+      for (let j = 0; j < this.enemyShips.length; j++) {
+        const ship = this.enemyShips[j];
+        if (!ship.active) continue;
+        if (this.check3DCollision(pulse.group.position, this.ION_PULSE_HIT_RADIUS, ship.group.position, ship.size)) {
+          ship.health -= pulse.damage;
+          ship.hitFlash = 1.0;
+          if (ship.health <= 0) {
+            const base = ship.type === 'cruiser' ? 500
+              : ship.type === 'bomber' ? 300
+              : ship.type === 'sam' ? 250
+              : ship.type === 'tank' ? 220
+              : ship.type === 'interceptor' ? 200
+              : 100;
+            this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
+            this.comboTimer = this.COMBO_WINDOW;
+            this.gameScore += base * Math.min(this.comboCount, 8);
+            const blastScale = ship.type === 'cruiser' ? 5.0
+              : ship.type === 'bomber' ? 4.0
+              : ship.type === 'sam' ? 3.5
+              : ship.type === 'tank' ? 3.2
+              : ship.type === 'interceptor' ? 2.0
+              : 2.5;
+            this.create3DExplosion(ship.group.position, ship.size * blastScale);
+            this.scene.remove(ship.group);
+            this.enemyShips.splice(j, 1);
+          } else {
+            this.create3DExplosion(pulse.group.position, 18);
+          }
+          this.scene.remove(pulse.group);
+          this.ionPulses.splice(i, 1);
+          consumed = true;
+          break;
+        }
+      }
+      if (consumed) continue;
+    }
+  }
+
+  private _ionTargetHeat(): number {
+    return this.ionCannonCooldown > 0 ? 1.0 : 0.0;
+  }
+
   // Launch cluster missiles (3 missiles in horizontal forward fan) — Shift+Click.
   // Stagger via the RAF-synced barrage queue so we don't leak setTimeout handles
   // if the scene tears down mid-volley.
@@ -7322,6 +7630,12 @@ class MegabotScene {
       this.isShiftPressed = e.shiftKey;
 
       // Game movement + camera keys
+      // Ion pulse cannon (key: C) — fire on press, cooldown gate handled inside.
+      if (key === 'c') {
+        e.preventDefault();
+        this.fireIonPulse();
+        return;
+      }
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'x', 'r', 'f', 'v', '1', '2', '3'].includes(key)) {
         e.preventDefault();
         this.keysPressed.add(key);
@@ -7580,6 +7894,9 @@ class MegabotScene {
 
     // Update 3D combat system (wave-based)
     this.update3DCombat(deltaTime);
+
+    // Update ion pulse cannon — projectiles, cooldown ring, muzzle flash
+    this.updateIonPulses(deltaTime);
 
     // Update shield recharge
     this.updateShield(deltaTime);
@@ -8293,6 +8610,11 @@ class MegabotScene {
     this.megabotParts = [];
     this.jetpackFlames = [];
     this.jetpackLights = [];
+    this.ionPulses = [];
+    this.ionCannonMuzzle = null;
+    this.ionCannonMuzzleFlash = null;
+    this.ionCannonChargeRing = null;
+    this.ionCannonChargeRingMat = null;
     this.satellites = [];
     this.energyParticles = [];
     this.starField = null;
