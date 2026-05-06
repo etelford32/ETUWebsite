@@ -61,6 +61,8 @@ export default function MissileGamePage() {
     waveShipsTotal: number;
     waveElapsed: number;
     waveParTime: number;
+    recentKills?: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+    complication?: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -80,6 +82,8 @@ export default function MissileGamePage() {
     waveShipsTotal: 0,
     waveElapsed: 0,
     waveParTime: 0,
+    recentKills: [],
+    complication: 'none',
     shieldHP: 3000,
     maxShieldHP: 3000,
     upgradeLevel: 0,

@@ -30,6 +30,8 @@ interface MegabotProps {
     waveShipsTotal: number;
     waveElapsed: number;
     waveParTime: number;
+    recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+    complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -279,6 +281,8 @@ class MegabotScene {
     waveShipsTotal: number;
     waveElapsed: number;
     waveParTime: number;
+    recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+    complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -298,6 +302,7 @@ class MegabotScene {
   private _prevWaveShipsRemaining = -1;
   private _prevWaveShipsTotal = -1;
   private _prevWaveElapsed = -1;
+  private _prevKillId = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -487,6 +492,28 @@ class MegabotScene {
   readonly WAVE_BONUS_TTL = 2.4; // seconds the toast stays visible
   private _prevWaveBonusKey: string = '';
 
+  // Kill-feed ring buffer. Each ship kill pushes a new entry; the HUD reads
+  // the array via onGameStateUpdate.recentKills, animates new entries in,
+  // and items naturally drop out as the ring rotates. Cap small so we never
+  // ship a huge array per emit.
+  private _recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }> = [];
+  private _killIdCounter = 0;
+  readonly RECENT_KILLS_CAP = 6;
+
+  // Complications — picked once at game start, applied at relevant gates.
+  // Every run rolls one of:
+  //   - 'none'         (25%): vanilla rules
+  //   - 'bossier'      (25%): boss wave every 3rd instead of every 5th
+  //   - 'fast-enemies' (25%): aerial spawn velocity ×1.35
+  //   - 'no-upgrades'  (25%): UPGRADE_THRESHOLDS effectively ignored
+  // The HUD reads this off gameState to render a persistent banner.
+  complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades' = 'none';
+  // Mutable per-run boss interval (defaults to BOSS_WAVE_INTERVAL, gets
+  // overridden to 3 by the 'bossier' complication).
+  bossInterval: number = 5;
+  // Aerial spawn-velocity multiplier (1 normally; 1.35 under fast-enemies).
+  enemySpeedMul: number = 1;
+
   // Interceptor pincer-pair coordination — when two interceptors spawn close
   // in time we want them to take opposing flank sides instead of independently
   // rolling random angles. Stamped at spawn; used at the next spawn to prefer
@@ -565,6 +592,8 @@ class MegabotScene {
       waveShipsTotal: number;
       waveElapsed: number;
       waveParTime: number;
+      recentKills: Array<{ id: number; type: string; score: number; combo: number; t: number }>;
+      complication: 'none' | 'bossier' | 'fast-enemies' | 'no-upgrades';
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -590,6 +619,12 @@ class MegabotScene {
     }
 
     this._particleContainDistSq = (this.MAIN_SIZE * 0.5) * (this.MAIN_SIZE * 0.5);
+    // Roll the per-run complication. 25% none / 25% each modifier. We do
+    // this before init() so any modifier-affected constants (bossInterval,
+    // enemySpeedMul) are correct from frame zero. A future server-issued
+    // run-token can override this — the field stays mutable.
+    this._rollComplication();
+
     this.init();
     this._initExplosionPool();
     this._initShockwavePool();
@@ -4805,7 +4840,10 @@ class MegabotScene {
     const dirY = mp.y - spawnY;
     const dirZ = mp.z - spawnZ;
     const distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
-    const speed = this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN);
+    // Apply the 'fast-enemies' complication multiplier to aerial spawn
+    // velocity. Ground units use their own creep cadence and aren't
+    // affected (skipped above by the early-return ground-spawn branch).
+    const speed = (this.SHIP_SPEED_MIN + Math.random() * (this.SHIP_SPEED_MAX - this.SHIP_SPEED_MIN)) * this.enemySpeedMul;
     const velocity = new THREE.Vector3(
       (dirX / distance) * speed,
       (dirY / distance) * speed,
@@ -6854,8 +6892,31 @@ class MegabotScene {
     this.scene.add(this.shieldMesh);
   }
 
-  // Check and apply weapon upgrades based on score
+  // Roll per-run complication. Equal odds for none + each modifier.
+  // Modifier effects:
+  //   - 'bossier'      : boss wave every 3rd instead of 5th
+  //   - 'fast-enemies' : aerial spawn velocity ×1.35
+  //   - 'no-upgrades'  : weapon upgrades stay at level 0 all run
+  private _rollComplication() {
+    const roll = Math.random();
+    this.complication =
+      roll < 0.25 ? 'none' :
+      roll < 0.50 ? 'bossier' :
+      roll < 0.75 ? 'fast-enemies' :
+                    'no-upgrades';
+    this.bossInterval = this.complication === 'bossier' ? 3 : this.BOSS_WAVE_INTERVAL;
+    this.enemySpeedMul = this.complication === 'fast-enemies' ? 1.35 : 1;
+  }
+
+  // Check and apply weapon upgrades based on score. The 'no-upgrades'
+  // complication clamps the level to 0 so the player never gets the
+  // homing-missile / wide-laser / barrage perks for the duration of
+  // the run.
   checkUpgrades() {
+    if (this.complication === 'no-upgrades') {
+      this.upgradeLevel = 0;
+      return;
+    }
     let newLevel = 0;
     for (let i = 0; i < this.UPGRADE_THRESHOLDS.length; i++) {
       if (this.gameScore >= this.UPGRADE_THRESHOLDS[i]) {
@@ -6928,7 +6989,7 @@ class MegabotScene {
           // would be a tossup; siege wins because it's the more dramatic
           // beat). In the typical 0..30 range they never collide.
           const isSiege = this.currentWave % this.SIEGE_WAVE_INTERVAL === 0;
-          const isBossWave = !isSiege && this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
+          const isBossWave = !isSiege && this.currentWave % this.bossInterval === 0;
           this.waveState = isSiege ? 'siege' : isBossWave ? 'boss' : 'active';
           this.waveActiveStart = this.time;
 
@@ -7187,25 +7248,53 @@ class MegabotScene {
     }
 
     if (ship.health <= 0) {
-      const base = ship.type === 'cruiser' ? 500
-        : ship.type === 'bomber' ? 300
-        : ship.type === 'sam' ? 250
-        : ship.type === 'tank' ? 220
-        : ship.type === 'interceptor' ? 200
-        : 100;
-      this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
-      this.comboTimer = this.COMBO_WINDOW;
-      this.gameScore += base * Math.min(this.comboCount, 8);
-      const blastScale = ship.type === 'cruiser' ? 5.0
-        : ship.type === 'bomber' ? 4.0
-        : ship.type === 'sam' ? 3.5      // ammo cooks off
-        : ship.type === 'tank' ? 3.2     // armor + fuel
-        : ship.type === 'interceptor' ? 2.0
-        : 2.5;
-      this.create3DExplosion(ship.group.position, ship.size * blastScale);
+      this._scoreKill(ship);
       return true;
     }
     return false;
+  }
+
+  /**
+   * Centralised ship-kill bookkeeping. Awards score (base × combo, capped at
+   * 8×), advances the combo counter, pushes a kill-feed entry into
+   * _recentKills, and triggers the type-scaled explosion. Called from both
+   * laser and missile kill paths so the scoring + feed logic stays in one
+   * place.
+   */
+  private _scoreKill(ship: any) {
+    const base = ship.type === 'cruiser' ? 500
+      : ship.type === 'bomber' ? 300
+      : ship.type === 'sam' ? 250
+      : ship.type === 'tank' ? 220
+      : ship.type === 'interceptor' ? 200
+      : 100;
+    this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
+    this.comboTimer = this.COMBO_WINDOW;
+    const comboMul = Math.min(this.comboCount, 8);
+    const awarded = base * comboMul;
+    this.gameScore += awarded;
+
+    // Push into kill-feed ring. Cap small (RECENT_KILLS_CAP) so the array
+    // we ship in onGameStateUpdate stays cheap.
+    const id = ++this._killIdCounter;
+    this._recentKills.push({
+      id,
+      type: ship.type,
+      score: awarded,
+      combo: comboMul,
+      t: this.time,
+    });
+    if (this._recentKills.length > this.RECENT_KILLS_CAP) {
+      this._recentKills.shift();
+    }
+
+    const blastScale = ship.type === 'cruiser' ? 5.0
+      : ship.type === 'bomber' ? 4.0
+      : ship.type === 'sam' ? 3.5      // ammo cooks off
+      : ship.type === 'tank' ? 3.2     // armor + fuel
+      : ship.type === 'interceptor' ? 2.0
+      : 2.5;
+    this.create3DExplosion(ship.group.position, ship.size * blastScale);
   }
 
   // Update 3D combat system
@@ -7740,22 +7829,7 @@ class MegabotScene {
           hitShip = true;
 
           if (ship.health <= 0) {
-            const base = ship.type === 'cruiser' ? 500
-        : ship.type === 'bomber' ? 300
-        : ship.type === 'sam' ? 250
-        : ship.type === 'tank' ? 220
-        : ship.type === 'interceptor' ? 200
-        : 100;
-            this.comboCount = (this.comboTimer > 0 ? this.comboCount : 0) + 1;
-            this.comboTimer = this.COMBO_WINDOW;
-            this.gameScore += base * Math.min(this.comboCount, 8);
-            const blastScale = ship.type === 'cruiser' ? 5.0
-        : ship.type === 'bomber' ? 4.0
-        : ship.type === 'sam' ? 3.5      // ammo cooks off
-        : ship.type === 'tank' ? 3.2     // armor + fuel
-        : ship.type === 'interceptor' ? 2.0
-        : 2.5;
-            this.create3DExplosion(ship.group.position, ship.size * blastScale);
+            this._scoreKill(ship);
             this.scene.remove(ship.group);
             this.enemyShips.splice(j, 1);
           } else {
@@ -8023,6 +8097,7 @@ class MegabotScene {
           this.waveShipsRemaining !== this._prevWaveShipsRemaining ||
           this.waveShipsTotal !== this._prevWaveShipsTotal ||
           waveElapsed !== this._prevWaveElapsed ||
+          this._killIdCounter !== this._prevKillId ||
           bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
@@ -8037,6 +8112,7 @@ class MegabotScene {
         this._prevWaveShipsRemaining = this.waveShipsRemaining;
         this._prevWaveShipsTotal = this.waveShipsTotal;
         this._prevWaveElapsed = waveElapsed;
+        this._prevKillId = this._killIdCounter;
         this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
@@ -8056,6 +8132,10 @@ class MegabotScene {
           waveShipsTotal: this.waveShipsTotal,
           waveElapsed,
           waveParTime,
+          // Snapshot copy so the consumer can mutate without affecting the
+          // ring. Cheap — capped at RECENT_KILLS_CAP.
+          recentKills: this._recentKills.slice(),
+          complication: this.complication,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,
