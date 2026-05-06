@@ -141,13 +141,14 @@ export function verifyRunToken(token: string, expectedUserId: string): VerifyRes
 
 /**
  * Per-mode score-plausibility ceiling. Megabot Arena waves cap regular
- * spawn at 18 ships; including combo + wave bonus a "perfect" wave is
- * roughly 18 * 800 (combo cap) + wave*100 ≈ 14600 at high waves. We use
- * a slightly looser per-wave allowance (12000) plus a flat 5000 base so
- * a clean wave 1-2 still passes.
+ * spawn at 18 ships; with the clear-time tiers (×3 flawless), boss waves
+ * (currentWave * 250 + 1000), and siege beats every 7th wave
+ * (currentWave * 500 + 5000 + 25 * 60), legitimate skilled runs climb
+ * fast. Per-wave ceiling is sized so a flawless wave-10 (~30k including
+ * siege carryover) passes; flagrant cheats (wave 1, 999_999) still trip.
  */
-export const MEGABOT_SCORE_CEILING_PER_WAVE = 12000
-export const MEGABOT_SCORE_CEILING_BASE = 5000
+export const MEGABOT_SCORE_CEILING_PER_WAVE = 18000
+export const MEGABOT_SCORE_CEILING_BASE = 8000
 export function megabotScoreCeiling(wave: number): number {
   return Math.max(MEGABOT_SCORE_CEILING_BASE, wave * MEGABOT_SCORE_CEILING_PER_WAVE + MEGABOT_SCORE_CEILING_BASE)
 }
@@ -258,8 +259,15 @@ export function verifyHeartbeatToken(
 /** Maximum legitimate score increase per second between heartbeats. */
 export const MAX_SCORE_PER_SECOND = 10_000
 
-/** Tolerance (in score units) when matching submitted score to the latest heartbeat. */
-export const HEARTBEAT_SCORE_TOLERANCE = 4_000
+/**
+ * Tolerance (in score units) when matching submitted score to the latest
+ * heartbeat. Heartbeats fire at end-of-wave, so the legit delta between
+ * "last beat" and "submit at game-over" is the kill score from a partial
+ * wave-of-death. Worst-case (mid-siege death with all 18 ships dropped at
+ * combo cap) ≈ 14_000, so 12_000 leaves a safety margin without giving
+ * forgers much room.
+ */
+export const HEARTBEAT_SCORE_TOLERANCE = 12_000
 
 /** Tolerance (in waves) — submission's level may be heartbeat.w or heartbeat.w + 1 (mid-wave death). */
 export const HEARTBEAT_WAVE_TOLERANCE = 1
