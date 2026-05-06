@@ -473,6 +473,14 @@ class MegabotScene {
   readonly WAVE_BONUS_TTL = 2.4; // seconds the toast stays visible
   private _prevWaveBonusKey: string = '';
 
+  // Interceptor pincer-pair coordination — when two interceptors spawn close
+  // in time we want them to take opposing flank sides instead of independently
+  // rolling random angles. Stamped at spawn; used at the next spawn to prefer
+  // the opposite sign within PINCER_PAIR_WINDOW_S.
+  private _lastInterceptorFlankSign = 0;
+  private _lastInterceptorFlankT = -999;
+  readonly PINCER_PAIR_WINDOW_S = 4;
+
   // Shield system
   shieldHP: number = 3000;
   readonly MAX_SHIELD_HP = 3000;
@@ -4801,6 +4809,30 @@ class MegabotScene {
     if (type === 'bomber') {
       enemyShip.behavior = 'bomb-run';
       enemyShip.bombRunPhase = 'approach';
+
+      // Bomber escort wing: re-tag up to 2 active solo fighters as
+      // escorts so the bomber's run isn't naked. Escorts orbit the
+      // bomber, screen incoming missiles by being closer hit-targets,
+      // and revert to default kamikaze when the bomber drops its bomb
+      // (egress) or dies. Skip wingmen / leaders so we don't shred an
+      // existing pair.
+      let assigned = 0;
+      for (let s = this.enemyShips.length - 1; s >= 0 && assigned < 2; s--) {
+        const candidate = this.enemyShips[s];
+        if (
+          candidate.active &&
+          candidate.type === 'fighter' &&
+          !candidate.behavior &&
+          !candidate._wingman &&
+          !candidate._wingmanOf
+        ) {
+          candidate.behavior = 'bomb-escort';
+          candidate._escortBomber = enemyShip;
+          // Stagger the orbit phase so the two escorts don't overlap.
+          candidate._escortOrbitAngle = (assigned * Math.PI) + Math.random() * 0.4;
+          assigned++;
+        }
+      }
     }
     // Interceptors flank instead of charging head-on: rotate the initial
     // velocity ±[35°, 55°] around the world Y axis. Default lookAt(megabot)
@@ -4809,7 +4841,18 @@ class MegabotScene {
     // the close-range juke they inherit, late-wave interceptors come in
     // from oblique angles instead of stacking on top of each other.
     if (type === 'interceptor') {
-      const sign = Math.random() < 0.5 ? -1 : 1;
+      // Pincer-pair coordination: if the previous interceptor spawned
+      // within PINCER_PAIR_WINDOW_S seconds, take the opposite flank
+      // sign so two adjacent interceptors converge from opposing sides
+      // instead of rolling independent random angles. Otherwise roll
+      // randomly as before.
+      const recent = (this.time - this._lastInterceptorFlankT) < this.PINCER_PAIR_WINDOW_S;
+      const sign = recent
+        ? -this._lastInterceptorFlankSign
+        : (Math.random() < 0.5 ? -1 : 1);
+      this._lastInterceptorFlankSign = sign;
+      this._lastInterceptorFlankT = this.time;
+
       const flankAngle = sign * (35 + Math.random() * 20) * (Math.PI / 180);
       const cos = Math.cos(flankAngle);
       const sin = Math.sin(flankAngle);
@@ -6285,6 +6328,46 @@ class MegabotScene {
     }
   }
 
+  // Bomb-escort behavior — fighters auto-tagged at bomber spawn. They orbit
+  // the bomber at radius BOMB_ESCORT_RADIUS, screening incoming fire by
+  // being closer hit-targets, and revert to default kamikaze when the
+  // bomber transitions to egress (its run is done) or dies.
+  updateBombEscortBehavior(ship: any, dt: number) {
+    const bomber = ship._escortBomber;
+    const bomberAlive = bomber && bomber.active && bomber.health > 0;
+    const bomberStillAttacking =
+      bomberAlive && (bomber.bombRunPhase === 'approach' || bomber.bombRunPhase === undefined);
+
+    if (!bomberStillAttacking) {
+      // Mission complete (bomb dropped, bomber dead, or bomber retasked):
+      // drop the role and re-enter the default kamikaze loop. The next
+      // frame's else-branch picks them up with a fresh juke cooldown.
+      ship._escortBomber = null;
+      ship.behavior = undefined;
+      return;
+    }
+
+    const BOMB_ESCORT_RADIUS = 90;
+    const ORBIT_RATE = 1.2; // rad/s
+    ship._escortOrbitAngle = (ship._escortOrbitAngle ?? 0) + ORBIT_RATE * dt;
+
+    // Target = bomber.position + (cosθ, 0, sinθ) * radius. Lerp the
+    // escort toward it with a smoothing factor that lets the model fall
+    // a beat behind the bomber's maneuver — reads as actively keeping
+    // station rather than rigidly snapped.
+    const a = ship._escortOrbitAngle;
+    const targetX = bomber.group.position.x + Math.cos(a) * BOMB_ESCORT_RADIUS;
+    const targetY = bomber.group.position.y + Math.sin(a * 0.5) * 25;
+    const targetZ = bomber.group.position.z + Math.sin(a) * BOMB_ESCORT_RADIUS;
+    const k = Math.min(3 * dt, 1);
+    ship.group.position.x += (targetX - ship.group.position.x) * k;
+    ship.group.position.y += (targetY - ship.group.position.y) * k;
+    ship.group.position.z += (targetZ - ship.group.position.z) * k;
+
+    // Face megabot so the existing firing block lights off lasers cleanly.
+    ship.group.lookAt(this.megabotWorldPos.x, this.megabotWorldPos.y, this.megabotWorldPos.z);
+  }
+
   // Recompute the world-space aim point each frame by raycasting the cursor
   // through the camera. The result is yaw-only (pitch ignored — megabot's
   // body can't pitch and missiles fire level).
@@ -7031,6 +7114,8 @@ class MegabotScene {
         this.updateEscortBehavior(ship, dt);
       } else if (ship.behavior === 'bomb-run') {
         this.updateBombRunBehavior(ship, dt, distToMegabotSq);
+      } else if (ship.behavior === 'bomb-escort') {
+        this.updateBombEscortBehavior(ship, dt);
       } else if (ship.behavior === 'cruiser-flee') {
         // Pure ballistic escape — keep flying outward at the velocity set
         // when retreat triggered. Despawn handled by the out-of-bounds
