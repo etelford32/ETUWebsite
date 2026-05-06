@@ -47,7 +47,25 @@ export async function GET(request: NextRequest) {
         profile:profiles(*)
       `, { count: 'exact' })
       .gte('submitted_at', cutoffDate.toISOString())
-      .eq('is_verified', true)
+
+    // Verification policy:
+    // - Main-game modes (speedrun/survival/discovery/boss_rush) require
+    //   server-side verification before they appear on the leaderboard,
+    //   per the original anti-cheat design.
+    // - Megabot Arena is a web-only mini-game; its scores can't go through
+    //   the same verification path, so we surface them unverified. (A
+    //   future anti-cheat sprint can layer a server-replay or token check
+    //   on top.)
+    // - 'all' shows main-game verified scores only, which is the
+    //   conservative pre-existing behaviour.
+    if (mode !== 'megabot') {
+      query = query.eq('is_verified', true)
+    }
+
+    // Mode filter (no-op for 'all'). Whitelisted above so this is safe.
+    if (mode !== 'all') {
+      query = query.eq('mode', mode)
+    }
 
     // Filter by mode (e.g. 'megabot', 'speedrun'). 'all' = no filter.
     if (mode && mode !== 'all') {

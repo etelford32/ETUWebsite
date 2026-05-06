@@ -12,11 +12,26 @@ import { detectConnectionQuality, initPerformanceOptimizations } from "@/lib/per
 const Megabot = dynamic(() => import("@/components/Megabot"), { ssr: false });
 const HeroMissileGame = dynamic(() => import("@/components/HeroMissileGame"), { ssr: false });
 
+type SubmitStatus =
+  | { kind: 'idle' }
+  | { kind: 'anonymous' }       // ran the game without being logged in
+  | { kind: 'submitting' }
+  | { kind: 'submitted'; rank?: number }
+  | { kind: 'error'; message: string };
+
 export default function MissileGamePage() {
   const [animationQuality, setAnimationQuality] = useState<QualityLevel>("medium");
   const megabotSceneRef = useRef<any>(null);
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Auth state — checked on mount via /api/auth/session.
+  const [authUser, setAuthUser] = useState<{ id: string; username?: string } | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Score-submission status (drives the bottom-center pill).
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>({ kind: 'idle' });
+  const submittedRef = useRef(false);
 
   const [gameState, setGameState] = useState<{
     score: number;
@@ -57,7 +72,67 @@ export default function MissileGamePage() {
       ? (localStorage.getItem("etu-animation-quality") as QualityLevel | null)
       : null;
     if (!saved) setAnimationQuality(detectConnectionQuality());
+
+    // Check session once on mount; the score-submit effect waits on this.
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.authenticated && data?.user) {
+          setAuthUser({ id: data.user.id, username: data.user.username });
+        }
+      })
+      .catch(() => { /* leave authUser null */ })
+      .finally(() => setAuthChecked(true));
   }, []);
+
+  // Game-over watcher: when Megabot's HP hits zero we submit the run once.
+  // We gate on `authChecked` so we don't race with the session check, and on
+  // submittedRef so a re-render can't trigger a second POST.
+  useEffect(() => {
+    if (submittedRef.current) return;
+    if (!authChecked) return;
+    if (gameState.health > 0) return;
+
+    submittedRef.current = true;
+
+    if (!authUser) {
+      setSubmitStatus({ kind: 'anonymous' });
+      return;
+    }
+    if (gameState.score <= 0 || gameState.wave <= 0) {
+      // Don't pollute the leaderboard with zero/instant-death runs.
+      setSubmitStatus({ kind: 'idle' });
+      return;
+    }
+
+    setSubmitStatus({ kind: 'submitting' });
+    fetch('/api/submit-score', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        score: gameState.score,
+        mode: 'megabot',
+        platform: 'PC',
+        level: gameState.wave,
+        metadata: {
+          wave: gameState.wave,
+          upgradeLevel: gameState.upgradeLevel,
+          // Mark the source so server-side verification can later filter
+          // on it without inferring from `mode` alone.
+          source: 'web-megabot-arena',
+        },
+      }),
+    })
+      .then(async r => {
+        const json = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(json?.error || `HTTP ${r.status}`);
+        setSubmitStatus({ kind: 'submitted' });
+      })
+      .catch((err: any) => {
+        setSubmitStatus({ kind: 'error', message: err?.message || 'Submit failed' });
+      });
+  }, [authChecked, authUser, gameState.health, gameState.score, gameState.wave, gameState.upgradeLevel]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     setMousePosition({ x: event.clientX, y: event.clientY });
@@ -107,6 +182,16 @@ export default function MissileGamePage() {
           </p>
         </div>
 
+        {/* Submit-status pill (bottom center, only while a run has ended) */}
+        {submitStatus.kind !== 'idle' && (
+          <div
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30"
+            style={{ pointerEvents: "auto" }}
+          >
+            <SubmitPill status={submitStatus} score={gameState.score} wave={gameState.wave} />
+          </div>
+        )}
+
         {/* Back link (bottom left, outside game UI) */}
         <Link
           href="/"
@@ -115,9 +200,57 @@ export default function MissileGamePage() {
         >
           ← Back to Home
         </Link>
+
+        {/* Leaderboard link (bottom right) */}
+        <Link
+          href="/leaderboard?mode=megabot"
+          className="btn-ghost absolute bottom-6 right-6 z-30 text-xs"
+          style={{ pointerEvents: "auto" }}
+        >
+          🏆 Megabot Arena Leaderboard
+        </Link>
       </section>
 
       <Footer />
     </>
   );
+}
+
+function SubmitPill({
+  status,
+  score,
+  wave,
+}: {
+  status: SubmitStatus;
+  score: number;
+  wave: number;
+}) {
+  switch (status.kind) {
+    case 'submitting':
+      return (
+        <span className="etu-pill etu-pill--cyan">
+          <span className="ping" /> Submitting score · {score.toLocaleString()}
+        </span>
+      );
+    case 'submitted':
+      return (
+        <span className="etu-pill etu-pill--green">
+          ✓ Score submitted · Wave {wave} · {score.toLocaleString()}
+        </span>
+      );
+    case 'anonymous':
+      return (
+        <Link href="/login" className="etu-pill etu-pill--amber">
+          ⚠ Log in to save your {score.toLocaleString()} on the Megabot Arena leaderboard
+        </Link>
+      );
+    case 'error':
+      return (
+        <span className="etu-pill etu-pill--purple" title={status.message}>
+          ⚠ Submit failed — score not saved
+        </span>
+      );
+    default:
+      return null;
+  }
 }
