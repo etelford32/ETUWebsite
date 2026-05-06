@@ -4663,6 +4663,29 @@ class MegabotScene {
       enemyShip.behavior = 'bomb-run';
       enemyShip.bombRunPhase = 'approach';
     }
+    // Interceptors flank instead of charging head-on: rotate the initial
+    // velocity ±[35°, 55°] around the world Y axis. Default lookAt(megabot)
+    // each frame curves them inward as they get closer, so the silhouette
+    // reads as a sweeping arc — not a straight-line missile. Combined with
+    // the close-range juke they inherit, late-wave interceptors come in
+    // from oblique angles instead of stacking on top of each other.
+    if (type === 'interceptor') {
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      const flankAngle = sign * (35 + Math.random() * 20) * (Math.PI / 180);
+      const cos = Math.cos(flankAngle);
+      const sin = Math.sin(flankAngle);
+      const vx = velocity.x;
+      const vz = velocity.z;
+      velocity.x = vx * cos - vz * sin;
+      velocity.z = vx * sin + vz * cos;
+      // Re-orient the model along the new heading so the engines + roll
+      // animation read cleanly from frame one.
+      ship.group.lookAt(
+        ship.group.position.x + velocity.x,
+        ship.group.position.y + velocity.y,
+        ship.group.position.z + velocity.z,
+      );
+    }
     this.enemyShips.push(enemyShip);
     this.scene.add(ship.group);
   }
@@ -5342,6 +5365,97 @@ class MegabotScene {
     return plasma;
   }
 
+  // Bomber payload — a visible, gravity-affected bomb dropped at the start of
+  // the egress phase. Distinct from plasma (which flies straight): bombs
+  // tumble, fall, and detonate with a wide blast. Reuses the enemyLasers pool
+  // so the existing collision pass picks them up; we just key off type='bomb'
+  // for gravity + visuals + hit-radius.
+  createBomb(ship: any) {
+    const THREE = this.THREE;
+
+    if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
+
+    const group = new THREE.Group();
+
+    // Steel-grey casing — short fat cylinder oriented along Z (forward).
+    const bodyGeometry = this._getCachedGeometry('bomb_body', () =>
+      new THREE.CylinderGeometry(4, 5, 16, 12)
+    );
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6a6a72,
+      metalness: 0.85,
+      roughness: 0.35,
+      emissive: new THREE.Color(0x331a00),
+      emissiveIntensity: 0.25,
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.rotation.x = Math.PI / 2;
+    group.add(body);
+
+    // Conical nose — bright red warhead so the bomb is unmistakable on screen.
+    const noseGeometry = this._getCachedGeometry('bomb_nose', () =>
+      new THREE.ConeGeometry(4, 8, 12)
+    );
+    const noseMaterial = new THREE.MeshStandardMaterial({
+      color: 0xb00000,
+      emissive: new THREE.Color(0x440000),
+      emissiveIntensity: 0.5,
+      metalness: 0.4,
+      roughness: 0.5,
+    });
+    const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+    nose.position.z = 12;
+    nose.rotation.x = Math.PI / 2;
+    group.add(nose);
+
+    // Four fins — quick BoxGeometry quads, no need for a shared cache; the
+    // bomb's lifetime is short enough that GC pressure is negligible.
+    const finGeo = this._getCachedGeometry('bomb_fin', () =>
+      new THREE.BoxGeometry(0.8, 6, 6)
+    );
+    const finMat = new THREE.MeshStandardMaterial({
+      color: 0x2c2c33,
+      metalness: 0.7,
+      roughness: 0.4,
+    });
+    for (let f = 0; f < 4; f++) {
+      const fin = new THREE.Mesh(finGeo, finMat);
+      const a = (f / 4) * Math.PI * 2;
+      fin.position.set(Math.cos(a) * 4.5, Math.sin(a) * 4.5, -7);
+      fin.rotation.z = a;
+      group.add(fin);
+    }
+
+    // Spawn pose: at the bomber's belly, slightly behind to read as
+    // "released from the bay." Initial velocity inherits a slice of the
+    // bomber's forward speed plus a downward kick. Gravity does the rest.
+    group.position.copy(ship.group.position);
+    group.position.y -= ship.size * 0.35;
+
+    const inheritedScale = 0.45;
+    const dropSpeed = -180; // initial Y velocity — gravity adds more
+    const velocity = new THREE.Vector3(
+      ship.velocity.x * inheritedScale,
+      dropSpeed,
+      ship.velocity.z * inheritedScale,
+    );
+
+    const bomb: any = {
+      group,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 6, // long enough to reach ground from bomber altitude
+      active: true,
+      damage: 55, // ~2x plasma; encourages "shoot down the bomber, fast"
+      type: 'bomb',
+      pulsePhase: 0,
+    };
+
+    this.enemyLasers.push(bomb);
+    this.scene.add(group);
+    return bomb;
+  }
+
   // Fire rapid burst (3 shots in quick succession) - uses RAF-synced burst queue instead of setTimeout
   fireRapidBurst(ship: any) {
     const now = this.time;
@@ -5901,6 +6015,10 @@ class MegabotScene {
     const TURN_RANGE_SQ = 1100 * 1100;
     if (distToMegabotSq < TURN_RANGE_SQ) {
       ship.bombRunPhase = 'egress';
+      // Drop the visible payload at the moment of transition. The bomb
+      // inherits a slice of the bomber's forward velocity + a downward
+      // kick, then falls under gravity (handled in the laser-update loop).
+      this.createBomb(ship);
       // Build an egress vector perpendicular (in XZ) to the current heading.
       // sign picks left or right at random so two bombers approaching the
       // same target peel different directions.
@@ -6579,6 +6697,27 @@ class MegabotScene {
           if (distXZ > TANK_STANDOFF) {
             ship.group.position.x += ship.velocity.x * dt;
             ship.group.position.z += ship.velocity.z * dt;
+          } else {
+            // At standoff: crab laterally instead of sitting still. We pick a
+            // direction (left or right relative to the line to megabot) and
+            // flip every TANK_DRIFT_FLIP_S seconds so each tank traces a
+            // back-and-forth arc around megabot. Lazy-init the timer + sign
+            // so existing tanks pick this up on first standoff frame.
+            const TANK_DRIFT_SPEED = 60; // u/s — slow enough to read as repositioning
+            const TANK_DRIFT_FLIP_S = 4 + Math.random() * 2;
+            if (ship._driftSign === undefined) ship._driftSign = Math.random() < 0.5 ? -1 : 1;
+            if (ship._driftFlipT === undefined) ship._driftFlipT = TANK_DRIFT_FLIP_S * Math.random();
+            ship._driftFlipT -= dt;
+            if (ship._driftFlipT <= 0) {
+              ship._driftSign = -ship._driftSign;
+              ship._driftFlipT = TANK_DRIFT_FLIP_S;
+            }
+            // Perpendicular to the line megabot->tank, in the XZ plane.
+            const dx = ship.group.position.x - this.megabotWorldPos.x;
+            const dz = ship.group.position.z - this.megabotWorldPos.z;
+            const len = Math.sqrt(dx * dx + dz * dz) || 1;
+            ship.group.position.x += (-dz / len) * TANK_DRIFT_SPEED * ship._driftSign * dt;
+            ship.group.position.z += ( dx / len) * TANK_DRIFT_SPEED * ship._driftSign * dt;
           }
           // Re-aim the chassis toward megabot on every frame; small lerp smooths
           // direction changes when megabot moves around the tank.
@@ -6950,13 +7089,44 @@ class MegabotScene {
 
       laser.lifetime += dt;
 
+      // Bombs feel gravity before the position step so velocity reflects
+      // the new acceleration on the same frame.
+      if (laser.type === 'bomb') {
+        const BOMB_GRAVITY = 480; // u/s^2 — heavy enough to read as falling
+        laser.velocity.y -= BOMB_GRAVITY * dt;
+      }
+
       // Update position
       laser.group.position.x += laser.velocity.x * dt;
       laser.group.position.y += laser.velocity.y * dt;
       laser.group.position.z += laser.velocity.z * dt;
 
       // Different visual effects based on projectile type
-      if (laser.type === 'plasma') {
+      if (laser.type === 'bomb') {
+        // Tumbling rotation — read as a free-falling ordnance, not a guided
+        // projectile. Pitch fastest because bombs nose-over as they fall.
+        laser.group.rotation.x += dt * 4.5;
+        laser.group.rotation.z += dt * 1.3;
+
+        // Ground impact: detonate when the bomb hits the ground plane. If
+        // megabot is inside the blast radius, apply damage (proportional to
+        // proximity); otherwise it's just a visual.
+        if (laser.group.position.y <= this.GROUND_Y + 4) {
+          const BOMB_BLAST_R = this.MAIN_SIZE * 1.4;
+          const distSq = laser.group.position.distanceToSquared(this.megabotWorldPos);
+          this.create3DExplosion(laser.group.position, 60);
+          this.spawnShockwave(laser.group.position, BOMB_BLAST_R * 1.2, 0xff8844, 0.7);
+          if (distSq < BOMB_BLAST_R * BOMB_BLAST_R) {
+            // Falloff: full damage at center, ~30% at the edge.
+            const dist = Math.sqrt(distSq);
+            const falloff = 1 - 0.7 * (dist / BOMB_BLAST_R);
+            this.applyDamageToMegabot(laser.damage * Math.max(0.3, falloff));
+          }
+          this.scene.remove(laser.group);
+          this.enemyLasers.splice(i, 1);
+          continue;
+        }
+      } else if (laser.type === 'plasma') {
         // Plasma cannon pulsing effect
         laser.pulsePhase = (laser.pulsePhase || 0) + dt * 8;
         const pulseScale = 1 + Math.sin(laser.pulsePhase) * 0.2;
@@ -6990,15 +7160,25 @@ class MegabotScene {
 
       // Check if laser hit megabot (sphere collision) - squared distance avoids sqrt
       const distToMegabotSq = laser.group.position.distanceToSquared(this.megabotWorldPos);
-      const hitRadius = laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 : this.MAIN_SIZE;
+      const hitRadius =
+        laser.type === 'bomb'   ? this.MAIN_SIZE * 1.3 :
+        laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 :
+                                   this.MAIN_SIZE;
 
       if (distToMegabotSq < hitRadius * hitRadius) {
         // Hit megabot! (through shield)
         this.applyDamageToMegabot(laser.damage);
 
-        // Different explosion sizes based on weapon type
-        const explosionSize = laser.type === 'plasma' ? 40 : laser.type === 'rapid' ? 8 : 15;
+        // Different explosion sizes based on weapon type. Bombs detonating
+        // mid-air on contact also throw a shockwave for the visual punch.
+        const explosionSize =
+          laser.type === 'bomb'   ? 70 :
+          laser.type === 'plasma' ? 40 :
+          laser.type === 'rapid'  ? 8 : 15;
         this.create3DExplosion(laser.group.position, explosionSize);
+        if (laser.type === 'bomb') {
+          this.spawnShockwave(laser.group.position, this.MAIN_SIZE * 1.6, 0xff8844, 0.7);
+        }
 
         this.scene.remove(laser.group);
         this.enemyLasers.splice(i, 1);
