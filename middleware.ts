@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
+import {
+  EXPERIMENTS,
+  EXP_COOKIE_MAX_AGE_SECONDS,
+  cookieNameFor,
+  defaultVariant,
+  isValidVariant,
+  pickVariant,
+  type ExperimentId,
+} from '@/lib/experiments'
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -16,6 +25,31 @@ const protectedRoutes = [
 // Routes that are admin-only
 const adminRoutes = ['/admin']
 
+function assignExperimentCookies(request: NextRequest, response: NextResponse) {
+  for (const id of Object.keys(EXPERIMENTS) as ExperimentId[]) {
+    const exp = EXPERIMENTS[id]
+    const name = cookieNameFor(id)
+    const existing = request.cookies.get(name)?.value
+    if (isValidVariant(exp, existing)) continue
+
+    const variant = (() => {
+      try {
+        return pickVariant(exp, Math.random())
+      } catch {
+        return defaultVariant(exp)
+      }
+    })()
+
+    response.cookies.set({
+      name,
+      value: variant,
+      maxAge: EXP_COOKIE_MAX_AGE_SECONDS,
+      path: '/',
+      sameSite: 'lax',
+    })
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -26,7 +60,9 @@ export function middleware(request: NextRequest) {
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route))
 
   if (!isProtectedRoute) {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    assignExperimentCookies(request, response)
+    return response
   }
 
   // Get session from cookie
@@ -47,7 +83,9 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  const response = NextResponse.next()
+  assignExperimentCookies(request, response)
+  return response
 }
 
 export const config = {

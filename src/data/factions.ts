@@ -240,3 +240,7 @@ export function getFaction(slug: string): Faction | undefined {
 export function getAllFactionSlugs(): string[] {
   return Object.keys(factions);
 }
+
+export function getAllFactions(): Faction[] {
+  return Object.values(factions);
+}
