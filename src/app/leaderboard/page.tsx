@@ -6,22 +6,22 @@ import { LeaderboardEntry } from '@/lib/types'
 import Header from '@/components/Header'
 
 type TimeWindow = 'today' | '7d' | '30d' | '90d' | 'all'
-type SortField = 'score' | 'level' | 'submitted_at'
 
 const WINDOWS = [
-  { key: 'today' as TimeWindow, label: 'Today', icon: '🌟' },
-  { key: '7d' as TimeWindow, label: '7 Days', icon: '📅' },
-  { key: '30d' as TimeWindow, label: '30 Days', icon: '🔥' },
-  { key: '90d' as TimeWindow, label: '90 Days', icon: '⚡' },
-  { key: 'all' as TimeWindow, label: 'All-Time', icon: '🏆' },
+  { key: 'today' as TimeWindow, label: 'Today' },
+  { key: '7d' as TimeWindow, label: '7 Days' },
+  { key: '30d' as TimeWindow, label: '30 Days' },
+  { key: '90d' as TimeWindow, label: '90 Days' },
+  { key: 'all' as TimeWindow, label: 'All-Time' },
 ]
 
-const MODES = [
-  { key: 'all', label: 'All Modes', icon: '🌌' },
-  { key: 'speedrun', label: 'Speedrun', icon: '⚡' },
-  { key: 'survival', label: 'Survival', icon: '🛡️' },
-  { key: 'discovery', label: 'Discovery', icon: '🔭' },
-  { key: 'boss_rush', label: 'Boss Rush', icon: '⚔️' },
+const MODE_TABS = [
+  { key: 'megabot', label: 'Megabot Arena', primary: true },
+  { key: 'all', label: 'All Modes' },
+  { key: 'speedrun', label: 'Speedrun' },
+  { key: 'survival', label: 'Survival' },
+  { key: 'discovery', label: 'Discovery' },
+  { key: 'boss_rush', label: 'Boss Rush' },
 ]
 
 const PLATFORMS = ['all', 'PC', 'Mac', 'Linux', 'PS', 'Xbox', 'Switch']
@@ -32,18 +32,15 @@ export default function LeaderboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // Filters
   const [window, setWindow] = useState<TimeWindow>('30d')
-  const [mode, setMode] = useState('all')
+  const [mode, setMode] = useState<string>('megabot')
   const [platform, setPlatform] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Pagination
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(50)
 
-  // Check current user
   useEffect(() => {
     checkUser()
   }, [])
@@ -53,12 +50,11 @@ export default function LeaderboardPage() {
       const response = await fetch('/api/auth/session')
       const data = await response.json()
       setCurrentUser(data.authenticated ? data.user : null)
-    } catch (error) {
+    } catch {
       setCurrentUser(null)
     }
   }
 
-  // Fetch leaderboard data
   useEffect(() => {
     fetchLeaderboard()
   }, [window, mode, platform, page, pageSize])
@@ -97,189 +93,230 @@ export default function LeaderboardPage() {
     }
   }
 
-  // Client-side filtering
   const filteredEntries = useMemo(() => {
     return entries.filter(entry => {
-      // Platform filter
-      if (platform !== 'all' && entry.platform !== platform) {
-        return false
-      }
-
-      // Search filter
+      if (platform !== 'all' && entry.platform !== platform) return false
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const username = entry.profile?.username?.toLowerCase() || ''
-        if (!username.includes(query)) {
-          return false
-        }
+        if (!username.includes(query)) return false
       }
-
       return true
     })
   }, [entries, platform, searchQuery])
 
-  // Find user's rank
   const userEntry = useMemo(() => {
     if (!currentUser) return null
     return entries.find(e => e.user_id === currentUser.id)
   }, [entries, currentUser])
 
   const totalPages = Math.ceil(total / pageSize)
+  const isMegabot = mode === 'megabot'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-slate-100">
+    <div className="min-h-screen bg-deep-900 text-slate-100">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-10">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🏆 Global Leaderboards
+          <div className="eyebrow mb-3">Global Standings</div>
+          <h1 className="font-display text-4xl md:text-5xl font-bold etu-headline-grad tracking-tight">
+            {isMegabot ? 'Megabot Arena Leaderboard' : 'Global Leaderboards'}
           </h1>
-          <p className="text-slate-400 text-lg mt-2">
-            {total.toLocaleString()} commanders competing across the galaxy
+          <p className="text-slate-400 text-lg mt-3 font-body">
+            <span className="font-mono text-cyan-300">{total.toLocaleString()}</span>{' '}
+            commanders competing across the galaxy
           </p>
         </div>
+
+        {/* Mode Tabs — Megabot Arena is the primary tab */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Game mode">
+            {MODE_TABS.map(tab => {
+              const active = mode === tab.key
+              if (tab.primary) {
+                return (
+                  <button
+                    key={tab.key}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => { setMode(tab.key); setPage(1) }}
+                    className={`
+                      relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full
+                      font-display text-xs font-semibold uppercase tracking-[0.18em]
+                      transition-all
+                      ${active
+                        ? 'bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-indigo-500/20 border border-cyan-400/60 text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,0.25)]'
+                        : 'bg-cyan-500/[0.06] border border-cyan-400/30 text-cyan-300 hover:border-cyan-300/60 hover:bg-cyan-500/10'
+                      }
+                    `}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full bg-cyan-400 ${active ? 'animate-pulse' : ''}`}
+                      style={{ boxShadow: '0 0 10px rgb(34 211 238)' }}
+                    />
+                    {tab.label}
+                    <span className="ml-1 px-1.5 py-0.5 rounded-sm bg-cyan-400/15 border border-cyan-400/30 text-[9px] tracking-widest">
+                      NEW
+                    </span>
+                  </button>
+                )
+              }
+              return (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => { setMode(tab.key); setPage(1) }}
+                  className={`
+                    px-4 py-2.5 rounded-full font-display text-xs font-semibold
+                    uppercase tracking-[0.18em] transition-all
+                    ${active
+                      ? 'bg-white/10 border border-white/30 text-slate-100'
+                      : 'bg-white/[0.03] border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
+                    }
+                  `}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* User Rank Banner */}
         {userEntry && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 shadow-xl shadow-indigo-500/10"
+            className="etu-glass mb-6 p-6 bg-gradient-to-r from-cyan-500/[0.06] via-blue-500/[0.06] to-indigo-500/[0.08]"
           >
             <div className="flex items-center gap-4">
               {userEntry.profile?.avatar_url && (
                 <img
                   src={userEntry.profile.avatar_url}
                   alt="Your avatar"
-                  className="w-16 h-16 rounded-full border-2 border-indigo-400"
+                  className="w-16 h-16 rounded-full border-2 border-cyan-400/60"
                 />
               )}
               <div className="flex-1">
-                <div className="text-lg font-semibold">
+                <div className="eyebrow text-cyan-300 mb-1">Your Standing</div>
+                <div className="text-lg font-semibold font-display tracking-wide">
                   {userEntry.profile?.username || 'Commander'}
                 </div>
-                <div className="text-slate-300 text-sm">
-                  Your best score: <span className="font-mono text-indigo-400">{userEntry.score.toLocaleString()}</span>
+                <div className="text-slate-300 text-sm mt-1">
+                  Best score:{' '}
+                  <span className="font-mono text-cyan-300 tabular-nums">
+                    {userEntry.score.toLocaleString()}
+                  </span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-4xl font-bold text-indigo-400">
+                <div className="font-mono text-4xl font-bold tabular-nums etu-headline-grad">
                   #{userEntry.rank || '—'}
                 </div>
-                <div className="text-sm text-slate-400">Global Rank</div>
+                <div className="eyebrow text-slate-500 mt-1">Global Rank</div>
               </div>
             </div>
           </motion.div>
         )}
 
         {/* Filters */}
-        <div className="mb-6 space-y-4">
+        <div className="etu-glass p-5 mb-6 space-y-5">
           {/* Time Window */}
           <div>
-            <label className="text-sm text-slate-400 mb-2 block">Time Period</label>
+            <div className="eyebrow mb-3">Time Period</div>
             <div className="flex flex-wrap gap-2">
               {WINDOWS.map(w => (
                 <button
                   key={w.key}
                   onClick={() => { setWindow(w.key); setPage(1) }}
                   className={`
-                    px-4 py-2 rounded-lg text-sm font-medium transition-all
+                    px-4 py-2 rounded-md text-sm font-display font-semibold
+                    uppercase tracking-[0.14em] transition-all
                     ${window === w.key
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
-                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                      ? 'bg-cyan-500/15 border border-cyan-400/50 text-cyan-200'
+                      : 'bg-white/[0.03] border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
                     }
                   `}
                 >
-                  <span className="mr-2">{w.icon}</span>
                   {w.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Mode & Platform & Search */}
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Mode */}
+          {/* Platform & Search */}
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">Game Mode</label>
-              <select
-                value={mode}
-                onChange={e => { setMode(e.target.value); setPage(1) }}
-                className="w-full px-4 py-2 rounded-lg bg-slate-900/80 border border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
-              >
-                {MODES.map(m => (
-                  <option key={m.key} value={m.key}>
-                    {m.icon} {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Platform */}
-            <div>
-              <label className="text-sm text-slate-400 mb-2 block">Platform</label>
+              <div className="eyebrow mb-2">Platform</div>
               <select
                 value={platform}
                 onChange={e => { setPlatform(e.target.value); setPage(1) }}
-                className="w-full px-4 py-2 rounded-lg bg-slate-900/80 border border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none font-mono text-sm"
               >
                 {PLATFORMS.map(p => (
                   <option key={p} value={p}>
-                    {p === 'all' ? '🌐 All Platforms' : `🎮 ${p}`}
+                    {p === 'all' ? 'All Platforms' : p}
                   </option>
                 ))}
               </select>
             </div>
-
-            {/* Search */}
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">Search Commander</label>
+              <div className="eyebrow mb-2">Search Commander</div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search by username..."
-                className="w-full px-4 py-2 rounded-lg bg-slate-900/80 border border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none placeholder:text-slate-500"
+                placeholder="Username..."
+                className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none placeholder:text-slate-600"
               />
             </div>
           </div>
         </div>
 
-        {/* Leaderboard Table */}
-        <div className="rounded-2xl bg-slate-950/60 border border-slate-800 overflow-hidden shadow-2xl">
+        {/* Leaderboard Card */}
+        <div className="etu-glass overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <div className="text-slate-400">Loading leaderboard...</div>
+              <div className="inline-block w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
+              <div className="eyebrow text-slate-400">Loading leaderboard…</div>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
-              <div className="text-rose-400 mb-2">⚠️ {error}</div>
+              <div className="text-rose-400 mb-3">⚠ {error}</div>
               <button
                 onClick={fetchLeaderboard}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm"
+                className="btn-ghost"
               >
                 Retry
               </button>
             </div>
           ) : filteredEntries.length === 0 ? (
-            <div className="p-12 text-center text-slate-400">
-              No scores found. Be the first to set a record! 🚀
+            <div className="p-12 text-center">
+              <div className="eyebrow text-slate-400 mb-2">No Records</div>
+              <div className="text-slate-300">
+                {isMegabot
+                  ? 'No Megabot Arena scores yet. Be the first to set a record.'
+                  : 'No scores found. Be the first to set a record.'}
+              </div>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-900/70 text-slate-300 border-b border-slate-800">
-                    <tr>
-                      <th className="py-4 px-4 text-right font-semibold w-20">Rank</th>
-                      <th className="py-4 px-4 text-left font-semibold">Commander</th>
-                      <th className="py-4 px-4 text-right font-semibold">Score</th>
-                      <th className="py-4 px-4 text-center font-semibold">Level</th>
-                      <th className="py-4 px-4 text-left font-semibold">Mode</th>
-                      <th className="py-4 px-4 text-center font-semibold">Platform</th>
-                      <th className="py-4 px-4 text-left font-semibold">Date</th>
+                  <thead className="bg-white/[0.03] border-b border-white/10">
+                    <tr className="text-left">
+                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 w-20">Rank</th>
+                      <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Commander</th>
+                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Score</th>
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Level</th>
+                      {!isMegabot && (
+                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mode</th>
+                      )}
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</th>
+                      <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,6 +327,7 @@ export default function LeaderboardPage() {
                           entry={entry}
                           index={idx}
                           isCurrentUser={entry.user_id === currentUser?.id}
+                          showMode={!isMegabot}
                         />
                       ))}
                     </AnimatePresence>
@@ -298,27 +336,27 @@ export default function LeaderboardPage() {
               </div>
 
               {/* Pagination */}
-              <div className="p-4 border-t border-slate-800 bg-slate-900/30">
+              <div className="p-4 border-t border-white/10 bg-white/[0.02]">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-xs text-slate-400">
-                    Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()} entries
+                  <div className="text-xs text-slate-400 font-mono tabular-nums">
+                    {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       disabled={page === 1}
                       onClick={() => setPage(p => Math.max(1, p - 1))}
-                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm"
+                      className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
                     >
-                      ← Previous
+                      ← Prev
                     </button>
-                    <div className="px-4 py-2 text-sm text-slate-300">
-                      Page {page} of {totalPages}
+                    <div className="px-4 py-2 text-xs text-slate-400 font-mono tabular-nums">
+                      Page {page} / {totalPages}
                     </div>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage(p => p + 1)}
-                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm"
+                      className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
                     >
                       Next →
                     </button>
@@ -327,11 +365,11 @@ export default function LeaderboardPage() {
                   <select
                     value={pageSize}
                     onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
-                    className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm"
+                    className="px-3 py-2 rounded-md bg-deep-900/80 border border-white/10 text-sm font-mono"
                   >
-                    <option value={25}>25 per page</option>
-                    <option value={50}>50 per page</option>
-                    <option value={100}>100 per page</option>
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                    <option value={100}>100 / page</option>
                   </select>
                 </div>
               </div>
@@ -339,24 +377,21 @@ export default function LeaderboardPage() {
           )}
         </div>
 
-        {/* Call to Action */}
-        <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 text-center">
-          <h3 className="text-xl font-bold mb-2">Want to see your name here?</h3>
-          <p className="text-slate-300 mb-4">
-            Download Explore the Universe 2175 and start your journey to the top!
+        {/* CTA */}
+        <div className="etu-glass mt-8 p-8 text-center bg-gradient-to-r from-cyan-500/[0.04] via-blue-500/[0.04] to-indigo-500/[0.06]">
+          <h3 className="font-display text-2xl font-bold mb-2 etu-headline-grad">
+            Want to see your name here?
+          </h3>
+          <p className="text-slate-300 mb-5">
+            Download Explore the Universe 2175 and start your climb to the top.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="/"
-              className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition"
-            >
-              Download Game
-            </a>
+            <a href="/" className="btn-ghost">Download Game</a>
             <a
               href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+              className="btn-ghost"
             >
               Wishlist on Steam
             </a>
@@ -367,48 +402,42 @@ export default function LeaderboardPage() {
   )
 }
 
-// Leaderboard Row Component
 function LeaderboardRow({
   entry,
   index,
-  isCurrentUser
+  isCurrentUser,
+  showMode,
 }: {
   entry: LeaderboardEntry
   index: number
   isCurrentUser: boolean
+  showMode: boolean
 }) {
   const rank = entry.rank || index + 1
 
-  // Medal colors for top 3
-  const getRankDisplay = () => {
-    if (rank === 1) {
-      return <span className="text-2xl">🥇</span>
-    }
-    if (rank === 2) {
-      return <span className="text-2xl">🥈</span>
-    }
-    if (rank === 3) {
-      return <span className="text-2xl">🥉</span>
-    }
-    return <span className="font-mono">#{rank}</span>
+  const rankDisplay = () => {
+    if (rank === 1) return <span className="text-2xl" aria-label="1st">🥇</span>
+    if (rank === 2) return <span className="text-2xl" aria-label="2nd">🥈</span>
+    if (rank === 3) return <span className="text-2xl" aria-label="3rd">🥉</span>
+    return <span className="font-mono tabular-nums text-slate-400">#{rank}</span>
   }
 
   return (
     <motion.tr
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, y: -12 }}
       transition={{ delay: index * 0.02 }}
       className={`
-        border-t border-slate-800/80 transition-colors
+        border-t border-white/5 transition-colors
         ${isCurrentUser
-          ? 'bg-indigo-950/40 hover:bg-indigo-950/60'
-          : 'hover:bg-slate-900/40'
+          ? 'bg-cyan-500/[0.08] hover:bg-cyan-500/[0.12]'
+          : 'hover:bg-white/[0.03]'
         }
       `}
     >
       <td className="py-4 px-4 text-right font-bold">
-        {getRankDisplay()}
+        {rankDisplay()}
       </td>
       <td className="py-4 px-4">
         <div className="flex items-center gap-3">
@@ -416,59 +445,59 @@ function LeaderboardRow({
             <img
               src={entry.profile.avatar_url}
               alt={entry.profile.username || 'Avatar'}
-              className="w-10 h-10 rounded-full border-2 border-slate-700"
+              className="w-10 h-10 rounded-full border border-white/10"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-lg">
-              👤
+            <div className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-slate-500">
+              ⌬
             </div>
           )}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <a
                 href={entry.user_id ? `/profile/${entry.user_id}` : '#'}
-                className={`font-semibold ${
+                className={`font-display font-semibold tracking-wide truncate ${
                   entry.user_id
-                    ? 'text-cyan-400 hover:text-cyan-300 hover:underline transition-colors'
+                    ? 'text-cyan-300 hover:text-cyan-200 hover:underline transition-colors'
                     : 'text-slate-100'
                 }`}
-                onClick={(e) => {
-                  if (!entry.user_id) e.preventDefault()
-                }}
+                onClick={(e) => { if (!entry.user_id) e.preventDefault() }}
               >
                 {entry.profile?.username || 'Anonymous'}
               </a>
               {isCurrentUser && (
-                <span className="text-xs px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-400">
+                <span className="text-[10px] font-display uppercase tracking-[0.18em] px-2 py-0.5 rounded-full bg-cyan-400/15 border border-cyan-400/40 text-cyan-300">
                   You
                 </span>
               )}
             </div>
             {entry.profile?.steam_id && (
-              <div className="text-xs text-slate-500">
-                Steam: {entry.profile.steam_id}
+              <div className="text-xs text-slate-500 font-mono truncate">
+                Steam · {entry.profile.steam_id}
               </div>
             )}
           </div>
         </div>
       </td>
       <td className="py-4 px-4 text-right">
-        <span className="font-mono text-lg font-bold text-indigo-400">
+        <span className="font-mono text-lg font-bold tabular-nums text-cyan-300">
           {entry.score.toLocaleString()}
         </span>
       </td>
       <td className="py-4 px-4 text-center">
-        <span className="px-2 py-1 rounded-full bg-slate-800 text-slate-300 text-xs">
+        <span className="font-mono tabular-nums text-xs px-2 py-1 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
           Lv {entry.level}
         </span>
       </td>
-      <td className="py-4 px-4">
-        <span className="capitalize text-slate-300">{entry.mode}</span>
-      </td>
+      {showMode && (
+        <td className="py-4 px-4">
+          <span className="capitalize text-slate-300 text-sm">{entry.mode}</span>
+        </td>
+      )}
       <td className="py-4 px-4 text-center">
-        <span className="text-slate-400">{entry.platform}</span>
+        <span className="font-mono text-xs text-slate-400">{entry.platform}</span>
       </td>
-      <td className="py-4 px-4 text-slate-400">
+      <td className="py-4 px-4 text-slate-400 font-mono tabular-nums text-xs whitespace-nowrap">
         {new Date(entry.submitted_at).toLocaleDateString()}
       </td>
     </motion.tr>
