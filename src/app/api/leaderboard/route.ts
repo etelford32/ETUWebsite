@@ -6,12 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const searchParams = request.nextUrl.searchParams
-    // `mode` accepts the same enum as /api/submit-score plus 'global' /
-    // 'all' which mean "no mode filter". Anything outside the whitelist is
-    // dropped to 'all' so we can't be tricked into an arbitrary eq() value.
-    const VALID_MODES = ['speedrun', 'survival', 'discovery', 'boss_rush', 'megabot']
-    const rawMode = searchParams.get('mode') || 'all'
-    const mode = VALID_MODES.includes(rawMode) ? rawMode : 'all'
+    const mode = searchParams.get('mode') || 'all'
     const windowKey = searchParams.get('window') || '30d'
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '50')
@@ -69,6 +64,11 @@ export async function GET(request: NextRequest) {
 
     // Mode filter (no-op for 'all'). Whitelisted above so this is safe.
     if (mode !== 'all') {
+      query = query.eq('mode', mode)
+    }
+
+    // Filter by mode (e.g. 'megabot', 'speedrun'). 'all' = no filter.
+    if (mode && mode !== 'all') {
       query = query.eq('mode', mode)
     }
 

@@ -259,6 +259,12 @@ export default function UserManagement() {
               User Management
             </Link>
             <Link
+              href="/admin/invites"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              ✉️ Invitations
+            </Link>
+            <Link
               href="/admin/feedback"
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
             >

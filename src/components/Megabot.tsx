@@ -165,7 +165,19 @@ class MegabotScene {
   private _aimMouseNDC = new THREE.Vector2();
   private _aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private _aimHit = new THREE.Vector3();
-  readonly MEGABOT_AIM_LERP = 0.12; // Body yaw slerp toward cursor (per frame)
+  readonly MEGABOT_AIM_LERP = 0.12; // (legacy) Body yaw slerp toward cursor (per frame)
+  // Frame-rate-independent rate (1/s). Used as: k = 1 - exp(-rate * dt).
+  readonly MEGABOT_AIM_RATE = 4.5;
+  // Mouse-aim re-engagement gates — keep the body from "snapping back" after A/D.
+  readonly AIM_REENGAGE_PX = 60;       // require this much cumulative mouse motion
+  readonly AIM_REENGAGE_DELAY = 0.9;   // and this many seconds after the last A/D input
+  private _aimMouseAccum: number = 0;
+  private _lastManualRotateTime: number = -999;
+
+  // Smooth A/D angular velocity (accelerates and decelerates rather than starting/stopping abruptly).
+  private _angularVelocity: number = 0;
+  readonly MEGABOT_TURN_ACCEL = 18;    // rad/s² ramp-up toward target turn rate
+  readonly MEGABOT_TURN_DAMPING = 14;  // rad/s² decay back to zero when no input
 
   // Godmode 3D camera system
   cameraYaw: number = 0;              // Horizontal orbit angle (radians)
@@ -405,6 +417,23 @@ class MegabotScene {
   readonly WALK_BOB_HEIGHT = 18; // Vertical bob during walk
   readonly WALK_CYCLE_SPEED = 5; // Walk cycle frequency multiplier
   readonly MEGABOT_ROTATE_SPEED = 4.0; // Q/E rotation speed (radians/sec)
+
+  // Jump / Jetpack rocket pack (Shift + W / Shift + ArrowUp)
+  isShiftPressed: boolean = false;
+  isAirborne: boolean = false;
+  verticalVelocity: number = 0;
+  jetpackThrustActive: boolean = false;
+  jetpackFuel: number = 100;
+  jetpackFlames: any[] = []; // Flame cone meshes anchored to thruster nozzles
+  jetpackLights: any[] = []; // Point lights pulsed during thrust
+  jetpackJustLaunched: boolean = false; // True for one frame on initial jump impulse
+  readonly MAX_JETPACK_FUEL = 100;
+  readonly JETPACK_FUEL_DRAIN = 45; // per second while thrusting
+  readonly JETPACK_FUEL_RECHARGE = 30; // per second while grounded
+  readonly JUMP_INITIAL_IMPULSE = 900; // initial upward kick on takeoff
+  readonly JETPACK_THRUST_FORCE = 2200; // continuous upward acceleration
+  readonly JETPACK_MAX_RISE_SPEED = 1500; // cap on upward velocity
+  readonly GRAVITY = 1900; // downward acceleration when airborne
 
   // Camera shake system
   cameraShakeX: number = 0;
@@ -1765,6 +1794,27 @@ class MegabotScene {
     const chest = new THREE.Mesh(chestGeometry, mechaMaterial);
     torsoGroup.add(chest);
 
+    // Futuristic glowing accent trim — V-shape across chest
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: 0x00ddff,
+      emissive: new THREE.Color(0x00d8ff),
+      emissiveIntensity: 2.2,
+      metalness: 0.3,
+      roughness: 0.2,
+    });
+    for (let side = -1; side <= 1; side += 2) {
+      const trimGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.025, this.MAIN_SIZE * 0.02);
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      trim.position.set(side * this.MAIN_SIZE * 0.16, this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.305);
+      trim.rotation.z = side * 0.3;
+      torsoGroup.add(trim);
+    }
+    // Horizontal accent line under chest
+    const lowerTrimGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.45, this.MAIN_SIZE * 0.02, this.MAIN_SIZE * 0.02);
+    const lowerTrim = new THREE.Mesh(lowerTrimGeo, trimMat);
+    lowerTrim.position.set(0, -this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.305);
+    torsoGroup.add(lowerTrim);
+
     // Multi-layer armor plating system
     for (let layer = 0; layer < 3; layer++) {
       const plateWidth = this.MAIN_SIZE * (0.6 - layer * 0.05);
@@ -1987,46 +2037,135 @@ class MegabotScene {
       torsoGroup.add(segmentLine);
     }
 
-    // Back thrusters/boosters
+    // ── FUTURISTIC ROCKET PACK / JETPACK ──
+    // Sleek angular spine running down the center of the back
+    const spineGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.18, this.MAIN_SIZE * 0.85, this.MAIN_SIZE * 0.12);
+    const spine = new THREE.Mesh(spineGeo, accentMaterial);
+    spine.position.set(0, this.MAIN_SIZE * 0.18, -this.MAIN_SIZE * 0.32);
+    torsoGroup.add(spine);
+
+    // Glowing energy core strip running down the spine (cyan futuristic accent)
+    const energyStripMat = new THREE.MeshStandardMaterial({
+      color: 0x00ffff,
+      emissive: new THREE.Color(0x00d8ff),
+      emissiveIntensity: 2.4,
+      metalness: 0.3,
+      roughness: 0.2,
+    });
+    const energyStripGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.78, this.MAIN_SIZE * 0.02);
+    const energyStrip = new THREE.Mesh(energyStripGeo, energyStripMat);
+    energyStrip.position.set(0, this.MAIN_SIZE * 0.18, -this.MAIN_SIZE * 0.39);
+    torsoGroup.add(energyStrip);
+
+    // Sleek jetpack housings — angular wedge profile (futuristic look)
     for (let side = -1; side <= 1; side += 2) {
+      // Main angular housing
       const thrusterHousingGeometry = new THREE.BoxGeometry(
-        this.MAIN_SIZE * 0.2,
-        this.MAIN_SIZE * 0.6,
-        this.MAIN_SIZE * 0.3
+        this.MAIN_SIZE * 0.22,
+        this.MAIN_SIZE * 0.7,
+        this.MAIN_SIZE * 0.32
       );
-      const thrusterHousing = new THREE.Mesh(thrusterHousingGeometry, accentMaterial);
-      thrusterHousing.position.set(side * this.MAIN_SIZE * 0.25, this.MAIN_SIZE * 0.1, -this.MAIN_SIZE * 0.35);
+      const thrusterHousing = new THREE.Mesh(thrusterHousingGeometry, mechaMaterial);
+      thrusterHousing.position.set(side * this.MAIN_SIZE * 0.22, this.MAIN_SIZE * 0.12, -this.MAIN_SIZE * 0.36);
+      // Slight angular tilt for swept-back, aerodynamic profile
+      thrusterHousing.rotation.z = side * 0.08;
       torsoGroup.add(thrusterHousing);
 
-      // Thruster nozzles
+      // Outer armor plate (sleek panel)
+      const armorPanelGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.6, this.MAIN_SIZE * 0.28);
+      const armorPanel = new THREE.Mesh(armorPanelGeo, accentMaterial);
+      armorPanel.position.set(side * this.MAIN_SIZE * 0.34, this.MAIN_SIZE * 0.12, -this.MAIN_SIZE * 0.36);
+      torsoGroup.add(armorPanel);
+
+      // Glowing accent strip on each jetpack housing
+      const accentStripGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.015, this.MAIN_SIZE * 0.5, this.MAIN_SIZE * 0.015);
+      const accentStrip = new THREE.Mesh(accentStripGeo, energyStripMat);
+      accentStrip.position.set(side * this.MAIN_SIZE * 0.36, this.MAIN_SIZE * 0.12, -this.MAIN_SIZE * 0.36);
+      torsoGroup.add(accentStrip);
+
+      // Top jetpack winglet — sleek angular fin
+      const wingletGeo = new THREE.BoxGeometry(this.MAIN_SIZE * 0.12, this.MAIN_SIZE * 0.04, this.MAIN_SIZE * 0.34);
+      const winglet = new THREE.Mesh(wingletGeo, accentMaterial);
+      winglet.position.set(side * this.MAIN_SIZE * 0.32, this.MAIN_SIZE * 0.50, -this.MAIN_SIZE * 0.36);
+      winglet.rotation.z = side * 0.4;
+      torsoGroup.add(winglet);
+
+      // Thruster nozzles — bigger, more prominent
       for (let nozzle = 0; nozzle < 2; nozzle++) {
-        const nozzleGeometry = new THREE.CylinderGeometry(
+        // Outer nozzle bell (mecha material)
+        const bellGeometry = new THREE.CylinderGeometry(
+          this.MAIN_SIZE * 0.095,
+          this.MAIN_SIZE * 0.07,
+          this.MAIN_SIZE * 0.12,
+          20
+        );
+        const bell = new THREE.Mesh(bellGeometry, mechaMaterial);
+        bell.rotation.x = Math.PI / 2;
+        const nozzleX = side * this.MAIN_SIZE * 0.22;
+        const nozzleY = this.MAIN_SIZE * (0.25 + nozzle * -0.32);
+        const nozzleZ = -this.MAIN_SIZE * 0.55;
+        bell.position.set(nozzleX, nozzleY, nozzleZ);
+        torsoGroup.add(bell);
+
+        // Inner glowing nozzle ring (cyan futuristic glow)
+        const ringGeo = new THREE.CylinderGeometry(
           this.MAIN_SIZE * 0.06,
-          this.MAIN_SIZE * 0.08,
-          this.MAIN_SIZE * 0.2,
+          this.MAIN_SIZE * 0.06,
+          this.MAIN_SIZE * 0.025,
           16
         );
-
-        // Create emissive color separately to avoid TypeScript inference issues
-        const emissiveColor = nozzle === 0
-          ? new THREE.Color(0.3, 0.0, 0.0)  // Dark red
-          : new THREE.Color(0.2, 0.0, 0.3); // Purple
-
-        const nozzleMaterial = new THREE.MeshStandardMaterial({
-          color: nozzle === 0 ? 0x8B0000 : 0x4B0082, // Dark red and purple
-          metalness: 0.95,
-          roughness: 0.1,
-          emissive: emissiveColor,
-          emissiveIntensity: 0.5,
+        const ringMat = new THREE.MeshStandardMaterial({
+          color: 0x00ddff,
+          emissive: new THREE.Color(0x00ddff),
+          emissiveIntensity: 1.8,
+          metalness: 0.4,
+          roughness: 0.2,
         });
-        const nozzleMesh = new THREE.Mesh(nozzleGeometry, nozzleMaterial);
-        nozzleMesh.rotation.x = Math.PI / 2;
-        nozzleMesh.position.set(
-          side * this.MAIN_SIZE * 0.25,
-          this.MAIN_SIZE * (0.2 + nozzle * -0.2),
-          -this.MAIN_SIZE * 0.5
-        );
-        torsoGroup.add(nozzleMesh);
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(nozzleX, nozzleY, nozzleZ - this.MAIN_SIZE * 0.05);
+        torsoGroup.add(ring);
+
+        // Flame cone — hidden by default, scaled/shown during jetpack thrust
+        const flameGeo = new THREE.ConeGeometry(this.MAIN_SIZE * 0.06, this.MAIN_SIZE * 0.55, 16, 1, true);
+        const flameMat = new THREE.MeshBasicMaterial({
+          color: 0x66ffff,
+          transparent: true,
+          opacity: 0.0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+        const flame = new THREE.Mesh(flameGeo, flameMat);
+        // Cone default points +Y; rotate so its tip points -Z (out the back of the nozzle)
+        flame.rotation.x = -Math.PI / 2;
+        flame.position.set(nozzleX, nozzleY, nozzleZ - this.MAIN_SIZE * 0.35);
+        flame.scale.y = 0.0001; // collapsed when idle
+        torsoGroup.add(flame);
+
+        // Inner hotter flame core (white-yellow)
+        const coreFlameGeo = new THREE.ConeGeometry(this.MAIN_SIZE * 0.035, this.MAIN_SIZE * 0.4, 12, 1, true);
+        const coreFlameMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+        const coreFlame = new THREE.Mesh(coreFlameGeo, coreFlameMat);
+        coreFlame.rotation.x = -Math.PI / 2;
+        coreFlame.position.set(nozzleX, nozzleY, nozzleZ - this.MAIN_SIZE * 0.28);
+        coreFlame.scale.y = 0.0001;
+        torsoGroup.add(coreFlame);
+
+        // Point light at each nozzle for dynamic glow during thrust
+        const flameLight = new THREE.PointLight(0x66ffff, 0, this.MAIN_SIZE * 3);
+        flameLight.position.set(nozzleX, nozzleY, nozzleZ - this.MAIN_SIZE * 0.25);
+        torsoGroup.add(flameLight);
+
+        this.jetpackFlames.push({ flame, coreFlame, baseLength: this.MAIN_SIZE * 0.55 });
+        this.jetpackLights.push(flameLight);
       }
     }
 
@@ -6193,18 +6332,38 @@ class MegabotScene {
   updateMegabotMovement(dt: number) {
     if (!this.mainMegabot) return;
 
-    // ── Manual yaw rotation: A/D + Arrow Left/Right ──
-    // A = turn left, D = turn right (sign empirically picked to match player
-    // intent in 3rd-person/free cameras — note that the math depends on which
-    // side of megabot the camera sits on, so we just match the perception).
+    // ── Manual yaw rotation: A/D + Arrow Left/Right (eased) ──
+    // A = turn left, D = turn right. Instead of slamming rotation.y by a fixed
+    // amount per frame (which feels jerky on press/release), we accelerate an
+    // angular velocity toward the target turn rate and damp it back to zero
+    // when input is released. The result is a smooth start/stop turn.
     const rotateLeft  = this.keysPressed.has('a') || this.keysPressed.has('arrowleft');
     const rotateRight = this.keysPressed.has('d') || this.keysPressed.has('arrowright');
-    if (rotateLeft)  this.mainMegabot.rotation.y += this.MEGABOT_ROTATE_SPEED * dt;
-    if (rotateRight) this.mainMegabot.rotation.y -= this.MEGABOT_ROTATE_SPEED * dt;
+    const turnInput = (rotateLeft ? 1 : 0) - (rotateRight ? 1 : 0);
+    const targetAngVel = turnInput * this.MEGABOT_ROTATE_SPEED;
+    const accel = turnInput !== 0 ? this.MEGABOT_TURN_ACCEL : this.MEGABOT_TURN_DAMPING;
+    const angDiff = targetAngVel - this._angularVelocity;
+    const angStep = Math.sign(angDiff) * Math.min(Math.abs(angDiff), accel * dt);
+    this._angularVelocity += angStep;
+    // Snap to zero once input is released and velocity is tiny — stops slow drift.
+    if (turnInput === 0 && Math.abs(this._angularVelocity) < 0.05) this._angularVelocity = 0;
+    this.mainMegabot.rotation.y += this._angularVelocity * dt;
+
     // "Last input wins": once the player rotates with the keyboard, suspend
-    // mouse-aim so the next mousemove is what re-engages it. Without this, the
-    // body snaps back to the cursor position the instant A/D is released.
-    if (rotateLeft || rotateRight) this._aimRequiresMouseMove = true;
+    // mouse-aim until the cursor has moved a meaningful distance AND a short
+    // grace period has elapsed. Without this, casual cursor jitter after
+    // releasing A/D yanks the body back toward the cursor.
+    if (turnInput !== 0) {
+      this._aimRequiresMouseMove = true;
+      this._aimMouseAccum = 0;
+      this._lastManualRotateTime = this.time;
+    }
+    // Re-engage mouse-aim only after both gates are satisfied.
+    if (this._aimRequiresMouseMove
+        && this._aimMouseAccum >= this.AIM_REENGAGE_PX
+        && (this.time - this._lastManualRotateTime) >= this.AIM_REENGAGE_DELAY) {
+      this._aimRequiresMouseMove = false;
+    }
 
     // ── Movement input — megabot-LOCAL frame ──
     // W/Up = forward (local +Z)   S/Down = back (local -Z)
@@ -6212,20 +6371,72 @@ class MegabotScene {
     // (Strafe sign matches rotation sign convention chosen above.)
     let localX = 0;
     let localZ = 0;
-    if (this.keysPressed.has('w') || this.keysPressed.has('arrowup'))   localZ += 1;
+    const wHeld = this.keysPressed.has('w') || this.keysPressed.has('arrowup');
+    if (wHeld)                                                          localZ += 1;
     if (this.keysPressed.has('s') || this.keysPressed.has('arrowdown')) localZ -= 1;
     if (this.keysPressed.has('q')) localX += 1; // strafe left
     if (this.keysPressed.has('e')) localX -= 1; // strafe right
 
+    // ── JETPACK / JUMP physics (Shift+W or Shift+ArrowUp) ──
+    // Shift+W: held = sustained upward thrust while fuel remains.
+    // While airborne, gravity pulls megabot back down. Suppress horizontal forward
+    // input contribution so Shift+W is a pure ascent, not a forward boost.
+    const wantThrust = this.isShiftPressed && wHeld && this.jetpackFuel > 0;
+    if (wantThrust) {
+      this.jetpackThrustActive = true;
+      this.verticalVelocity += this.JETPACK_THRUST_FORCE * dt;
+      if (this.verticalVelocity > this.JETPACK_MAX_RISE_SPEED) {
+        this.verticalVelocity = this.JETPACK_MAX_RISE_SPEED;
+      }
+      this.jetpackFuel = Math.max(0, this.jetpackFuel - this.JETPACK_FUEL_DRAIN * dt);
+      this.isAirborne = true;
+      // Don't double-count: forward W contribution is consumed by the rocket pack.
+      localZ = 0;
+    } else {
+      this.jetpackThrustActive = false;
+    }
+
+    if (this.isAirborne) {
+      // Apply gravity and integrate
+      this.verticalVelocity -= this.GRAVITY * dt;
+      this.mainMegabot.position.y += this.verticalVelocity * dt;
+
+      // Ground collision
+      if (this.mainMegabot.position.y <= this.MEGABOT_STAND_Y) {
+        const landingSpeed = -this.verticalVelocity;
+        this.mainMegabot.position.y = this.MEGABOT_STAND_Y;
+        this.verticalVelocity = 0;
+        this.isAirborne = false;
+        // Hard landing -> camera shake + dust
+        if (landingSpeed > 250) {
+          this.triggerCameraShake(Math.min(14, landingSpeed * 0.02));
+          this.createStompDust(this.mainMegabot.position);
+        }
+      }
+    } else {
+      // Recharge jetpack fuel while grounded
+      if (this.jetpackFuel < this.MAX_JETPACK_FUEL) {
+        this.jetpackFuel = Math.min(
+          this.MAX_JETPACK_FUEL,
+          this.jetpackFuel + this.JETPACK_FUEL_RECHARGE * dt
+        );
+      }
+    }
+
+    // Update jetpack flame visuals each frame
+    this.updateJetpackVisuals(dt);
+
     if (localX === 0 && localZ === 0) {
-      // Not moving - decelerate walk cycle and return to standing height
+      // No horizontal input
       this.isWalking = false;
-      // Smoothly return to standing Y
-      this.mainMegabot.position.y += (this.MEGABOT_STAND_Y - this.mainMegabot.position.y) * 0.1;
+      if (!this.isAirborne) {
+        // Smoothly return to standing Y on the ground
+        this.mainMegabot.position.y += (this.MEGABOT_STAND_Y - this.mainMegabot.position.y) * 0.1;
+      }
       return;
     }
 
-    this.isWalking = true;
+    this.isWalking = !this.isAirborne;
 
     // Normalize diagonal magnitude so strafe+forward isn't sqrt(2)× faster
     const len = Math.sqrt(localX * localX + localZ * localZ);
@@ -6248,22 +6459,26 @@ class MegabotScene {
     // Advance walk cycle proportional to speed
     this.walkCycle += dt * this.WALK_CYCLE_SPEED;
 
-    // Walking bob with secondary bounce harmonic + footfall dip
+    // Walking bob with secondary bounce harmonic + footfall dip — only while grounded
     const primaryBob = Math.abs(Math.sin(this.walkCycle)) * this.WALK_BOB_HEIGHT;
     const secondaryBounce = Math.abs(Math.sin(this.walkCycle * 2)) * (this.WALK_BOB_HEIGHT * 0.15);
     // Footfall dip: brief downward dip when sin crosses zero (foot plants)
     const sinCycle = Math.sin(this.walkCycle);
     const footfallDip = (1 - Math.abs(sinCycle)) * -4; // -4 unit dip at zero crossings
-    this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
+    if (!this.isAirborne) {
+      this.mainMegabot.position.y = this.MEGABOT_STAND_Y + primaryBob + secondaryBounce + footfallDip;
+    }
 
     // (Auto-face-toward-movement removed — facing is driven explicitly by
     // mouse-aim or A/D rotation. Strafe with Q/E or back up with S without
     // megabot's body snapping around. The mouse-aim suppression check lives
     // in animate()'s body-rotation block.)
 
-    // GODZILLA STOMP! Check footfall timing - stomp on downbeat of walk cycle
+    // GODZILLA STOMP! Check footfall timing - stomp on downbeat of walk cycle.
+    // Suppressed while airborne — feet aren't planting on anything.
     const prevSinCycle = Math.sin(this.walkCycle - dt * this.WALK_CYCLE_SPEED);
-    const isFootfall = (sinCycle <= 0 && prevSinCycle > 0) || (sinCycle >= 0 && prevSinCycle < 0);
+    const isFootfall = !this.isAirborne &&
+      ((sinCycle <= 0 && prevSinCycle > 0) || (sinCycle >= 0 && prevSinCycle < 0));
 
     // Screen shake on every footfall
     if (isFootfall) {
@@ -6272,7 +6487,8 @@ class MegabotScene {
       this.createStompDust(this.mainMegabot.position);
     }
 
-    // Splash damage: core destroy, heavy ring, light ring
+    // Splash damage: core destroy, heavy ring, light ring (skip while airborne)
+    if (this.isAirborne) return;
     for (let i = this.buildings.length - 1; i >= 0; i--) {
       const building = this.buildings[i];
       if (!building.active) continue;
@@ -6306,6 +6522,39 @@ class MegabotScene {
           this.applyBuildingDamageVisuals(building);
         }
       }
+    }
+  }
+
+  // Animate jetpack flame cones + dynamic point lights based on thrust state.
+  // Smoothly grows when thrusting, collapses when not. Adds subtle flicker.
+  private _jetpackFlameIntensity: number = 0;
+  updateJetpackVisuals(dt: number) {
+    if (this.jetpackFlames.length === 0) return;
+
+    // Smooth ramp toward target intensity (0 idle, 1 thrusting full power).
+    const target = this.jetpackThrustActive ? 1.0 : 0.0;
+    const ramp = this.jetpackThrustActive ? 12 : 8; // faster ramp-up than ramp-down
+    this._jetpackFlameIntensity += (target - this._jetpackFlameIntensity) * Math.min(1, ramp * dt);
+    const intensity = this._jetpackFlameIntensity;
+
+    // Flicker for organic flame motion
+    const flicker = 0.85 + Math.sin(this.time * 60) * 0.08 + (Math.random() - 0.5) * 0.12;
+
+    for (const f of this.jetpackFlames) {
+      const visible = intensity > 0.01;
+      f.flame.visible = visible;
+      f.coreFlame.visible = visible;
+      if (!visible) continue;
+      const lengthScale = Math.max(0.0001, intensity * flicker);
+      f.flame.scale.y = lengthScale;
+      f.coreFlame.scale.y = lengthScale * 0.85;
+      // Material opacities grow with intensity
+      f.flame.material.opacity = 0.85 * intensity;
+      f.coreFlame.material.opacity = 0.95 * intensity;
+    }
+
+    for (const light of this.jetpackLights) {
+      light.intensity = 8 * intensity * flicker;
     }
   }
 
@@ -7521,12 +7770,14 @@ class MegabotScene {
         const localX = e.clientX - rect.left;
         const localY = e.clientY - rect.top;
         if (localX >= 0 && localX <= rect.width && localY >= 0 && localY <= rect.height) {
+          // Accumulate distance moved so the rotation update can decide when to
+          // re-engage mouse-aim after A/D — see _aimRequiresMouseMove gate.
+          if (this._hasMouseAim) {
+            this._aimMouseAccum += Math.abs(localX - this._aimMouseLocalX) + Math.abs(localY - this._aimMouseLocalY);
+          }
           this._aimMouseLocalX = localX;
           this._aimMouseLocalY = localY;
           this._hasMouseAim = true;
-          // Mouse moved on canvas — re-engage mouse-aim if A/D had suspended it.
-          // (See _aimRequiresMouseMove for why this gate exists.)
-          this._aimRequiresMouseMove = false;
         } else {
           // Cursor left the canvas — release aim so megabot returns to walking auto-face / idle.
           this._hasMouseAim = false;
@@ -7669,10 +7920,23 @@ class MegabotScene {
     // ── Keyboard: WASD movement, Q/E rotate, X barrage, R reset, F focus, V/1/2/3 camera mode ──
     this._boundKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+
+      // Track shift key state for the jetpack rocket pack (Shift+W / Shift+ArrowUp)
+      this.isShiftPressed = e.shiftKey;
+
       // Game movement + camera keys
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'x', 'r', 'f', 'v', '1', '2', '3'].includes(key)) {
         e.preventDefault();
         this.keysPressed.add(key);
+
+        // Jetpack/jump: Shift + W or Shift + ArrowUp launches megabot upward.
+        // Initial impulse on press if grounded; sustained thrust handled in updateMegabotMovement.
+        if ((key === 'w' || key === 'arrowup') && this.isShiftPressed && !this.isAirborne && this.jetpackFuel > 5) {
+          this.verticalVelocity = this.JUMP_INITIAL_IMPULSE;
+          this.isAirborne = true;
+          this.jetpackJustLaunched = true;
+          this.triggerCameraShake(5);
+        }
 
         // Camera mode controls
         if (key === 'v') {
@@ -7711,6 +7975,9 @@ class MegabotScene {
     };
     this._boundKeyUp = (e: KeyboardEvent) => {
       this.keysPressed.delete(e.key.toLowerCase());
+      // Sync shift state from the event so sustained jetpack thrust ends when
+      // Shift is released (and stays active while another key is released first).
+      this.isShiftPressed = e.shiftKey;
     };
     document.addEventListener("keydown", this._boundKeyDown);
     document.addEventListener("keyup", this._boundKeyUp);
@@ -7973,25 +8240,32 @@ class MegabotScene {
       if (this.trackingTarget && this.targetPosition3D && !isManualRotating) {
         // TRACKING MODE: EVIL AI body turns aggressively to face the target!
         // Skip when player is manually rotating with Q/E — let them do a full 360°
-        const lerpSpeed = 0.14;
+        // Frame-rate-independent slerp + per-frame cap so it can't snap.
         const angleDiff = this.targetRotation.y - this.mainMegabot.rotation.y;
         const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-        this.mainMegabot.rotation.y += normalizedDiff * lerpSpeed;
+        const k = 1 - Math.exp(-5.5 * deltaTime);
+        const maxStep = this.MEGABOT_ROTATE_SPEED * 1.4 * deltaTime;
+        let step = normalizedDiff * k;
+        if (Math.abs(step) > maxStep) step = Math.sign(step) * maxStep;
+        this.mainMegabot.rotation.y += step;
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (this._hasMouseAim && !isManualRotating && !this._aimRequiresMouseMove) {
         // MOUSE-AIM MODE: body smoothly yaws toward the world point under the cursor.
         // Local +Z is forward; atan2(dx, dz) yields the yaw whose forward vector hits (dx, dz).
-        // The _aimRequiresMouseMove gate suspends this whenever the player most
-        // recently used keyboard rotation, so releasing A/D doesn't yank the
-        // body back to where the cursor happens to be.
+        // Frame-rate-independent slerp (k = 1 - exp(-rate * dt)) plus a per-frame
+        // angular cap so big cursor jumps don't snap the body around — keeps the
+        // turn feeling smooth even when the cursor teleports across the screen.
         const dx = this._aimWorldX - this.mainMegabot.position.x;
         const dz = this._aimWorldZ - this.mainMegabot.position.z;
-        // Ignore degenerate aim (cursor on top of megabot) to avoid flipping.
         if (dx * dx + dz * dz > 1) {
           const targetYaw = Math.atan2(dx, dz);
           const angleDiff = targetYaw - this.mainMegabot.rotation.y;
           const normalizedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-          this.mainMegabot.rotation.y += normalizedDiff * this.MEGABOT_AIM_LERP;
+          const k = 1 - Math.exp(-this.MEGABOT_AIM_RATE * deltaTime);
+          const maxStep = this.MEGABOT_ROTATE_SPEED * deltaTime;
+          let step = normalizedDiff * k;
+          if (Math.abs(step) > maxStep) step = Math.sign(step) * maxStep;
+          this.mainMegabot.rotation.y += step;
         }
         this.currentRotation.y = this.mainMegabot.rotation.y;
       } else if (!this.isWalking) {
@@ -8620,6 +8894,8 @@ class MegabotScene {
     this.renderer = null;
     this.mainMegabot = null;
     this.megabotParts = [];
+    this.jetpackFlames = [];
+    this.jetpackLights = [];
     this.satellites = [];
     this.energyParticles = [];
     this.starField = null;
