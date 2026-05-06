@@ -25,9 +25,11 @@ interface MegabotProps {
     wave: number;
     waveState: string;
     waveCountdown: number;
-    waveBonus: { wave: number; amount: number } | null;
+    waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
     waveShipsRemaining: number;
     waveShipsTotal: number;
+    waveElapsed: number;
+    waveParTime: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -272,9 +274,11 @@ class MegabotScene {
     wave: number;
     waveState: string;
     waveCountdown: number;
-    waveBonus: { wave: number; amount: number } | null;
+    waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
     waveShipsRemaining: number;
     waveShipsTotal: number;
+    waveElapsed: number;
+    waveParTime: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -293,6 +297,7 @@ class MegabotScene {
   private _prevWaveCountdown = -1;
   private _prevWaveShipsRemaining = -1;
   private _prevWaveShipsTotal = -1;
+  private _prevWaveElapsed = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -457,19 +462,28 @@ class MegabotScene {
 
   // Wave system
   currentWave: number = 0;
-  waveState: 'intermission' | 'active' | 'boss' = 'intermission';
+  waveState: 'intermission' | 'active' | 'boss' | 'siege' = 'intermission';
   // Start the first intermission ~1.5s in so wave 1 kicks off shortly after load
   // (the full WAVE_INTERMISSION_TIME tick still runs; this just trims the wait).
   waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
   waveShipsTotal: number = 0; // Total ship budget for this wave (for HUD progress bar)
+  waveActiveStart: number = 0; // Time the current active/boss wave began (sec) — used for clear-time tier
+  siegeTimer: number = 0; // Seconds elapsed in the current siege beat
   readonly WAVE_INTERMISSION_TIME = 2.5; // seconds between waves — long enough for the "WAVE N · INCOMING" telegraph to read
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
+  readonly SIEGE_WAVE_INTERVAL = 7; // Siege every 7th wave (boss + siege never collide: lcm(5,7)=35)
+  readonly SIEGE_INTERMISSION_TIME = 0.5; // very short — siege should hit fast
+  readonly SIEGE_DURATION_S = 25; // hard cap on a single siege beat
+  readonly SIEGE_GROUND_INTERVAL_MS = 1100; // tank/SAM cadence during siege
+  readonly SIEGE_AERIAL_INTERVAL_MS = 600;  // ship cadence during siege
+  readonly SIEGE_FORMATION_INTERVAL_MS = 4500;
+  lastSiegeGroundSpawnTime: number = 0;
   readonly MAX_SHIPS_PER_WAVE = 18; // Cap on regular-wave spawn budget so late waves don't become a firehose
   // End-of-wave bonus toast (consumed by HUD via onGameStateUpdate.waveBonus).
   // ttl counts down each frame; while ttl > 0 the toast is "live".
-  waveBonus: { wave: number; amount: number; ttl: number } = { wave: 0, amount: 0, ttl: 0 };
+  waveBonus: { wave: number; amount: number; ttl: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } = { wave: 0, amount: 0, ttl: 0, tier: null };
   readonly WAVE_BONUS_TTL = 2.4; // seconds the toast stays visible
   private _prevWaveBonusKey: string = '';
 
@@ -546,9 +560,11 @@ class MegabotScene {
       wave: number;
       waveState: string;
       waveCountdown: number;
-      waveBonus: { wave: number; amount: number } | null;
+      waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
       waveShipsRemaining: number;
       waveShipsTotal: number;
+      waveElapsed: number;
+      waveParTime: number;
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -6893,17 +6909,39 @@ class MegabotScene {
     }
 
     switch (this.waveState) {
-      case 'intermission':
+      case 'intermission': {
         this.waveTimer += dt;
-        if (this.waveTimer >= this.WAVE_INTERMISSION_TIME) {
+        // Look one wave ahead so we know whether this intermission is short
+        // (siege incoming) or normal. Siege intermissions collapse to 0.5s
+        // so the siege beat hits fast after the previous wave clears.
+        const nextWave = this.currentWave + 1;
+        const nextIsSiege = nextWave % this.SIEGE_WAVE_INTERVAL === 0;
+        const intermissionTime = nextIsSiege
+          ? this.SIEGE_INTERMISSION_TIME
+          : this.WAVE_INTERMISSION_TIME;
+        if (this.waveTimer >= intermissionTime) {
           // Start next wave
           this.currentWave++;
           this.waveTimer = 0;
 
-          const isBossWave = this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
-          this.waveState = isBossWave ? 'boss' : 'active';
+          // Siege overrides boss when both align (lcm(5,7)=35 → wave 35
+          // would be a tossup; siege wins because it's the more dramatic
+          // beat). In the typical 0..30 range they never collide.
+          const isSiege = this.currentWave % this.SIEGE_WAVE_INTERVAL === 0;
+          const isBossWave = !isSiege && this.currentWave % this.BOSS_WAVE_INTERVAL === 0;
+          this.waveState = isSiege ? 'siege' : isBossWave ? 'boss' : 'active';
+          this.waveActiveStart = this.time;
 
-          if (isBossWave) {
+          if (isSiege) {
+            // Siege beat: no ship budget — we spawn freely until the timer
+            // elapses or megabot dies. waveShipsTotal is left at 0 so the
+            // kill-progress bar correctly hides during siege (HUD branches
+            // on waveState anyway).
+            this.waveShipsRemaining = 0;
+            this.waveShipsTotal = 0;
+            this.siegeTimer = 0;
+            this.lastSiegeGroundSpawnTime = currentTime;
+          } else if (isBossWave) {
             // Boss wave: boss formation only (boss + escorts). No ship-stream
             // running on top, so the player has a quiet moment to read the
             // boss + plan the engagement.
@@ -6923,6 +6961,7 @@ class MegabotScene {
           this.lastFormationSpawnTime = currentTime;
         }
         break;
+      }
 
       case 'active': {
         // Spawn ships with increasing frequency per wave (was floor 800 / step -100; now floor 350 / step -60)
@@ -6957,7 +6996,57 @@ class MegabotScene {
         }
         break;
       }
+
+      case 'siege': {
+        // Sustained-fire siege: ground + air spawn simultaneously without a
+        // wave-end check. Ends when the duration timer elapses (or when
+        // megabot dies — handled by the game-over path elsewhere). No
+        // budget; the spawn caps in spawn3DShip / spawnGroundUnit
+        // (MAX_SHIPS_3D = 15) keep the field bounded.
+        this.siegeTimer += dt;
+
+        // Aerial cadence — faster than a normal active wave so the field
+        // stays full.
+        if (currentTime - this.lastShipSpawnTime > this.SIEGE_AERIAL_INTERVAL_MS) {
+          this.spawn3DShip();
+          this.lastShipSpawnTime = currentTime;
+        }
+
+        // Ground cadence — separate timer so ground threats arrive on
+        // their own beat. spawn3DShip rolls the type weights so we just
+        // call it and let the dice fall; if a tank/SAM rolls during this
+        // pass the field gets a ground threat. Cheap enough.
+        if (currentTime - this.lastSiegeGroundSpawnTime > this.SIEGE_GROUND_INTERVAL_MS) {
+          this.spawn3DShip();
+          this.lastSiegeGroundSpawnTime = currentTime;
+        }
+
+        // Formation cadence — relatively rare during siege; the chaos
+        // is already from the constant single-spawn stream.
+        if (currentTime - this.lastFormationSpawnTime > this.SIEGE_FORMATION_INTERVAL_MS) {
+          this.spawnFormation();
+          this.lastFormationSpawnTime = currentTime;
+        }
+
+        if (this.siegeTimer >= this.SIEGE_DURATION_S) {
+          this._completeWave();
+        }
+        break;
+      }
     }
+  }
+
+  /**
+   * Soft target time (seconds) for clearing the current wave. Reads off
+   * waveShipsTotal so the value scales with how busy the wave is. Boss
+   * waves use the same scaling — the boss + escort count already comes
+   * out small (3-7 ships) so par lands ~10-15s, which is the right zone
+   * for a quick kill.
+   */
+  private _waveParTime(): number {
+    if (this.waveShipsTotal <= 0) return 0;
+    // 5s base + 1.5s per ship → wave-1 (4 ships) = 11s, wave-7 (18-cap) = 32s.
+    return 5 + this.waveShipsTotal * 1.5;
   }
 
   // Count active enemy ships without allocating (called every frame).
@@ -6970,16 +7059,52 @@ class MegabotScene {
   }
 
   // End-of-wave: award bonus, fire the toast, and drop into intermission.
-  // Boss waves are worth more because they're one-shot fights.
+  // Boss + siege beats are worth more because they're one-shot fights.
+  // Active/boss waves earn an additional clear-time tier multiplier
+  // (1.5× under par, 2× halfway, 3× flawless) so reflexes-not-grind is
+  // rewarded. Siege beats use a different bonus formula and are flagged
+  // with tier='siege' so the HUD can show a distinct toast.
   private _completeWave() {
     const isBossWave = this.waveState === 'boss';
-    const bonus = isBossWave
-      ? this.currentWave * 250 + 1000
-      : this.currentWave * 100;
+    const isSiege = this.waveState === 'siege';
+
+    let bonus = 0;
+    let tier: 'flawless' | 'halfway' | 'par' | 'siege' | null = null;
+
+    if (isSiege) {
+      // Survived a siege beat — flat reward + a per-second-survived
+      // contribution. Capped at SIEGE_DURATION_S seconds, but if the
+      // player breaks the siege early (e.g. all enemies happen to die
+      // during the elapsed window), partial credit is still meaningful.
+      const survivedS = Math.min(this.siegeTimer, this.SIEGE_DURATION_S);
+      bonus = Math.round(this.currentWave * 500 + 5000 + survivedS * 60);
+      tier = 'siege';
+    } else {
+      // Active / boss wave: base reward then clear-time multiplier.
+      const base = isBossWave ? this.currentWave * 250 + 1000 : this.currentWave * 100;
+      const par = this._waveParTime();
+      const clearTime = par > 0 ? Math.max(0, this.time - this.waveActiveStart) : 0;
+      let mult = 1;
+      if (par > 0) {
+        if (clearTime <= par * 0.5) {
+          mult = 3;
+          tier = 'flawless';
+        } else if (clearTime <= par * 0.75) {
+          mult = 2;
+          tier = 'halfway';
+        } else if (clearTime <= par) {
+          mult = 1.5;
+          tier = 'par';
+        }
+      }
+      bonus = Math.round(base * mult);
+    }
+
     this.gameScore += bonus;
-    this.waveBonus = { wave: this.currentWave, amount: bonus, ttl: this.WAVE_BONUS_TTL };
+    this.waveBonus = { wave: this.currentWave, amount: bonus, ttl: this.WAVE_BONUS_TTL, tier };
     this.waveState = 'intermission';
     this.waveTimer = 0;
+    this.siegeTimer = 0;
   }
 
   // Boss wave: spawn a large cruiser escort formation
@@ -7857,18 +7982,35 @@ class MegabotScene {
       }
       const flooredShield = Math.floor(this.shieldHP);
 
-      // Wave countdown: seconds remaining in the intermission, rounded to one
-      // decimal so the HUD updates ~10x/sec without firing on every frame.
-      const rawCountdown =
-        this.waveState === 'intermission'
-          ? Math.max(0, this.WAVE_INTERMISSION_TIME - this.waveTimer)
-          : 0;
+      // Wave countdown — multipurpose:
+      //  - intermission: seconds left until next wave starts (looks ahead
+      //    at SIEGE_INTERMISSION_TIME if the next wave is a siege beat)
+      //  - siege:       seconds left until the siege ends
+      //  - active/boss: 0
+      // Rounded to one decimal so the HUD updates ~10x/sec without firing
+      // on every frame.
+      let rawCountdown = 0;
+      if (this.waveState === 'intermission') {
+        const nextIsSiege = (this.currentWave + 1) % this.SIEGE_WAVE_INTERVAL === 0;
+        const intermissionTime = nextIsSiege
+          ? this.SIEGE_INTERMISSION_TIME
+          : this.WAVE_INTERMISSION_TIME;
+        rawCountdown = Math.max(0, intermissionTime - this.waveTimer);
+      } else if (this.waveState === 'siege') {
+        rawCountdown = Math.max(0, this.SIEGE_DURATION_S - this.siegeTimer);
+      }
       const waveCountdown = Math.round(rawCountdown * 10) / 10;
+
+      // Active / boss elapsed time + par target — drives the par-time bar.
+      const isClock = this.waveState === 'active' || this.waveState === 'boss';
+      const rawElapsed = isClock ? Math.max(0, this.time - this.waveActiveStart) : 0;
+      const waveElapsed = Math.round(rawElapsed * 10) / 10;
+      const waveParTime = isClock ? this._waveParTime() : 0;
 
       // Bonus toast: emit while ttl > 0, suppress once it's expired. Key
       // changes when a new bonus arrives or when the toast expires.
       const bonusKey = this.waveBonus.ttl > 0
-        ? `${this.waveBonus.wave}:${this.waveBonus.amount}`
+        ? `${this.waveBonus.wave}:${this.waveBonus.amount}:${this.waveBonus.tier ?? ''}`
         : '';
 
       if (this.gameScore !== this._prevScore ||
@@ -7880,6 +8022,7 @@ class MegabotScene {
           waveCountdown !== this._prevWaveCountdown ||
           this.waveShipsRemaining !== this._prevWaveShipsRemaining ||
           this.waveShipsTotal !== this._prevWaveShipsTotal ||
+          waveElapsed !== this._prevWaveElapsed ||
           bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
@@ -7893,6 +8036,7 @@ class MegabotScene {
         this._prevWaveCountdown = waveCountdown;
         this._prevWaveShipsRemaining = this.waveShipsRemaining;
         this._prevWaveShipsTotal = this.waveShipsTotal;
+        this._prevWaveElapsed = waveElapsed;
         this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
@@ -7906,10 +8050,12 @@ class MegabotScene {
           waveState: this.waveState,
           waveCountdown,
           waveBonus: this.waveBonus.ttl > 0
-            ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount }
+            ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount, tier: this.waveBonus.tier ?? null }
             : null,
           waveShipsRemaining: this.waveShipsRemaining,
           waveShipsTotal: this.waveShipsTotal,
+          waveElapsed,
+          waveParTime,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,

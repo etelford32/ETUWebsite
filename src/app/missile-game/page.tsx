@@ -56,9 +56,11 @@ export default function MissileGamePage() {
     wave: number;
     waveState: string;
     waveCountdown: number;
-    waveBonus: { wave: number; amount: number } | null;
+    waveBonus: { wave: number; amount: number; tier?: 'flawless' | 'halfway' | 'par' | 'siege' | null } | null;
     waveShipsRemaining: number;
     waveShipsTotal: number;
+    waveElapsed: number;
+    waveParTime: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -76,6 +78,8 @@ export default function MissileGamePage() {
     waveBonus: null,
     waveShipsRemaining: 0,
     waveShipsTotal: 0,
+    waveElapsed: 0,
+    waveParTime: 0,
     shieldHP: 3000,
     maxShieldHP: 3000,
     upgradeLevel: 0,
