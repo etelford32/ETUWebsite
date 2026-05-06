@@ -26,6 +26,8 @@ interface MegabotProps {
     waveState: string;
     waveCountdown: number;
     waveBonus: { wave: number; amount: number } | null;
+    waveShipsRemaining: number;
+    waveShipsTotal: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -259,6 +261,8 @@ class MegabotScene {
     waveState: string;
     waveCountdown: number;
     waveBonus: { wave: number; amount: number } | null;
+    waveShipsRemaining: number;
+    waveShipsTotal: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -275,6 +279,8 @@ class MegabotScene {
   private _prevWave = -1;
   private _prevWaveState = '';
   private _prevWaveCountdown = -1;
+  private _prevWaveShipsRemaining = -1;
+  private _prevWaveShipsTotal = -1;
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
 
@@ -428,6 +434,7 @@ class MegabotScene {
   waveTimer: number = 1.0;
   waveShipsRemaining: number = 0; // Ships left to spawn this wave
   waveShipsAlive: number = 0; // Ships currently alive from this wave
+  waveShipsTotal: number = 0; // Total ship budget for this wave (for HUD progress bar)
   readonly WAVE_INTERMISSION_TIME = 2.5; // seconds between waves — long enough for the "WAVE N · INCOMING" telegraph to read
   readonly BOSS_WAVE_INTERVAL = 5; // Boss every 5th wave
   readonly MAX_SHIPS_PER_WAVE = 18; // Cap on regular-wave spawn budget so late waves don't become a firehose
@@ -503,6 +510,8 @@ class MegabotScene {
       waveState: string;
       waveCountdown: number;
       waveBonus: { wave: number; amount: number } | null;
+      waveShipsRemaining: number;
+      waveShipsTotal: number;
       shieldHP: number;
       maxShieldHP: number;
       upgradeLevel: number;
@@ -6233,10 +6242,14 @@ class MegabotScene {
             // boss + plan the engagement.
             this.waveShipsRemaining = 0;
             this.spawnBossWave();
+            // Boss-wave "total" = boss + escorts already on the field, used
+            // by the HUD to render a kill-progress bar.
+            this.waveShipsTotal = this._countActiveShips();
           } else {
             // Normal wave: escalating ship count, capped so late waves stay
             // readable instead of becoming a firehose.
             this.waveShipsRemaining = Math.min(4 + this.currentWave * 2, this.MAX_SHIPS_PER_WAVE);
+            this.waveShipsTotal = this.waveShipsRemaining;
           }
           this.waveShipsAlive = 0;
           this.lastShipSpawnTime = currentTime;
@@ -6482,6 +6495,35 @@ class MegabotScene {
         }
         ship.group.position.y = this.GROUND_Y;
       } else {
+        // Default kamikaze + formation-attack: add a "last-second juke" so
+        // ships don't arrow-straight into Megabot's reticle. Once inside
+        // JUKE_RANGE we periodically (every JUKE_RECHARGE_S seconds)
+        // inject a perpendicular kick to velocity for JUKE_DURATION_S.
+        // Cheap to compute, reads as evasive piloting; ground/special
+        // behaviors (orbit-strafe / pincer-attack / escort-protect) all
+        // branched out above so this only fires on default flyers.
+        if (!ship.behavior || ship.behavior === 'formation-attack') {
+          const JUKE_RANGE_SQ = 600 * 600;
+          const JUKE_RECHARGE_S = 1.6;
+          const JUKE_DURATION_S = 0.55;
+          const JUKE_KICK = 220;
+          if (distToMegabotSq < JUKE_RANGE_SQ) {
+            if (ship._jukeT === undefined) ship._jukeT = 0;
+            if (ship._jukeCooldown === undefined) ship._jukeCooldown = JUKE_RECHARGE_S * Math.random();
+            ship._jukeT -= dt;
+            ship._jukeCooldown -= dt;
+            if (ship._jukeT <= 0 && ship._jukeCooldown <= 0) {
+              const toMegaX = this.megabotWorldPos.x - ship.group.position.x;
+              const toMegaZ = this.megabotWorldPos.z - ship.group.position.z;
+              const len = Math.sqrt(toMegaX * toMegaX + toMegaZ * toMegaZ) || 1;
+              const sign = Math.random() < 0.5 ? -1 : 1;
+              ship.velocity.x += (-toMegaZ / len) * JUKE_KICK * sign;
+              ship.velocity.z += ( toMegaX / len) * JUKE_KICK * sign;
+              ship._jukeT = JUKE_DURATION_S;
+              ship._jukeCooldown = JUKE_RECHARGE_S;
+            }
+          }
+        }
         ship.group.position.x += ship.velocity.x * dt;
         ship.group.position.y += ship.velocity.y * dt;
         ship.group.position.z += ship.velocity.z * dt;
@@ -6928,6 +6970,8 @@ class MegabotScene {
           this.currentWave !== this._prevWave ||
           this.waveState !== this._prevWaveState ||
           waveCountdown !== this._prevWaveCountdown ||
+          this.waveShipsRemaining !== this._prevWaveShipsRemaining ||
+          this.waveShipsTotal !== this._prevWaveShipsTotal ||
           bonusKey !== this._prevWaveBonusKey ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
@@ -6939,6 +6983,8 @@ class MegabotScene {
         this._prevWave = this.currentWave;
         this._prevWaveState = this.waveState;
         this._prevWaveCountdown = waveCountdown;
+        this._prevWaveShipsRemaining = this.waveShipsRemaining;
+        this._prevWaveShipsTotal = this.waveShipsTotal;
         this._prevWaveBonusKey = bonusKey;
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
@@ -6954,6 +7000,8 @@ class MegabotScene {
           waveBonus: this.waveBonus.ttl > 0
             ? { wave: this.waveBonus.wave, amount: this.waveBonus.amount }
             : null,
+          waveShipsRemaining: this.waveShipsRemaining,
+          waveShipsTotal: this.waveShipsTotal,
           shieldHP: flooredShield,
           maxShieldHP: this.MAX_SHIELD_HP,
           upgradeLevel: this.upgradeLevel,

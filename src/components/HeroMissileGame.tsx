@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface HeroMissileGameProps {
   gameState: {
@@ -12,6 +12,8 @@ interface HeroMissileGameProps {
     waveState: string;
     waveCountdown?: number;
     waveBonus?: { wave: number; amount: number } | null;
+    waveShipsRemaining?: number;
+    waveShipsTotal?: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -49,6 +51,30 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
   const isBossNext = nextWave % 5 === 0;
   const countdown = gameState.waveCountdown ?? 0;
   const bonus = gameState.waveBonus ?? null;
+  const combo = gameState.combo ?? 0;
+  const comboActive = combo >= 2;
+
+  // Wave kill progress: count "killed" as total spawned-or-spawning that
+  // are no longer alive. shipsLeft = remaining-to-spawn + currently-alive.
+  const waveTotal = gameState.waveShipsTotal ?? 0;
+  const waveRemaining = gameState.waveShipsRemaining ?? 0;
+  const waveAlive = gameState.shipCount;
+  const waveKilled = Math.max(0, waveTotal - waveRemaining - waveAlive);
+  const waveProgress = waveTotal > 0 ? Math.min(1, waveKilled / waveTotal) : 0;
+  const showProgress =
+    (gameState.waveState === 'active' || gameState.waveState === 'boss') && waveTotal > 0;
+
+  // Score-bump animation: trigger a brief "pop" key whenever a wave bonus
+  // arrives so the score block can animate without prop-driven CSS.
+  const [scorePop, setScorePop] = useState(0);
+  const lastBonusKey = useRef<string>('');
+  useEffect(() => {
+    const key = bonus ? `${bonus.wave}:${bonus.amount}` : '';
+    if (key && key !== lastBonusKey.current) {
+      lastBonusKey.current = key;
+      setScorePop((n) => n + 1);
+    }
+  }, [bonus]);
 
   return (
     <div
@@ -142,6 +168,12 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           70%  { opacity: 1; transform: translate(-50%, -40px); }
           100% { opacity: 0; transform: translate(-50%, -80px); }
         }
+        @keyframes etu-score-pop {
+          0%   { transform: scale(1); }
+          25%  { transform: scale(1.18); }
+          60%  { transform: scale(1.06); }
+          100% { transform: scale(1); }
+        }
       `}</style>
       {/* Game UI - Top Left */}
       <div
@@ -192,17 +224,39 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
         {/* Score + Combo */}
         <div className="mb-2">
           <div className="text-cyan-400 text-xs font-bold mb-1">SCORE</div>
-          <div className="text-2xl font-bold text-white">{gameState.score.toLocaleString()}</div>
-          {(gameState.combo ?? 0) >= 2 && (
+          <div
+            key={scorePop}
+            className={`font-mono tabular-nums leading-none transition-all duration-200 ${
+              comboActive
+                ? 'text-3xl font-black tracking-tight'
+                : 'text-2xl font-bold tracking-normal'
+            }`}
+            style={{
+              color: comboActive
+                ? combo >= 6 ? '#fda4af' : combo >= 4 ? '#fdba74' : '#fde68a'
+                : '#ffffff',
+              textShadow: comboActive
+                ? combo >= 6
+                  ? '0 0 14px rgba(244,63,94,0.55), 0 0 28px rgba(244,63,94,0.35)'
+                  : combo >= 4
+                  ? '0 0 12px rgba(249,115,22,0.55)'
+                  : '0 0 12px rgba(253,224,71,0.45)'
+                : 'none',
+              animation: scorePop > 0 ? 'etu-score-pop 0.55s ease-out' : undefined,
+            }}
+          >
+            {gameState.score.toLocaleString()}
+          </div>
+          {comboActive && (
             <div className="mt-1 flex items-center gap-1">
               <span
                 className={`text-sm font-black tracking-wide ${
-                  (gameState.combo ?? 0) >= 6 ? 'text-red-400 animate-pulse' :
-                  (gameState.combo ?? 0) >= 4 ? 'text-orange-400' :
+                  combo >= 6 ? 'text-red-400 animate-pulse' :
+                  combo >= 4 ? 'text-orange-400' :
                   'text-yellow-400'
                 }`}
               >
-                x{Math.min(gameState.combo ?? 0, 8)} COMBO!
+                x{Math.min(combo, 8)} COMBO!
               </span>
               {/* Combo timer bar */}
               <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
@@ -214,6 +268,36 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
             </div>
           )}
         </div>
+
+        {/* Active-wave kill progress */}
+        {showProgress && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+              <span className={gameState.waveState === 'boss' ? 'text-red-400' : 'text-cyan-400'}>
+                WAVE PROGRESS
+              </span>
+              <span className="font-mono tabular-nums text-slate-300">
+                {waveKilled} / {waveTotal}
+              </span>
+            </div>
+            <div
+              className={`relative w-full h-2 rounded-full overflow-hidden border ${
+                gameState.waveState === 'boss'
+                  ? 'bg-red-950/60 border-red-500/30'
+                  : 'bg-gray-800 border-cyan-500/30'
+              }`}
+            >
+              <div
+                className={`absolute inset-y-0 left-0 transition-all duration-200 ${
+                  gameState.waveState === 'boss'
+                    ? 'bg-gradient-to-r from-rose-500 to-red-400'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-400'
+                }`}
+                style={{ width: `${waveProgress * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Shield bar */}
         <div className="mb-2">

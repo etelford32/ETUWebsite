@@ -27,6 +27,8 @@ export default function MissileGamePage() {
     waveState: string;
     waveCountdown: number;
     waveBonus: { wave: number; amount: number } | null;
+    waveShipsRemaining: number;
+    waveShipsTotal: number;
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
@@ -42,6 +44,8 @@ export default function MissileGamePage() {
     waveState: 'intermission',
     waveCountdown: 0,
     waveBonus: null,
+    waveShipsRemaining: 0,
+    waveShipsTotal: 0,
     shieldHP: 3000,
     maxShieldHP: 3000,
     upgradeLevel: 0,
