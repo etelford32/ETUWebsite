@@ -1,120 +1,20 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
-import CameraControls from "@/components/CameraControls";
 import CountdownTimer from "@/components/CountdownTimer";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
-import { initPerformanceOptimizations, detectConnectionQuality } from "@/lib/performance";
-
-// Dynamically import Megabot to avoid SSR issues
-const Megabot = dynamic(() => import("@/components/Megabot"), { ssr: false });
-const HeroMissileGame = dynamic(() => import("@/components/HeroMissileGame"), { ssr: false });
+import { initPerformanceOptimizations } from "@/lib/performance";
 
 export default function HomePage() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-  const [animationQuality, setAnimationQuality] = useState<QualityLevel>("medium");
-  const megabotRef = useRef<any>(null);
-  const megabotSceneRef = useRef<any>(null);
-  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [buttonBounds, setButtonBounds] = useState<DOMRect | null>(null);
-  const [isButtonClicked, setIsButtonClicked] = useState(false);
-  const steamButtonRef = useRef<HTMLAnchorElement>(null);
-  const heroSectionRef = useRef<HTMLDivElement>(null);
-
-  // Laser positions for game collision detection
-  const [laserData, setLaserData] = useState<{
-    leftStart: { x: number; y: number } | null;
-    leftEnd: { x: number; y: number } | null;
-    rightStart: { x: number; y: number } | null;
-    rightEnd: { x: number; y: number } | null;
-    visible: boolean;
-  }>({
-    leftStart: null,
-    leftEnd: null,
-    rightStart: null,
-    rightEnd: null,
-    visible: false
-  });
-
-  // 3D Game state from Megabot scene
-  const [gameState, setGameState] = useState<{
-    score: number;
-    health: number;
-    shipCount: number;
-    missileCount: number;
-    wave: number;
-    waveState: string;
-    shieldHP: number;
-    maxShieldHP: number;
-    upgradeLevel: number;
-    perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
-  }>({
-    score: 0,
-    health: 10000,
-    shipCount: 0,
-    missileCount: 0,
-    wave: 0,
-    waveState: 'intermission',
-    shieldHP: 3000,
-    maxShieldHP: 3000,
-    upgradeLevel: 0,
-  });
-
-  // Handle button hover for Megabot tracking (only Steam button)
-  const handleButtonHover = (buttonId: string, event: React.MouseEvent) => {
-    // Only track Steam button for Megabot laser eyes
-    if (buttonId === 'steam') {
-      setHoveredButton(buttonId);
-      const rect = event.currentTarget.getBoundingClientRect();
-      setMousePosition({
-        x: event.clientX,
-        y: event.clientY
-      });
-      setButtonBounds(rect);
-    }
-  };
-
-  const handleButtonLeave = () => {
-    setHoveredButton(null);
-    // Don't reset mousePosition here - let continuous tracking handle it
-    setButtonBounds(null);
-  };
-
-  const handleButtonClick = (event: React.MouseEvent) => {
-    setIsButtonClicked(true);
-    // Reset after animation
-    setTimeout(() => setIsButtonClicked(false), 100);
-  };
-
-  // Handle continuous mouse tracking on hero section for eye following
-  const handleHeroMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    setMousePosition({
-      x: event.clientX,
-      y: event.clientY
-    });
-  };
 
   useEffect(() => {
-    // Initialize performance optimizations
     initPerformanceOptimizations();
-
-    // Detect connection quality and set appropriate animation quality
-    const savedQuality = typeof window !== "undefined"
-      ? localStorage.getItem("etu-animation-quality") as QualityLevel | null
-      : null;
-
-    if (!savedQuality) {
-      const suggestedQuality = detectConnectionQuality();
-      setAnimationQuality(suggestedQuality);
-    }
 
     // Section reveal animation
     const io = new IntersectionObserver(
@@ -183,59 +83,43 @@ export default function HomePage() {
 
       <Header />
 
-      {/* HERO with Christmas Theme + Black Hole */}
+      {/* HERO — ETU 2175 Design System pattern */}
       <section
-        ref={heroSectionRef}
         id="home"
-        className="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden hero-xmas"
-        onMouseMove={handleHeroMouseMove}
+        className="relative min-h-[85vh] flex items-center overflow-hidden"
       >
-        {/* 3D Megabot Effect (WebGL) */}
-        <Suspense fallback={<div />}>
-          <Megabot
-            quality={animationQuality}
-            trackingTarget={mousePosition}
-            buttonBounds={buttonBounds}
-            isButtonClicked={isButtonClicked}
-            onLaserUpdate={undefined} // disabled: laserData unused, saves ~20 allocations/frame
-            onGameStateUpdate={setGameState}
-            onSceneReady={(scene: any) => { megabotSceneRef.current = scene; }}
+        {/* Background image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/etu_epic.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: "cover", objectPosition: "center" }}
           />
-        </Suspense>
-
-        {/* Interactive Missile Game - UI Overlay Only */}
-        <Suspense fallback={<div />}>
-          <HeroMissileGame
-            gameState={gameState}
-          />
-        </Suspense>
-
-        {/* Quality Settings Control */}
-        <QualitySettings
-          onChange={(quality) => setAnimationQuality(quality)}
-          defaultQuality={animationQuality}
-        />
-
-        {/* Godmode Camera Controls */}
-        <CameraControls megabotRef={megabotSceneRef} />
-
-        {/* Interactive hint */}
-        <div className="absolute top-24 right-6 z-20 hidden md:block">
-          <div className="relative group">
-            <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-purple-500/30 text-xs text-white/80 hover:text-white hover:border-purple-400/50 transition-all cursor-pointer animate-pulse hover:animate-none shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="6" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="2" fill="currentColor" />
-                </svg>
-                Witness the power of Megabot 🤖
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Retro PC Game Box */}
+        {/* Cinematic gradient overlay */}
+        <div
+          className="absolute inset-0 z-[1]"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(2,6,23,.55), rgba(2,6,23,.92) 75%, #020617)",
+          }}
+        />
+
+        {/* Neon sparks (uses existing keyframes from globals.css) */}
+        <div className="absolute inset-0 z-[2] pointer-events-none">
+          <span className="golden-spark golden-spark-1" />
+          <span className="golden-spark golden-spark-2" />
+          <span className="golden-spark golden-spark-3" />
+          <span className="golden-spark golden-spark-4" />
+          <span className="golden-spark golden-spark-5" />
+          <span className="golden-spark golden-spark-6" />
+        </div>
+
+        {/* Retro PC Game Box (kept) */}
         <a
           href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
           target="_blank"
@@ -266,91 +150,76 @@ export default function HomePage() {
           </div>
         </a>
 
-        {/* Optimized background image with gradient overlay (fallback + blend) */}
-        <div className="hero-bg-wrapper" style={{ opacity: 0.25 }}>
-          <Image
-            src="/Explore_Epic5.png"
-            alt="Explore the Universe 2175 - Available January 1st"
-            className="hero-bg-image"
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: "cover" }}
-          />
-          <div className="hero-gradient-overlay"></div>
-        </div>
+        {/* Hero content */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 py-24 md:py-32">
+          <div className="reveal flex items-center gap-3 mb-5 flex-wrap">
+            <span className="etu-pill etu-pill--amber">
+              <span className="ping" /> Alpha · In Development
+            </span>
+            <span
+              className="eyebrow"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
+            >
+              By Elliot Telford
+            </span>
+          </div>
 
-        {/* Minimal hero - lots of space for the mini-game canvas */}
-        <div className="relative w-full z-10">
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="max-w-4xl mx-auto text-center pt-4">
-              {/* Cinematic Hero Title - Minimal silvery blue */}
-              <div className="reveal">
-                <div className="cinematic-title-container">
-                  <h1 className="cinematic-title text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-relaxed">
-                    Explore the Universe
-                    <br />
-                    <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl opacity-80">
-                      is now in Alpha Testing
-                    </span>
-                  </h1>
-                </div>
+          <h1
+            className="reveal cinematic-title font-orbitron text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
+            style={{ lineHeight: 1.05 }}
+          >
+            Explore the<br />Universe 2175
+          </h1>
 
-                {/* Subtitle */}
-                <p className="cinematic-subtitle text-[10px] sm:text-xs md:text-sm mt-2 opacity-70">
-                  The First Real-Time Space RPG with Adaptive AI
-                </p>
-              </div>
+          <p
+            className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+          >
+            The first real-time space RPG with{" "}
+            <span className="headline-gradient font-semibold">adaptive AI</span>.
+            17 factions at war, an evil AI hunting you, real-time combat, alien
+            diplomacy — and a galaxy that remembers.
+          </p>
 
-              {/* Primary CTA - Buttons pushed down for canvas space */}
-              <div className="reveal mt-[100px] flex flex-row items-center justify-center gap-4 max-w-xl mx-auto">
-                {/* Alpha Testing Button - Steam Blue */}
-                <Link
-                  href="/alpha-testing"
-                  ref={steamButtonRef}
-                  className="btn-3d btn-3d-steam group text-sm px-6 py-3"
-                  onMouseEnter={(e) => handleButtonHover('steam', e)}
-                  onMouseMove={(e) => handleButtonHover('steam', e)}
-                  onMouseLeave={handleButtonLeave}
-                  onClick={handleButtonClick}
-                >
-                  <svg
-                    className="w-5 h-5 transition-transform group-hover:scale-110"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
-                  </svg>
-                  <span>Alpha Testing</span>
-                </Link>
+          <div className="reveal mt-10 flex flex-wrap items-center gap-4">
+            <Link
+              href="/alpha-testing"
+              className="btn-3d btn-3d-steam group text-sm px-6 py-3"
+            >
+              <svg
+                className="w-5 h-5 transition-transform group-hover:scale-110"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
+              </svg>
+              <span>Alpha Testing</span>
+            </Link>
 
-                {/* Learn More Button - Red */}
-                <a
-                  href="#features"
-                  className="btn-3d btn-3d-red group text-sm px-6 py-3"
-                >
-                  <svg
-                    className="w-4 h-4 transition-transform group-hover:scale-110"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Learn More</span>
-                </a>
-              </div>
+            <Link
+              href="/missile-game"
+              className="btn-3d btn-3d-red group text-sm px-6 py-3"
+            >
+              <svg
+                className="w-5 h-5 transition-transform group-hover:scale-110"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span>Play Megabot</span>
+            </Link>
 
-              {/* Minimal scroll indicator */}
-              <div className="reveal mt-8 opacity-40 hover:opacity-70 transition-opacity">
-                <a href="#features" aria-label="Scroll to features">
-                  <svg className="w-5 h-5 animate-bounce mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                </a>
-              </div>
-            </div>
+            <a href="#features" className="btn-ghost">
+              Learn More
+            </a>
+          </div>
+
+          {/* 3-up stat row */}
+          <div className="reveal mt-14 flex flex-wrap gap-x-12 gap-y-5">
+            <HeroStat label="Engine" value="ETU Game Engine" />
+            <HeroStat label="Factions" value="17" />
+            <HeroStat label="Platform" value="Steam · PC" />
           </div>
         </div>
       </section>
@@ -1663,5 +1532,16 @@ export default function HomePage() {
 
       <Footer />
     </>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ textShadow: "0 1px 6px rgba(0,0,0,.85)" }}>
+      <div className="font-orbitron text-xl md:text-2xl font-bold text-cyan-300 tracking-wider">
+        {value}
+      </div>
+      <div className="eyebrow mt-1 text-slate-400">{label}</div>
+    </div>
   );
 }
