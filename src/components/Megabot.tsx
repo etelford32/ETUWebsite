@@ -29,6 +29,9 @@ interface MegabotProps {
     upgradeLevel: number;
     combo: number;
     comboTimer: number;
+    ionCannonReady: boolean;
+    ionCannonCooldown: number;     // Seconds remaining (0 when ready)
+    ionCannonCooldownMax: number;  // Configured cooldown for normalized display
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
   onSceneReady?: (scene: any) => void;
@@ -272,6 +275,9 @@ class MegabotScene {
     upgradeLevel: number;
     combo: number;
     comboTimer: number;
+    ionCannonReady: boolean;
+    ionCannonCooldown: number;     // Seconds remaining (0 when ready)
+    ionCannonCooldownMax: number;  // Configured cooldown for normalized display
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }) => void;
 
@@ -284,6 +290,8 @@ class MegabotScene {
   private _prevWaveState = '';
   private _prevShieldHP = -1;
   private _prevUpgradeLevel = -1;
+  private _prevIonCdQuantized = -1;
+  private _prevIonReady = false;
 
   // Performance: real delta time tracking
   lastFrameTime: number = 0;
@@ -539,6 +547,9 @@ class MegabotScene {
       upgradeLevel: number;
       combo: number;
       comboTimer: number;
+      ionCannonReady: boolean;
+      ionCannonCooldown: number;
+      ionCannonCooldownMax: number;
       perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
     }) => void
   ) {
@@ -7421,6 +7432,10 @@ class MegabotScene {
         if (this.missiles3D[i].active) activeMissiles++;
       }
       const flooredShield = Math.floor(this.shieldHP);
+      // Quantize cannon cooldown to 10ths so the HUD bar updates smoothly
+      // without firing the callback on literally every animation tick.
+      const ionCdQuantized = Math.round(this.ionCannonCooldown * 10) / 10;
+      const ionReady = this.ionCannonCooldown <= 0;
       if (this.gameScore !== this._prevScore ||
           this.megabotHealth !== this._prevHealth ||
           activeShips !== this._prevShipCount ||
@@ -7429,7 +7444,9 @@ class MegabotScene {
           this.waveState !== this._prevWaveState ||
           flooredShield !== this._prevShieldHP ||
           this.upgradeLevel !== this._prevUpgradeLevel ||
-          this.comboCount !== this._prevCombo) {
+          this.comboCount !== this._prevCombo ||
+          ionCdQuantized !== this._prevIonCdQuantized ||
+          ionReady !== this._prevIonReady) {
         this._prevScore = this.gameScore;
         this._prevHealth = this.megabotHealth;
         this._prevShipCount = activeShips;
@@ -7439,6 +7456,8 @@ class MegabotScene {
         this._prevShieldHP = flooredShield;
         this._prevUpgradeLevel = this.upgradeLevel;
         this._prevCombo = this.comboCount;
+        this._prevIonCdQuantized = ionCdQuantized;
+        this._prevIonReady = ionReady;
         this.onGameStateUpdate({
           score: this.gameScore,
           health: this.megabotHealth,
@@ -7451,6 +7470,9 @@ class MegabotScene {
           upgradeLevel: this.upgradeLevel,
           combo: this.comboCount,
           comboTimer: this.comboTimer,
+          ionCannonReady: ionReady,
+          ionCannonCooldown: this.ionCannonCooldown,
+          ionCannonCooldownMax: this.ION_CANNON_COOLDOWN,
           perf: {
             fps: this._telemetry.fps,
             frameMs: Math.round(this._telemetry.frameMs * 10) / 10,
@@ -7614,11 +7636,15 @@ class MegabotScene {
 
       // Click is a pure trigger: missiles fire along megabot's facing direction.
       // The mouse already aimed his body via updateAimFromMouse before this fires.
+      // Every click also tries to fire the ion pulse cannon — its own cooldown
+      // gate decides whether a bolt actually launches, so the player gets cannon
+      // shots interleaved with missile fire whenever the cannon is ready.
       if (e.shiftKey) {
         this.launchClusterMissiles();
       } else {
         this.launch3DMissileFromMegabot();
       }
+      this.fireIonPulse();
     };
     document.addEventListener("click", this._boundClick);
 

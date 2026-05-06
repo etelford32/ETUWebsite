@@ -28,6 +28,11 @@ export default function MissileGamePage() {
     shieldHP: number;
     maxShieldHP: number;
     upgradeLevel: number;
+    combo?: number;
+    comboTimer?: number;
+    ionCannonReady?: boolean;
+    ionCannonCooldown?: number;
+    ionCannonCooldownMax?: number;
     perf?: { fps: number; frameMs: number; collisionChecks: number; collisionChecksFull: number; barrageQueue: number };
   }>({
     score: 0,
@@ -39,6 +44,9 @@ export default function MissileGamePage() {
     shieldHP: 3000,
     maxShieldHP: 3000,
     upgradeLevel: 0,
+    ionCannonReady: true,
+    ionCannonCooldown: 0,
+    ionCannonCooldownMax: 1.6,
   });
 
   useEffect(() => {
