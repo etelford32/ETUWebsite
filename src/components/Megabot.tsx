@@ -4825,6 +4825,32 @@ class MegabotScene {
         ship.group.position.z + velocity.z,
       );
     }
+    // Fighter wingman pairing: when a new fighter spawns, look for the most
+    // recently spawned solo fighter and link them as a pair. The wingman's
+    // update applies an offset-keeping force in addition to the default
+    // homing-on-megabot, so they fly in a loose two-ship element.
+    if (type === 'fighter') {
+      let leader: any = null;
+      for (let s = this.enemyShips.length - 1; s >= 0; s--) {
+        const candidate = this.enemyShips[s];
+        if (
+          candidate.active &&
+          candidate.type === 'fighter' &&
+          !candidate.behavior &&
+          !candidate._wingman &&
+          !candidate._wingmanOf
+        ) {
+          leader = candidate;
+          break;
+        }
+      }
+      if (leader) {
+        // Right-side wingman by default; flip half the time for variety.
+        enemyShip._wingmanOf = leader;
+        enemyShip._wingmanSide = Math.random() < 0.5 ? -1 : 1;
+        leader._wingman = enemyShip;
+      }
+    }
     this.enemyShips.push(enemyShip);
     this.scene.add(ship.group);
   }
@@ -5593,6 +5619,83 @@ class MegabotScene {
     this.enemyLasers.push(bomb);
     this.scene.add(group);
     return bomb;
+  }
+
+  // Cruiser parting broadside — fired by retreating cruisers (cruiser-flee).
+  // Visually arcs back toward megabot: launched perpendicular to the cruiser's
+  // escape vector, then a per-frame tracking force pulls velocity toward
+  // megabot. Reads as a slow tracking shell, not a hitscan laser.
+  createBroadsideShell(ship: any) {
+    const THREE = this.THREE;
+
+    if (this.enemyLasers.length >= this.MAX_ENEMY_LASERS) return;
+
+    // Sphere shell — orange/yellow plasma with a hot-white core. Distinct
+    // from the bomber's green plasma so the player can tell what's coming.
+    const shellGeo = this._getCachedGeometry('broadside_shell', () =>
+      new THREE.SphereGeometry(6, 14, 14),
+    );
+    const shellMat = new THREE.MeshBasicMaterial({
+      color: 0xff8a3a,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+
+    const glowGeo = this._getCachedGeometry('broadside_glow', () =>
+      new THREE.SphereGeometry(11, 14, 14),
+    );
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa55,
+      transparent: true,
+      opacity: 0.35,
+    });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+
+    const coreGeo = this._getCachedGeometry('broadside_core', () =>
+      new THREE.SphereGeometry(3, 12, 12),
+    );
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+
+    const group = new THREE.Group();
+    group.add(glow);
+    group.add(shell);
+    group.add(core);
+    group.add(new THREE.PointLight(0xff8a3a, 1.5, 120));
+    group.position.copy(ship.group.position);
+
+    // Initial velocity is perpendicular (in XZ) to the cruiser's escape
+    // vector — picks a random side. The tracking force in the update loop
+    // will curve it back over the next ~1s.
+    const ev = ship.velocity;
+    const horizLen = Math.sqrt(ev.x * ev.x + ev.z * ev.z) || 1;
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    const lateralSpeed = 380;
+    const velocity = new THREE.Vector3(
+      (-ev.z / horizLen) * lateralSpeed * sign,
+      0,
+      ( ev.x / horizLen) * lateralSpeed * sign,
+    );
+
+    const shellProjectile: any = {
+      group,
+      velocity,
+      lifetime: 0,
+      maxLifetime: 3,
+      active: true,
+      damage: 18,
+      type: 'broadside',
+      pulsePhase: 0,
+    };
+
+    this.enemyLasers.push(shellProjectile);
+    this.scene.add(group);
+    return shellProjectile;
   }
 
   // Fire rapid burst (3 shots in quick succession) - uses RAF-synced burst queue instead of setTimeout
@@ -7010,6 +7113,36 @@ class MegabotScene {
               ship._jukeCooldown = JUKE_RECHARGE_S;
             }
           }
+
+          // Wingman station-keeping: if this fighter is paired to a leader,
+          // nudge velocity toward the wing position (offset perpendicular to
+          // the leader's heading). When the leader dies, drop the link and
+          // revert to solo kamikaze. Cheap — 1 normalize + a couple of
+          // adds per wingman per frame.
+          const leader = ship._wingmanOf;
+          if (leader && (!leader.active || leader.health <= 0)) {
+            ship._wingmanOf = null;
+          } else if (leader) {
+            const lvx = leader.velocity.x;
+            const lvz = leader.velocity.z;
+            const lvLen = Math.sqrt(lvx * lvx + lvz * lvz) || 1;
+            const WING_OFFSET = 70; // world units to the leader's right
+            const TRAIL = 30;       // tuck slightly behind the leader
+            // Perpendicular-right of the leader's heading in XZ.
+            const rightX = -lvz / lvLen;
+            const rightZ =  lvx / lvLen;
+            const targetX = leader.group.position.x
+              + rightX * WING_OFFSET * ship._wingmanSide
+              - (lvx / lvLen) * TRAIL;
+            const targetZ = leader.group.position.z
+              + rightZ * WING_OFFSET * ship._wingmanSide
+              - (lvz / lvLen) * TRAIL;
+            // Soft pull: blend velocity toward (target - position) * 1/dt.
+            // Coefficient kept low so it doesn't fight the kamikaze homing.
+            const WING_PULL = 1.4 * dt;
+            ship.velocity.x += (targetX - ship.group.position.x) * WING_PULL;
+            ship.velocity.z += (targetZ - ship.group.position.z) * WING_PULL;
+          }
         }
         ship.group.position.x += ship.velocity.x * dt;
         ship.group.position.y += ship.velocity.y * dt;
@@ -7136,24 +7269,40 @@ class MegabotScene {
           // Bombers fire slow but devastating plasma cannons
           this.createPlasmaCannon(ship);
         } else if (ship.type === 'cruiser') {
-          // Cruisers fire broadside: plasma + standard lasers
-          this.createPlasmaCannon(ship);
-          this.createEnemyLaser(ship);
+          // Cruisers fire broadside: plasma + standard lasers.
+          // Fleeing cruisers swap to arcing parting shells — fired
+          // sideways, curving back toward megabot.
+          if (ship.behavior === 'cruiser-flee') {
+            this.createBroadsideShell(ship);
+            this.createBroadsideShell(ship);
+          } else {
+            this.createPlasmaCannon(ship);
+            this.createEnemyLaser(ship);
+          }
         } else if (ship.type === 'tank') {
           // Tanks fire heavy plasma shells from the ground
           this.createPlasmaCannon(ship);
         } else if (ship.type === 'sam') {
-          // SAMs prioritize incoming player missiles over megabot. Scan for
-          // the closest active missile inside weaponRange; if found, intercept
-          // it (instant kill + puff + muzzle flash). Otherwise fall back to
-          // the standard fire-at-megabot homing laser. weaponRangeSqScaled
-          // for SAMs is (ENEMY_LASER_RANGE * 1.6) ** 2 — covers most of the
-          // engagement bowl.
+          // SAMs prioritize incoming player missiles over megabot, and a
+          // SAM cluster splits targets so multiple sites don't dogpile on
+          // the same shot. When a SAM picks a target it stamps the
+          // missile with _samClaimUntil = now + SAM_CLAIM_MS; other SAMs
+          // scanning in that window skip the claimed missile and pick a
+          // different one. Reuses the missile object as the claim ledger
+          // (no extra map allocations).
+          const SAM_CLAIM_MS = 220; // a hair over fire cooldown jitter
           let interceptIdx = -1;
           let interceptDistSq = weaponRangeSqScaled;
           for (let m = 0; m < this.missiles3D.length; m++) {
             const missile = this.missiles3D[m];
             if (!missile.active) continue;
+            // Skip missiles another SAM has already claimed in this window.
+            if (
+              missile._samClaimUntil !== undefined &&
+              currentTimeMs < missile._samClaimUntil
+            ) {
+              continue;
+            }
             const d = ship.group.position.distanceToSquared(missile.group.position);
             if (d < interceptDistSq) {
               interceptDistSq = d;
@@ -7162,6 +7311,10 @@ class MegabotScene {
           }
           if (interceptIdx >= 0) {
             const missile = this.missiles3D[interceptIdx];
+            // Stamp the claim before we splice, so even if intercept logic
+            // changes later (e.g. flight-time), the claim window still
+            // deconflicts cluster fire on the next-pick path.
+            missile._samClaimUntil = currentTimeMs + SAM_CLAIM_MS;
             const hitPos = missile.group.position.clone();
             // Small puff at the missile + muzzle flash at the SAM. Re-uses
             // the explosion pool so we don't allocate extra meshes.
@@ -7343,6 +7496,24 @@ class MegabotScene {
       if (laser.type === 'bomb') {
         const BOMB_GRAVITY = 480; // u/s^2 — heavy enough to read as falling
         laser.velocity.y -= BOMB_GRAVITY * dt;
+      } else if (laser.type === 'broadside') {
+        // Tracking force: blend velocity toward (megabot - position)
+        // normalized * cruise speed. The lerp rate is calibrated so the
+        // shell starts perpendicular to the cruiser's escape, then curves
+        // visibly back over ~0.8-1s into a homing arc.
+        const TRACK_SPEED = 540;
+        const TRACK_LERP = 1.8 * dt; // higher = tighter curve
+        const dx = this.megabotWorldPos.x - laser.group.position.x;
+        const dy = this.megabotWorldPos.y - laser.group.position.y;
+        const dz = this.megabotWorldPos.z - laser.group.position.z;
+        const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+        const tx = (dx / len) * TRACK_SPEED;
+        const ty = (dy / len) * TRACK_SPEED;
+        const tz = (dz / len) * TRACK_SPEED;
+        const k = Math.min(TRACK_LERP, 1);
+        laser.velocity.x += (tx - laser.velocity.x) * k;
+        laser.velocity.y += (ty - laser.velocity.y) * k;
+        laser.velocity.z += (tz - laser.velocity.z) * k;
       }
 
       // Update position
@@ -7375,6 +7546,12 @@ class MegabotScene {
           this.enemyLasers.splice(i, 1);
           continue;
         }
+      } else if (laser.type === 'broadside') {
+        // Same pulsing visual as plasma but smaller and amber-tinted.
+        laser.pulsePhase = (laser.pulsePhase || 0) + dt * 7;
+        const pulseScale = 1 + Math.sin(laser.pulsePhase) * 0.18;
+        laser.group.scale.setScalar(pulseScale);
+        laser.group.rotation.y += dt * 4;
       } else if (laser.type === 'plasma') {
         // Plasma cannon pulsing effect
         laser.pulsePhase = (laser.pulsePhase || 0) + dt * 8;
@@ -7410,9 +7587,10 @@ class MegabotScene {
       // Check if laser hit megabot (sphere collision) - squared distance avoids sqrt
       const distToMegabotSq = laser.group.position.distanceToSquared(this.megabotWorldPos);
       const hitRadius =
-        laser.type === 'bomb'   ? this.MAIN_SIZE * 1.3 :
-        laser.type === 'plasma' ? this.MAIN_SIZE * 1.2 :
-                                   this.MAIN_SIZE;
+        laser.type === 'bomb'      ? this.MAIN_SIZE * 1.3 :
+        laser.type === 'plasma'    ? this.MAIN_SIZE * 1.2 :
+        laser.type === 'broadside' ? this.MAIN_SIZE * 1.1 :
+                                      this.MAIN_SIZE;
 
       if (distToMegabotSq < hitRadius * hitRadius) {
         // Hit megabot! (through shield)
@@ -7421,9 +7599,10 @@ class MegabotScene {
         // Different explosion sizes based on weapon type. Bombs detonating
         // mid-air on contact also throw a shockwave for the visual punch.
         const explosionSize =
-          laser.type === 'bomb'   ? 70 :
-          laser.type === 'plasma' ? 40 :
-          laser.type === 'rapid'  ? 8 : 15;
+          laser.type === 'bomb'      ? 70 :
+          laser.type === 'plasma'    ? 40 :
+          laser.type === 'broadside' ? 22 :
+          laser.type === 'rapid'     ? 8 : 15;
         this.create3DExplosion(laser.group.position, explosionSize);
         if (laser.type === 'bomb') {
           this.spawnShockwave(laser.group.position, this.MAIN_SIZE * 1.6, 0xff8844, 0.7);
