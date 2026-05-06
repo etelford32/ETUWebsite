@@ -173,6 +173,18 @@ export default function AdminDashboard() {
               Dashboard
             </Link>
             <Link
+              href="/admin/users"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              User Management
+            </Link>
+            <Link
+              href="/admin/invites"
+              className="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/30 text-indigo-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              ✉️ Invitations
+            </Link>
+            <Link
               href="/admin/feedback"
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
             >
@@ -298,6 +310,18 @@ export default function AdminDashboard() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
+              href="/admin/invites"
+              className="p-4 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg transition-all group"
+            >
+              <div className="text-2xl mb-2">✉️</div>
+              <div className="text-white font-semibold group-hover:text-indigo-300">
+                Invite Users
+              </div>
+              <div className="text-slate-400 text-sm">
+                Send email invitations to new users
+              </div>
+            </Link>
+            <Link
               href="/admin/feedback"
               className="p-4 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg transition-all group"
             >
@@ -321,13 +345,6 @@ export default function AdminDashboard() {
                 Write and publish devlog entries
               </div>
             </Link>
-            <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg opacity-50">
-              <div className="text-2xl mb-2">📈</div>
-              <div className="text-slate-400 font-semibold">
-                Analytics
-              </div>
-              <div className="text-slate-500 text-sm">Coming soon</div>
-            </div>
           </div>
         </motion.div>
       </div>
