@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     const searchParams = request.nextUrl.searchParams
-    const mode = searchParams.get('mode') || 'global'
+    const mode = searchParams.get('mode') || 'all'
     const windowKey = searchParams.get('window') || '30d'
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '50')
@@ -48,6 +48,11 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
       .gte('submitted_at', cutoffDate.toISOString())
       .eq('is_verified', true)
+
+    // Filter by mode (e.g. 'megabot', 'speedrun'). 'all' = no filter.
+    if (mode && mode !== 'all') {
+      query = query.eq('mode', mode)
+    }
 
     // Apply sorting (already validated sortField and validSortDir)
     query = query.order(sortField as any, { ascending: validSortDir === 'asc' })
