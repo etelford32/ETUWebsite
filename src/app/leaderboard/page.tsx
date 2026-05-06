@@ -113,6 +113,20 @@ export default function LeaderboardPage() {
   const totalPages = Math.ceil(total / pageSize)
   const isMegabot = mode === 'megabot'
 
+  // Megabot Arena stat tiles — derived from the loaded page. The API sorts by
+  // score desc, so entries[0] is the current Top Score. Top Wave reads off
+  // the same row's `level`. Total Runs uses the API's count.
+  const megabotStats = useMemo(() => {
+    if (!isMegabot) return null
+    const top = entries[0]
+    return {
+      topScore: top ? top.score : 0,
+      topWave: top ? top.level : 0,
+      topName: top?.profile?.username || '—',
+      totalRuns: total,
+    }
+  }, [isMegabot, entries, total])
+
   return (
     <div className="min-h-screen bg-deep-900 text-slate-100">
       <Header />
@@ -129,6 +143,30 @@ export default function LeaderboardPage() {
             commanders competing across the galaxy
           </p>
         </div>
+
+        {/* Megabot stat tiles — only on the Megabot tab */}
+        {isMegabot && megabotStats && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <StatTile
+              label="Top Score"
+              value={megabotStats.topScore.toLocaleString()}
+              hint={megabotStats.topName === '—' ? 'No runs yet' : `By ${megabotStats.topName}`}
+              accent="cyan"
+            />
+            <StatTile
+              label="Top Wave"
+              value={megabotStats.topWave > 0 ? `Wave ${megabotStats.topWave}` : '—'}
+              hint={megabotStats.topWave > 0 ? 'Furthest run on this leaderboard' : 'Be the first'}
+              accent="amber"
+            />
+            <StatTile
+              label="Total Runs"
+              value={megabotStats.totalRuns.toLocaleString()}
+              hint="Submitted this period"
+              accent="purple"
+            />
+          </div>
+        )}
 
         {/* Mode Tabs — Megabot Arena is the primary tab */}
         <div className="mb-6">
@@ -415,13 +453,6 @@ function LeaderboardRow({
 }) {
   const rank = entry.rank || index + 1
 
-  const rankDisplay = () => {
-    if (rank === 1) return <span className="text-2xl" aria-label="1st">🥇</span>
-    if (rank === 2) return <span className="text-2xl" aria-label="2nd">🥈</span>
-    if (rank === 3) return <span className="text-2xl" aria-label="3rd">🥉</span>
-    return <span className="font-mono tabular-nums text-slate-400">#{rank}</span>
-  }
-
   return (
     <motion.tr
       initial={{ opacity: 0, y: 12 }}
@@ -436,8 +467,8 @@ function LeaderboardRow({
         }
       `}
     >
-      <td className="py-4 px-4 text-right font-bold">
-        {rankDisplay()}
+      <td className="py-4 px-4 text-right">
+        <RankBadge rank={rank} />
       </td>
       <td className="py-4 px-4">
         <div className="flex items-center gap-3">
@@ -501,5 +532,89 @@ function LeaderboardRow({
         {new Date(entry.submitted_at).toLocaleDateString()}
       </td>
     </motion.tr>
+  )
+}
+
+// Megabot subtitle stat tile — used in the 3-up row above the mode tabs.
+// Each tile is an .etu-glass card with a tinted ring + radial glow bleed
+// in the chosen accent. Values are Orbitron + tabular-nums; eyebrow labels
+// match the rest of the page.
+function StatTile({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string
+  value: string
+  hint: string
+  accent: 'cyan' | 'amber' | 'purple'
+}) {
+  const accentMap = {
+    cyan:   { ring: 'rgba(34,211,238,0.30)',  glow: 'rgba(34,211,238,0.20)',  fg: '#67e8f9' },
+    amber:  { ring: 'rgba(251,191,36,0.30)',  glow: 'rgba(251,191,36,0.18)',  fg: '#fcd34d' },
+    purple: { ring: 'rgba(168,85,247,0.30)',  glow: 'rgba(168,85,247,0.20)',  fg: '#c4b5fd' },
+  } as const
+  const a = accentMap[accent]
+  return (
+    <div
+      className="etu-glass p-5 relative overflow-hidden"
+      style={{ borderColor: a.ring, boxShadow: `0 0 24px ${a.glow}` }}
+    >
+      <div
+        className="absolute inset-y-0 -right-12 w-24 pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${a.glow} 0%, transparent 70%)` }}
+      />
+      <div className="eyebrow">{label}</div>
+      <div
+        className="font-display font-bold tabular-nums leading-none mt-2 text-3xl md:text-4xl"
+        style={{ color: a.fg, textShadow: `0 0 18px ${a.glow}` }}
+      >
+        {value}
+      </div>
+      <div className="text-xs text-slate-400 mt-2">{hint}</div>
+    </div>
+  )
+}
+
+// Glowing-pip rank badge: top 3 get a colored glowing ring around the medal
+// emoji (gold / silver / bronze). 4+ render as a tidy #NNN mono chip with a
+// hairline border so the column has consistent width across ranks.
+function RankBadge({ rank }: { rank: number }) {
+  if (rank === 1 || rank === 2 || rank === 3) {
+    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'
+    const glow =
+      rank === 1 ? 'rgba(253,224,71,0.45)' :
+      rank === 2 ? 'rgba(203,213,225,0.40)' :
+                   'rgba(251,146,60,0.45)'
+    const ring =
+      rank === 1 ? 'rgba(253,224,71,0.55)' :
+      rank === 2 ? 'rgba(203,213,225,0.50)' :
+                   'rgba(251,146,60,0.55)'
+    return (
+      <span
+        className="inline-flex items-center justify-center w-11 h-11 rounded-full"
+        style={{
+          background: 'rgba(15,23,42,0.6)',
+          border: `1px solid ${ring}`,
+          boxShadow: `0 0 18px ${glow}, inset 0 0 10px ${glow}`,
+        }}
+        aria-label={`Rank ${rank}`}
+      >
+        <span className="text-2xl leading-none">{medal}</span>
+      </span>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center justify-center font-mono tabular-nums text-sm font-semibold px-2.5 py-1 rounded-md"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        color: 'rgb(203 213 225)',
+      }}
+    >
+      #{rank}
+    </span>
   )
 }
