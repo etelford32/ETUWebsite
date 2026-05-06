@@ -153,9 +153,37 @@ export default function HeroMissileGame({ gameState }: HeroMissileGameProps) {
           {gameState.wave === 0 ? (
             <div className="text-yellow-400 text-xs font-bold animate-pulse">GET READY...</div>
           ) : gameState.waveState === 'intermission' ? (
-            <div className="text-green-400 text-xs font-bold animate-pulse">WAVE {gameState.wave} COMPLETE</div>
+            <div className="space-y-1">
+              {/* Big "CLEAR" pill — green, checkmark, mono caps */}
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-orbitron text-[11px] font-bold uppercase tracking-[0.18em]"
+                style={{
+                  background: 'rgba(52,211,153,0.12)',
+                  border: '1px solid rgba(52,211,153,0.45)',
+                  color: '#6ee7b7',
+                  boxShadow: '0 0 14px rgba(52,211,153,0.25)',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                Wave {gameState.wave} · Clear
+              </div>
+              {/* Bonus stamp — mirrors the floating toast for ~the same window */}
+              {bonus && bonus.wave === gameState.wave && (
+                <div className="font-mono text-[11px] tabular-nums text-amber-300">
+                  +{bonus.amount.toLocaleString()} bonus
+                </div>
+              )}
+              {/* Next-wave countdown */}
+              {countdown > 0 && (
+                <div className="font-mono text-[10px] tabular-nums text-slate-400">
+                  Next: Wave {gameState.wave + 1} in {countdown.toFixed(1)}s
+                </div>
+              )}
+            </div>
           ) : gameState.waveState === 'boss' ? (
-            <div className="text-red-400 text-sm font-bold animate-pulse">BOSS WAVE {gameState.wave}</div>
+            <div className="text-red-400 text-sm font-bold animate-pulse">☠ BOSS WAVE {gameState.wave}</div>
           ) : (
             <div className="text-cyan-400 text-xs font-bold">WAVE {gameState.wave}</div>
           )}
