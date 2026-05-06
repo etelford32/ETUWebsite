@@ -65,14 +65,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the base URL for the redirect
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.VERCEL_URL ||
-      'http://localhost:3000'
+    // Get the base URL for the redirect.
+    // VERCEL_URL is just the host (no scheme), so prepend https:// if used.
+    const rawBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+    const baseUrl = rawBase
+      ? (rawBase.startsWith('http') ? rawBase : `https://${rawBase}`)
+      : 'http://localhost:3000'
 
-    // Build the redirect URL - where the user will land after clicking the magic link
+    // Where the user lands after we've set our own session cookie.
     const finalRedirect = redirectTo || '/dashboard'
-    const callbackURL = `${baseUrl}/api/auth/magic-link/callback?redirect=${encodeURIComponent(finalRedirect)}`
+
+    // We use admin.generateLink to mint a token bound to this email, then
+    // build our OWN callback URL with the token_hash as a query param. The
+    // alternative — emailing linkData.properties.action_link — sends the
+    // user through Supabase's hosted /auth/v1/verify endpoint, which then
+    // redirects to redirect_to with the access token in the URL hash
+    // fragment. Hash fragments don't reach the server, so the callback
+    // would have nothing to verify against. Routing through our own
+    // callback with token_hash lets the existing verifyOtp() path do
+    // server-side verification + cookie-set in one shot.
+    const buildOwnCallback = (tokenHash: string) =>
+      `${baseUrl}/api/auth/magic-link/callback`
+        + `?token_hash=${encodeURIComponent(tokenHash)}`
+        + `&type=magiclink`
+        + `&redirect=${encodeURIComponent(finalRedirect)}`
+
+    // The redirectTo we pass to Supabase is only used as the fallback
+    // landing page if the user opens the action_link directly (which they
+    // shouldn't — we email our own URL). It still needs to be allowlisted
+    // in the Supabase project's Redirect URLs.
+    const callbackURL = buildOwnCallback('PLACEHOLDER')
 
     // Check if user exists first
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
@@ -90,7 +112,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      if (linkError || !linkData?.properties?.action_link) {
+      if (linkError || !linkData?.properties?.hashed_token) {
         console.error('Magic link generation error:', linkError)
         return NextResponse.json(
           { error: linkError?.message || 'Failed to generate magic link' },
@@ -98,7 +120,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      magicLinkUrl = linkData.properties.action_link
+      magicLinkUrl = buildOwnCallback(linkData.properties.hashed_token)
     } else {
       // Create new user first (without password - they'll use magic links)
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -126,7 +148,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      if (linkError || !linkData?.properties?.action_link) {
+      if (linkError || !linkData?.properties?.hashed_token) {
         console.error('Magic link generation error for new user:', linkError)
         return NextResponse.json(
           { error: linkError?.message || 'Failed to generate magic link' },
@@ -134,7 +156,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      magicLinkUrl = linkData.properties.action_link
+      magicLinkUrl = buildOwnCallback(linkData.properties.hashed_token)
     }
 
     // Send the magic link email via Resend
