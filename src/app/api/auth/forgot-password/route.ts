@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 import { resolveEmailFromInput } from '@/lib/resolveEmail'
 import { createResetToken } from '@/lib/resetTokenStore'
+import { recordAuthEvent } from '@/lib/authEvents'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,6 +61,14 @@ export async function POST(request: NextRequest) {
 
     // Create a secure reset token
     const token = createResetToken(authUser.id, email)
+
+    await recordAuthEvent({
+      eventType: 'password_reset_requested',
+      request,
+      userId: authUser.id,
+      email,
+      method: 'password',
+    })
 
     const baseUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||

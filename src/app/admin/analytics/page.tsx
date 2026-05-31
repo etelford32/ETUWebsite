@@ -69,6 +69,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [timeRange, setTimeRange] = useState<7 | 30 | 90>(7)
   const [refreshing, setRefreshing] = useState(false)
+  const [userStates, setUserStates] = useState<any>(null)
 
   useEffect(() => {
     checkAuth()
@@ -77,8 +78,18 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (isAdmin) {
       fetchAnalytics()
+      fetchUserStates()
     }
   }, [timeRange, isAdmin])
+
+  async function fetchUserStates() {
+    try {
+      const res = await fetch(`/api/admin/user-states?days=${timeRange}`)
+      if (res.ok) setUserStates(await res.json())
+    } catch (err) {
+      console.error('Failed to load user states:', err)
+    }
+  }
 
   async function checkAuth() {
     setLoading(true)
@@ -341,6 +352,9 @@ export default function AnalyticsPage() {
           />
         </div>
 
+        {/* User Lifecycle States + Auth Funnel */}
+        <UserStatesSection data={userStates} />
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Time Series Chart */}
@@ -574,6 +588,135 @@ function SimpleLineChart({ data }: { data: Array<{ date: string; sessions: numbe
       <div className="flex justify-between text-xs text-slate-500 mt-2 px-10">
         <span>{data[0]?.date}</span>
         <span>{data[data.length - 1]?.date}</span>
+      </div>
+    </div>
+  )
+}
+
+// User Lifecycle States + Auth Funnel section
+const STATE_META: Record<string, { label: string; color: string }> = {
+  new: { label: 'New', color: 'from-cyan-500 to-blue-500' },
+  active: { label: 'Active', color: 'from-green-500 to-emerald-500' },
+  dormant: { label: 'Dormant', color: 'from-yellow-500 to-orange-500' },
+  churned: { label: 'Churned', color: 'from-rose-500 to-red-500' },
+  never_logged_in: { label: 'Never Logged In', color: 'from-slate-500 to-slate-600' },
+  suspended: { label: 'Suspended', color: 'from-amber-600 to-amber-700' },
+  banned: { label: 'Banned', color: 'from-red-700 to-red-900' },
+  deleted: { label: 'Deleted', color: 'from-slate-700 to-slate-800' },
+}
+
+const FUNNEL_LABELS: Record<string, string> = {
+  signup: 'Sign-ups',
+  login_success: 'Logins',
+  login_failed: 'Failed Logins',
+  logout: 'Logouts',
+  magic_link_requested: 'Magic Links Sent',
+  magic_link_consumed: 'Magic Links Used',
+  password_reset_requested: 'Resets Requested',
+  password_reset_completed: 'Resets Completed',
+  invite_accepted: 'Invites Accepted',
+  email_verified: 'Emails Verified',
+}
+
+function UserStatesSection({ data }: { data: any }) {
+  if (!data) {
+    return (
+      <div className="mb-8 bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6">
+        <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+          <span>🛸</span> User Lifecycle States
+        </h2>
+        <div className="text-slate-400">Loading lifecycle data…</div>
+      </div>
+    )
+  }
+
+  const states = data.stateCounts || {}
+  const stateKeys = Object.keys(states).sort((a, b) => (states[b] || 0) - (states[a] || 0))
+  const totalUsers = stateKeys.reduce((sum, k) => sum + (states[k] || 0), 0)
+  const funnel = data.funnel || {}
+
+  return (
+    <div className="mb-8 space-y-6">
+      {/* Lifecycle state cards */}
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span>🛸</span> User Lifecycle States
+          </h2>
+          <span className="text-slate-400 text-sm">{totalUsers} total users</span>
+        </div>
+        {stateKeys.length === 0 ? (
+          <div className="text-slate-400">No users yet.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stateKeys.map((key) => {
+              const meta = STATE_META[key] || { label: key, color: 'from-slate-500 to-slate-600' }
+              return (
+                <div key={key} className="bg-slate-800/50 rounded-lg p-4">
+                  <div
+                    className={`text-3xl font-bold bg-gradient-to-r ${meta.color} bg-clip-text text-transparent`}
+                  >
+                    {states[key]}
+                  </div>
+                  <div className="text-slate-400 text-sm mt-1">{meta.label}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Auth funnel */}
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6">
+        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <span>🔐</span> Auth Funnel
+          <span className="text-slate-500 text-sm font-normal">
+            (last {data.windowDays} days)
+          </span>
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {Object.keys(FUNNEL_LABELS).map((key) => (
+            <div key={key} className="bg-slate-800/50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-white">{funnel[key] ?? 0}</div>
+              <div className="text-slate-400 text-xs mt-1">{FUNNEL_LABELS[key]}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent auth activity */}
+      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6">
+        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <span>📡</span> Recent Auth Activity
+        </h2>
+        {data.recentEvents && data.recentEvents.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-400">
+                <tr>
+                  <th className="pb-3">Event</th>
+                  <th className="pb-3">Method</th>
+                  <th className="pb-3">Email</th>
+                  <th className="pb-3">IP</th>
+                  <th className="pb-3">When</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-300">
+                {data.recentEvents.map((e: any) => (
+                  <tr key={e.id} className="border-t border-slate-800">
+                    <td className="py-2 font-mono text-xs">{e.event_type}</td>
+                    <td className="py-2">{e.method || '—'}</td>
+                    <td className="py-2 truncate max-w-[180px]">{e.email || '—'}</td>
+                    <td className="py-2 font-mono text-xs">{e.ip_address || '—'}</td>
+                    <td className="py-2">{new Date(e.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-slate-400">No auth events recorded yet.</div>
+        )}
       </div>
     </div>
   )

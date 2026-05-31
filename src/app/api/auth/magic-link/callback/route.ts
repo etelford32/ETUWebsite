@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
+import { recordAuthEvent } from '@/lib/authEvents'
 
 /**
  * GET /api/auth/magic-link/callback - Handle magic link callback
@@ -104,6 +105,28 @@ export async function GET(request: NextRequest) {
     }
 
     const role = (profile as any)?.role || 'user'
+
+    // Telemetry: clicking the link both verifies the email and signs in.
+    await recordAuthEvent({
+      eventType: 'magic_link_consumed',
+      request,
+      userId: user.id,
+      email: user.email,
+      method: 'magic_link',
+    })
+    await recordAuthEvent({
+      eventType: 'email_verified',
+      request,
+      userId: user.id,
+      email: user.email,
+    })
+    await recordAuthEvent({
+      eventType: 'login_success',
+      request,
+      userId: user.id,
+      email: user.email,
+      method: 'magic_link',
+    })
 
     // Create response that redirects to the intended destination
     const response = NextResponse.redirect(new URL(redirect, baseUrl))

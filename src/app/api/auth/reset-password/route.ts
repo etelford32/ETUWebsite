@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { consumeResetToken } from '@/lib/resetTokenStore'
 import { validatePassword } from '@/lib/passwordValidation'
+import { recordAuthEvent } from '@/lib/authEvents'
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,14 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    await recordAuthEvent({
+      eventType: 'password_reset_completed',
+      request,
+      userId: entry.userId,
+      email: entry.email,
+      method: 'password',
+    })
 
     return NextResponse.json({
       success: true,
