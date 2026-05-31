@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { deleteSessionFromResponse } from '@/lib/session'
+import { deleteSessionFromResponse, getSessionFromRequest } from '@/lib/session'
+import { recordAuthEvent } from '@/lib/authEvents'
 
 export async function POST(request: NextRequest) {
   try {
+    // Capture who is logging out before we clear the cookie.
+    const session = getSessionFromRequest(request)
+    if (session) {
+      await recordAuthEvent({
+        eventType: 'logout',
+        request,
+        userId: session.userId,
+        email: session.email,
+      })
+    }
+
     const response = NextResponse.json({
       success: true,
       message: 'Logged out successfully',

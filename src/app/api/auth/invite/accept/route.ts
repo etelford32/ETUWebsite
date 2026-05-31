@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
 import { validatePassword } from '@/lib/passwordValidation'
+import { recordAuthEvent } from '@/lib/authEvents'
+import { enqueueLifecycleJob } from '@/lib/lifecycle'
 
 // POST /api/auth/invite/accept — consume an invite and create the account
 export async function POST(request: NextRequest) {
@@ -99,6 +101,42 @@ export async function POST(request: NextRequest) {
       accepted_user_id: authData.user.id,
     })
     .eq('id', invite.id)
+
+  // Telemetry: accepting an invite creates a verified account and signs in.
+  await recordAuthEvent({
+    eventType: 'invite_accepted',
+    request,
+    userId: authData.user.id,
+    email: authData.user.email,
+    method: 'invite',
+    metadata: { invitedBy: invite.invited_by_email, role: invite.role },
+  })
+  await recordAuthEvent({
+    eventType: 'signup',
+    request,
+    userId: authData.user.id,
+    email: authData.user.email,
+    method: 'invite',
+  })
+  await recordAuthEvent({
+    eventType: 'email_verified',
+    request,
+    userId: authData.user.id,
+    email: authData.user.email,
+  })
+  await recordAuthEvent({
+    eventType: 'login_success',
+    request,
+    userId: authData.user.id,
+    email: authData.user.email,
+    method: 'invite',
+  })
+  await enqueueLifecycleJob({
+    userId: authData.user.id,
+    jobType: 'welcome_email',
+    dedupeKey: `welcome_email:${authData.user.id}`,
+    payload: { email: authData.user.email, displayName: username || undefined },
+  })
 
   const response = NextResponse.json({
     success: true,

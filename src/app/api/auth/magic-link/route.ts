@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 import { resolveEmailFromInput } from '@/lib/resolveEmail'
+import { recordAuthEvent } from '@/lib/authEvents'
 
 /**
  * POST /api/auth/magic-link - Send a magic link email for passwordless login
@@ -136,6 +137,15 @@ export async function POST(request: NextRequest) {
 
       magicLinkUrl = linkData.properties.action_link
     }
+
+    // Telemetry: a magic link was requested (sign-in funnel entry).
+    await recordAuthEvent({
+      eventType: 'magic_link_requested',
+      request,
+      email: resolvedEmail,
+      method: 'magic_link',
+      metadata: { newUser: !userExists },
+    })
 
     // Send the magic link email via Resend
     if (!process.env.RESEND_API_KEY) {

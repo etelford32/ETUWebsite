@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import './globals.css'
 import '../input.css'
+import AnalyticsTracker from '@/components/AnalyticsTracker'
 
 export const metadata: Metadata = {
   title: 'Explore the Universe 2175 — Open-World Space Adventure',
@@ -55,6 +56,7 @@ export default function RootLayout({
             gtag('config', 'G-6RCVW65DDL');
           `}
         </Script>
+        <AnalyticsTracker />
         {children}
       </body>
     </html>

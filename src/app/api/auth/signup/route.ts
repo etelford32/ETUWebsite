@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 import { validatePassword } from '@/lib/passwordValidation'
+import { recordAuthEvent } from '@/lib/authEvents'
+import { enqueueLifecycleJob } from '@/lib/lifecycle'
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +112,37 @@ export async function POST(request: NextRequest) {
         console.warn('Failed to set is_alpha_tester:', alphaError.message)
       }
     }
+
+    // Telemetry: signup auto-confirms email and signs the user in immediately,
+    // so we record the full signed_up → verified → logged_in transition.
+    const displayName = username || email.split('@')[0]
+    await recordAuthEvent({
+      eventType: 'signup',
+      request,
+      userId: authData.user.id,
+      email: authData.user.email,
+      method: 'password',
+      metadata: { isAlphaApplicant: !!isAlphaApplicant },
+    })
+    await recordAuthEvent({
+      eventType: 'email_verified',
+      request,
+      userId: authData.user.id,
+      email: authData.user.email,
+    })
+    await recordAuthEvent({
+      eventType: 'login_success',
+      request,
+      userId: authData.user.id,
+      email: authData.user.email,
+      method: 'password',
+    })
+    await enqueueLifecycleJob({
+      userId: authData.user.id,
+      jobType: 'welcome_email',
+      dedupeKey: `welcome_email:${authData.user.id}`,
+      payload: { email: authData.user.email, displayName },
+    })
 
     // Create session cookie
     const response = NextResponse.json({
