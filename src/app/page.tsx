@@ -89,16 +89,19 @@ export default function HomePage() {
         id="home"
         className="relative min-h-[85vh] flex items-center overflow-hidden"
       >
-        {/* Background image */}
+        {/* Background video */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/etu_epic.png"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/etu_epic.png"
+            className="w-full h-full"
             style={{ objectFit: "cover", objectPosition: "center" }}
-          />
+          >
+            <source src="/ETU_Vid1.mp4" type="video/mp4" />
+          </video>
         </div>
 
         {/* Cinematic gradient overlay */}
