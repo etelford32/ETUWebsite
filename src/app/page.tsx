@@ -176,10 +176,18 @@ export default function HomePage() {
           </div>
 
           <h1
-            className="reveal cinematic-title font-orbitron text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
+            className="reveal hero-title font-orbitron text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
             style={{ lineHeight: 1.05 }}
           >
-            Explore the<br />Universe 2175
+            <span className="hero-title__line hero-title__line--1">
+              Explore the
+            </span>
+            <span
+              className="hero-title__line hero-title__line--2"
+              data-text="Universe 2175"
+            >
+              Universe 2175
+            </span>
           </h1>
 
           <Experiment
