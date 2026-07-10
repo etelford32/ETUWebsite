@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionFromRequest } from '@/lib/session'
 import {
   EXPERIMENTS,
   EXP_COOKIE_MAX_AGE_SECONDS,
@@ -10,20 +9,32 @@ import {
   type ExperimentId,
 } from '@/lib/experiments'
 
-// Routes that require authentication
-const protectedRoutes = [
-  '/dashboard',
-  '/profile',
-  '/ship-designer',
-  '/admin',
-  '/feedback',
-  '/backlog',
-  '/roadmap',
-  '/alpha-testing',
-]
+const SESSION_COOKIE_NAME = 'etu_session'
+
+// Pages that require a signed-in user (prefix match). Community pages
+// (/backlog, /roadmap, /feedback, /ship-designer) handle logged-out
+// visitors in their own page code and stay public — the homepage links
+// to them, so gating them here would wall off marketing traffic.
+const protectedRoutes = ['/dashboard', '/admin']
+
+// '/profile' is gated as an exact match only: /profile/<id> are the
+// public shareable profile pages.
+const exactProtectedRoutes = ['/profile']
 
 // Routes that are admin-only
 const adminRoutes = ['/admin']
+
+// Session parse is inlined rather than imported from @/lib/session:
+// that module pulls in Node-only crypto (via ./csrf), which the Edge
+// runtime cannot bundle.
+function getSessionFromCookie(request: NextRequest): { role?: string } | null {
+  try {
+    const value = request.cookies.get(SESSION_COOKIE_NAME)?.value
+    return value ? JSON.parse(value) : null
+  } catch {
+    return null
+  }
+}
 
 function assignExperimentCookies(request: NextRequest, response: NextResponse) {
   for (const id of Object.keys(EXPERIMENTS) as ExperimentId[]) {
@@ -54,9 +65,9 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Check if route requires authentication
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  )
+  const isProtectedRoute =
+    protectedRoutes.some((route) => pathname.startsWith(route)) ||
+    exactProtectedRoutes.includes(pathname)
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route))
 
   if (!isProtectedRoute) {
@@ -66,7 +77,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Get session from cookie
-  const session = getSessionFromRequest(request)
+  const session = getSessionFromCookie(request)
 
   // If no session, redirect to login
   if (!session) {
@@ -92,12 +103,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (public folder)
-     * - api routes (handled separately)
+     * - api routes (they do their own auth; no experiment cookies needed)
+     * - _next/static, _next/image (static files)
+     * - favicon.ico, robots.txt, sitemap.xml, manifest.json, sw.js
+     *   (metadata files — Set-Cookie on these breaks CDN caching)
+     * - static assets by extension
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp4)$).*)',
   ],
 }
