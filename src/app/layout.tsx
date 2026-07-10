@@ -3,13 +3,16 @@ import Script from 'next/script'
 import './globals.css'
 import '../input.css'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
+import { SITE_URL } from '@/lib/siteUrl'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.exploretheuniverse2175.com'),
+  metadataBase: new URL(SITE_URL),
   title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
   description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
   alternates: {
-    canonical: 'https://www.exploretheuniverse2175.com/',
+    // Relative — resolves per page against metadataBase, so every route
+    // self-canonicalizes instead of pointing at the homepage.
+    canonical: './',
   },
   icons: {
     icon: '/logo2.png',
@@ -19,11 +22,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
     description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
-    url: 'https://www.exploretheuniverse2175.com/',
+    url: `${SITE_URL}/`,
     siteName: 'Explore the Universe 2175',
     images: [
       {
-        url: 'https://www.exploretheuniverse2175.com/etu_epic7.png',
+        url: `${SITE_URL}/etu_epic7.png`,
         width: 1024,
         height: 1024,
       },
@@ -35,7 +38,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
     description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
-    images: ['https://www.exploretheuniverse2175.com/etu_epic7.png'],
+    images: [`${SITE_URL}/etu_epic7.png`],
   },
 }
 
