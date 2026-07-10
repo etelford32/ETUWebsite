@@ -5,7 +5,7 @@ import { recordAuthEvent } from '@/lib/authEvents'
 export async function POST(request: NextRequest) {
   try {
     // Capture who is logging out before we clear the cookie.
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (session) {
       await recordAuthEvent({
         eventType: 'logout',

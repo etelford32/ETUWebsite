@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(new URL(redirect, baseUrl))
 
     // Set session cookie
-    setSessionOnResponse(response, user.id, user.email!, role)
+    await setSessionOnResponse(response, user.id, user.email!, role)
 
     return response
   } catch (error: any) {

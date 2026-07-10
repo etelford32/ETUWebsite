@@ -147,6 +147,6 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  setSessionOnResponse(response, authData.user.id, authData.user.email!, invite.role)
+  await setSessionOnResponse(response, authData.user.id, authData.user.email!, invite.role)
   return response
 }

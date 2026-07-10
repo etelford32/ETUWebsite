@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    setSessionOnResponse(response, authData.user.id, authData.user.email!, role)
+    await setSessionOnResponse(response, authData.user.id, authData.user.email!, role)
 
     return response
   } catch (error: any) {

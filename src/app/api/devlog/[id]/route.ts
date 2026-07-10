@@ -9,7 +9,7 @@ const db = () => createServerClient() as any
 // PUT /api/devlog/[id] — admin only, update an entry
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE /api/devlog/[id] — admin only
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

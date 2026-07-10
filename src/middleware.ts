@@ -8,6 +8,9 @@ import {
   pickVariant,
   type ExperimentId,
 } from '@/lib/experiments'
+// sessionToken is edge-safe (Web Crypto only) — do NOT import @/lib/session
+// here; it pulls in Node-only crypto via ./csrf, which Edge cannot bundle.
+import { verifySessionToken } from '@/lib/sessionToken'
 
 const SESSION_COOKIE_NAME = 'etu_session'
 
@@ -23,18 +26,6 @@ const exactProtectedRoutes = ['/profile']
 
 // Routes that are admin-only
 const adminRoutes = ['/admin']
-
-// Session parse is inlined rather than imported from @/lib/session:
-// that module pulls in Node-only crypto (via ./csrf), which the Edge
-// runtime cannot bundle.
-function getSessionFromCookie(request: NextRequest): { role?: string } | null {
-  try {
-    const value = request.cookies.get(SESSION_COOKIE_NAME)?.value
-    return value ? JSON.parse(value) : null
-  } catch {
-    return null
-  }
-}
 
 function assignExperimentCookies(request: NextRequest, response: NextResponse) {
   for (const id of Object.keys(EXPERIMENTS) as ExperimentId[]) {
@@ -61,7 +52,7 @@ function assignExperimentCookies(request: NextRequest, response: NextResponse) {
   }
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Check if route requires authentication
@@ -76,8 +67,11 @@ export function middleware(request: NextRequest) {
     return response
   }
 
-  // Get session from cookie
-  const session = getSessionFromCookie(request)
+  // Verify the signed session cookie — a forged/unsigned cookie reads as
+  // logged out.
+  const session = await verifySessionToken(
+    request.cookies.get(SESSION_COOKIE_NAME)?.value
+  )
 
   // If no session, redirect to login
   if (!session) {

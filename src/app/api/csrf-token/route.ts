@@ -7,7 +7,7 @@ import { getSessionFromRequest } from '@/lib/session'
  * This allows clients to retrieve the token and include it in POST/PATCH/DELETE requests
  */
 export async function GET(request: NextRequest) {
-  const session = getSessionFromRequest(request)
+  const session = await getSessionFromRequest(request)
 
   if (!session || !session.csrfToken) {
     return NextResponse.json(

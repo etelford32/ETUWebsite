@@ -8,11 +8,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
 
     // Check for session-based authentication
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
 
     // If user is authenticated via session, validate CSRF token
     if (session) {
-      if (!validateCSRFFromRequest(request)) {
+      if (!(await validateCSRFFromRequest(request))) {
         return NextResponse.json(
           { error: 'Invalid CSRF token' },
           { status: 403 }
