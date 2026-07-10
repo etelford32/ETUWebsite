@@ -2,26 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({ 
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
-
 
 interface FeedbackItem {
   id: string
@@ -33,10 +16,12 @@ interface FeedbackItem {
   priority: string
   source: string
   email: string | null
+  vote_count?: number
   created_at: string
   updated_at: string
   profile?: {
     username: string
+    display_name?: string
     email: string
   }
 }
@@ -88,41 +73,35 @@ export default function AdminFeedbackPage() {
 
   async function checkUser() {
     setLoading(true)
-    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
+    const sessionRes = await fetch('/api/auth/session')
+    const sessionData = await sessionRes.json()
 
-    if (!session?.user) {
+    if (!sessionData.authenticated) {
       // Not authenticated - redirect to login
       router.push('/login?message=admin_auth_required')
       setLoading(false)
       return
     }
 
-    // Check if user has admin or moderator role
-    const role = await getUserRole(session.user.id)
+    const role = sessionData.user.role
 
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'admin' && role !== 'staff') {
       // Not authorized - redirect to home with error message
       router.push('/?error=unauthorized_admin_access')
       setLoading(false)
       return
     }
 
-    setUser(session.user)
-    setIsAdmin(role === 'admin' || role === 'moderator')
+    setUser(sessionData.user)
+    setIsAdmin(role === 'admin' || role === 'staff')
     fetchFeedback()
   }
 
   async function fetchFeedback() {
     try {
-      const { data, error } = await supabase
-        .from('feedback')
-        .select(`
-          *,
-          profile:profiles(username, email)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const res = await fetch('/api/admin/feedback')
+      if (!res.ok) throw new Error(`Failed to load feedback (${res.status})`)
+      const { feedback: data } = await res.json()
 
       setFeedback(data || [])
       setFilteredFeedback(data || [])
@@ -170,19 +149,20 @@ export default function AdminFeedbackPage() {
   async function updateFeedback(id: string, updates: Partial<FeedbackItem>) {
     setUpdating(true)
     try {
-      const { error } = await (supabase
-        .from('feedback') as any)
-        .update(updates)
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch('/api/admin/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update feedback')
 
       // Update local state
       setFeedback(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f))
       setSelectedItem(null)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating feedback:', err)
-      alert('Failed to update feedback')
+      alert(err.message || 'Failed to update feedback')
     } finally {
       setUpdating(false)
     }
