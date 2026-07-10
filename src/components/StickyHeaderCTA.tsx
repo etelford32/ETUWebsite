@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 
 export default function StickyHeaderCTA() {
   const [isVisible, setIsVisible] = useState(false);
@@ -31,13 +30,15 @@ export default function StickyHeaderCTA() {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
           </span>
           <span className="text-sm md:text-base font-semibold text-white">
-            ✨ <span className="hidden sm:inline">Closed Alpha Playtesting •</span> Applications Now Open
+            ✨ <span className="hidden sm:inline">Steam Playtest •</span> Open Now
           </span>
         </div>
 
         {/* Right: CTA Button */}
-        <Link
-          href="/alpha-testing"
+        <a
+          href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all text-sm md:text-base"
         >
           <svg
@@ -48,8 +49,8 @@ export default function StickyHeaderCTA() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
           </svg>
-          <span>Apply Now</span>
-        </Link>
+          <span>Request Access</span>
+        </a>
       </div>
     </div>
   );

@@ -65,6 +65,9 @@ export default function Footer() {
             <Link className="block hover:text-cyan-400 transition-colors" href="/discord">
               Discord
             </Link>
+            <Link className="block hover:text-cyan-400 transition-colors" href="/login">
+              Sign in
+            </Link>
           </nav>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Company</h4>

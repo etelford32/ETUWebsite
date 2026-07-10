@@ -5,10 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CountdownTimer from "@/components/CountdownTimer";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
-import Experiment from "@/components/Experiment";
 import { initPerformanceOptimizations } from "@/lib/performance";
 
 export default function HomePage() {
@@ -156,16 +154,9 @@ export default function HomePage() {
 
         {/* Hero content */}
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 py-24 md:py-32">
-          <div className="reveal mb-6">
-            <CountdownTimer
-              targetDate="2026-06-06T00:00:00"
-              label="BETA LAUNCHES IN"
-            />
-          </div>
-
           <div className="reveal flex items-center gap-3 mb-5 flex-wrap">
             <span className="etu-pill etu-pill--amber">
-              <span className="ping" /> Alpha · Recruiting Testers
+              <span className="ping" /> Playtest Open · Recruiting Testers
             </span>
             <span
               className="eyebrow"
@@ -190,36 +181,16 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <Experiment
-            id="home_hero_subhead"
-            variants={{
-              control: (
-                <p
-                  className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
-                  style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
-                >
-                  Beta launches{" "}
-                  <span className="headline-gradient font-semibold">June 6</span>.
-                  Wishlist on Steam to be ready — or join the{" "}
-                  <span className="text-amber-300 font-semibold">alpha</span> right
-                  now and help shape the galaxy.
-                </p>
-              ),
-              urgency: (
-                <p
-                  className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
-                  style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
-                >
-                  <span className="headline-gradient font-semibold">Beta opens June 6</span>{" "}
-                  — limited alpha seats are filling now. Wishlist to lock your slot, or{" "}
-                  <span className="text-amber-300 font-semibold">apply for alpha</span> and
-                  help shape the galaxy.
-                </p>
-              ),
-            }}
-          />
+          <p
+            className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+          >
+            The <span className="headline-gradient font-semibold">Steam Playtest</span>{" "}
+            is open now. Request access, help shape the galaxy, and be ready for{" "}
+            <span className="text-amber-300 font-semibold">Early Access in 2027</span>.
+          </p>
 
-          {/* Co-primary CTAs — Wishlist + Alpha Testing */}
+          {/* CTA hierarchy — primary: Request Playtest Access, secondary: Wishlist */}
           <div className="reveal mt-10 flex flex-wrap items-center gap-4">
             <a
               href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
@@ -234,47 +205,32 @@ export default function HomePage() {
               >
                 <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" />
               </svg>
-              <span>Wishlist on Steam</span>
+              <span>▶ Request Playtest Access</span>
               <span className="ml-1 text-xs font-bold opacity-80 uppercase tracking-wider">
-                · It's Free
+                — Free
               </span>
             </a>
 
-            <Link
-              href="/alpha-testing"
-              className="btn-3d btn-3d-red group text-base px-8 py-4"
+            <a
+              href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost"
             >
-              <svg
-                className="w-6 h-6 transition-transform group-hover:scale-110"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2 L3 7 V17 L12 22 L21 17 V7 Z" />
-                <path d="M3 7 L12 12 L21 7" />
-                <path d="M12 12 V22" />
-              </svg>
-              <span>Become an Alpha Tester</span>
-            </Link>
-
-            <Link href="/missile-game" className="btn-ghost">
-              ▶ Play Megabot
-            </Link>
+              Wishlist on Steam
+            </a>
           </div>
 
           {/* 3-up stat row */}
           <div className="reveal mt-14 flex flex-wrap gap-x-12 gap-y-5">
-            <HeroStat label="Beta Launch" value="June 6, 2026" />
-            <HeroStat label="Alpha" value="Now Recruiting Testers" />
-            <HeroStat label="Platform" value="Steam · PC" />
+            <HeroStat label="Steam" value="Playtest Open Now" />
+            <HeroStat label="Approved Daily" value="100 Tester Slots" />
+            <HeroStat label="PC · Win/Mac/Linux" value="Early Access 2027" />
           </div>
         </div>
       </section>
 
-      {/* Why ETU Changes Everything - Above the Fold */}
+      {/* What Makes 2175 Different - Above the Fold */}
       <section
         id="why-etu"
         className="py-20 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900 border-y border-cyan-500/20"
@@ -282,10 +238,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              Why ETU 2175 Changes Everything
+              What Makes 2175 Different
             </h2>
             <p className="mt-4 text-xl text-slate-300">
-              Three revolutionary systems that set this space RPG apart
+              Three systems no other space RTS has
             </p>
           </header>
 
@@ -329,7 +285,7 @@ export default function HomePage() {
                 <h3 className="text-2xl font-bold text-amber-300">Real Physics, Real Consequences</h3>
               </div>
               <p className="text-base text-slate-200 leading-relaxed">
-                <span className="font-semibold text-white">Built in Rust with NASA-grade orbital mechanics.</span> Your fuel matters. Your velocity vector matters. Gravity assists, orbital transfers—this isn&apos;t arcade space.
+                <span className="font-semibold text-white">Built in Rust by a computational astrophysicist — real orbital mechanics, not arcade space.</span> Your fuel matters. Your velocity vector matters. Gravity assists, orbital transfers—every burn counts.
               </p>
               <div className="mt-4 pt-4 border-t border-amber-500/20">
                 <span className="text-sm text-amber-400 font-medium">
@@ -338,7 +294,7 @@ export default function HomePage() {
               </div>
             </article>
 
-            {/* Deep RPG Progression */}
+            {/* Deep Progression */}
             <article className="reveal p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-transparent ring-2 ring-purple-500/20 hover:ring-purple-400/40 transition-all group">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden ring-2 ring-purple-400/30 group-hover:scale-110 transition-transform">
@@ -350,10 +306,10 @@ export default function HomePage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="text-2xl font-bold text-purple-300">Deep RPG Progression</h3>
+                <h3 className="text-2xl font-bold text-purple-300">Deep Progression</h3>
               </div>
               <p className="text-base text-slate-200 leading-relaxed">
-                <span className="font-semibold text-white">Full character leveling • Weapon ability trees • Modular ship upgrades</span> • Permanent choices that shape your playthrough. This is a true RPG in space.
+                <span className="font-semibold text-white">Full character leveling • Weapon ability trees • Modular ship upgrades</span> • Permanent choices in a roguelike galaxy — lose your base, keep your knowledge.
               </p>
               <div className="mt-4 pt-4 border-t border-purple-500/20">
                 <span className="text-sm text-purple-400 font-medium">
@@ -413,7 +369,7 @@ export default function HomePage() {
               <div className="p-4">
                 <h3 className="font-semibold text-base">Flight & Orbital Mechanics</h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                  The First game EVER to feature realistic models of Black Hole Physics.
+                  Kerr black hole physics, modeled by someone who does this for a living.
                 </p>
               </div>
             </article>
@@ -499,7 +455,7 @@ export default function HomePage() {
                 Experience the Galaxy
               </h3>
               <p className="text-lg text-slate-300/90 leading-relaxed">
-                Watch deep-space traversal, intense station sieges, and faction AI in motion. See why commanders are calling it the most immersive space game ever created.
+                Watch deep-space traversal, intense station sieges, and faction AI in motion.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
@@ -513,6 +469,12 @@ export default function HomePage() {
                   </svg>
                   Wishlist on Steam
                 </a>
+                <Link
+                  href="/missile-game"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold border border-white/20 hover:bg-white/5 transition-all"
+                >
+                  ▶ Play Megabot
+                </Link>
                 <Link
                   href="/leaderboard"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold border border-white/20 hover:bg-white/5 transition-all"
@@ -693,7 +655,7 @@ export default function HomePage() {
               Next-Gen Game Systems
             </h2>
             <p className="mt-4 text-xl text-slate-300">
-              Revolutionary technology that brings the universe to life
+              A custom Rust engine and a simulated 17-faction war bring the universe to life
             </p>
           </header>
 
@@ -729,7 +691,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-deep-900/50 to-transparent"></div>
               </div>
               <div className="p-6">
-                <h3 className="text-2xl font-bold text-blue-300 mb-3">NASA-Grade Physics</h3>
+                <h3 className="text-2xl font-bold text-blue-300 mb-3">Real Orbital Physics</h3>
                 <p className="text-slate-300 leading-relaxed">
                   Experience true Newtonian orbital mechanics. Plan gravity assists, manage delta-v budgets, and master realistic space combat where every action has an equal and opposite reaction.
                 </p>
@@ -1055,7 +1017,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-deep-900 via-transparent to-transparent opacity-60"></div>
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <h3 className="text-2xl font-bold text-white drop-shadow-lg">Master Your Ship</h3>
-                  <p className="text-slate-200 mt-1">Navigate with NASA-grade physics</p>
+                  <p className="text-slate-200 mt-1">Navigate with real orbital mechanics</p>
                 </div>
               </div>
             </article>
@@ -1198,7 +1160,7 @@ export default function HomePage() {
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                     <span>
-                      <strong>Free Demo</strong> Available
+                      <strong>Steam Playtest</strong> Open Now
                     </span>
                   </div>
                 </div>
@@ -1248,7 +1210,7 @@ export default function HomePage() {
 
                   {/* Floating badges */}
                   <div className="absolute -top-4 -right-4 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg animate-bounce">
-                    FREE DEMO
+                    PLAYTEST OPEN
                   </div>
                 </div>
               </div>
@@ -1350,7 +1312,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Closed Alpha Playtesting Event */}
+      {/* Steam Playtest Event */}
       <section
         id="alpha-testing"
         className="py-20 bg-gradient-to-b from-deep-900 via-cyan-950/20 to-deep-900 border-y border-cyan-500/30 relative overflow-hidden"
@@ -1369,23 +1331,19 @@ export default function HomePage() {
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
               </span>
               <span className="text-sm font-bold text-cyan-100 uppercase tracking-wider">
-                ✨ Applications Open
+                ✨ Playtest Open
               </span>
             </div>
 
             <h2 className="text-4xl md:text-6xl font-bold mb-4">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                ✨ CLOSED ALPHA PLAYTESTING!
+                ✨ THE STEAM PLAYTEST IS OPEN!
               </span>
             </h2>
 
             <p className="text-2xl md:text-3xl font-bold text-white mb-2">
               Help Shape the Future of ETU 2175
             </p>
-
-            <div className="flex justify-center mb-8">
-              <CountdownTimer targetDate="2026-06-06T00:00:00" label="JOIN ALPHA BEFORE BETA LAUNCHES IN" />
-            </div>
           </div>
 
           {/* Alpha Testing Benefits */}
@@ -1413,7 +1371,7 @@ export default function HomePage() {
             <div className="reveal p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 ring-2 ring-amber-500/30 hover:ring-amber-400/50 transition-all text-center">
               <div className="text-5xl mb-4">🎁</div>
               <h3 className="text-xl font-bold text-amber-300 mb-3">
-                Exclusive Alpha Tester Rewards
+                Exclusive Playtester Rewards
               </h3>
               <p className="text-slate-200 text-sm">
                 Receive unique cosmetic items, special badges, and recognition in the game credits as a founding tester!
@@ -1425,23 +1383,25 @@ export default function HomePage() {
           <div className="reveal text-center p-8 rounded-2xl bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-cyan-600/20 ring-2 ring-indigo-500/40 backdrop-blur-sm">
             <p className="text-xl text-slate-100 mb-6">
               <strong className="text-2xl text-cyan-300">Be Among the First to Explore!</strong><br />
-              Limited alpha testing slots available. Apply now to secure your spot.
+              100 testers approved daily. Request access on Steam to secure your spot.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/alpha-testing"
+              <a
+                href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group inline-flex items-center gap-3 px-8 py-5 rounded-xl font-bold text-xl shadow-2xl hover:shadow-3xl hover:scale-105 transition-all bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white"
               >
                 <svg className="w-7 h-7 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
-                <span>✨ APPLY FOR ALPHA ACCESS</span>
-              </Link>
+                <span>▶ REQUEST PLAYTEST ACCESS — FREE</span>
+              </a>
             </div>
 
             <p className="mt-6 text-sm text-slate-400">
-              Join our elite group of alpha testers and help shape the future
+              Join our playtesters and help shape the future
             </p>
           </div>
         </div>
@@ -1507,17 +1467,19 @@ export default function HomePage() {
             </p>
           </div>
           <div className="p-6 rounded-2xl bg-white/5 ring-1 ring-white/10">
-            <h3 className="font-semibold">Join the Alpha</h3>
+            <h3 className="font-semibold">Join the Playtest</h3>
             <p className="text-sm text-slate-300/90 mt-1">
-              Get keys, patch notes, and event invites.
+              Get builds, patch notes, and event invites.
             </p>
             <div className="mt-4 flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/login"
+              <a
+                href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-warp px-5 py-3 rounded-lg text-center"
               >
-                Sign Up Now
-              </Link>
+                Request Playtest Access
+              </a>
               <a
                 href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175"
                 target="_blank"
