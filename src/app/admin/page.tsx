@@ -7,10 +7,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 interface DashboardStats {
-  totalUsers: number
-  totalFeedback: number
-  totalBacklogItems: number
-  totalScores: number
+  stats: {
+    totalUsers: number
+    alphaTesters: number
+    alphaApplicationsPending: number
+    alphaApplicationsTotal: number
+    pendingInvites: number
+    signups30d: number
+    logins30d: number
+  }
   recentActivity: ActivityItem[]
   securityAlerts: SecurityAlert[]
   systemHealth: SystemHealth
@@ -22,6 +27,7 @@ interface ActivityItem {
   description: string
   timestamp: string
   user?: string
+  detail?: string
 }
 
 interface SecurityAlert {
@@ -203,26 +209,32 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total Users"
-            value={stats?.totalUsers || 0}
+            value={stats?.stats.totalUsers || 0}
             icon="👥"
             color="from-blue-500 to-cyan-500"
           />
           <StatsCard
-            title="Feedback Items"
-            value={stats?.totalFeedback || 0}
-            icon="💬"
+            title="Alpha Applications"
+            value={stats?.stats.alphaApplicationsPending || 0}
+            hint={
+              stats
+                ? `${stats.stats.alphaApplicationsTotal} total · ${stats.stats.alphaTesters} approved`
+                : undefined
+            }
+            icon="📝"
             color="from-purple-500 to-pink-500"
           />
           <StatsCard
-            title="Backlog Items"
-            value={stats?.totalBacklogItems || 0}
-            icon="📋"
+            title="Pending Invites"
+            value={stats?.stats.pendingInvites || 0}
+            icon="✉️"
             color="from-green-500 to-emerald-500"
           />
           <StatsCard
-            title="Player Scores"
-            value={stats?.totalScores || 0}
-            icon="🏆"
+            title="Sign-ins (30d)"
+            value={stats?.stats.logins30d || 0}
+            hint={stats ? `${stats.stats.signups30d} new signups` : undefined}
+            icon="🔑"
             color="from-orange-500 to-red-500"
           />
         </div>
@@ -358,11 +370,13 @@ function StatsCard({
   value,
   icon,
   color,
+  hint,
 }: {
   title: string
   value: number
   icon: string
   color: string
+  hint?: string
 }) {
   return (
     <motion.div
@@ -378,6 +392,7 @@ function StatsCard({
         </div>
       </div>
       <div className="text-slate-400">{title}</div>
+      {hint && <div className="text-xs text-slate-500 mt-1">{hint}</div>}
     </motion.div>
   )
 }
@@ -429,9 +444,12 @@ function ActivityCard({ item }: { item: ActivityItem }) {
     <div className="p-3 bg-slate-800/50 rounded-lg">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-white">{item.description}</div>
-          {item.user && (
-            <div className="text-sm text-slate-400 mt-1">By {item.user}</div>
+          <div className="text-white">
+            {item.description}
+            {item.user && <span className="text-slate-400"> — {item.user}</span>}
+          </div>
+          {item.detail && (
+            <div className="text-sm text-slate-500 mt-1">{item.detail}</div>
           )}
         </div>
         <div className="text-xs text-slate-500 whitespace-nowrap">

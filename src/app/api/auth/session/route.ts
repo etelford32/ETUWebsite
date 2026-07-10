@@ -27,11 +27,13 @@ export async function GET(request: NextRequest) {
       user: {
         id: user.id,
         email: session.email,
-        username: user.username,
+        displayName: user.display_name,
         role: user.role || 'user',
-        avatar_url: user.avatar_url,
-        steam_id: user.steam_id,
-        faction_choice: user.faction_choice,
+        isAlphaTester: user.is_alpha_tester ?? false,
+        status: user.status,
+        createdAt: user.created_at,
+        lastLoginAt: user.last_login_at,
+        loginCount: user.login_count ?? 0,
       },
     })
   } catch (error: any) {

@@ -77,6 +77,12 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query
 
     if (error) {
+      // The player_scores table doesn't exist until the scoring feature
+      // ships. Treat "relation does not exist" as an empty leaderboard so
+      // the dashboard and leaderboard pages render instead of erroring.
+      if (error.code === '42P01') {
+        return NextResponse.json({ data: [], total: 0, page, pageSize })
+      }
       console.error('Supabase error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
