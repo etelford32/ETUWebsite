@@ -136,16 +136,18 @@ export default function Header() {
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <span className="etu-pill etu-pill--cyan" title="Current build">
-              <span className="ping" />Live · Alpha
+              <span className="ping" />Playtest · Open
             </span>
-            <Link
-              href="/login"
+            <a
+              href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="relative px-4 py-2 rounded-lg font-medium text-cyan-300 overflow-hidden group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 rounded-lg transform transition-all duration-300 group-hover:border-cyan-400/50 group-hover:shadow-[0_0_20px_rgba(34,211,238,0.3)]"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
-              <span className="relative z-10">Sign in</span>
-            </Link>
+              <span className="relative z-10">▶ Join the Playtest</span>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -215,12 +217,14 @@ export default function Header() {
           <MobileNavLink href="/profile">Profile</MobileNavLink>
 
           <div className="pt-3">
-            <Link
-              href="/login"
+            <a
+              href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="block w-full px-4 py-2 rounded-lg text-center border border-cyan-500/30 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-all duration-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.2)]"
             >
-              Sign in
-            </Link>
+              ▶ Join the Playtest
+            </a>
           </div>
         </div>
       </div>

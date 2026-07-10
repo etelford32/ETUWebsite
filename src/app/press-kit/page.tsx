@@ -184,7 +184,7 @@ export default function PressKitPage() {
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-3">Description</h3>
                 <p className="text-slate-200 leading-relaxed">
-                  The First Space RPG Where Your Enemy Learns From You. Battle MEGABOT, an evolving AI boss that adapts to your tactics. Master realistic Newtonian physics, level your ship through deep RPG progression, and survive a procedurally generated galaxy that remembers every choice you make.
+                  The space game where your enemy learns from you. Battle MEGABOT, an evolving AI boss that adapts to your tactics. Master realistic Newtonian physics, level your ship through deep RPG progression, and survive a procedurally generated galaxy that remembers every choice you make.
                 </p>
               </div>
 
@@ -192,7 +192,7 @@ export default function PressKitPage() {
                 <h3 className="text-xl font-semibold text-cyan-300 mb-3">Key Features</h3>
                 <ul className="text-slate-200 space-y-1 list-disc list-inside">
                   <li>Adaptive AI boss that evolves with each encounter</li>
-                  <li>NASA-grade orbital mechanics and physics</li>
+                  <li>Real orbital mechanics, built by a computational astrophysicist</li>
                   <li>Deep RPG progression with skill trees</li>
                   <li>Four unique playable factions</li>
                   <li>Online leaderboards and competitions</li>

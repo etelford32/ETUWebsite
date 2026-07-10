@@ -84,7 +84,7 @@ export default function CountdownTimer({ targetDate, label = "DEMO LAUNCHES IN" 
           <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
         </span>
         <span className="text-lg font-bold text-green-100 uppercase tracking-wide">
-          🎮 DEMO AVAILABLE NOW!
+          🚀 PLAYTEST OPEN NOW!
         </span>
       </div>
     );

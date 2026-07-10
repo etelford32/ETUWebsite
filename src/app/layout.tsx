@@ -3,25 +3,32 @@ import Script from 'next/script'
 import './globals.css'
 import '../input.css'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
+import { SITE_URL } from '@/lib/siteUrl'
 
 export const metadata: Metadata = {
-  title: 'Explore the Universe 2175 — Open-World Space Adventure',
-  description: 'Explore the Universe 2175 is an open-world space adventure with living factions, realistic astrophysics, and a global scoreboard.',
+  metadataBase: new URL(SITE_URL),
+  title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
+  description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+  alternates: {
+    // Relative — resolves per page against metadataBase, so every route
+    // self-canonicalizes instead of pointing at the homepage.
+    canonical: './',
+  },
   icons: {
     icon: '/logo2.png',
     apple: '/logo2.png',
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'Explore the Universe 2175 — Open-World Space Adventure',
-    description: 'A living galaxy with adaptive AI, realistic space physics, and community leaderboards.',
-    url: 'https://exploretheuniverse2175.com/',
+    title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
+    description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+    url: `${SITE_URL}/`,
     siteName: 'Explore the Universe 2175',
     images: [
       {
-        url: 'https://exploretheuniverse2175.com/etu_epic7.png',
-        width: 1200,
-        height: 630,
+        url: `${SITE_URL}/etu_epic7.png`,
+        width: 1024,
+        height: 1024,
       },
     ],
     locale: 'en_US',
@@ -29,9 +36,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Explore the Universe 2175',
-    description: 'Open-world space adventure with realistic astrophysics and dynamic factions.',
-    images: ['https://exploretheuniverse2175.com/etu_epic7.png'],
+    title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
+    description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+    images: [`${SITE_URL}/etu_epic7.png`],
   },
 }
 
