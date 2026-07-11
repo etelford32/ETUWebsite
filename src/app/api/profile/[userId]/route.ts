@@ -36,7 +36,7 @@ export async function GET(
     }
 
     const supabase = createServerClient()
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
 
     // Fetch the profile
     const { data: profile, error } = await supabase

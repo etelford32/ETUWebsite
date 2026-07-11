@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Check if user is logged in
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
 
     // Validation
     if (!username || !email || !interests || interests.length === 0 || !motivation) {

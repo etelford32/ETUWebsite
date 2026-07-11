@@ -6,7 +6,7 @@ import { validateCSRFFromRequest } from '@/lib/csrf';
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
-    const session = getSessionFromRequest(request);
+    const session = await getSessionFromRequest(request);
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized - Please log in' },
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate CSRF token
-    if (!validateCSRFFromRequest(request)) {
+    if (!(await validateCSRFFromRequest(request))) {
       return NextResponse.json(
         { error: 'Invalid CSRF token' },
         { status: 403 }

@@ -17,7 +17,7 @@ function siteUrl(request: NextRequest): string {
 
 // GET /api/admin/invites — list invites (admin only)
 export async function GET(request: NextRequest) {
-  const session = getSessionFromRequest(request)
+  const session = await getSessionFromRequest(request)
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/invites — create + email a new invite
 export async function POST(request: NextRequest) {
-  const session = getSessionFromRequest(request)
+  const session = await getSessionFromRequest(request)
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

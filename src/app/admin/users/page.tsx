@@ -2,33 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { getUserRole } from '@/lib/adminAuth'
-import { createServerClient } from '@/lib/supabaseServer'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({ 
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
-
+type Role = 'user' | 'admin' | 'staff'
 
 interface User {
   id: string
   email: string
   username: string
-  role: 'user' | 'admin' | 'moderator'
+  role: Role
   avatar_url: string
   created_at: string
   last_sign_in_at: string
@@ -38,9 +22,9 @@ interface User {
   xp: number
 }
 
-const ROLE_COLORS = {
+const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-500/20 text-red-400 border-red-500/30',
-  moderator: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  staff: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   user: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
 }
 
@@ -68,21 +52,22 @@ export default function UserManagement() {
 
   async function checkAuth() {
     setLoading(true)
-    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
+    const sessionRes = await fetch('/api/auth/session')
+    const sessionData = await sessionRes.json()
 
-    if (!session?.user) {
+    if (!sessionData.authenticated) {
       router.push('/login?message=admin_auth_required')
       return
     }
 
-    const role = await getUserRole(session.user.id)
+    const role = sessionData.user.role
 
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'admin' && role !== 'staff') {
       router.push('/?error=unauthorized_admin_access')
       return
     }
 
-    setCurrentUser(session.user)
+    setCurrentUser(sessionData.user)
     setIsAdmin(role === 'admin')
     await fetchUsers()
     setLoading(false)
@@ -90,54 +75,23 @@ export default function UserManagement() {
 
   async function fetchUsers() {
     try {
-      // Fetch profiles with auth data
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const res = await fetch('/api/admin/users')
+      if (!res.ok) throw new Error(`Failed to load users (${res.status})`)
+      const { users: rows } = await res.json()
 
-      if (profilesError) throw profilesError
-
-      // Fetch auth users for email and last sign in
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
-
-      if (authError) {
-        // Fallback if admin API not available
-        const usersData = profiles?.map((profile: any) => ({
-          id: profile.id,
-          email: 'N/A',
-          username: profile.username || 'Anonymous',
-          role: profile.role || 'user',
-          avatar_url: profile.avatar_url || '',
-          created_at: profile.created_at,
-          last_sign_in_at: 'N/A',
-          steam_id: profile.steam_id,
-          faction_choice: profile.faction_choice,
-          level: profile.level || 1,
-          xp: profile.xp || 0,
-        })) || []
-
-        setUsers(usersData)
-        return
-      }
-
-      // Merge profile and auth data
-      const usersData = profiles?.map((profile: any) => {
-        const authUser = authUsers?.find((au: any) => au.id === profile.id)
-        return {
-          id: profile.id,
-          email: authUser?.email || 'N/A',
-          username: profile.username || 'Anonymous',
-          role: profile.role || 'user',
-          avatar_url: profile.avatar_url || '',
-          created_at: authUser?.created_at || profile.created_at,
-          last_sign_in_at: authUser?.last_sign_in_at || 'N/A',
-          steam_id: profile.steam_id,
-          faction_choice: profile.faction_choice,
-          level: profile.level || 1,
-          xp: profile.xp || 0,
-        }
-      }) || []
+      const usersData: User[] = (rows || []).map((profile: any) => ({
+        id: profile.id,
+        email: profile.email || 'N/A',
+        username: profile.username || profile.display_name || 'Anonymous',
+        role: (profile.role as Role) || 'user',
+        avatar_url: profile.avatar_url || '',
+        created_at: profile.created_at,
+        last_sign_in_at: profile.last_login_at || 'N/A',
+        steam_id: profile.steam_id,
+        faction_choice: profile.faction_choice,
+        level: profile.level || 1,
+        xp: profile.xp || 0,
+      }))
 
       setUsers(usersData)
     } catch (error) {
@@ -165,7 +119,7 @@ export default function UserManagement() {
     setPage(1)
   }
 
-  async function updateUserRole(userId: string, newRole: 'user' | 'admin' | 'moderator') {
+  async function updateUserRole(userId: string, newRole: Role) {
     if (!isAdmin) {
       alert('Only admins can change user roles')
       return
@@ -177,12 +131,13 @@ export default function UserManagement() {
 
     setUpdating(true)
     try {
-      const { error } = await (supabase
-        .from('profiles') as any)
-        .update({ role: newRole })
-        .eq('id', userId)
-
-      if (error) throw error
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update role')
 
       // Update local state
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u))
@@ -300,7 +255,7 @@ export default function UserManagement() {
               >
                 <option value="all">All Roles</option>
                 <option value="admin">Admin</option>
-                <option value="moderator">Moderator</option>
+                <option value="staff">Staff</option>
                 <option value="user">User</option>
               </select>
             </div>
@@ -468,11 +423,11 @@ export default function UserManagement() {
                   Make Admin
                 </button>
                 <button
-                  onClick={() => updateUserRole(selectedUser.id, 'moderator')}
-                  disabled={updating || selectedUser.role === 'moderator'}
+                  onClick={() => updateUserRole(selectedUser.id, 'staff')}
+                  disabled={updating || selectedUser.role === 'staff'}
                   className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
-                  Make Moderator
+                  Make Staff
                 </button>
                 <button
                   onClick={() => updateUserRole(selectedUser.id, 'user')}

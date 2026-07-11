@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from './supabaseServer'
 import { generateCSRFToken } from './csrf'
+import { signSession, verifySessionToken } from './sessionToken'
 
 const SESSION_COOKIE_NAME = 'etu_session'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
@@ -14,14 +15,14 @@ export interface SessionData {
 }
 
 /**
- * Create a session cookie (HTTP-only, secure)
+ * Create a session cookie (HTTP-only, secure, HMAC-signed)
  */
 export async function createSession(userId: string, email: string, role?: string): Promise<void> {
   const csrfToken = generateCSRFToken()
   const sessionData: SessionData = { userId, email, role, csrfToken }
 
   const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
+  cookieStore.set(SESSION_COOKIE_NAME, await signSession(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax', // lax allows cookies to be set when following external links (e.g. magic link from email)
@@ -31,42 +32,20 @@ export async function createSession(userId: string, email: string, role?: string
 }
 
 /**
- * Get the current session from cookies (server-side only)
+ * Get the current session from cookies (server-side only).
+ * Returns null unless the cookie carries a valid HMAC signature.
  */
 export async function getSession(): Promise<SessionData | null> {
-  try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)
-
-    if (!sessionCookie?.value) {
-      return null
-    }
-
-    const sessionData = JSON.parse(sessionCookie.value) as SessionData
-    return sessionData
-  } catch (error) {
-    console.error('Error parsing session:', error)
-    return null
-  }
+  const cookieStore = await cookies()
+  return verifySessionToken(cookieStore.get(SESSION_COOKIE_NAME)?.value)
 }
 
 /**
- * Get session from NextRequest (for middleware and API routes)
+ * Get session from NextRequest (for API routes).
+ * Returns null unless the cookie carries a valid HMAC signature.
  */
-export function getSessionFromRequest(request: NextRequest): SessionData | null {
-  try {
-    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)
-
-    if (!sessionCookie?.value) {
-      return null
-    }
-
-    const sessionData = JSON.parse(sessionCookie.value) as SessionData
-    return sessionData
-  } catch (error) {
-    console.error('Error parsing session from request:', error)
-    return null
-  }
+export async function getSessionFromRequest(request: NextRequest): Promise<SessionData | null> {
+  return verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value)
 }
 
 /**
@@ -87,16 +66,16 @@ export function deleteSessionFromResponse(response: NextResponse): void {
 /**
  * Set session cookie on response (for API routes)
  */
-export function setSessionOnResponse(
+export async function setSessionOnResponse(
   response: NextResponse,
   userId: string,
   email: string,
   role?: string
-): void {
+): Promise<void> {
   const csrfToken = generateCSRFToken()
   const sessionData: SessionData = { userId, email, role, csrfToken }
 
-  response.cookies.set(SESSION_COOKIE_NAME, JSON.stringify(sessionData), {
+  response.cookies.set(SESSION_COOKIE_NAME, await signSession(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax', // lax allows cookies to be set when following external links (e.g. magic link from email)

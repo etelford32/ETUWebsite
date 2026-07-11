@@ -59,9 +59,8 @@ export default function AdminContentPage() {
 
   async function loadEntries() {
     try {
-      // Admin can see all entries including drafts — call DB directly via the GET route
-      // (currently GET only returns published; for admin, show all)
-      const res = await fetch('/api/devlog')
+      // ?all=1 returns drafts too (admin-gated server-side).
+      const res = await fetch('/api/devlog?all=1')
       const { entries: data } = await res.json()
       setEntries(data || [])
     } catch {

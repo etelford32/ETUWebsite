@@ -2,26 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({ 
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
-
 
 interface AnalyticsData {
   summary: {
@@ -93,132 +76,33 @@ export default function AnalyticsPage() {
 
   async function checkAuth() {
     setLoading(true)
-    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
+    const sessionRes = await fetch('/api/auth/session')
+    const sessionData = await sessionRes.json()
 
-    if (!session?.user) {
+    if (!sessionData.authenticated) {
       router.push('/login?message=admin_auth_required')
       return
     }
 
-    const role = await getUserRole(session.user.id)
+    const role = sessionData.user.role
 
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'admin' && role !== 'staff') {
       router.push('/?error=unauthorized_admin_access')
       return
     }
 
-    setUser(session.user)
-    setIsAdmin(role === 'admin' || role === 'moderator')
+    setUser(sessionData.user)
+    setIsAdmin(role === 'admin' || role === 'staff')
     setLoading(false)
   }
 
   async function fetchAnalytics() {
     try {
       setRefreshing(true)
-
-      // Fetch sessions in time range
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - timeRange)
-
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .gte('started_at', startDate.toISOString())
-        .order('started_at', { ascending: false })
-
-      if (sessionsError && sessionsError.code !== 'PGRST116') {
-        console.error('Sessions error:', sessionsError)
-      }
-
-      // Fetch events
-      const { data: events, error: eventsError } = await supabase
-        .from('analytics_events')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-
-      if (eventsError && eventsError.code !== 'PGRST116') {
-        console.error('Events error:', eventsError)
-      }
-
-      // Calculate summary metrics (mock data for now)
-      const summaryData = {
-        totalSessions: sessions?.length || 0,
-        totalPageViews: events?.filter((e: any) => e.event_type === 'page_view').length || 0,
-        totalUsers: new Set(sessions?.map((s: any) => s.user_id).filter(Boolean)).size || 0,
-        avgSessionDuration: sessions?.length
-          ? sessions.reduce((acc: number, s: any) => acc + (s.duration_seconds || 0), 0) / sessions.length
-          : 0,
-        bounceRate: sessions?.length
-          ? (sessions.filter((s: any) => s.page_views === 1).length / sessions.length) * 100
-          : 0,
-      }
-
-      // Process time series data
-      const timeSeriesMap = new Map<string, any>()
-      sessions?.forEach((session: any) => {
-        const date = new Date(session.started_at).toISOString().split('T')[0]
-        if (!timeSeriesMap.has(date)) {
-          timeSeriesMap.set(date, { date, sessions: 0, pageViews: 0, users: new Set() })
-        }
-        const dayData = timeSeriesMap.get(date)
-        dayData.sessions++
-        dayData.pageViews += session.page_views || 0
-        if (session.user_id) dayData.users.add(session.user_id)
-      })
-
-      const timeSeriesData = Array.from(timeSeriesMap.values())
-        .map(d => ({
-          date: d.date,
-          sessions: d.sessions,
-          pageViews: d.pageViews,
-          users: d.users.size,
-        }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-
-      // Top pages
-      const pageViewsMap = new Map<string, number>()
-      events?.filter((e: any) => e.event_type === 'page_view').forEach((event: any) => {
-        const url = event.page_url || 'Unknown'
-        pageViewsMap.set(url, (pageViewsMap.get(url) || 0) + 1)
-      })
-
-      const topPages = Array.from(pageViewsMap.entries())
-        .map(([page_url, views]) => ({ page_url, views }))
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 10)
-
-      // Acquisition sources (mock data)
-      const acquisitionSources = [
-        { source: 'Direct', sessions: Math.floor((sessions?.length || 0) * 0.4), users: 0 },
-        { source: 'Organic Search', sessions: Math.floor((sessions?.length || 0) * 0.3), users: 0 },
-        { source: 'Social', sessions: Math.floor((sessions?.length || 0) * 0.2), users: 0 },
-        { source: 'Referral', sessions: Math.floor((sessions?.length || 0) * 0.1), users: 0 },
-      ]
-
-      // Device breakdown
-      const deviceMap = new Map<string, number>()
-      sessions?.forEach((session: any) => {
-        const device = session.device_type || 'Unknown'
-        deviceMap.set(device, (deviceMap.get(device) || 0) + 1)
-      })
-
-      const total = sessions?.length || 1
-      const deviceBreakdown = Array.from(deviceMap.entries())
-        .map(([device_type, count]) => ({
-          device_type,
-          count,
-          percentage: (count / total) * 100,
-        }))
-        .sort((a, b) => b.count - a.count)
-
-      setAnalytics({
-        summary: summaryData,
-        timeSeriesData,
-        topPages,
-        acquisitionSources,
-        deviceBreakdown,
-        recentSessions: sessions?.slice(0, 10) || [],
-      })
+      const res = await fetch(`/api/admin/analytics?days=${timeRange}`)
+      if (!res.ok) throw new Error(`Failed to load analytics (${res.status})`)
+      const data = await res.json()
+      setAnalytics(data)
     } catch (error) {
       console.error('Error fetching analytics:', error)
     } finally {

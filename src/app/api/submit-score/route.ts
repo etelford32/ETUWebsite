@@ -17,7 +17,7 @@ const VALID_PLATFORMS = ['PC', 'Mac', 'Linux', 'PS', 'Xbox', 'Switch']
 export async function POST(request: NextRequest) {
   try {
     // Auth: cookie-based session (matches the rest of the API surface).
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }

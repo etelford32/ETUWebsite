@@ -9,7 +9,7 @@ import { Database } from '@/lib/types'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
 
     if (!session) {
       return NextResponse.json(
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
 
     if (!session) {
       return NextResponse.json(
@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Validate CSRF token
-    if (!validateCSRFFromRequest(request)) {
+    if (!(await validateCSRFFromRequest(request))) {
       return NextResponse.json(
         { error: 'Invalid CSRF token' },
         { status: 403 }

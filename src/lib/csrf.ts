@@ -46,8 +46,8 @@ export function validateCSRFToken(token: string | null, sessionToken: string | n
  * @param request - Next.js request object
  * @returns true if CSRF token is valid
  */
-export function validateCSRFFromRequest(request: NextRequest): boolean {
-  const session = getSessionFromRequest(request)
+export async function validateCSRFFromRequest(request: NextRequest): Promise<boolean> {
+  const session = await getSessionFromRequest(request)
 
   if (!session) {
     return false // No session = no valid CSRF

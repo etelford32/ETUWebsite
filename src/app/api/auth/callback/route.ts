@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
         // Create session cookie
         const response = NextResponse.redirect(`${requestUrl.origin}/dashboard`)
-        setSessionOnResponse(response, user.id, user.email!, role)
+        await setSessionOnResponse(response, user.id, user.email!, role)
 
         return response
       }
