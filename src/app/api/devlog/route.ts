@@ -6,14 +6,25 @@ import { getSessionFromRequest } from '@/lib/session'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = () => createServerClient() as any
 
-// GET /api/devlog — public, returns all published entries ordered by date desc
-export async function GET() {
+// GET /api/devlog — public returns published entries; admins may request
+// all entries (including drafts) with ?all=1 for the content editor.
+export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await db()
+    const wantAll = request.nextUrl.searchParams.get('all') === '1'
+    let includeDrafts = false
+    if (wantAll) {
+      const session = await getSessionFromRequest(request)
+      includeDrafts = session?.role === 'admin'
+    }
+
+    let query = db()
       .from('devlog_entries')
       .select('id, title, content, date, tags, published, created_at, updated_at')
-      .eq('published', true)
       .order('date', { ascending: false })
+    if (!includeDrafts) {
+      query = query.eq('published', true)
+    }
+    const { data, error } = await query
 
     if (error) {
       // Table may not exist yet — return empty so page falls back to seed data

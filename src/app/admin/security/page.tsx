@@ -2,26 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { getUserRole } from '@/lib/adminAuth'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({ 
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
-
 
 interface SecurityMetrics {
   failedLoginAttempts: number
@@ -68,91 +51,33 @@ export default function SecurityMonitoring() {
 
   async function checkAuth() {
     setLoading(true)
-    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null
+    const sessionRes = await fetch('/api/auth/session')
+    const sessionData = await sessionRes.json()
 
-    if (!session?.user) {
+    if (!sessionData.authenticated) {
       router.push('/login?message=admin_auth_required')
       return
     }
 
-    const role = await getUserRole(session.user.id)
+    const role = sessionData.user.role
 
-    if (role !== 'admin' && role !== 'moderator') {
+    if (role !== 'admin' && role !== 'staff') {
       router.push('/?error=unauthorized_admin_access')
       return
     }
 
-    setUser(session.user)
-    setIsAdmin(role === 'admin' || role === 'moderator')
+    setUser(sessionData.user)
+    setIsAdmin(role === 'admin' || role === 'staff')
     await fetchSecurityMetrics()
     setLoading(false)
   }
 
   async function fetchSecurityMetrics() {
     try {
-      // Fetch admin users
-      const { data: adminUsers } = await supabase
-        .from('profiles')
-        .select('id, role')
-        .in('role', ['admin', 'moderator'])
-
-      // Mock security metrics (in production, fetch from security_events table)
-      const metrics: SecurityMetrics = {
-        failedLoginAttempts: 0,
-        activeAdmins: adminUsers?.length || 0,
-        recentAuthEvents: [],
-        rlsPolicies: [
-          {
-            table_name: 'profiles',
-            policy_name: 'Users can view their own profile',
-            enabled: true,
-            policy_type: 'SELECT',
-          },
-          {
-            table_name: 'feedback',
-            policy_name: 'Users can view their own feedback',
-            enabled: true,
-            policy_type: 'SELECT',
-          },
-          {
-            table_name: 'feedback',
-            policy_name: 'Admins can view all feedback',
-            enabled: true,
-            policy_type: 'SELECT',
-          },
-          {
-            table_name: 'player_scores',
-            policy_name: 'Scores are viewable by everyone',
-            enabled: true,
-            policy_type: 'SELECT',
-          },
-        ],
-        envVarsStatus: [
-          {
-            name: 'SUPABASE_URL (server-only)',
-            required: true,
-            configured: true, // Checked server-side via API
-          },
-          {
-            name: 'SUPABASE_SERVICE_ROLE_KEY (server-only)',
-            required: true,
-            configured: true, // Never exposed to browser
-          },
-          {
-            name: 'SESSION_SECRET',
-            required: true,
-            configured: true, // Server-only
-          },
-          {
-            name: 'STEAM_WEB_API_KEY',
-            required: false,
-            configured: true, // Server-only
-          },
-        ],
-        securityScore: 85, // Calculate based on various factors
-      }
-
-      setMetrics(metrics)
+      const res = await fetch('/api/admin/security')
+      if (!res.ok) throw new Error(`Failed to load security metrics (${res.status})`)
+      const data: SecurityMetrics = await res.json()
+      setMetrics(data)
     } catch (error) {
       console.error('Error fetching security metrics:', error)
     }
