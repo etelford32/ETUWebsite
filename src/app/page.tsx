@@ -84,6 +84,48 @@ export default function HomePage() {
 
       <Header />
 
+      {/* SVG turbulence filter that powers the hero title's crackling
+          electric aura (.hero-title__line::before in globals.css).
+          The animated baseFrequency/seed makes the displacement crawl
+          and fork like lightning. */}
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        width="0"
+        height="0"
+        style={{ position: "absolute", width: 0, height: 0 }}
+      >
+        <filter id="etu-electric" x="-30%" y="-30%" width="160%" height="160%">
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.018 0.045"
+            numOctaves={2}
+            seed={7}
+            result="noise"
+          >
+            <animate
+              attributeName="baseFrequency"
+              dur="7s"
+              values="0.018 0.045; 0.03 0.07; 0.012 0.038; 0.018 0.045"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="seed"
+              dur="3s"
+              values="1; 6; 2; 9; 1"
+              repeatCount="indefinite"
+            />
+          </feTurbulence>
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="noise"
+            scale="5"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+
       {/* HERO — ETU 2175 Design System pattern */}
       <section
         id="home"
@@ -179,7 +221,10 @@ export default function HomePage() {
             className="reveal hero-title font-orbitron text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
             style={{ lineHeight: 1.05 }}
           >
-            <span className="hero-title__line hero-title__line--1">
+            <span
+              className="hero-title__line hero-title__line--1"
+              data-text="Explore the"
+            >
               Explore the
             </span>
             <span
