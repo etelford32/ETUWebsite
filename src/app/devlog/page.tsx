@@ -145,6 +145,32 @@ export default function DevlogPage() {
         </div>
       </section>
 
+      {/* Featured deep dive */}
+      <section className="max-w-6xl mx-auto px-4 mb-12">
+        <Link
+          href="/cyl"
+          className="group block bg-gradient-to-br from-purple-900/30 via-slate-900/60 to-cyan-900/20 rounded-xl p-8 border border-purple-500/30 hover:border-cyan-400/50 transition-all hover:shadow-lg hover:shadow-purple-500/20"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">🔮</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-purple-300 font-semibold">Deep dive</span>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text mb-3">
+            How Cyl Works: Companion AI
+          </h2>
+          <p className="text-slate-300 max-w-3xl">
+            Her combat targeting, predictive aim, support doctrine, expressions and survey scan —
+            how each one is built, what it measured, and what is still unresolved.
+          </p>
+          <div className="mt-4 flex items-center gap-2 text-cyan-400 group-hover:text-cyan-300 transition-colors">
+            <span>Read the breakdown</span>
+            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </Link>
+      </section>
+
       {/* Tag Filter */}
       <section className="max-w-6xl mx-auto px-4 mb-12">
         <div className="flex flex-wrap gap-3">

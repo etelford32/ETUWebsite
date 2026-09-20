@@ -115,6 +115,7 @@ export default function Header() {
                 <div className="absolute top-full left-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden">
                   <div className="py-2">
                     <DropdownLink href="/#factions" icon="🏛️">Factions</DropdownLink>
+                    <DropdownLink href="/cyl" icon="🔮">Cyl · Companion AI</DropdownLink>
                     <DropdownLink href="/leaderboard" icon="🏆">Leaderboard</DropdownLink>
                     <DropdownLink href="/ship-designer" icon="🚀">Ship Designer</DropdownLink>
                     <DropdownLink href="/backlog" icon="📝">Backlog</DropdownLink>
@@ -178,6 +179,7 @@ export default function Header() {
             <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 px-4">Features</div>
             <div className="space-y-1 pl-4 border-l-2 border-cyan-500/30">
               <MobileNavLink href="/#factions">🏛️ Factions</MobileNavLink>
+              <MobileNavLink href="/cyl">🔮 Cyl · Companion AI</MobileNavLink>
               <MobileNavLink href="/leaderboard">🏆 Leaderboard</MobileNavLink>
               <MobileNavLink href="/ship-designer">🚀 Ship Designer</MobileNavLink>
               <MobileNavLink href="/backlog">📝 Backlog</MobileNavLink>
