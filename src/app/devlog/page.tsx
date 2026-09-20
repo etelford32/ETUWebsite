@@ -153,17 +153,17 @@ export default function DevlogPage() {
         >
           <div className="flex items-center gap-3 mb-3">
             <span className="text-3xl">🔮</span>
-            <span className="text-xs uppercase tracking-[0.2em] text-purple-300 font-semibold">Deep dive</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-purple-300 font-semibold">Character</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text mb-3">
-            How Cyl Works: Companion AI
+            Cyl — Companion AI
           </h2>
           <p className="text-slate-300 max-w-3xl">
-            Her combat targeting, predictive aim, support doctrine, expressions and survey scan —
-            how each one is built, what it measured, and what is still unresolved.
+            Eighteen abilities across six branches, four autonomous support lanes, a survey scanner,
+            a signal antenna and eleven expressions. Meet the companion who flies beside you.
           </p>
           <div className="mt-4 flex items-center gap-2 text-cyan-400 group-hover:text-cyan-300 transition-colors">
-            <span>Read the breakdown</span>
+            <span>Meet Cyl</span>
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
             </svg>

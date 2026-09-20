@@ -9,14 +9,14 @@ const STEAM_URL =
   "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175";
 
 export const metadata: Metadata = {
-  title: "How Cyl Works — Companion AI | Explore the Universe 2175",
+  title: "Cyl — Companion AI | Explore the Universe 2175",
   description:
-    "A devlog on Cyl, the Lumari crystal consciousness who flies beside you: how her combat targeting, predictive aim, support doctrine, expressions and survey scan are built — with the measurements behind each one.",
+    "Cyl is the Lumari crystal consciousness who flies beside you: eighteen abilities across six branches, autonomous combat support, survey scanning, signal listening and a face that reads her own state.",
   alternates: { canonical: "./" },
   openGraph: {
-    title: "How Cyl Works — Companion AI | Explore the Universe 2175",
+    title: "Cyl — Companion AI | Explore the Universe 2175",
     description:
-      "How Cyl's targeting, support doctrine, expressions and survey scan are built — and how their behavior changes the experience of flying with her.",
+      "Eighteen abilities, four autonomous support lanes, a survey scanner, a signal antenna and eleven expressions. Meet the companion who flies beside you.",
     url: `${SITE_URL}/cyl`,
     siteName: "Explore the Universe 2175",
     images: [{ url: `${SITE_URL}/cyl/cyl-expressions.png`, width: 960, height: 774 }],
@@ -24,121 +24,299 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "How Cyl Works — Companion AI | Explore the Universe 2175",
+    title: "Cyl — Companion AI | Explore the Universe 2175",
     description:
-      "How Cyl's targeting, support doctrine, expressions and survey scan are built.",
+      "Eighteen abilities, four autonomous support lanes, a survey scanner and eleven expressions.",
     images: [`${SITE_URL}/cyl/cyl-expressions.png`],
   },
 };
 
 /* ---------------------------------------------------------------- data --- */
 
-// The assist ladder Cyl walks to decide what she is shooting at, in priority
-// order (CYLAIM-01).
-const ASSIST_LADDER = [
-  {
-    rung: "1",
-    signal: "Explicit focus target",
-    detail: "A focus set by the game, while its freshness window holds.",
-  },
-  {
-    rung: "1b",
-    signal: "Your weapon lock",
-    detail:
-      "The target you clicked. Resolved through the same ladder her targeting profile publishes, so there is only ever one answer to “what did the player lock”.",
-  },
-  {
-    rung: "2",
-    signal: "Whatever last hit the ship",
-    detail: "The damage engine stamps the attacker; she reads it inside its window.",
-  },
-  {
-    rung: "3",
-    signal: "The direction the last hit came from",
-    detail: "A ±35° cone sweep of everything near her.",
-  },
-  {
-    rung: "4",
-    signal: "The direction you last fired",
-    detail: "The same sweep, against your own firing line.",
-  },
-];
-
-// Closest approach between her real launched bolt and the real target, walked
-// forward together at 1ms. A hit allows about 24.5px.
-const LEAD_EVIDENCE = [
-  { situation: "Crossing at 260 px/s, at full range", before: "45.6 px", after: "0.1 px", hit: true },
-  { situation: "Crossing at 400 px/s, at full range", before: "67.8 px", after: "0.3 px", hit: true },
-  { situation: "Crossing at 260 px/s, at half range", before: "27.4 px", after: "0.4 px", hit: true },
-  { situation: "Closing at 300 px/s", before: "0.8 px", after: "0.5 px", hit: true },
-  { situation: "Fleeing at 300 px/s", before: "1.1 px", after: "0.3 px", hit: true },
-  { situation: "Stationary", before: "0.4 px", after: "0.4 px", hit: true },
-  { situation: "Outrunning the bolt at 1400 px/s", before: "157.6 px", after: "157.6 px", hit: false },
-];
-
-// The four support lanes, and the condition each one waits for (CYLSUP-01).
-const SUPPORT_LANES = [
-  {
-    ability: "Healing Field",
-    kind: "Sustain",
-    fires: "Hull at or under 55% — or under 78% with the shield under 25%.",
-    cost: "32 of the ship's energy. She will not reach for it without 1.6× that in headroom.",
-    accent: "emerald",
-  },
-  {
-    ability: "Crystal Ascension",
-    kind: "Emergency",
-    fires: "Hull at or under 30% — or under 45% with the shield under 10%.",
-    cost: "Half her energy, and a 45-second cooldown. It sits strictly below the heal.",
-    accent: "purple",
-  },
-  {
-    ability: "Energy Nova",
-    kind: "Crowd control",
-    fires: "Three or more hostiles inside the blast's real radius, and the ship taking damage.",
-    cost: "Every point of her energy. It stands down on a frame the ultimate fired.",
-    accent: "cyan",
-  },
-  {
-    ability: "Taunt / Distract",
-    kind: "Peel",
-    fires: "The ship is pressed and something live just hit it.",
-    cost: "Distract instead of Taunt once two or more hostiles crowd the ship.",
-    accent: "amber",
-  },
-];
-
-// Her face, first match wins (CYL3D-03 / etu.cyl.expression).
-const EXPRESSION_LADDER = [
-  { face: "Dead", trigger: "She is gone" },
-  { face: "Wince", trigger: "A hit landed in the last 0.45 s" },
-  { face: "Hurt", trigger: "Hull at or under 25%" },
-  { face: "Scared", trigger: "Fleeing" },
-  { face: "Worried", trigger: "Hull at or under 50%" },
-  { face: "Delighted", trigger: "A discovery in the last 2.5 s" },
-  { face: "Determined", trigger: "Fighting" },
-  { face: "Curious", trigger: "Scanning" },
-  { face: "Tired", trigger: "Energy at or under 15%" },
-  { face: "Content", trigger: "Latched to the ship, safe" },
-  { face: "Happy", trigger: "Otherwise — her mood only shades the smile" },
-];
-
-const ACCENTS: Record<string, { border: string; text: string; bg: string }> = {
-  emerald: { border: "border-emerald-500/30", text: "text-emerald-300", bg: "bg-emerald-500/5" },
-  purple: { border: "border-purple-500/30", text: "text-purple-300", bg: "bg-purple-500/5" },
-  cyan: { border: "border-cyan-500/30", text: "text-cyan-300", bg: "bg-cyan-500/5" },
-  amber: { border: "border-amber-500/30", text: "text-amber-300", bg: "bg-amber-500/5" },
+type Ability = {
+  glyph: string;
+  label: string;
+  kind: string;
+  rgb: string;
+  blurb: string;
 };
+
+// Her ability inventory, carrying the glyph and colour each node wears in
+// the character screen.
+const BRANCHES: { name: string; abilities: Ability[] }[] = [
+  {
+    name: "Core",
+    abilities: [
+      {
+        glyph: "LINK",
+        label: "Docking Anchor",
+        kind: "Command",
+        rgb: "150,220,255",
+        blurb:
+          "Latch her to the hull or send her back out. Attached, she rides with you and mends herself.",
+      },
+    ],
+  },
+  {
+    name: "Combat",
+    abilities: [
+      {
+        glyph: "LAS",
+        label: "Companion Lasers",
+        kind: "Toggle",
+        rgb: "200,160,255",
+        blurb: "Her auxiliary rifle, firing on its own at whatever you are fighting.",
+      },
+      {
+        glyph: "ATK",
+        label: "Cyl Attack",
+        kind: "Command",
+        rgb: "255,128,188",
+        blurb: "She charges the selected target and lands a five-shot burst.",
+      },
+      {
+        glyph: "LOCK",
+        label: "Cyl Target Lock",
+        kind: "Command",
+        rgb: "118,232,210",
+        blurb: "A Cyl-side lock that follows her own combat priorities.",
+      },
+      {
+        glyph: "TAU",
+        label: "Taunt",
+        kind: "Command",
+        rgb: "255,184,104",
+        blurb: "Forces the target to focus her for a threat window.",
+      },
+      {
+        glyph: "DIS",
+        label: "Distract",
+        kind: "Command",
+        rgb: "150,210,255",
+        blurb: "She flanks as a decoy so the target tracks her instead of you.",
+      },
+      {
+        glyph: "NOV",
+        label: "Energy Nova",
+        kind: "Command",
+        rgb: "255,200,100",
+        blurb: "Discharges all of her energy as an EMP that stuns and damages everything close.",
+      },
+      {
+        glyph: "BANE",
+        label: "Mega Bot's Bane",
+        kind: "Passive",
+        rgb: "255,140,140",
+        blurb: "Her fire deals +50% damage to mechanical foes.",
+      },
+    ],
+  },
+  {
+    name: "Defense",
+    abilities: [
+      {
+        glyph: "SHD",
+        label: "Aegis Loop",
+        kind: "Toggle",
+        rgb: "140,210,255",
+        blurb: "A standing loop that keeps the ship's shield topped up.",
+      },
+      {
+        glyph: "HEAL",
+        label: "Healing Field",
+        kind: "Command",
+        rgb: "60,240,130",
+        blurb:
+          "A green grid over the hull: 2% of every defensive layer back every 200ms for four seconds.",
+      },
+      {
+        glyph: "CRY",
+        label: "Crystal Shield",
+        kind: "Passive",
+        rgb: "150,220,255",
+        blurb: "A crystalline barrier she raises for herself when a killing blow is coming.",
+      },
+      {
+        glyph: "TER",
+        label: "Terra Echo Shield",
+        kind: "Passive",
+        rgb: "255,140,100",
+        blurb:
+          "Earthfall resonance: her Crystal Shield resolves +40% capacity and +35% duration.",
+      },
+    ],
+  },
+  {
+    name: "Scan",
+    abilities: [
+      {
+        glyph: "SCAN",
+        label: "Active Scan",
+        kind: "Command",
+        rgb: "120,245,200",
+        blurb: "An orbital identification pass. What she finishes is discovered and archived.",
+      },
+      {
+        glyph: "DIM",
+        label: "Dimensional Sight",
+        kind: "Passive",
+        rgb: "200,100,255",
+        blurb: "Always on: +25% scan range, surfacing more of the scan layer.",
+      },
+      {
+        glyph: "KHP",
+        label: "Khepri Scan Analysis",
+        kind: "Passive",
+        rgb: "140,235,255",
+        blurb: "Khepri upgrades her scan speed, range, archive detail and tactical refresh depth.",
+      },
+      {
+        glyph: "EYE",
+        label: "Ocular Fracture Analysis",
+        kind: "Passive",
+        rgb: "110,245,255",
+        blurb: "Completed scans expose Megabot's eye-lance apertures as weak points.",
+      },
+    ],
+  },
+  {
+    name: "Mobility",
+    abilities: [
+      {
+        glyph: "PHZ",
+        label: "Phase Shift",
+        kind: "Passive",
+        rgb: "100,200,255",
+        blurb: "She phase-steps after you: +25% follow speed and acceleration.",
+      },
+    ],
+  },
+  {
+    name: "Ultimate",
+    abilities: [
+      {
+        glyph: "ASC",
+        label: "Crystal Ascension",
+        kind: "Command",
+        rgb: "255,215,0",
+        blurb: "Half her energy to become a healing force, mending you for ten seconds.",
+      },
+    ],
+  },
+];
+
+const ABILITY_COUNT = BRANCHES.reduce((n, b) => n + b.abilities.length, 0);
+
+const ALL_ABILITIES = BRANCHES.flatMap((b) => b.abilities);
+
+const STATS = [
+  { value: `${ABILITY_COUNT}`, label: "Abilities" },
+  { value: `${BRANCHES.length}`, label: "Branches" },
+  { value: "4", label: "Support lanes" },
+  { value: "11", label: "Faces" },
+  { value: "2.4/s", label: "Shots" },
+];
+
+// What she does on her own, without a button.
+const CAPABILITIES = [
+  {
+    glyph: "LOCK",
+    rgb: "118,232,210",
+    title: "She shoots what you are fighting",
+    body: "Her trigger reads your weapon lock first, then whatever last hit the ship, then the direction the hit came from, then your own firing line. Every candidate is checked for hostile, alive and in reach before she pulls — a friendly station you happen to have locked is walked straight past.",
+  },
+  {
+    glyph: "ATK",
+    rgb: "255,128,188",
+    title: "She leads the shot",
+    body: "Her bolts are ballistic, so she solves the intercept: target velocity against projectile speed for the earliest point the two meet, then aims there. Crossing targets that used to fly through the gap now take the hit.",
+  },
+  {
+    glyph: "LAS",
+    rgb: "200,160,255",
+    title: "She keeps firing",
+    body: "2.40 shots a second, sustained — heat falls under continuous fire instead of stacking, so there are no dead stops mid-engagement. Her energy and heat both read off her profile card, so you can see what she has left.",
+  },
+  {
+    glyph: "HEAL",
+    rgb: "60,240,130",
+    title: "She spends her abilities on you",
+    body: "Four lanes run on their own: the Healing Field on a hurt hull, Crystal Ascension when it turns critical, Energy Nova when a crowd is inside the blast and pressing you, and the Taunt/Distract peel on whatever just landed a hit.",
+  },
+  {
+    glyph: "SHD",
+    rgb: "140,210,255",
+    title: "She budgets the energy",
+    body: "The Healing Field draws on the ship, so she keeps 1.6× its cost in reserve and leaves you able to boost and shoot. The nova and the ultimate draw on her own pool, and the emergency always outranks the crowd control.",
+  },
+  {
+    glyph: "SCAN",
+    rgb: "120,245,200",
+    title: "She surveys what you find",
+    body: "She flies a paced orbit around the target while her beam scans the surface beneath her, the reticle's arc filling with the ground she has actually covered. A finished scan is discovered, archived and counted by the discovery tree.",
+  },
+  {
+    glyph: "KHP",
+    rgb: "140,235,255",
+    title: "She listens past the fog",
+    body: "Her antenna is a crystal organ that grows with her, pulling contacts out of the dark as a bearing, a range and a promise — quests, caches, derelicts, relics, and the things hunting you — before you fly into them.",
+  },
+  {
+    glyph: "DIM",
+    rgb: "200,100,255",
+    title: "She grows on what you explore",
+    body: "Decoding a contact banks discovery XP; reaching the waypoint it plotted pays again. Crystal memories unlock new abilities, and skill points buy stat ranks on the ones she already has — volley size, attack cost, aegis regen, shield cooldown, scan duration.",
+  },
+  {
+    glyph: "CRY",
+    rgb: "150,220,255",
+    title: "She tells you when she is hurt",
+    body: "Below a quarter hull she flashes a smoky red aura and asks you to bring her in. Latched to the hull she recharges her shield and regenerates at 1/s, and her face settles to content.",
+  },
+  {
+    glyph: "LINK",
+    rgb: "150,220,255",
+    title: "She talks first",
+    body: "She introduces herself before the first quest arrives, asks what to call you, and teaches the thrusters, the guns and the camera in her own speech bubbles — naming the keys you actually have bound.",
+  },
+];
 
 /* ---------------------------------------------------------- components --- */
 
+function Glyph({
+  glyph,
+  rgb,
+  size = "md",
+  title,
+}: {
+  glyph: string;
+  rgb: string;
+  size?: "md" | "sm";
+  title?: string;
+}) {
+  const box = size === "sm" ? "w-9 h-9 text-[9px]" : "w-12 h-12 text-[11px]";
+  return (
+    <span
+      aria-hidden={title ? undefined : true}
+      title={title}
+      className={`${box} shrink-0 inline-flex items-center justify-center rounded-lg border font-display font-bold tracking-wider`}
+      style={{
+        color: `rgb(${rgb})`,
+        borderColor: `rgba(${rgb},0.45)`,
+        background: `rgba(${rgb},0.08)`,
+        boxShadow: `0 0 18px rgba(${rgb},0.18), inset 0 0 12px rgba(${rgb},0.06)`,
+      }}
+    >
+      {glyph}
+    </span>
+  );
+}
+
 function SectionHeading({ eyebrow, children }: { eyebrow: string; children: React.ReactNode }) {
   return (
-    <div className="mb-6">
+    <div className="mb-8">
       <div className="eyebrow mb-2">{eyebrow}</div>
-      <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
-        {children}
-      </h2>
+      <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">{children}</h2>
     </div>
   );
 }
@@ -157,7 +335,7 @@ function Figure({
   caption: React.ReactNode;
 }) {
   return (
-    <figure className="my-8">
+    <figure>
       <div className="rounded-xl overflow-hidden border border-cyan-500/20 bg-black/60 shadow-[0_0_40px_rgba(34,211,238,0.08)]">
         <Image
           src={src}
@@ -165,19 +343,11 @@ function Figure({
           width={width}
           height={height}
           className="w-full h-auto"
-          sizes="(max-width: 768px) 100vw, 800px"
+          sizes="(max-width: 768px) 100vw, 640px"
         />
       </div>
       <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">{caption}</figcaption>
     </figure>
-  );
-}
-
-function Readout({ lines }: { lines: string[] }) {
-  return (
-    <pre className="my-6 overflow-x-auto rounded-xl border border-cyan-500/20 bg-slate-950/80 p-4 text-[12px] md:text-[13px] leading-relaxed text-cyan-200/90 font-mono">
-      {lines.join("\n")}
-    </pre>
   );
 }
 
@@ -194,643 +364,281 @@ export default function CylPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-purple-900/25 via-slate-950 to-deep-900" />
           <div className="absolute inset-0 opacity-30 etu-starfield" />
 
-          <div className="relative z-10 max-w-4xl mx-auto px-4 lg:px-6 pt-14 pb-12">
-            <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="relative z-10 max-w-6xl mx-auto px-4 lg:px-6 pt-10 pb-10">
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              <span className="etu-pill etu-pill--purple">Companion AI</span>
+              <span className="etu-pill etu-pill--cyan">Lumari crystal consciousness</span>
               <Link
                 href="/devlog"
                 className="eyebrow text-slate-400 hover:text-cyan-300 transition-colors"
               >
-                &larr; Elliot&rsquo;s Devlog
+                Elliot&rsquo;s Devlog &rarr;
               </Link>
-              <span className="etu-pill etu-pill--purple">Companion AI</span>
-              <span className="etu-pill etu-pill--cyan">
-                <span className="ping" />
-                Development build
-              </span>
             </div>
 
-            <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight etu-devlog-grad">
-              How Cyl Works
-            </h1>
-            <p className="mt-4 text-xl md:text-2xl text-slate-200">
-              Companion AI in <em>Explore the Universe 2175</em>
-            </p>
+            <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
+              <div>
+                <h1 className="font-display text-5xl md:text-7xl font-bold leading-[1.05] etu-devlog-grad">
+                  Cyl
+                </h1>
+                <p className="mt-3 text-xl md:text-2xl text-slate-200">
+                  She flies beside you, fights with you, and reads the dark ahead.
+                </p>
+                <p className="mt-5 text-lg text-slate-300 leading-relaxed">
+                  A crystal consciousness riding inside a drone body, with her own history with
+                  Megabot. She holds her own trigger, spends her own abilities to keep you alive,
+                  surveys what you find, listens for what you have not found yet&mdash;and wears
+                  every bit of it on her face.
+                </p>
 
-            <div className="mt-6 space-y-4 text-lg text-slate-300 leading-relaxed">
+                <div className="mt-8 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  {STATS.map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-lg border border-cyan-500/20 bg-slate-950/50 px-2 py-3 text-center"
+                    >
+                      <div className="font-display text-2xl font-bold text-cyan-300 leading-none">
+                        {s.value}
+                      </div>
+                      <div className="mt-1.5 font-display text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        {s.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+                    Wishlist on Steam
+                  </a>
+                  <Link href="/alpha-testing" className="btn-ghost">
+                    Join the playtest
+                  </Link>
+                </div>
+              </div>
+
+              <div>
+                <Figure
+                  src="/cyl/cyl-docked.png"
+                  alt="Cyl latched to the player's ship at three zoom levels, her dome lit and her brackets extended"
+                  width={1260}
+                  height={438}
+                  caption={
+                    <>
+                      Latched to the hull at three zoom levels. Attached, she recharges her shield
+                      and regenerates at 1/s.
+                    </>
+                  }
+                />
+
+                <div className="mt-6">
+                  <div className="eyebrow mb-3">Her kit at a glance</div>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_ABILITIES.map((a) => (
+                      <Glyph key={a.label} glyph={a.glyph} rgb={a.rgb} size="sm" title={a.label} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------- abilities --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14">
+          <SectionHeading eyebrow="Her kit">
+            {ABILITY_COUNT} abilities, {BRANCHES.length} branches
+          </SectionHeading>
+
+          <p className="-mt-4 mb-8 text-slate-300 leading-relaxed max-w-3xl">
+            Commands sit on your action bar, toggles run until you turn them off, and passives
+            change her numbers the moment they unlock. Crystal memories open the nodes; skill points
+            buy ranks on what she already carries.
+          </p>
+
+          <div className="space-y-10">
+            {BRANCHES.map((branch) => (
+              <div key={branch.name}>
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="font-display text-sm font-bold uppercase tracking-[0.22em] text-slate-200">
+                    {branch.name}
+                  </h3>
+                  <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/30 to-transparent" />
+                  <span className="eyebrow">
+                    {branch.abilities.length} {branch.abilities.length === 1 ? "node" : "nodes"}
+                  </span>
+                </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {branch.abilities.map((a) => (
+                    <div
+                      key={a.label}
+                      className="rounded-xl border border-slate-700/60 bg-slate-950/50 p-4 hover:border-cyan-400/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <Glyph glyph={a.glyph} rgb={a.rgb} />
+                        <div className="min-w-0">
+                          <div className="font-display font-bold text-slate-100 leading-tight">
+                            {a.label}
+                          </div>
+                          <div className="eyebrow mt-1">{a.kind}</div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-400 leading-relaxed">{a.blurb}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------- capabilities --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <SectionHeading eyebrow="Autonomy">What she does without being asked</SectionHeading>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            {CAPABILITIES.map((c) => (
+              <div
+                key={c.title}
+                className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-6 hover:border-cyan-400/30 transition-colors"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <Glyph glyph={c.glyph} rgb={c.rgb} size="sm" />
+                  <h3 className="font-display text-lg font-bold text-slate-100">{c.title}</h3>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------- faces --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <SectionHeading eyebrow="Expression">You can read her</SectionHeading>
+
+          <div className="grid lg:grid-cols-2 gap-10 items-start">
+            <div className="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                Cyl is your companion in <em>Explore the Universe 2175</em>: a Lumari crystal
-                consciousness traveling inside a drone body. She explores alongside you, assists in
-                combat, and has her own history with Megabot.
+                Her visor is her mouth and her lens is her eye, and the face is resolved from her
+                live state every frame&mdash;first match wins. A hit in the last half second is a
+                wince. A quarter hull is hurt. Fleeing is scared, scanning is curious, a fresh
+                discovery is delighted, a fight is determined, latched and safe is content.
               </p>
               <p>
-                Making that relationship work requires several systems to agree about what is
-                happening. Her targeting needs to recognize the enemy you are fighting. Her support
-                abilities need to respond to danger. Her expressions need to communicate what she is
-                experiencing.
+                Underneath it she carries a mood, and the mood only shades the default smile. She is
+                an optimist: gloom can narrow it, but only her body can turn it into a frown.
               </p>
-              <p>
-                This devlog looks at how those systems are developing&mdash;and how their behavior
-                changes the experience of flying with her.
-              </p>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                {[
+                  ["Wince", "a hit in the last 0.45s"],
+                  ["Hurt", "hull at 25%"],
+                  ["Worried", "hull at 50%"],
+                  ["Scared", "fleeing"],
+                  ["Delighted", "a discovery"],
+                  ["Determined", "fighting"],
+                  ["Curious", "scanning"],
+                  ["Tired", "energy at 15%"],
+                  ["Content", "latched, safe"],
+                  ["Happy", "everything else"],
+                ].map(([face, when]) => (
+                  <div
+                    key={face}
+                    className="rounded-lg border border-slate-700/60 bg-slate-950/50 px-3 py-2"
+                  >
+                    <div className="text-sm font-semibold text-cyan-300">{face}</div>
+                    <div className="text-xs text-slate-400">{when}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <Figure
-              src="/cyl/cyl-docked.png"
-              alt="Cyl latched to the player's ship at three zoom levels, her dome lit and her thrusters folded in"
-              width={1260}
-              height={438}
+              src="/cyl/cyl-expression-ladder.png"
+              alt="Twelve panels of Cyl reacting: idle, gloomy mood, warm mood, docked, hull 40%, hull 15%, scanning, just hit, a discovery, low energy, fleeing and fighting"
+              width={1200}
+              height={954}
               caption={
                 <>
-                  Cyl latched to the ship at three zoom levels. Attached, she recharges her shield
-                  and regenerates hull at 1/s&mdash;and her face goes to <em>content</em>.
+                  Idle and docked, hull at 40% and at 15% inside the low-health aura, scanning,
+                  freshly hit, delighted by a discovery, out of energy, fleeing, fighting.
                 </>
               }
             />
           </div>
         </section>
 
-        {/* ----------------------------------------------- build status --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14">
-          <SectionHeading eyebrow="Build status">What you are looking at</SectionHeading>
+        {/* -------------------------------------------------------- scan --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <SectionHeading eyebrow="Survey">The scan is a hologram</SectionHeading>
 
-          <p className="text-slate-300 leading-relaxed">
-            Everything below is measured against the current internal build&mdash;
-            <strong className="text-slate-100"> development epoch 763</strong>, the frozen image the
-            engine&rsquo;s test lane verifies (801 test modules, 13,180 test methods). Cyl&rsquo;s
-            combat and support AI landed at epochs 667&ndash;671; her low-health behavior at
-            694&ndash;697; her sphere body, survey hologram and face at epochs 760, 761 and 762,
-            all on September 19, 2026.
-          </p>
+          <div className="grid lg:grid-cols-2 gap-10 items-start">
+            <Figure
+              src="/cyl/cyl-survey-hologram.png"
+              alt="Cyl's survey hologram at two zoom levels and three points of a scan: beam, radar sweep, progress arc and readout cards"
+              width={1920}
+              height={756}
+              caption={
+                <>Two zoom levels by three points of one scan, drawn by the game&rsquo;s renderer.</>
+              }
+            />
 
-          <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="etu-glass p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="etu-pill etu-pill--green">In the build</span>
-              </div>
-              <ul className="space-y-3 text-slate-300 text-sm leading-relaxed">
-                <li>
-                  <strong className="text-emerald-300">Companion targeting.</strong> She reads your
-                  weapon lock, your recent attackers, and your firing direction.
-                </li>
-                <li>
-                  <strong className="text-emerald-300">Predictive aim.</strong> Her bolts lead a
-                  moving target instead of chasing where it was.
-                </li>
-                <li>
-                  <strong className="text-emerald-300">Autonomous support.</strong> Healing Field,
-                  Crystal Ascension, Energy Nova and the Taunt/Distract peel, each on its own
-                  trigger.
-                </li>
-                <li>
-                  <strong className="text-emerald-300">Expressions.</strong> Eleven faces resolved
-                  from her live state, every frame.
-                </li>
-                <li>
-                  <strong className="text-emerald-300">Survey hologram.</strong> The scan effect,
-                  beam contact and readout cards.
-                </li>
-                <li>
-                  <strong className="text-emerald-300">Low-health warning.</strong> The red aura,
-                  the dialogue asking you to attach her, and regeneration while latched.
-                </li>
-              </ul>
-            </div>
-
-            <div className="etu-glass p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="etu-pill etu-pill--amber">
-                  <span className="ping" />
-                  Still in development
-                </span>
-              </div>
-              <ul className="space-y-3 text-slate-300 text-sm leading-relaxed">
-                <li>
-                  <strong className="text-amber-300">Dialogue and personality.</strong> The
-                  conversation layer that reads the same state her face does. On the{" "}
-                  <Link href="/roadmap" className="text-cyan-400 hover:text-cyan-300 underline">
-                    Milestone 1 roadmap
-                  </Link>
-                  .
-                </li>
-                <li>
-                  <strong className="text-amber-300">Her scan-orbit heading.</strong> The formula
-                  that turns her on an orbit is the mirror of the one that turns her on a course, so
-                  she flies sideways on the horizontal legs of a scan.
-                </li>
-                <li>
-                  <strong className="text-amber-300">The Predictive Lead upgrade.</strong> The node
-                  promises leading vectors; leading is now baseline, and the node grants projectile
-                  speed. That claim needs rewriting or the node needs a mechanic.
-                </li>
-                <li>
-                  <strong className="text-amber-300">Where the Healing Field lands.</strong> It is
-                  cast at the ship&rsquo;s position and the ship flies on.
-                </li>
-                <li>
-                  <strong className="text-amber-300">True AI conversation.</strong> The long-term
-                  goal: Cyl talking to you through a language model, not a dialogue tree.
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <p className="mt-6 text-sm text-slate-400 leading-relaxed">
-            Playtest builds are cut from this line.{" "}
-            <Link href="/alpha-testing" className="text-cyan-400 hover:text-cyan-300 underline">
-              Closed alpha applications
-            </Link>{" "}
-            are open, and the Steam playtest is live.
-          </p>
-        </section>
-
-        {/* -------------------------------------------------- targeting --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Combat targeting">
-            Shooting what you are actually fighting
-          </SectionHeading>
-
-          <div className="space-y-4 text-slate-300 leading-relaxed">
-            <p>One of the clearest examples is combat targeting.</p>
-            <p>
-              For Cyl to help in a fight, she needs to understand where the player&rsquo;s attention
-              is directed. The companion targeting work connects her decisions to the player&rsquo;s
-              weapon lock, recent attackers, and firing direction. Those signals give her a way to
-              support what you are doing.
-            </p>
-            <p>
-              Each possible target still needs to pass basic checks. Is it hostile? Is it alive? Can
-              she reach it? If your selected target is outside her range, the decision process needs
-              to continue so she can respond to another immediate threat.
-            </p>
-          </div>
-
-          <div className="mt-8 overflow-x-auto rounded-xl border border-cyan-500/20 bg-slate-950/60">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-cyan-500/20 text-left">
-                  <th className="px-4 py-3 eyebrow">Priority</th>
-                  <th className="px-4 py-3 eyebrow">Signal</th>
-                  <th className="px-4 py-3 eyebrow">What it is</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ASSIST_LADDER.map((rung) => (
-                  <tr key={rung.rung} className="border-b border-slate-800/60 last:border-0">
-                    <td className="px-4 py-3 font-mono text-cyan-300 align-top">{rung.rung}</td>
-                    <td className="px-4 py-3 text-slate-100 align-top whitespace-nowrap">
-                      {rung.signal}
-                    </td>
-                    <td className="px-4 py-3 text-slate-400 align-top">{rung.detail}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="mt-6 text-slate-300 leading-relaxed">
-            The important part is that the ladder <em>walks</em>. An earlier shape committed to the
-            highest rung that had anything in it&mdash;and if that candidate turned out to be dead,
-            friendly or out of reach, she fired at nothing and silently skipped every lane below.
-            A lock beyond her 220px reach is common, so committing to it would have suppressed
-            return fire against whatever was actually chewing on the ship.
-          </p>
-
-          <Readout
-            lines={[
-              "player locked=boss, no assist hint     ->  Cyl shot 'boss'      via assist:player_lock",
-              "player locked=boss, explicit focus set ->  Cyl shot 'trash'     via assist:focus_target",
-              "lock 4000px away + a live attacker     ->  Cyl shot 'attacker'  via assist:last_attacker",
-              "lock is dead + a live attacker         ->  Cyl shot 'attacker'  via assist:last_attacker",
-              "friendly station locked + a raider     ->  Cyl shot 'raider'    via direct_select",
-              "no lock, no attacker                   ->  Cyl shot the nearest via direct_select",
-            ]}
-          />
-
-          <p className="text-slate-300 leading-relaxed">
-            That fifth line is the one worth pausing on. You can lock a friendly station&mdash;the
-            game lets you&mdash;and handing that lock straight to her trigger would be a way to have
-            Cyl open fire on an ally. The hostility check surviving inside the walk is what stops it.
-          </p>
-        </section>
-
-        {/* ------------------------------------------------------ leading --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Predictive aim">Hitting something that moves</SectionHeading>
-
-          <div className="space-y-4 text-slate-300 leading-relaxed">
-            <p>Then comes the problem of hitting something that moves.</p>
-            <p>
-              Her projectiles take time to travel. Aiming at an enemy&rsquo;s current position can
-              send a shot through space that the enemy has already left. Predictive aiming uses the
-              target&rsquo;s velocity and the projectile&rsquo;s speed to estimate an interception
-              point.
-            </p>
-            <p>
-              The numbers make it concrete. Over her 220px reach, at roughly 1,115 px/s, a bolt is
-              in flight for up to 180ms. A target crossing at 260 px/s covers 47px in that
-              time&mdash;and a hit allows about 24.5px. She could not hit a crossing target at any
-              range, and a crossing target is most of what you need shot.
-            </p>
-          </div>
-
-          <div className="mt-8 overflow-x-auto rounded-xl border border-cyan-500/20 bg-slate-950/60">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-cyan-500/20 text-left">
-                  <th className="px-4 py-3 eyebrow">Situation</th>
-                  <th className="px-4 py-3 eyebrow">Miss, before</th>
-                  <th className="px-4 py-3 eyebrow">Miss, after</th>
-                </tr>
-              </thead>
-              <tbody>
-                {LEAD_EVIDENCE.map((row) => (
-                  <tr key={row.situation} className="border-b border-slate-800/60 last:border-0">
-                    <td className="px-4 py-3 text-slate-200">{row.situation}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{row.before}</td>
-                    <td
-                      className={`px-4 py-3 font-mono ${
-                        row.hit ? "text-emerald-300" : "text-rose-300"
-                      }`}
-                    >
-                      {row.after}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-sm text-slate-500">
-            Closest approach between the bolt she really launches and the target, walked forward
-            together a millisecond at a time. Under about 24.5px is a hit.
-          </p>
-
-          <div className="mt-8 space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              That calculation has limits. A target can change direction after the shot leaves, and
-              some situations have no usable interception solution. The system needs a sensible
-              fallback as well as a good prediction.
-            </p>
-            <p>
-              The last row above is that fallback, not a defect: nothing intercepts a target moving
-              faster than the projectile chasing it. When the solve fails&mdash;no velocity to read,
-              no positive root, a target with no motion at all&mdash;the aim degrades to the raw
-              target position, which is exactly the straight shot she used to take. A lead solved
-              against the wrong speed would be worse than no lead at all: it is a confident aim at
-              the wrong place.
-            </p>
-            <p>
-              For the player, all of that should produce a simple result: Cyl is paying attention to
-              the fight you are actually in.
-            </p>
-          </div>
-        </section>
-
-        {/* -------------------------------------------------- support AI --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Support doctrine">
-            Deciding when an ability is worth spending
-          </SectionHeading>
-
-          <div className="space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              Her defensive behavior presents a different problem: deciding when an ability is worth
-              spending.
-            </p>
-            <p>
-              The support logic considers the ship&rsquo;s hull, shields, nearby threats, available
-              abilities, energy, and cooldowns. Healing, emergency protection, and crowd control
-              serve different situations. Their priorities have to reflect that.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4">
-            {SUPPORT_LANES.map((lane) => {
-              const a = ACCENTS[lane.accent];
-              return (
-                <div key={lane.ability} className={`rounded-xl border ${a.border} ${a.bg} p-5`}>
-                  <div className="flex flex-wrap items-baseline gap-3 mb-2">
-                    <h3 className={`font-display text-lg font-bold ${a.text}`}>{lane.ability}</h3>
-                    <span className="eyebrow">{lane.kind}</span>
-                  </div>
-                  <p className="text-slate-200 text-sm leading-relaxed">{lane.fires}</p>
-                  <p className="text-slate-400 text-sm leading-relaxed mt-2">{lane.cost}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              For example, the Energy Nova decision considers enemies within the blast&rsquo;s
-              actual reach&mdash;the radius it will have at her <em>current</em> energy, not a
-              nominal figure, because it spends every point she has and a blast landing short of the
-              hostiles that provoked it would spend all of it for nothing. It also checks whether the
-              ship is under pressure. A nearby group of enemies does not automatically justify
-              spending the energy.
-            </p>
-            <p>
-              Resources matter across both characters. Healing Field uses the ship&rsquo;s energy, so
-              automatic assistance needs to preserve enough reserve for the player to keep
-              acting&mdash;she will not reach for it without 1.6&times; its cost in headroom.
-              Assistance that leaves you unable to boost or shoot is not assistance. Other abilities
-              compete for Cyl&rsquo;s energy: the nova and the ultimate draw on the same pool, so the
-              nova stands down on a frame the ultimate fired.
-            </p>
-            <p>
-              These decisions make progression meaningful: every lane is gated by the
-              ability&rsquo;s own unlock, so a Cyl who has not earned Healing Field sits at 20% hull
-              and reports that she cannot help. Unlocking an ability expands what her support system
-              can do.
-            </p>
-          </div>
-        </section>
-
-        {/* --------------------------------------------- worked example --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Ten seconds">What that looks like in a fight</SectionHeading>
-
-          <p className="text-slate-300 leading-relaxed">
-            Here is ten real seconds at 60fps, driven through the live scheduler and the live
-            ship-side field tick. You are at 80 hull of 200&mdash;40%&mdash;with your shield down to
-            20%, and Cyl has Healing Field, Crystal Ascension and Energy Nova all unlocked.
-          </p>
-
-          <Readout
-            lines={[
-              "casts over 600 frames: {'healing_field': 1}",
-              "heal reasons: ship_hurt=1, retry_backoff=90, field_cooldown=5, ship_stable=504",
-              "",
-              "hull         80.0 -> 160.0  (+80.0 of 200)",
-              "ship energy   158 -> 126    (the field's 32, and nothing else)",
-              "cyl energy    100 -> 100    (she spent none of her own)",
-            ]}
-          />
-
-          <div className="space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              One cast. The hull comes back up by the field&rsquo;s documented 40% of maximum. You
-              pay 32 energy out of 158, which still leaves you able to boost out of trouble. And
-              Crystal Ascension never fires&mdash;not because it is blocked, but because at 40% hull
-              the heal was enough. That ordering is the doctrine working: healing is the first
-              response, the ultimate is the emergency.
-            </p>
-            <p>
-              The other 504 frames she reports <span className="font-mono text-cyan-300">ship_stable</span>
-              , which is the part I care about most. Assistance that fires constantly is noise, and
-              noise is indistinguishable from a companion who is not paying attention.
-            </p>
-          </div>
-
-          <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
-            <div className="eyebrow mb-3 text-amber-300">Still weighing</div>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              The Healing Field is placed at the ship&rsquo;s position at the moment she casts
-              it&mdash;and then the field stays put while you fly on. In a fight where you are
-              kiting, that heal is behind you almost immediately. There is a &ldquo;get
-              inside&rdquo; nudge for exactly this, but nudging the player toward a decision the
-              companion made is a different feeling than being helped. The open question is whether
-              she should lead the cast the way her weapon leads a shot, predicting where you will be
-              rather than where you were&mdash;or whether a field you have to fly back into is the
-              honest cost of a free heal. I have not decided.
-            </p>
-          </div>
-        </section>
-
-        {/* ------------------------------------------------- expressions --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Expression">Her behavior also needs to be visible</SectionHeading>
-
-          <div className="space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              Cyl&rsquo;s developing expression system uses a priority order. Recent damage can
-              trigger a wince; low health can produce a worried or hurt expression. Scanning and
-              discovery have their own responses. Her underlying mood influences her default
-              expression, while immediate events can override it.
-            </p>
-          </div>
-
-          <Figure
-            src="/cyl/cyl-expression-ladder.png"
-            alt="Twelve panels of Cyl reacting: idle, gloomy mood, warm mood, docked, hull 40%, hull 15%, scanning, just hit, a discovery, low energy, fleeing and fighting"
-            width={1200}
-            height={954}
-            caption={
-              <>
-                The ladder, panel by panel: idle and docked, hull at 40% and at 15% inside the
-                low-health aura, scanning, freshly hit, delighted by a discovery, out of energy,
-                fleeing, and fighting. Each panel is her real state driven into the real renderer.
-              </>
-            }
-          />
-
-          <Figure
-            src="/cyl/cyl-expressions.png"
-            alt="Eleven of Cyl's expressions rendered at 80px: happy, content, delighted, curious, determined, scared, worried, hurt, wince, tired and dead"
-            width={960}
-            height={774}
-            caption={
-              <>
-                The same eleven faces up close, at an 80px hull radius. Her visor is her mouth and
-                her lens is her eye&mdash;the mouth is a bowed polyline or a ring in her neon, the
-                lids are caps of the lens in the socket color.
-              </>
-            }
-          />
-
-          <div className="mt-2 overflow-x-auto rounded-xl border border-cyan-500/20 bg-slate-950/60">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-cyan-500/20 text-left">
-                  <th className="px-4 py-3 eyebrow">Face</th>
-                  <th className="px-4 py-3 eyebrow">First match wins</th>
-                </tr>
-              </thead>
-              <tbody>
-                {EXPRESSION_LADDER.map((row) => (
-                  <tr key={row.face} className="border-b border-slate-800/60 last:border-0">
-                    <td className="px-4 py-3 text-slate-100 whitespace-nowrap">{row.face}</td>
-                    <td className="px-4 py-3 text-slate-400">{row.trigger}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-8 space-y-4 text-slate-300 leading-relaxed">
-            <p>
-              This creates a direct connection between simulation and character animation. You can
-              look at her and get information about how she is doing.
-            </p>
-            <p>
-              Arriving at that face took a correction first. Her visor used to be painted into her
-              cached sprite&mdash;a bar with two slashes angled down&mdash;so she wore one frown at
-              every size, whatever was happening to her, while the emotion vector her personality
-              matrix has kept all along never reached her face. She is an optimist, and she was
-              scowling at everybody.
-            </p>
-            <p>
-              So the face is resolved from her live state instead, and her mood only shades the
-              default smile within a floor and ceiling. A gloomy mood can narrow the smile; it can
-              never turn it into a frown. Only her body can do that&mdash;damage, low hull, fear.
-              Visually she is a sphere with a glass dome over a galaxy, a violet eye, brass and cyan,
-              and the whole face costs about a twelfth of her draw: 14&micro;s of 174 at 24px, 34&micro;s
-              of 478 at 80px, and 1.4&micro;s to decide which face it is.
-            </p>
-          </div>
-        </section>
-
-        {/* ---------------------------------------------------- scanning --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="Scanning">The survey hologram</SectionHeading>
-
-          <p className="text-slate-300 leading-relaxed">
-            Scanning has received similar attention. The survey effect connects her lens to a target
-            and surrounds the object with progress indicators and projected readouts: a dashed outer
-            ring and a counter-turning inner one, a radar sweep with a fading trail, corner brackets
-            standing off the reticle, motes riding it, two readout cards typing themselves in, and at
-            the contact point the beam painting an arc of the target&rsquo;s own surface as she
-            covers it.
-          </p>
-
-          <Figure
-            src="/cyl/cyl-survey-hologram.png"
-            alt="Cyl's survey hologram at two zoom levels and three points of a scan: beam, sweep, progress arc and readout cards"
-            width={1920}
-            height={756}
-            caption={
-              <>
-                Two zoom levels by three points of one scan, photographed from the real renderer. The
-                arc that fills is the surface she has actually covered on her orbit.
-              </>
-            }
-          />
-
-          <p className="text-slate-300 leading-relaxed">
-            Its level of detail changes with the visible size of her body, keeping distant scans
-            simpler&mdash;the same ladder her sprite rides. Her lens draws a pupil only from 8px and
-            a highlight only from 16px; below that she is a lit dot with an antenna, and nothing is
-            spent on detail nobody can see.
-          </p>
-
-          <Figure
-            src="/cyl/cyl-lod-ladder.png"
-            alt="Cyl rendered at hull radii from 6 to 80 pixels, showing detail arriving as she gets closer"
-            width={1300}
-            height={556}
-            caption={
-              <>
-                Cyl from r=6 to r=80. Detail arrives as she does.
-              </>
-            }
-          />
-
-          <p className="text-slate-300 leading-relaxed">
-            There is an engineering consideration behind that presentation, too. The scan effect used
-            to allocate, clear and blit an alpha layer the size of the whole screen, every frame, for
-            a drawing that covered a tenth of it. Now the layer is the size of what is actually
-            drawn, clipped to the view. That reduces unnecessary rendering work while allowing a more
-            detailed effect&mdash;and it means a bigger monitor no longer costs more to scan on. Six
-            times the pixels must not cost twice the time; the test that says so runs on every
-            change.
-          </p>
-        </section>
-
-        {/* --------------------------------------------------- what next --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <SectionHeading eyebrow="What comes next">Where Cyl goes from here</SectionHeading>
-
-          <p className="text-slate-300 leading-relaxed">
-            These are the kinds of changes that make Cyl interesting to develop. Target selection,
-            resource management, animation, and conversation all contribute to the same character. A
-            mistake in any one of them can change how dependable&mdash;or how present&mdash;she
-            feels.
-          </p>
-
-          <div className="mt-8 grid gap-5">
-            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-6">
-              <div className="eyebrow mb-3 text-cyan-300">Next up</div>
-              <h3 className="font-display text-lg font-bold text-slate-100 mb-2">
-                Her dialogue and personality system
-              </h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                She has a face that reads her state and a mouth that already moves. What she does not
-                have yet is much to say with it. The dialogue work connects the same signals&mdash;
-                damage, discovery, low health, a fight going badly&mdash;to what she actually tells
-                you, so the line you hear and the expression you see come from one place rather than
-                two. Longer term, that layer is where a language model replaces the dialogue tree
-                entirely.
+            <div className="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                Her lens throws a beam onto the target and the object comes up inside a survey rig: a
+                dashed outer ring and a counter-turning inner one, a radar sweep with a fading trail,
+                corner brackets standing off the reticle, motes riding the ring, two readout cards
+                typing themselves in, and at the contact point the beam painting an arc of the
+                target&rsquo;s own surface as she covers it.
               </p>
-            </div>
-
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-6">
-              <div className="eyebrow mb-3 text-rose-300">Unresolved</div>
-              <h3 className="font-display text-lg font-bold text-slate-100 mb-2">
-                She flies sideways on a scan orbit
-              </h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Cyl has two pieces of code that decide which way she is facing: one turns her along
-                her course, one turns her on a scan orbit&mdash;and the second is the mirror of the
-                first. While she was a flat, symmetric disc, nobody could tell. A sphere with a dome,
-                an eye and a weapon pod on one flank tells you immediately: on the horizontal legs of
-                an orbit she is facing the wrong way. Fixing it means touching heading code that
-                several other systems read, which is why it is still open rather than patched.
+              <p>
+                Detail arrives with her. Close up she is a glass dome over a galaxy with a violet
+                eye; far out she is a lit dot with an antenna, and nothing is spent drawing what
+                nobody can see. The effect stays sharp at any zoom and cheap at any screen size.
               </p>
-            </div>
-
-            <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-6">
-              <div className="eyebrow mb-3 text-purple-300">For playtesters</div>
-              <h3 className="font-display text-lg font-bold text-slate-100 mb-2">
-                Watch what she shoots when you change your mind
-              </h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Lock a target, then let something else start hitting you&mdash;or lock something far
-                outside her range and see whether she still defends you. That is the ladder walking,
-                and it is the single behavior most likely to feel wrong before it feels right. Tell
-                me when she shoots something you did not expect.{" "}
-                <Link href="/feedback" className="text-cyan-400 hover:text-cyan-300 underline">
-                  Feedback goes here
-                </Link>
-                .
-              </p>
+              <Figure
+                src="/cyl/cyl-lod-ladder.png"
+                alt="Cyl rendered at hull radii from 6 to 80 pixels, detail arriving as she gets closer"
+                width={1300}
+                height={556}
+                caption={<>Cyl from r=6 to r=80.</>}
+              />
             </div>
           </div>
         </section>
 
-        {/* -------------------------------------------------------- CTA --- */}
-        <section className="max-w-4xl mx-auto px-4 lg:px-6 py-16 border-t border-slate-800/60">
-          <p className="text-xl text-slate-200 leading-relaxed">
-            As you explore, I want Cyl&rsquo;s actions to give you reasons to notice her, understand
-            her, and eventually trust her.
-          </p>
+        {/* --------------------------------------------------------- CTA --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-16 border-t border-slate-800/60">
+          <div className="max-w-3xl">
+            <p className="text-xl text-slate-200 leading-relaxed">
+              As you explore, Cyl&rsquo;s actions are meant to give you reasons to notice her,
+              understand her, and eventually trust her.
+            </p>
 
-          <div className="mt-8 flex flex-wrap gap-4">
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-ghost"
-            >
-              Wishlist on Steam
-            </a>
-            <Link href="/devlog" className="btn-ghost">
-              More devlogs
-            </Link>
-            <Link href="/alpha-testing" className="btn-ghost">
-              Join the closed alpha
-            </Link>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+                Wishlist on Steam
+              </a>
+              <Link href="/alpha-testing" className="btn-ghost">
+                Join the playtest
+              </Link>
+              <Link href="/devlog" className="btn-ghost">
+                Read the devlog
+              </Link>
+            </div>
+
+            <p className="mt-6 text-sm text-slate-400">
+              <a
+                href={STEAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:text-cyan-300 underline"
+              >
+                Wishlist Explore the Universe 2175 on Steam
+              </a>{" "}
+              and follow development as Cyl and the galaxy around her continue to grow.
+            </p>
           </div>
-
-          <p className="mt-6 text-sm text-slate-400">
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan-400 hover:text-cyan-300 underline"
-            >
-              Wishlist Explore the Universe 2175 on Steam
-            </a>{" "}
-            and follow development as Cyl and the galaxy around her continue to grow.
-          </p>
         </section>
       </main>
 
