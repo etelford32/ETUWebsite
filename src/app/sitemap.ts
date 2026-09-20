@@ -15,6 +15,7 @@ const STATIC_ROUTES = [
   '/audio',
   '/bosses',
   '/careers',
+  '/cyl',
   '/devlog',
   '/factions',
   '/faq',
