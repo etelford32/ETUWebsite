@@ -17,6 +17,7 @@ const STATIC_ROUTES = [
   '/careers',
   '/cyl',
   '/devlog',
+  '/evil-robots',
   '/factions',
   '/faq',
   '/health-warning',

@@ -17,8 +17,9 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        // The old static Rise of the Machines campaign page now lives at /evil-robots.
         source: '/campaign/megabot',
-        destination: '/pages/rise-of-machines.html',
+        destination: '/evil-robots',
         permanent: false,
       },
     ]

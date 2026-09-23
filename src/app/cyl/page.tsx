@@ -385,8 +385,14 @@ export default function CylPage() {
                   She flies beside you, fights with you, and reads the dark ahead.
                 </p>
                 <p className="mt-5 text-lg text-slate-300 leading-relaxed">
-                  A crystal consciousness riding inside a drone body, with her own history with
-                  Megabot. She holds her own trigger, spends her own abilities to keep you alive,
+                  A crystal consciousness riding inside a drone body, with her own history with{" "}
+                  <Link
+                    href="/evil-robots"
+                    className="text-cyan-300 hover:text-cyan-200 underline decoration-cyan-500/40 underline-offset-2"
+                  >
+                    Megabot
+                  </Link>
+                  . She holds her own trigger, spends her own abilities to keep you alive,
                   surveys what you find, listens for what you have not found yet&mdash;and wears
                   every bit of it on her face.
                 </p>

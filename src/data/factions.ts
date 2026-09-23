@@ -12,6 +12,8 @@ export interface Faction {
   /** Lore home — surfaced on the detail page when present. */
   homePlanet?: string;
   homeZone?: string;
+  /** Long-form page for this faction outside /factions/[slug] (e.g. /evil-robots, /cyl). */
+  featurePage?: { href: string; label: string };
   color: {
     primary: string;
     secondary: string;
@@ -150,6 +152,7 @@ export const factions: Record<string, Faction> = {
     tagline: "Modular forms, overwhelming firepower, station-scale bosses",
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
+    featurePage: { href: "/evil-robots", label: "Read the Evil Robots dossier" },
     description:
       "The Megabot Empire consists of massive modular machines that can reconfigure themselves for any combat situation. Each unit is a marvel of engineering with devastating firepower.",
     heroImage: "/eveil_robot_hero1.jpg",
@@ -345,6 +348,7 @@ export const factions: Record<string, Faction> = {
     heroImage: "/etu_epic7.png",
     homeZone: "Lumari",
     homePlanet: "Lumenreach",
+    featurePage: { href: "/cyl", label: "Meet Cyl, the Lumari companion AI" },
     color: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
   },
   "amphibia": {
