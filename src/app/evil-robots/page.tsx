@@ -4,7 +4,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { SITE_URL } from "@/lib/siteUrl";
-import { getFaction } from "@/data/factions";
+import { getFaction, type FactionUnit } from "@/data/factions";
 import { getBossesForFaction, type Boss } from "@/data/bosses";
 import { getZone } from "@/data/zones";
 
@@ -233,6 +233,125 @@ function SectionHeading({
   );
 }
 
+// Weight classes that are infrastructure rather than something that walks
+// out to fight; they get their own row below the legion.
+const COMMAND_CLASSES = new Set(["Structure", "Command"]);
+
+function UnitCard({
+  unit,
+  primary,
+  accent,
+}: {
+  unit: FactionUnit;
+  primary: string;
+  accent: string;
+}) {
+  return (
+    <article
+      className="etu-glass overflow-hidden flex flex-col"
+      style={{ borderColor: primary + "33" }}
+    >
+      {unit.image && (
+        <div className="relative aspect-[16/9] bg-black/60 border-b border-white/5">
+          <Image
+            src={unit.image}
+            alt={`${unit.name}, as the game draws it`}
+            fill
+            className="object-contain p-3"
+            sizes="(max-width: 768px) 100vw, 560px"
+          />
+        </div>
+      )}
+
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-bold text-slate-100 leading-tight">
+              {unit.name}
+            </h3>
+            {unit.role && (
+              <div className="eyebrow mt-1" style={{ color: accent }}>
+                {unit.role}
+              </div>
+            )}
+          </div>
+          {unit.weightClass && (
+            <span
+              className="etu-pill text-[9px] shrink-0"
+              style={{
+                borderColor: primary + "66",
+                background: primary + "14",
+                color: accent,
+              }}
+            >
+              {unit.weightClass}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-3 text-sm text-slate-300 leading-relaxed">{unit.description}</p>
+
+        {unit.stats && unit.stats.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {unit.stats.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-md border border-white/10 bg-slate-950/50 px-1.5 py-2 text-center min-w-0"
+              >
+                <div className="font-mono text-sm font-bold text-red-300 leading-none truncate">
+                  {s.value}
+                </div>
+                <div className="mt-1 font-display text-[9px] uppercase tracking-wider text-slate-500 truncate">
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {unit.loadout && unit.loadout.length > 0 && (
+          <ul className="mt-4 space-y-1.5">
+            {unit.loadout.map((line) => (
+              <li
+                key={line}
+                className="flex items-start gap-2 text-xs text-slate-400 leading-relaxed"
+              >
+                <span
+                  className="mt-[7px] w-1 h-1 rounded-full shrink-0"
+                  style={{ background: primary }}
+                />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(unit.ladder || unit.forge || unit.token) && (
+          <div className="mt-auto pt-4 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-slate-500">
+            {unit.ladder && (
+              <span>
+                Wave {unit.ladder.unlocksAtWave} · {unit.ladder.points}{" "}
+                {unit.ladder.points === 1 ? "pt" : "pts"}
+              </span>
+            )}
+            {unit.forge && (
+              <span>
+                Forge {unit.forge.seconds}s · {unit.forge.metal} metal · {unit.forge.energy}{" "}
+                energy
+              </span>
+            )}
+            {unit.token && <span className="ml-auto text-slate-600">{unit.token}</span>}
+          </div>
+        )}
+
+        {unit.quote && (
+          <p className="mt-3 text-xs italic text-slate-500">&ldquo;{unit.quote}&rdquo;</p>
+        )}
+      </div>
+    </article>
+  );
+}
+
 function TierPill({ boss }: { boss: Boss }) {
   return (
     <span
@@ -259,6 +378,8 @@ export default function EvilRobotsPage() {
   const primary = faction?.color.primary ?? "#ef4444";
   const accent = faction?.color.accent ?? "#fca5a5";
   const units = faction?.units ?? [];
+  const legion = units.filter((u) => !COMMAND_CLASSES.has(u.weightClass ?? ""));
+  const command = units.filter((u) => COMMAND_CLASSES.has(u.weightClass ?? ""));
   const strengths = faction?.strengths ?? [];
   const weaknesses = faction?.weaknesses ?? [];
 
@@ -266,7 +387,7 @@ export default function EvilRobotsPage() {
     { value: `${bosses.length}`, label: "Bosses" },
     { value: `${liveBosses}`, label: "Live now" },
     { value: `${DOCTRINE.length}`, label: "Doctrines" },
-    { value: `${units.length}`, label: "Unit classes" },
+    { value: `${units.length}`, label: "Unit types" },
     { value: "04", label: "Home zone" },
   ];
 
@@ -547,32 +668,47 @@ export default function EvilRobotsPage() {
 
         {/* --------------------------------------------------------- units --- */}
         {units.length > 0 && (
-          <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <section id="legion" className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
             <SectionHeading
-              eyebrow="Production Line"
-              intro="Three chassis leave the Mechatropolis foundries. Everything else is one of them, reconfigured."
+              eyebrow="The Legion"
+              intro={
+                <>
+                  <span className="font-mono text-red-300">{legion.length}</span> unit types walk
+                  out of the Mechatropolis foundries, from a scout that fires warning shots to a
+                  walker with four weapon systems on one heat budget. Numbers are the game&rsquo;s
+                  own spawn presets and unit reviews; thumbnails are the engine&rsquo;s own
+                  drawings. Wave and point figures are where each unit enters the Dominion
+                  Core&rsquo;s ladder; forge figures are what the Mecha Factory pays to build one.
+                </>
+              }
             >
               What the forge builds
             </SectionHeading>
 
-            <div className="grid md:grid-cols-3 gap-5">
-              {units.map((unit, idx) => (
-                <div key={unit.name} className="etu-glass p-6">
-                  <div
-                    className="w-11 h-11 rounded-md flex items-center justify-center mb-4 font-mono tabular-nums font-bold"
-                    style={{
-                      background: primary + "1A",
-                      border: `1px solid ${primary}55`,
-                      color: primary,
-                    }}
-                  >
-                    {String(idx + 1).padStart(2, "0")}
-                  </div>
-                  <h3 className="font-display font-semibold text-lg mb-2">{unit.name}</h3>
-                  <p className="text-sm text-slate-300 leading-relaxed">{unit.description}</p>
-                </div>
+            <div className="grid md:grid-cols-2 gap-5">
+              {legion.map((unit) => (
+                <UnitCard key={unit.token ?? unit.name} unit={unit} primary={primary} accent={accent} />
               ))}
             </div>
+
+            {command.length > 0 && (
+              <>
+                <div className="flex items-center gap-3 mt-12 mb-5">
+                  <h3 className="font-display text-sm font-bold uppercase tracking-[0.22em] text-slate-200">
+                    Forge and Command
+                  </h3>
+                  <div className="h-px flex-1 bg-gradient-to-r from-red-500/30 to-transparent" />
+                  <span className="eyebrow">
+                    {command.length} {command.length === 1 ? "structure" : "structures"}
+                  </span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-5">
+                  {command.map((unit) => (
+                    <UnitCard key={unit.token ?? unit.name} unit={unit} primary={primary} accent={accent} />
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         )}
 

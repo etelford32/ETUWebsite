@@ -93,10 +93,10 @@ const RAW_BOSSES: Boss[] = [
     tier: "Galactic",
     factionToken: "evil_robots",
     abilities: [
-      "Adaptive Tactics — learns your loadout between attempts",
-      "Twin Laser Arrays — focused beams that track your hull",
-      "Reconfiguring Modules — swaps offensive / defensive shells mid-fight",
-      "Boss Wave Escort — calls reinforcements every fifth wave",
+      "Missile Barrage, Orbital Strike, Gravity Well and EMP Pulse on rotation",
+      "Laser Sweep — a three-wide fan of 180-damage lance bolts walked across a 110° arc",
+      "Evil Eye — the ultimate: a 3,000-unit hitscan lance that pierces, swept from 46°/s up to 104°/s",
+      "Protocol Zero — the core-meltdown countdown at the end of five phases: dormant, assembled, separated, overdrive, meltdown",
     ],
     strategy:
       "Vary your approach run-to-run. MEGABOT remembers — repeat the same flank twice and you'll find it pre-aimed. Bait the laser sweep, then strike between barrages.",
