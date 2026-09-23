@@ -387,7 +387,7 @@ export default function CylPage() {
                 <p className="mt-5 text-lg text-slate-300 leading-relaxed">
                   A crystal consciousness riding inside a drone body, with her own history with{" "}
                   <Link
-                    href="/evil-robots"
+                    href="/megabot"
                     className="text-cyan-300 hover:text-cyan-200 underline decoration-cyan-500/40 underline-offset-2"
                   >
                     Megabot

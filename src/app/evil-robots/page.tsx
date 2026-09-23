@@ -12,16 +12,17 @@ const STEAM_URL =
   "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175";
 
 const FACTION_SLUG = "megabot";
+const MEGABOT_SLUG = "megabot";
 
 export const metadata: Metadata = {
   title: "Evil Robots — The Machine Empire | Explore the Universe 2175",
   description:
-    "The Evil Robots of Mechatropolis: a sentient machine empire of modular hulls, overwhelming firepower and station-scale bosses. Meet MEGABOT and its generals, learn their doctrine, and choose your side in Rise of the Machines.",
+    "The Evil Robots of Mechatropolis: a sentient machine empire of modular hulls, overwhelming firepower and station-scale bosses. Meet the Legion, its generals, and MEGABOT, the prototype they all descend from, then choose your side in Rise of the Machines.",
   alternates: { canonical: "./" },
   openGraph: {
     title: "Evil Robots — The Machine Empire | Explore the Universe 2175",
     description:
-      "Sentient machines with one directive: expand at any cost. Modular forms, nanite repair swarms, six bosses and a campaign where every commander's choice counts.",
+      "Sentient machines with one directive: expand at any cost. Scouts, walkers, dreadnoughts, roaming forges, and the prototype they all answer to.",
     url: `${SITE_URL}/evil-robots`,
     siteName: "Explore the Universe 2175",
     images: [
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Evil Robots — The Machine Empire | Explore the Universe 2175",
     description:
-      "Sentient machines with one directive: expand at any cost. Modular forms, nanite repair swarms, six bosses and a living campaign.",
+      "Sentient machines with one directive: expand at any cost. Scouts, walkers, dreadnoughts, roaming forges, and the prototype they all answer to.",
     images: [`${SITE_URL}/evil-robots/machine-empire-og.jpg`],
   },
 };
@@ -110,29 +111,28 @@ const DIRECTIVE = [
   },
 ];
 
-// Cyl's anti-machine kit, mirrored from her ability inventory on /cyl.
+// Cyl's history with the machines, as lore.
 const CYL_EDGE: Glyphed[] = [
   {
     glyph: "BANE",
     rgb: "255,140,140",
     label: "Mega Bot's Bane",
     kind: "Passive",
-    blurb: "Her fire deals +50% damage to mechanical foes.",
+    blurb: "Her fire has always bitten deeper into machines than into anything else alive.",
   },
   {
     glyph: "EYE",
     rgb: "110,245,255",
     label: "Ocular Fracture Analysis",
     kind: "Passive",
-    blurb: "Completed scans expose Megabot's eye-lance apertures as weak points.",
+    blurb: "A finished scan shows her where the apertures are, and where they are not armour.",
   },
   {
     glyph: "NOV",
     rgb: "255,200,100",
     label: "Energy Nova",
     kind: "Command",
-    blurb:
-      "An EMP discharge that stuns and damages everything close. Without an external signal, the nanite swarms cannot replicate.",
+    blurb: "Everything she has, released at once. Machines close enough to feel it stop.",
   },
 ];
 
@@ -161,14 +161,6 @@ const CAMPAIGN_PATHS = [
   },
 ];
 
-// What the browser arena actually runs, straight from the game's constants.
-const ARENA_FACTS = [
-  { value: "5th", label: "Boss wave" },
-  { value: "7th", label: "Siege wave" },
-  { value: "1.6s", label: "Ion cannon" },
-  { value: "3", label: "Complications" },
-];
-
 const TIER_ORDER: Record<Boss["tier"], number> = {
   "God-tier": 0,
   Galactic: 1,
@@ -183,6 +175,10 @@ function sortBosses(list: Boss[]): Boss[] {
     return TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || a.name.localeCompare(b.name);
   });
 }
+
+// Weight classes that are infrastructure rather than something that walks
+// out to fight; they get their own row below the legion.
+const COMMAND_CLASSES = new Set(["Structure", "Command"]);
 
 /* ---------------------------------------------------------- components --- */
 
@@ -233,10 +229,6 @@ function SectionHeading({
   );
 }
 
-// Weight classes that are infrastructure rather than something that walks
-// out to fight; they get their own row below the legion.
-const COMMAND_CLASSES = new Set(["Structure", "Command"]);
-
 function UnitCard({
   unit,
   primary,
@@ -258,7 +250,7 @@ function UnitCard({
             alt={`${unit.name}, as the game draws it`}
             fill
             className="object-contain p-3"
-            sizes="(max-width: 768px) 100vw, 560px"
+            sizes="(max-width: 768px) 100vw, 400px"
           />
         </div>
       )}
@@ -291,61 +283,8 @@ function UnitCard({
 
         <p className="mt-3 text-sm text-slate-300 leading-relaxed">{unit.description}</p>
 
-        {unit.stats && unit.stats.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {unit.stats.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-md border border-white/10 bg-slate-950/50 px-1.5 py-2 text-center min-w-0"
-              >
-                <div className="font-mono text-sm font-bold text-red-300 leading-none truncate">
-                  {s.value}
-                </div>
-                <div className="mt-1 font-display text-[9px] uppercase tracking-wider text-slate-500 truncate">
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {unit.loadout && unit.loadout.length > 0 && (
-          <ul className="mt-4 space-y-1.5">
-            {unit.loadout.map((line) => (
-              <li
-                key={line}
-                className="flex items-start gap-2 text-xs text-slate-400 leading-relaxed"
-              >
-                <span
-                  className="mt-[7px] w-1 h-1 rounded-full shrink-0"
-                  style={{ background: primary }}
-                />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {(unit.ladder || unit.forge || unit.token) && (
-          <div className="mt-auto pt-4 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] text-slate-500">
-            {unit.ladder && (
-              <span>
-                Wave {unit.ladder.unlocksAtWave} · {unit.ladder.points}{" "}
-                {unit.ladder.points === 1 ? "pt" : "pts"}
-              </span>
-            )}
-            {unit.forge && (
-              <span>
-                Forge {unit.forge.seconds}s · {unit.forge.metal} metal · {unit.forge.energy}{" "}
-                energy
-              </span>
-            )}
-            {unit.token && <span className="ml-auto text-slate-600">{unit.token}</span>}
-          </div>
-        )}
-
         {unit.quote && (
-          <p className="mt-3 text-xs italic text-slate-500">&ldquo;{unit.quote}&rdquo;</p>
+          <p className="mt-auto pt-4 text-xs italic text-slate-500">&ldquo;{unit.quote}&rdquo;</p>
         )}
       </div>
     </article>
@@ -374,6 +313,7 @@ export default function EvilRobotsPage() {
   const zone = getZone("evil");
   const bosses = sortBosses(getBossesForFaction(FACTION_SLUG));
   const liveBosses = bosses.filter((b) => b.status === "live").length;
+  const generals = bosses.filter((b) => b.id !== MEGABOT_SLUG);
 
   const primary = faction?.color.primary ?? "#ef4444";
   const accent = faction?.color.accent ?? "#fca5a5";
@@ -465,8 +405,8 @@ export default function EvilRobotsPage() {
                   <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
                     Wishlist on Steam
                   </a>
-                  <Link href="/missile-game" className="btn-ghost">
-                    Pilot MEGABOT
+                  <Link href="/megabot" className="btn-ghost">
+                    Meet MEGABOT
                   </Link>
                   <Link href={`/factions/${FACTION_SLUG}`} className="btn-ghost">
                     Faction dossier
@@ -531,10 +471,13 @@ export default function EvilRobotsPage() {
               </div>
             </div>
             <div>
-              <div className="eyebrow mb-1">Registry Token</div>
-              <div className="font-mono tabular-nums text-lg text-slate-300">
-                {faction?.token ?? "evil_robots"}
-              </div>
+              <div className="eyebrow mb-1">Sworn Enemy</div>
+              <Link
+                href="/factions/mycelari"
+                className="font-mono tabular-nums text-lg text-cyan-300 hover:text-cyan-200 hover:underline"
+              >
+                Mycelari
+              </Link>
             </div>
             <div>
               <div className="eyebrow mb-1">Status</div>
@@ -604,25 +547,74 @@ export default function EvilRobotsPage() {
           </div>
         </section>
 
-        {/* -------------------------------------------------------- bosses --- */}
-        {bosses.length > 0 && (
+        {/* ------------------------------------------------------- megabot --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
+            <figure>
+              <div
+                className="relative aspect-[2/3] max-h-[560px] rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
+                style={{ boxShadow: "0 0 60px rgba(239,68,68,0.16)" }}
+              >
+                <Image
+                  src="/Megabot1.png"
+                  alt="MEGABOT, Enemy of the Universe: a station-sized war machine lit red, towering over a burning city"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 440px"
+                />
+              </div>
+            </figure>
+
+            <div>
+              <div className="eyebrow mb-2">The Prototype</div>
+              <h2 className="font-display text-5xl md:text-6xl font-bold leading-none bg-gradient-to-r from-slate-100 via-red-300 to-red-500 bg-clip-text text-transparent">
+                MEGABOT
+              </h2>
+              <p className="mt-3 text-xl text-slate-200">Enemy of the Universe. Bow to your God-AI.</p>
+              <div className="mt-5 space-y-4 text-slate-300 leading-relaxed">
+                <p>
+                  Before there was an Empire there was one machine. The first real-time space
+                  boss with adaptive AI does not follow a script: it studies how you fight,
+                  remembers every run you have flown against it, and comes back changed.
+                </p>
+                <p>
+                  Every scout, walker and dreadnought the forges of Mechatropolis produce is an
+                  answer to the question it asked first. Hunted across the galaxy. Never caught.
+                </p>
+              </div>
+              <p className="mt-5 font-mono text-sm text-red-200/90 tracking-wide">
+                &ldquo;ORGANIC DETECTED. INITIATING PROTOCOL ZERO.&rdquo;
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/megabot" className="btn-ghost">
+                  Meet MEGABOT
+                </Link>
+                <Link href="/missile-game" className="btn-ghost">
+                  Pilot the prototype
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------ generals --- */}
+        {generals.length > 0 && (
           <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
             <SectionHeading
               eyebrow="Command Roster"
               intro={
                 <>
-                  <span className="font-mono text-red-300">{bosses.length}</span> machines fly
-                  the Empire&rsquo;s flag, led by MEGABOT, the prototype that started it all.{" "}
-                  <span className="font-mono text-emerald-300">{liveBosses}</span> live in the
-                  current build; the rest are on the line at Mechatropolis.
+                  <span className="font-mono text-red-300">{generals.length}</span> machines are
+                  being forged at Mechatropolis to stand beside the prototype. Their profiles
+                  ship as the alpha grows.
                 </>
               }
             >
-              MEGABOT and its generals
+              MEGABOT&rsquo;s generals
             </SectionHeading>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bosses.map((boss) => {
+              {generals.map((boss) => {
                 const isStub = boss.status === "in-development";
                 return (
                   <Link
@@ -641,10 +633,6 @@ export default function EvilRobotsPage() {
                       <TierPill boss={boss} />
                     </div>
                     <p className="text-sm text-slate-300 leading-snug">{boss.tagline}</p>
-                    <p className="mt-3 text-xs text-slate-500 leading-relaxed line-clamp-3">
-                      <span className="text-slate-400 font-semibold">Field note: </span>
-                      {boss.strategy}
-                    </p>
                     <div className="mt-auto pt-4 flex items-center justify-between">
                       {isStub ? (
                         <span className="text-[10px] font-display uppercase tracking-[0.18em] text-amber-300">
@@ -673,21 +661,20 @@ export default function EvilRobotsPage() {
               eyebrow="The Legion"
               intro={
                 <>
-                  <span className="font-mono text-red-300">{legion.length}</span> unit types walk
-                  out of the Mechatropolis foundries, from a scout that fires warning shots to a
-                  walker with four weapon systems on one heat budget. Numbers are the game&rsquo;s
-                  own spawn presets and unit reviews; thumbnails are the engine&rsquo;s own
-                  drawings. Wave and point figures are where each unit enters the Dominion
-                  Core&rsquo;s ladder; forge figures are what the Mecha Factory pays to build one.
+                  <span className="font-mono text-red-300">{legion.length}</span> kinds of machine
+                  walk out of the Mechatropolis foundries, from a scout that fires wide on
+                  purpose to a walker the size of a warship. They share a mind, a forge and an
+                  overlord. This is what you will meet, in roughly the order the Empire decides
+                  you are worth it.
                 </>
               }
             >
               What the forge builds
             </SectionHeading>
 
-            <div className="grid md:grid-cols-2 gap-5">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {legion.map((unit) => (
-                <UnitCard key={unit.token ?? unit.name} unit={unit} primary={primary} accent={accent} />
+                <UnitCard key={unit.name} unit={unit} primary={primary} accent={accent} />
               ))}
             </div>
 
@@ -704,7 +691,7 @@ export default function EvilRobotsPage() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-5">
                   {command.map((unit) => (
-                    <UnitCard key={unit.token ?? unit.name} unit={unit} primary={primary} accent={accent} />
+                    <UnitCard key={unit.name} unit={unit} primary={primary} accent={accent} />
                   ))}
                 </div>
               </>
@@ -795,9 +782,7 @@ export default function EvilRobotsPage() {
             intro={
               <>
                 Cyl, the Lumari crystal consciousness who flies beside you, has her own history
-                with Megabot, and three nodes in her kit exist specifically to hurt machines.
-                Vary your approach run to run: MEGABOT remembers, and a flank you have used
-                twice will be pre-aimed the third time.
+                with MEGABOT, and part of her kit exists specifically to hurt his kind.
               </>
             }
           >
@@ -866,73 +851,6 @@ export default function EvilRobotsPage() {
           </div>
         </section>
 
-        {/* --------------------------------------------------------- arena --- */}
-        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <SectionHeading eyebrow="Megabot Arena">Take the controls of the prototype</SectionHeading>
-              <div className="-mt-2 space-y-4 text-slate-300 leading-relaxed">
-                <p>
-                  The browser arena puts you inside MEGABOT itself. Walk the city, stomp what is
-                  under you, and answer the waves as they come: a boss every fifth wave, a siege
-                  beat every seventh, and an ion cannon on a short cooldown for whatever gets
-                  through.
-                </p>
-                <p>
-                  Each run rolls a complication before the first wave. Bossier moves the boss to
-                  every third wave, fast enemies speeds up everything airborne, and no upgrades
-                  is exactly what it says. Clear a wave flawlessly, by halfway, or under par and
-                  the bonus tiers pay out accordingly. Signed-in runs post to the leaderboard.
-                </p>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {ARENA_FACTS.map((s) => (
-                  <div
-                    key={s.label}
-                    className="rounded-lg border border-red-500/20 bg-slate-950/50 px-2 py-3 text-center"
-                  >
-                    <div className="font-display text-2xl font-bold text-red-300 leading-none">
-                      {s.value}
-                    </div>
-                    <div className="mt-1.5 font-display text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                      {s.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/missile-game" className="btn-ghost">
-                  Play Megabot
-                </Link>
-                <Link href="/leaderboard?mode=megabot" className="btn-ghost">
-                  Arena leaderboard
-                </Link>
-              </div>
-            </div>
-
-            <figure>
-              <div
-                className="relative aspect-[2/3] max-h-[560px] rounded-xl overflow-hidden border border-red-500/20 bg-black/60"
-                style={{ boxShadow: "0 0 40px rgba(239,68,68,0.10)" }}
-              >
-                <Image
-                  src="/Megabot1.png"
-                  alt="MEGABOT, Enemy of the Universe: a station-sized war machine lit red, towering over a burning city"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 520px"
-                />
-              </div>
-              <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">
-                MEGABOT, the prototype. Hunted across the galaxy, and still the Empire&rsquo;s
-                best argument.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
         {/* -------------------------------------------------------- lore --- */}
         {faction?.lore && (
           <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
@@ -963,8 +881,8 @@ export default function EvilRobotsPage() {
               <Link href="/alpha-testing" className="btn-ghost">
                 Join the playtest
               </Link>
-              <Link href={`/factions/${FACTION_SLUG}`} className="btn-ghost">
-                Faction dossier
+              <Link href="/megabot" className="btn-ghost">
+                Meet MEGABOT
               </Link>
               <Link href="/factions" className="btn-ghost">
                 All factions

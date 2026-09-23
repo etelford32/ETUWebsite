@@ -23,6 +23,7 @@ const STATIC_ROUTES = [
   '/health-warning',
   '/investors',
   '/leaderboard',
+  '/megabot',
   '/missile-game',
   '/press-kit',
   '/privacy',

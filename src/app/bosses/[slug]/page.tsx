@@ -118,6 +118,13 @@ export default function BossPage() {
               <p className="mt-4 text-xl md:text-2xl text-slate-200 max-w-2xl">
                 {boss.tagline}
               </p>
+              {boss.featurePage && (
+                <div className="mt-6">
+                  <Link href={boss.featurePage.href} className="btn-ghost">
+                    {boss.featurePage.label} <span aria-hidden>→</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </section>

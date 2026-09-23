@@ -17,6 +17,13 @@ const FEATURED_FACTION_PAGES = [
     accent: "#ef4444",
   },
   {
+    href: "/megabot",
+    icon: "👁️",
+    title: "MEGABOT",
+    subtitle: "Enemy of the Universe",
+    accent: "#f97316",
+  },
+  {
     href: "/cyl",
     icon: "🔮",
     title: "Cyl",
@@ -445,7 +452,7 @@ function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 px-1 pb-3">
+      <div className="grid grid-cols-3 gap-2 px-1 pb-3">
         {FEATURED_FACTION_PAGES.map((p) => (
           <Link
             key={p.href}
