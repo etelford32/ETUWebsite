@@ -1,3 +1,21 @@
+/**
+ * A unit as the website presents it: lore and character only. Stats,
+ * loadouts, spawn rules and other game internals deliberately stay out of
+ * this file and off the site.
+ */
+export interface FactionUnit {
+  name: string;
+  description: string;
+  /** Thumbnail (path under /public). */
+  image?: string;
+  /** Battlefield role in a few words. */
+  role?: string;
+  /** Weight class shown as a pill: Light, Line, Support, Hunter, Heavy, Boss-class, Swarm, Structure, Command. */
+  weightClass?: string;
+  /** A line of the unit's own in-game chatter. */
+  quote?: string;
+}
+
 export interface Faction {
   id: string;
   /** Game-side faction token (matches the boss registry, e.g. "evil_robots"). */
@@ -12,6 +30,8 @@ export interface Faction {
   /** Lore home — surfaced on the detail page when present. */
   homePlanet?: string;
   homeZone?: string;
+  /** Long-form page for this faction outside /factions/[slug] (e.g. /evil-robots, /cyl). */
+  featurePage?: { href: string; label: string };
   color: {
     primary: string;
     secondary: string;
@@ -20,11 +40,7 @@ export interface Faction {
   abilities?: string[];
   playstyle?: string;
   lore?: string;
-  units?: {
-    name: string;
-    description: string;
-    image?: string;
-  }[];
+  units?: FactionUnit[];
   strengths?: string[];
   weaknesses?: string[];
 }
@@ -150,6 +166,7 @@ export const factions: Record<string, Faction> = {
     tagline: "Modular forms, overwhelming firepower, station-scale bosses",
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
+    featurePage: { href: "/evil-robots", label: "Read the Evil Robots dossier" },
     description:
       "The Megabot Empire consists of massive modular machines that can reconfigure themselves for any combat situation. Each unit is a marvel of engineering with devastating firepower.",
     heroImage: "/eveil_robot_hero1.jpg",
@@ -180,21 +197,100 @@ export const factions: Record<string, Faction> = {
       "Vulnerable to hit-and-run tactics",
       "Limited stealth capabilities",
     ],
+    // The Evil Robots roster as lore. Mechanics stay in the game.
     units: [
       {
-        name: "Constructor Drone",
+        name: "Mecha Scout",
+        weightClass: "Light",
+        role: "The Empire's eyes",
+        image: "/evil-robots/units/mecha-scout.png",
         description:
-          "Versatile worker unit that can transform into defensive turrets",
+          "A scout does not open a fight; it circles one, close enough to be seen and far enough to be ignored, and fires wide on purpose to learn what you do. Provoke it and it stops asking. Every fight with the machines begins with one of these deciding you are worth the trouble.",
+        quote: "get the hecka outta here flyboy... this is robo territory.",
       },
       {
-        name: "Siege Titan",
+        name: "Mini Mecha",
+        weightClass: "Line",
+        role: "The grunt",
+        image: "/evil-robots/units/mini-mecha.png",
         description:
-          "Mobile fortress with multiple weapon configurations",
+          "The Empire's foot soldier, stamped out by the thousand. Small, armed three ways, and never alone: minis move in swarms, fall in behind anything bigger than themselves, and answer to MEGABOT before anyone else.",
+        quote: "Unauthorized pilot identified. Pursuit authorized.",
       },
       {
-        name: "Planetary Decimator",
+        name: "Mecha Medic",
+        weightClass: "Support",
+        role: "Field repair",
         description:
-          "Station-sized boss unit with reality-bending weapons",
+          "Keeps the legion walking. It hangs back from the line, pulls broken plate straight and welds the walkers whole again while the fight is still on. Machines do not retreat to heal. The medic comes to them.",
+      },
+      {
+        name: "Evil Robot",
+        weightClass: "Line",
+        role: "Rank and file",
+        description:
+          "A fast hull, two guns and no imagination. What the rank and file lack in cunning the Empire makes up in quantity, and it has never once run short.",
+      },
+      {
+        name: "Mecha Predator",
+        weightClass: "Hunter",
+        role: "Reactor-hunter",
+        image: "/evil-robots/units/mecha-predator.png",
+        description:
+          "Built low and long, cheetah-shaped, with lattice eyes that see energy rather than light and claws made to open a reactor housing. It runs you down, pounces, locks its jaws on your hull and drinks. What it takes from you, it keeps.",
+      },
+      {
+        name: "Terminator",
+        weightClass: "Heavy",
+        role: "Dreadnought",
+        image: "/evil-robots/units/terminator.png",
+        description:
+          "A wall of guns that walks, screened by point defence that swats your fire out of the sky before it arrives, and rarely seen without a walker on its bow. When the machines stop probing and decide to end something, this is what they send.",
+      },
+      {
+        name: "Assault Mecha",
+        weightClass: "Heavy",
+        role: "The Iron Fist",
+        image: "/evil-robots/units/assault-mecha.png",
+        description:
+          "MEGABOT's heavy. A walker the size of a warship that stands between a Terminator and whatever the Terminator is looking at, and answers the first shot with everything on its shoulders. It can shell you from the horizon all day, or close and empty every magazine at once, go quiet while it cools, and do it again. The smaller machines fall in behind it without being told.",
+      },
+      {
+        name: "Mega Mecha Scout",
+        weightClass: "Boss-class",
+        role: "The first boss",
+        image: "/evil-robots/units/mega-mecha-scout.png",
+        description:
+          "The scout's elder sibling in heavier plate, hot trim and a single red eye. Where the scout watches, this one hunts: it announces itself, walks its missiles out one at a time so you can count them, and calls the smaller scouts to its side. Most commanders meet the Empire properly for the first time here.",
+      },
+      {
+        name: "Nanobots",
+        weightClass: "Swarm",
+        role: "Chaff",
+        description:
+          "The smallest machines the Empire builds, and the most numerous. Nanite clusters drift across the field in clouds that are cheap to lose and expensive to ignore. Whatever is hiding behind them is the real target.",
+      },
+      {
+        name: "Nanobot Turrets",
+        weightClass: "Swarm",
+        role: "Fixed emplacements",
+        description:
+          "Where the swarm gathers long enough, it roots. Nanobot turrets are the clouds grown teeth: fixed guns that turn a drifting nuisance into ground the Empire holds.",
+      },
+      {
+        name: "Mecha Factory",
+        weightClass: "Structure",
+        role: "Roaming forge and hangar",
+        image: "/evil-robots/units/mecha-factory.png",
+        description:
+          "A forge the size of a small world that never stops moving. It crawls the map, eats what it finds, stamps out new hulls one at a time and keeps them in its hangars until it is time to let them loose. Damaged machines limp home to it. Kill the factory and the legion around it stops growing.",
+      },
+      {
+        name: "Dominion Core",
+        weightClass: "Command",
+        role: "The hive at Mechatropolis",
+        description:
+          "The Empire's mind. It counts every holding you take, weighs which one would hurt you most to lose, and sends the legion there. The more of the galaxy you hold, the more of it the Core wants back. Seat yourself with the machines and it goes quiet: the hive knows its overlord.",
       },
     ],
   },
@@ -345,6 +441,7 @@ export const factions: Record<string, Faction> = {
     heroImage: "/etu_epic7.png",
     homeZone: "Lumari",
     homePlanet: "Lumenreach",
+    featurePage: { href: "/cyl", label: "Meet Cyl, the Lumari companion AI" },
     color: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
   },
   "amphibia": {

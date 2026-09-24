@@ -36,6 +36,8 @@ export interface Boss {
   rewards?: { experience: number; credits: number };
   status: BossStatus;
   aliases?: readonly string[];
+  /** Long-form page for this boss outside /bosses/[slug] (e.g. /megabot). */
+  featurePage?: { href: string; label: string };
 }
 
 const HERO = {
@@ -96,8 +98,9 @@ const RAW_BOSSES: Boss[] = [
       "Adaptive Tactics — learns your loadout between attempts",
       "Twin Laser Arrays — focused beams that track your hull",
       "Reconfiguring Modules — swaps offensive / defensive shells mid-fight",
-      "Boss Wave Escort — calls reinforcements every fifth wave",
+      "The Legion — generals and escorts answer its call",
     ],
+    featurePage: { href: "/megabot", label: "Meet MEGABOT" },
     strategy:
       "Vary your approach run-to-run. MEGABOT remembers — repeat the same flank twice and you'll find it pre-aimed. Bait the laser sweep, then strike between barrages.",
     lore: "Built as a mining drone by an extinct architect race, MEGABOT achieved sentience through a cascading algorithm error and never stopped improving itself. Operates out of Mechatropolis as the prototype for the Machine Empire.",

@@ -1,24 +1,90 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { getAllFactions, type Faction } from "@/data/factions";
+
+type MenuKey = "factions" | "features";
+
+// Long-form faction pages that live outside /factions/[slug].
+const FEATURED_FACTION_PAGES = [
+  {
+    href: "/evil-robots",
+    icon: "🤖",
+    title: "Evil Robots",
+    subtitle: "Machine Empire dossier",
+    accent: "#ef4444",
+  },
+  {
+    href: "/megabot",
+    icon: "👁️",
+    title: "MEGABOT",
+    subtitle: "Enemy of the Universe",
+    accent: "#f97316",
+  },
+  {
+    href: "/cyl",
+    icon: "🔮",
+    title: "Cyl",
+    subtitle: "Lumari companion AI",
+    accent: "#e879f9",
+  },
+] as const;
+
+function factionStatusOrder(f: Faction) {
+  return (f.status ?? "live") === "live" ? 0 : 1;
+}
+
+// Live factions first, then the in-development roster, alphabetical within each.
+const FACTION_LINKS: Faction[] = getAllFactions()
+  .slice()
+  .sort(
+    (a, b) =>
+      factionStatusOrder(a) - factionStatusOrder(b) || a.name.localeCompare(b.name)
+  );
+
+const LIVE_FACTION_COUNT = FACTION_LINKS.filter(
+  (f) => (f.status ?? "live") === "live"
+).length;
+
+// "Megabot • Machine Empire" -> { short: "Megabot", sub: "Machine Empire" }
+function splitFactionName(name: string): { short: string; sub: string } {
+  const [short, ...rest] = name.split("•");
+  return { short: short.trim(), sub: rest.join("•").trim() };
+}
+
+// useLayoutEffect measures DOM before paint; fall back to useEffect on the server.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [featuresDropdownOpen, setFeaturesDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const navRef = useRef<HTMLElement>(null);
 
-  // Close dropdown when clicking outside
+  const closeMenus = useCallback(() => setOpenMenu(null), []);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const toggleMenu = (key: MenuKey) =>
+    setOpenMenu((current) => (current === key ? null : key));
+
+  // Close the desktop dropdowns on outside click or Escape.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setFeaturesDropdownOpen(false);
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setOpenMenu(null);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMenu(null);
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   return (
@@ -61,8 +127,8 @@ export default function Header() {
             </a>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 text-sm">
+          {/* Desktop Navigation (lg+; the nav is too wide for tablet widths, which get the menu below) */}
+          <nav ref={navRef} className="hidden lg:flex items-center gap-1 text-sm">
             {/* Elliot's Devlog - Left-most position */}
             <Link
               href="/devlog"
@@ -84,46 +150,34 @@ export default function Header() {
               <span className="relative z-10 text-white drop-shadow-lg">Elliot's Devlog</span>
             </Link>
 
+            {/* Factions Dropdown — every faction in the war, plus the long-form pages */}
+            <NavDropdown
+              label="Factions"
+              open={openMenu === "factions"}
+              onToggle={() => toggleMenu("factions")}
+              align="center"
+              panelClassName="w-[min(40rem,calc(100vw-2rem))]"
+            >
+              <FactionsMenu onNavigate={closeMenus} />
+            </NavDropdown>
+
             {/* Features Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setFeaturesDropdownOpen(!featuresDropdownOpen)}
-                className="relative px-3 py-2 group flex items-center gap-1"
-              >
-                {/* Hover background with glow */}
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 opacity-0 group-hover:opacity-100 rounded-lg transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.2)] scale-95 group-hover:scale-100"></div>
-
-                {/* Top and bottom borders */}
-                <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-                <span className="relative z-10 text-slate-300 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-blue-300 group-hover:bg-clip-text drop-shadow-[0_0_8px_rgba(34,211,238,0)] group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-300 font-medium">
-                  Features
-                </span>
-                <svg
-                  className={`w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-all duration-300 ${featuresDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu */}
-              {featuresDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden">
-                  <div className="py-2">
-                    <DropdownLink href="/#factions" icon="🏛️">Factions</DropdownLink>
-                    <DropdownLink href="/cyl" icon="🔮">Cyl · Companion AI</DropdownLink>
-                    <DropdownLink href="/leaderboard" icon="🏆">Leaderboard</DropdownLink>
-                    <DropdownLink href="/ship-designer" icon="🚀">Ship Designer</DropdownLink>
-                    <DropdownLink href="/backlog" icon="📝">Backlog</DropdownLink>
-                    <DropdownLink href="/roadmap" icon="🗺️">Roadmap</DropdownLink>
-                  </div>
-                </div>
-              )}
-            </div>
+            <NavDropdown
+              label="Features"
+              open={openMenu === "features"}
+              onToggle={() => toggleMenu("features")}
+              align="left"
+              panelClassName="w-56"
+            >
+              <div className="py-2">
+                <DropdownLink href="/leaderboard" icon="🏆" onNavigate={closeMenus}>Leaderboard</DropdownLink>
+                <DropdownLink href="/ship-designer" icon="🚀" onNavigate={closeMenus}>Ship Designer</DropdownLink>
+                <DropdownLink href="/bosses" icon="👑" onNavigate={closeMenus}>Bosses</DropdownLink>
+                <DropdownLink href="/zones" icon="🌌" onNavigate={closeMenus}>Zones</DropdownLink>
+                <DropdownLink href="/backlog" icon="📝" onNavigate={closeMenus}>Backlog</DropdownLink>
+                <DropdownLink href="/roadmap" icon="🗺️" onNavigate={closeMenus}>Roadmap</DropdownLink>
+              </div>
+            </NavDropdown>
 
             <NavLink href="/audio" highlight={true}>
               <span className="font-semibold text-base">Audio</span>
@@ -135,8 +189,8 @@ export default function Header() {
           </nav>
 
           {/* Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            <span className="etu-pill etu-pill--cyan" title="Current build">
+          <div className="hidden lg:flex items-center gap-3">
+            <span className="etu-pill etu-pill--cyan hidden xl:inline-flex" title="Current build">
               <span className="ping" />Playtest · Open
             </span>
             <a
@@ -154,8 +208,9 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             id="menuBtn"
-            className="md:hidden p-2 rounded-lg hover:bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.3)]"
-            aria-label="Open menu"
+            className="lg:hidden p-2 rounded-lg hover:bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.3)]"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <div className="w-6 h-5 flex flex-col justify-between">
@@ -169,27 +224,73 @@ export default function Header() {
 
       {/* Mobile menu */}
       <div
-        className={`md:hidden border-t border-cyan-500/20 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
-          mobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        className={`lg:hidden border-t border-cyan-500/20 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
+          mobileMenuOpen
+            ? "max-h-[calc(100vh-4rem)] overflow-y-auto opacity-100"
+            : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
+          {/* Factions Section in Mobile */}
+          <div className="mb-3">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 px-4">
+              Factions
+              <span className="ml-2 font-mono normal-case tracking-normal text-slate-600">
+                {FACTION_LINKS.length} · {LIVE_FACTION_COUNT} live
+              </span>
+            </div>
+            <div className="space-y-1 pl-4 border-l-2 border-red-500/30">
+              {FEATURED_FACTION_PAGES.map((p) => (
+                <MobileNavLink key={p.href} href={p.href} onNavigate={closeMobileMenu}>
+                  {p.icon} {p.title} · {p.subtitle}
+                </MobileNavLink>
+              ))}
+              <MobileNavLink href="/factions" onNavigate={closeMobileMenu}>🏛️ All Factions</MobileNavLink>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1">
+                {FACTION_LINKS.map((f) => {
+                  const { short } = splitFactionName(f.name);
+                  const isStub = f.status === "in-development";
+                  return (
+                    <Link
+                      key={f.id}
+                      href={`/factions/${f.id}`}
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-2 text-xs text-slate-300 hover:text-cyan-200 hover:border-cyan-400/40 transition-colors min-w-0"
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: f.color.primary, boxShadow: `0 0 6px ${f.color.primary}` }}
+                      />
+                      <span className="truncate">{short}</span>
+                      {isStub && (
+                        <span className="ml-auto shrink-0 text-[9px] font-semibold uppercase tracking-wider text-amber-300/80">
+                          Dev
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Features Section in Mobile */}
           <div className="mb-3">
             <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 px-4">Features</div>
             <div className="space-y-1 pl-4 border-l-2 border-cyan-500/30">
-              <MobileNavLink href="/#factions">🏛️ Factions</MobileNavLink>
-              <MobileNavLink href="/cyl">🔮 Cyl · Companion AI</MobileNavLink>
-              <MobileNavLink href="/leaderboard">🏆 Leaderboard</MobileNavLink>
-              <MobileNavLink href="/ship-designer">🚀 Ship Designer</MobileNavLink>
-              <MobileNavLink href="/backlog">📝 Backlog</MobileNavLink>
-              <MobileNavLink href="/roadmap">🗺️ Roadmap</MobileNavLink>
+              <MobileNavLink href="/leaderboard" onNavigate={closeMobileMenu}>🏆 Leaderboard</MobileNavLink>
+              <MobileNavLink href="/ship-designer" onNavigate={closeMobileMenu}>🚀 Ship Designer</MobileNavLink>
+              <MobileNavLink href="/bosses" onNavigate={closeMobileMenu}>👑 Bosses</MobileNavLink>
+              <MobileNavLink href="/zones" onNavigate={closeMobileMenu}>🌌 Zones</MobileNavLink>
+              <MobileNavLink href="/backlog" onNavigate={closeMobileMenu}>📝 Backlog</MobileNavLink>
+              <MobileNavLink href="/roadmap" onNavigate={closeMobileMenu}>🗺️ Roadmap</MobileNavLink>
             </div>
           </div>
 
           {/* Elliot's Devlog - Special Highlight */}
           <Link
             href="/devlog"
+            onClick={closeMobileMenu}
             className="block relative px-4 py-3 rounded-lg mb-3 overflow-hidden group"
           >
             {/* Animated gradient background */}
@@ -211,12 +312,12 @@ export default function Header() {
             </div>
           </Link>
 
-          <MobileNavLink href="/audio" highlight={true}>
+          <MobileNavLink href="/audio" highlight={true} onNavigate={closeMobileMenu}>
             <span className="font-semibold">Audio</span>
           </MobileNavLink>
-          <MobileNavLink href="/feedback">Feedback</MobileNavLink>
-          <MobileNavLink href="/faq">FAQ</MobileNavLink>
-          <MobileNavLink href="/profile">Profile</MobileNavLink>
+          <MobileNavLink href="/feedback" onNavigate={closeMobileMenu}>Feedback</MobileNavLink>
+          <MobileNavLink href="/faq" onNavigate={closeMobileMenu}>FAQ</MobileNavLink>
+          <MobileNavLink href="/profile" onNavigate={closeMobileMenu}>Profile</MobileNavLink>
 
           <div className="pt-3">
             <a
@@ -234,6 +335,185 @@ export default function Header() {
       {/* Bottom glow line */}
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
     </header>
+  );
+}
+
+// Desktop dropdown trigger + panel. The trigger keeps the NavLink hover
+// treatment; the panel sits under it, left-aligned or centred, and is
+// clamped to the viewport so a wide panel never runs off either edge.
+const PANEL_VIEWPORT_MARGIN = 16;
+
+function NavDropdown({
+  label,
+  open,
+  onToggle,
+  align,
+  panelClassName,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  align: "left" | "center";
+  panelClassName: string;
+  children: React.ReactNode;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Panel `left` in px relative to the trigger; measured before paint on open.
+  const [panelLeft, setPanelLeft] = useState(0);
+
+  useIsomorphicLayoutEffect(() => {
+    if (!open) return;
+
+    function place() {
+      const wrap = wrapRef.current;
+      const panel = panelRef.current;
+      if (!wrap || !panel) return;
+      const viewportWidth = document.documentElement.clientWidth;
+      const trigger = wrap.getBoundingClientRect();
+      const panelWidth = panel.offsetWidth;
+      const wanted =
+        align === "center"
+          ? trigger.left + trigger.width / 2 - panelWidth / 2
+          : trigger.left;
+      const maxLeft = viewportWidth - PANEL_VIEWPORT_MARGIN - panelWidth;
+      const clamped = Math.max(PANEL_VIEWPORT_MARGIN, Math.min(wanted, maxLeft));
+      setPanelLeft(Math.round(clamped - trigger.left));
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [open, align]);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="relative px-3 py-2 group flex items-center gap-1"
+      >
+        {/* Hover background with glow */}
+        <div className={`absolute inset-0 bg-gradient-to-b from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 ${open ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100 rounded-lg transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(34,211,238,0.2)] scale-95 group-hover:scale-100`}></div>
+
+        {/* Top and bottom borders */}
+        <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute bottom-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <span className={`relative z-10 ${open ? 'text-cyan-300' : 'text-slate-300'} group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-blue-300 group-hover:bg-clip-text drop-shadow-[0_0_8px_rgba(34,211,238,0)] group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-300 font-medium`}>
+          {label}
+        </span>
+        <svg
+          className={`w-4 h-4 text-slate-400 group-hover:text-cyan-400 transition-all duration-300 ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          role="menu"
+          style={{ left: panelLeft }}
+          className={`absolute top-full mt-2 ${panelClassName} bg-slate-900/95 backdrop-blur-xl border border-cyan-500/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden`}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The Factions panel: the two long-form pages up top, then every faction in
+// the registry (live first) linking to its /factions/[slug] profile.
+function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
+  return (
+    <div className="p-3">
+      <div className="flex items-center justify-between gap-3 px-2 pb-3">
+        <div>
+          <div className="eyebrow">Factions</div>
+          <div className="mt-0.5 text-xs text-slate-400">
+            <span className="font-mono text-cyan-300">{FACTION_LINKS.length}</span> in the war ·{' '}
+            <span className="font-mono text-emerald-300">{LIVE_FACTION_COUNT}</span> live
+          </div>
+        </div>
+        <Link
+          href="/factions"
+          onClick={onNavigate}
+          className="text-xs font-semibold text-cyan-300 hover:text-cyan-200 transition-colors whitespace-nowrap"
+        >
+          All factions →
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 px-1 pb-3">
+        {FEATURED_FACTION_PAGES.map((p) => (
+          <Link
+            key={p.href}
+            href={p.href}
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors group hover:bg-white/[0.04]"
+            style={{ borderColor: p.accent + "55", background: p.accent + "0F" }}
+          >
+            <span className="text-xl leading-none" aria-hidden>{p.icon}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-100 group-hover:text-white">
+                {p.title}
+              </span>
+              <span className="block text-[11px] text-slate-400 truncate">{p.subtitle}</span>
+            </span>
+            <svg className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" style={{ color: p.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 px-2 pb-2">
+        <span className="eyebrow">Roster</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/30 to-transparent" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-2 max-h-[60vh] overflow-y-auto">
+        {FACTION_LINKS.map((f) => {
+          const { short, sub } = splitFactionName(f.name);
+          const isStub = f.status === "in-development";
+          return (
+            <Link
+              key={f.id}
+              href={`/factions/${f.id}`}
+              onClick={onNavigate}
+              role="menuitem"
+              className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-cyan-500/10 transition-colors group min-w-0"
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ background: f.color.primary, boxShadow: `0 0 8px ${f.color.primary}` }}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-slate-200 group-hover:text-cyan-200 truncate">
+                  {short}
+                </span>
+                {sub && (
+                  <span className="block text-[11px] text-slate-500 truncate">{sub}</span>
+                )}
+              </span>
+              {isStub && (
+                <span className="shrink-0 text-[9px] font-display font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+                  Dev
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -272,10 +552,21 @@ function NavLink({ href, children, highlight = false }: { href: string; children
 }
 
 // Mobile Navigation Link Component
-function MobileNavLink({ href, children, highlight = false }: { href: string; children: React.ReactNode; highlight?: boolean }) {
+function MobileNavLink({
+  href,
+  children,
+  highlight = false,
+  onNavigate,
+}: {
+  href: string;
+  children: React.ReactNode;
+  highlight?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className="block relative px-4 py-3 rounded-lg group overflow-hidden"
     >
       {/* Background */}
@@ -309,11 +600,23 @@ function MobileNavLink({ href, children, highlight = false }: { href: string; ch
   );
 }
 
-// Dropdown Link Component for Features Menu
-function DropdownLink({ href, children, icon }: { href: string; children: React.ReactNode; icon: string }) {
+// Dropdown Link Component for the Features menu
+function DropdownLink({
+  href,
+  children,
+  icon,
+  onNavigate,
+}: {
+  href: string;
+  children: React.ReactNode;
+  icon: string;
+  onNavigate?: () => void;
+}) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
+      role="menuitem"
       className="flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all duration-200 group"
     >
       <span className="text-lg group-hover:scale-110 transition-transform duration-200">{icon}</span>

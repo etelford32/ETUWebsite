@@ -44,7 +44,7 @@ export default function Footer() {
             <Link className="block hover:text-cyan-400 transition-colors" href="/#features">
               Features
             </Link>
-            <Link className="block hover:text-cyan-400 transition-colors" href="/#factions">
+            <Link className="block hover:text-cyan-400 transition-colors" href="/factions">
               Factions
             </Link>
             <Link className="block hover:text-cyan-400 transition-colors" href="/stats">

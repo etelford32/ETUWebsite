@@ -93,7 +93,7 @@
   "redirects": [
     {
       "source": "/campaign/megabot",
-      "destination": "/pages/rise-of-machines.html",
+      "destination": "/evil-robots",
       "permanent": false
     }
   ]

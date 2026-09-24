@@ -278,6 +278,7 @@ body { font-family: var(--font-body); }
 .etu-pill--amber  { border-color: rgba(251,191,36,.45); color: var(--etu-amber-300); background: rgba(251,191,36,.06); }
 .etu-pill--purple { border-color: rgba(168,85,247,.45); color: #c4b5fd;              background: rgba(168,85,247,.06); }
 .etu-pill--green  { border-color: rgba(52,211,153,.45); color: var(--etu-emerald-300);background: rgba(52,211,153,.06); }
+.etu-pill--red    { border-color: rgba(239,68,68,.45);  color: #fca5a5;              background: rgba(239,68,68,.06); }
 @keyframes etu-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
 
 /* Ghost button — outlined cyan, all-caps */

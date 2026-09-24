@@ -125,6 +125,13 @@ export default function FactionPage() {
               <p className="mt-4 text-xl md:text-2xl text-slate-200 max-w-2xl">
                 {faction.tagline}
               </p>
+              {faction.featurePage && (
+                <div className="mt-6">
+                  <Link href={faction.featurePage.href} className="btn-ghost">
+                    {faction.featurePage.label} <span aria-hidden>→</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -470,6 +477,11 @@ export default function FactionPage() {
                 >
                   Wishlist on Steam
                 </a>
+                {faction.featurePage && (
+                  <Link href={faction.featurePage.href} className="btn-ghost">
+                    {faction.featurePage.label}
+                  </Link>
+                )}
                 <Link href="/factions" className="btn-ghost">
                   View All Factions
                 </Link>
