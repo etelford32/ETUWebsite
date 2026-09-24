@@ -330,8 +330,9 @@ export default function RoadmapPage() {
             We're committed to transparency and building together with our community.
           </p>
           <a
-            href="/PUBLIC_ROADMAP.md"
+            href="https://github.com/etelford32/ETUWebsite/blob/main/PUBLIC_ROADMAP.md"
             target="_blank"
+            rel="noopener noreferrer"
             className="inline-block mt-4 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-semibold hover:from-cyan-500 hover:to-blue-500 transition-all"
           >
             📖 View Full Detailed Roadmap

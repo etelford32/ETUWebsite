@@ -509,6 +509,105 @@ export const factions: Record<string, Faction> = {
     homeZone: "Zone 10: Crystal",
     homePlanet: "Yllar",
     color: { primary: "#f59e0b", secondary: "#d97706", accent: "#fcd34d" },
+    description:
+      "The Crystal Masons are the asteroid clans of Yllar: short, stubborn, and the finest shipwrights in the Crystal zone. Their hulls are stout, pontooned and trimmed in copper and cream, with a crystal set in every one. A mason crew does everything together. It cuts the rock, carries it home, mends its own and fights as one.",
+    abilities: [
+      "Crystal Lances",
+      "Shield Wall",
+      "Bastion Guard",
+      "Canticles of Warding and Restoration",
+      "Demolition Charges",
+      "Seam-Cutting Drills",
+    ],
+    playstyle:
+      "A mason clan fights like a work crew. Marines hold the line behind a shield wall, Tanks guard whoever stands near them, Snipers work from the far edge of the fight, Demolition crews break what is dug in, and Priests keep the whole clan standing. Away from the fight the same clans mine, haul and build, so a quiet mason colony gets richer, and harder to crack, every minute you leave it alone.",
+    lore: "The clans have cut the deep seams of Yllar for longer than anyone has kept records. They share the planet with the Crystal Consortium under an old and uneasy treaty: the Consortium sings to the crystal, and the dwarves dig it out. Every clan answers to a High Thane. Every crew keeps a mentor, and every mentor remembers who paid for their last load. Cross a mason crew and the whole roster comes for your ship at once. Stand with one and you will hear about it every time your fire passes too close.",
+    strengths: [
+      "Tough, heavily armoured hulls",
+      "Layered protection: shield walls, bastions and fortified allies",
+      "Healing that keeps the whole clan in the fight",
+      "A self-running mining and hauling economy",
+    ],
+    weaknesses: [
+      "Heavy hulls turn wide and slow",
+      "Crews depend on their depots and their priests",
+      "Long supply lines are easy to cut",
+      "Slow to reach far-flung fights",
+    ],
+    // The Crystal Mason roster as lore. Mechanics stay in the game.
+    units: [
+      {
+        name: "Worker",
+        weightClass: "Support",
+        role: "Miner and field mender",
+        description:
+          "The backbone of every clan. A worker carries a drill boom and a hold. In peacetime it scouts a seam, cuts the rock and flies the load home. In a fight it patches up the nearest hurt ally and fortifies whoever is holding the line.",
+      },
+      {
+        name: "Dwarven Scout",
+        weightClass: "Light",
+        role: "The clan's fast legs",
+        description:
+          "Faster, longer-legged and lighter-armoured than anything else the clans fly. A scout carries a light, quick gun and goes where the crew is going before the crew does. If you see one, the rest of the clan knows where you are.",
+      },
+      {
+        name: "Sniper",
+        weightClass: "Hunter",
+        role: "Rail-shard marksman",
+        description:
+          "Fires shards of crystal on a rail from farther out than anything else in the roster, and prefers to stay there. By the time a sniper's shot reaches you, the sniper has already chosen its next one.",
+      },
+      {
+        name: "Marine",
+        weightClass: "Line",
+        role: "The reference fighter",
+        description:
+          "The clan soldier. Twin tubes throw crystal lances, the hull turns to face whatever it is shooting, and a shield wall goes up when the pressure comes on. Every other mason is measured against the marine.",
+        quote: "Ally here, no need to fire lad!",
+      },
+      {
+        name: "Demolition Crew",
+        weightClass: "Heavy",
+        role: "Siege",
+        description:
+          "Miners who stopped cutting rock and started cutting fortifications. They lob heavy charges at whatever is dug in, and turrets, stations and hardpoints all come apart the same way a seam does.",
+      },
+      {
+        name: "Tank",
+        weightClass: "Heavy",
+        role: "Vaultwarden bastion",
+        description:
+          "The widest hull in the clan. It presses into the fight, throws a projected bastion over every ally near it and soaks the damage meant for them. Its guns are big because the tank is big.",
+      },
+      {
+        name: "Priest",
+        weightClass: "Support",
+        role: "Canticle-singer",
+        description:
+          "Holds the clan together. A priest sings canticles of warding and restoration, and each healing verse crosses the gap as a mote of light you can watch arrive. Kill the priest first, or everything else in the clan gets back up.",
+      },
+      {
+        name: "Ore Barge",
+        weightClass: "Support",
+        role: "Hauler",
+        description:
+          "The toughest hull in the clans' fleet, and the slowest. A barge takes the load no worker could carry in one trip and brings it home, and if the depot is gone it carries the load to the homeworld instead. A mason never leaves ore in the dark.",
+      },
+      {
+        name: "Mining Depot",
+        weightClass: "Structure",
+        role: "Where the ore comes home",
+        description:
+          "Where the crews bank their haul and where damaged masons go to mend. A clan with a depot grows. A clan without one spends every trip flying home.",
+      },
+      {
+        name: "Billybob",
+        weightClass: "Command",
+        role: "Mentor of the guild",
+        description:
+          "A guild master in gold trim who flies the same miner's hull as his crews. He meets new pilots after they first dock, points them at the best seams, and takes his cut in trade, upgrades and advice, whether you asked for the advice or not.",
+      },
+    ],
   },
 };
 
