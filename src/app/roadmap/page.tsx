@@ -6,14 +6,22 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
+type RoadmapStatus = "completed" | "in-progress" | "planned";
+
+interface RoadmapFeature {
+  text: string;
+  status: RoadmapStatus;
+}
+
 interface RoadmapItem {
   id: string;
   title: string;
   description: string;
-  status: "completed" | "in-progress" | "planned";
+  status: RoadmapStatus;
   date: string;
-  category: "now" | "alpha" | "beta" | "launch" | "post-launch";
-  features: string[];
+  category: "now" | "shipped" | "alpha" | "beta" | "launch" | "post-launch";
+  /** A plain string takes the item's own status. */
+  features: (string | RoadmapFeature)[];
 }
 
 const roadmapData: RoadmapItem[] = [
@@ -32,7 +40,7 @@ const roadmapData: RoadmapItem[] = [
       "Priests sing canticle motes across the gap to heal allies you can watch arrive",
       "Hitboxes that match the hull you can see, and rounds that leave the muzzle, not the middle of the ship",
       "Billybob, the clans' mentor, as a face and a voice in the Crystal zone",
-      "Yllar (Zone 10): an uneasy treaty with the Crystal Consortium, and the High Thane holding court"
+      "Yllar (Zone 10): the Crystal Consortium, the masons' great guild, under King Arkanvil of the Starhammer line"
     ]
   },
   {
@@ -92,71 +100,97 @@ const roadmapData: RoadmapItem[] = [
     ]
   },
   {
+    id: "shipped-2026",
+    title: "SHIPPED: What Landed Since the Last Roadmap",
+    description: "Systems that were not on the original roadmap but are now in the game. Most of them came straight out of playtest feedback.",
+    status: "completed",
+    date: "2025–2026",
+    category: "shipped",
+    features: [
+      "Roguelite runs: fresh starts, run purchases and clean resets",
+      "Survival mode with its own mode select",
+      "Strategy mode: race directors, fleets and colonies",
+      "The Construct: a sandbox arena for every unit and boss",
+      "Galaxy world map",
+      "Station ring, fortress turrets, station networks and trading outposts",
+      "Quests that start, finish and pay, plus NPC dialogue and Wild Clan contacts",
+      "Skill trees: 21 laser doctrines, missile doctrines, thruster, shield and defence boons",
+      "Discovery progression and Cyl's character screen",
+      "Black hole environment suite: gravity wells, radiation and accretion discs",
+      "Asteroids that crack, split and melt, and comets",
+      "New bosses: Sidewinder, the Bloom Queen, the Mega Mecha Scout and the Terminator Dreadnought"
+    ]
+  },
+  {
     id: "milestone-1",
     title: "MILESTONE 1: The Foundations",
-    description: "Polish the core loop until it's addictive. Every battle feels rewarding. Every upgrade matters. Your AI companion actually feels alive.",
+    description: "Polish the core loop until it's addictive. Every battle feels rewarding. Every upgrade matters. Your AI companion actually feels alive. Nearly all of it is in the game; three pieces are still being finished.",
     status: "in-progress",
-    date: "Q1 2025",
+    date: "2025–2026",
     category: "alpha",
     features: [
-      "Ship Designer with website integration",
-      "Crafting system for upgrades and new abilities",
-      "Cyl dialogue and personality system",
-      "Station leveling and experience polish",
-      "Enhanced targeting system with evolution mechanics",
-      "Energy survival tactics at stations",
-      "First 10 Crystal Memories unlocked"
+      { text: "Ship Designer in-game", status: "completed" },
+      { text: "Crafting system for upgrades and new abilities", status: "completed" },
+      { text: "Cyl dialogue and personality system", status: "completed" },
+      { text: "Station leveling and experience", status: "completed" },
+      { text: "Targeting system: lock, focus and click-to-retarget", status: "completed" },
+      { text: "Ship energy economy", status: "completed" },
+      { text: "Crystal Memories: the first named memories are in", status: "in-progress" },
+      { text: "Energy survival tactics at stations", status: "in-progress" },
+      { text: "Targeting evolution mechanics", status: "planned" },
+      { text: "Ship Designer website integration", status: "planned" }
     ]
   },
   {
     id: "milestone-2",
     title: "MILESTONE 2: Rise of the Machines",
-    description: "Face the ultimate AI threat. The machines don't just fight—they learn, adapt, and evolve. Every general battle is a puzzle. Every victory reshapes the galaxy.",
-    status: "planned",
-    date: "Q2 2025",
+    description: "Face the ultimate AI threat. The machines don't just fight—they learn, adapt, and evolve. The pressure system and the Evil Robot zone are live; the campaign that ties them together is next.",
+    status: "in-progress",
+    date: "2026",
     category: "beta",
     features: [
-      "Central Wormhole Battle - Epic intro with 4 unique bosses",
-      "MegaBot & Evil Robot Pressure System",
-      "MegaBot Generals with unique strategies",
-      "Evil Robot Zone - AI-controlled region",
-      "Cinematic Cut Scenes - Hollywood-quality storytelling",
-      "Procedural Galaxy Evolution Event Engine",
-      "Black Hole gravity affects projectiles",
-      "Advanced targeting system with AI reticle"
+      { text: "MegaBot & Evil Robot Pressure System", status: "completed" },
+      { text: "Evil Robot Zone: an AI-controlled region", status: "completed" },
+      { text: "MEGABOT and the Evil Eye", status: "completed" },
+      { text: "Central Wormhole: the battle site is in; the four-boss encounter is next", status: "in-progress" },
+      { text: "Galaxy that reacts to your footprint", status: "in-progress" },
+      { text: "Black hole gravity bending projectiles in flight", status: "in-progress" },
+      { text: "Advanced targeting with an AI reticle", status: "in-progress" },
+      { text: "MegaBot Generals with unique strategies", status: "planned" },
+      { text: "Cinematic cut scenes", status: "planned" }
     ]
   },
   {
     id: "milestone-3",
     title: "MILESTONE 3: A Wild Bloom Begins",
-    description: "The Mycelari awakening. The Evolution of Wildnerness fights back. Stations bloom with alien life. Your enemies become garden carapaces for new super-bosses. Nothing is quite what it seems.",
-    status: "planned",
-    date: "Q3-Q4 2025",
+    description: "The Mycelari awakening. The Evolution of Wildnerness fights back. Stations bloom with alien life. Both bosses are already flying; the infection and erosion systems are still growing.",
+    status: "in-progress",
+    date: "2026–2027",
     category: "launch",
     features: [
-      "Mycelari Mind Control Mechanics",
-      "Infection Logic - Stations become living ecosystems",
-      "Erosion Mechanics - Parasitic armor growth",
-      "Mycelari Substrate - New resource system",
-      "Unique Mycelari Weapons",
-      "Boss: Ursos - The Wild Titan",
-      "Boss: Arkanvil - Greed incarnate",
-      "New Locations: Mycelar Prime, Fungal Biomes"
+      { text: "Boss: Ursos, the Wild King", status: "completed" },
+      { text: "Boss: King Arkanvil Starhammer, lord of the Crystal Masons", status: "completed" },
+      { text: "Mycelari mind control", status: "completed" },
+      { text: "Unique Mycelari weapons: the Glowcap lance, blooming grenades and the Void Bloom", status: "completed" },
+      { text: "Infection logic: spores infect stations; living ecosystems next", status: "in-progress" },
+      { text: "Mycelari Substrate: in the world, becoming a resource", status: "in-progress" },
+      { text: "Mycelar Prime: the homeworld is in; fungal biomes next", status: "in-progress" },
+      { text: "Erosion mechanics: parasitic armor growth", status: "planned" }
     ]
   },
   {
     id: "multiplayer-1",
     title: "Multiplayer Expansion",
-    description: "Team up with friends or challenge rivals in competitive space combat",
-    status: "planned",
-    date: "2026",
+    description: "Team up with friends or challenge rivals. Co-op Survival over Steam is being built now.",
+    status: "in-progress",
+    date: "2026–2027",
     category: "post-launch",
     features: [
-      "Co-operative Multiplayer",
-      "1v1 PvP battles",
-      "Asynchronous Multiplayer Influence",
-      "Guild/clan systems",
-      "Seasonal competitive events"
+      { text: "Co-op Survival over Steam networking", status: "in-progress" },
+      { text: "1v1 and 2v2 PvP", status: "planned" },
+      { text: "Asynchronous multiplayer influence", status: "planned" },
+      { text: "Player guilds and clans", status: "planned" },
+      { text: "Seasonal competitive events", status: "planned" }
     ]
   },
   {
@@ -164,7 +198,7 @@ const roadmapData: RoadmapItem[] = [
     title: "3D Evolution",
     description: "Visual and gameplay overhaul with 3D engine expansion",
     status: "planned",
-    date: "2026+",
+    date: "2027+",
     category: "post-launch",
     features: [
       "3D Game Engine Expansion",
@@ -178,27 +212,36 @@ const roadmapData: RoadmapItem[] = [
   {
     id: "ai-advanced",
     title: "Advanced AI Features",
-    description: "Next-generation AI companion with true consciousness",
-    status: "planned",
+    description: "Next-generation AI companion. Cyl already remembers what you told her and drifts with your campaign; the deeper layers come next.",
+    status: "in-progress",
     date: "2026+",
     category: "post-launch",
     features: [
-      "Cyl GPT/Claude Integration - True AI conversations",
-      "Consciousness System Layers - Deep AI personality",
-      "Memory & Perception - AI that remembers",
-      "Adaptive learning based on your playstyle",
-      "Emotional intelligence and empathy"
+      { text: "Memory: Cyl recalls earlier conversations", status: "completed" },
+      { text: "Perception: Cyl sees the whole fight", status: "completed" },
+      { text: "Personality that drifts with your campaign", status: "in-progress" },
+      { text: "Adaptive learning based on your playstyle", status: "in-progress" },
+      { text: "Cyl LLM integration: true AI conversations", status: "planned" },
+      { text: "Consciousness system layers", status: "planned" },
+      { text: "Emotional intelligence and empathy", status: "planned" }
     ]
   }
 ];
 
+const FEATURE_MARKS: Record<RoadmapStatus, { glyph: string; label: string; className: string }> = {
+  completed: { glyph: "✓", label: "Shipped", className: "text-green-400" },
+  "in-progress": { glyph: "⚡", label: "In progress", className: "text-blue-400" },
+  planned: { glyph: "○", label: "Planned", className: "text-slate-500" },
+};
+
 const categories = [
   { id: "all", name: "All Milestones", color: "bg-slate-600" },
   { id: "now", name: "In Progress Now", color: "bg-amber-600" },
-  { id: "alpha", name: "Q1 2025", color: "bg-cyan-600" },
-  { id: "beta", name: "Q2 2025", color: "bg-blue-600" },
-  { id: "launch", name: "Q3-Q4 2025", color: "bg-purple-600" },
-  { id: "post-launch", name: "2026+", color: "bg-indigo-600" }
+  { id: "shipped", name: "Shipped", color: "bg-green-600" },
+  { id: "alpha", name: "Milestone 1", color: "bg-cyan-600" },
+  { id: "beta", name: "Milestone 2", color: "bg-blue-600" },
+  { id: "launch", name: "Milestone 3", color: "bg-purple-600" },
+  { id: "post-launch", name: "Post-launch", color: "bg-indigo-600" }
 ];
 
 interface FeedbackItem {
@@ -450,12 +493,18 @@ export default function RoadmapPage() {
                     <div className="mt-4">
                       <h4 className="text-sm font-semibold text-blue-400 mb-2">Key Features:</h4>
                       <ul className="space-y-1">
-                        {item.features.map((feature, idx) => (
-                          <li key={idx} className="text-slate-400 text-sm flex items-start gap-2">
-                            <span className="text-blue-400 mt-1">▸</span>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
+                        {item.features.map((feature, idx) => {
+                          const f = typeof feature === "string" ? { text: feature, status: item.status } : feature;
+                          const mark = FEATURE_MARKS[f.status];
+                          return (
+                            <li key={idx} className="text-slate-400 text-sm flex items-start gap-2">
+                              <span className={`${mark.className} mt-0.5 w-4 shrink-0 text-center`} aria-label={mark.label} title={mark.label}>
+                                {mark.glyph}
+                              </span>
+                              <span className={f.status === "completed" ? "text-slate-300" : undefined}>{f.text}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   </div>

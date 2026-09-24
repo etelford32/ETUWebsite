@@ -48,7 +48,7 @@ export interface Faction {
 export const factions: Record<string, Faction> = {
   "crystal-intelligences": {
     id: "crystal-intelligences",
-    token: "crystal_consortium",
+    token: "crystal_intelligences",
     status: "live",
     name: "CYL • Crystal Intelligences",
     tagline: "Light-bending defenses and precision strikes",
@@ -501,16 +501,16 @@ export const factions: Record<string, Faction> = {
   },
   "space-dwarves": {
     id: "space-dwarves",
-    token: "space_dwarves",
+    token: "crystal_consortium",
     status: "in-development",
-    name: "Space Dwarves • High Thanes",
+    name: "Space Dwarves • Crystal Masons",
     tagline: "Asteroid clans that forge starships the way smiths forge swords.",
     heroImage: "/FutureCyl.jpg",
     homeZone: "Zone 10: Crystal",
     homePlanet: "Yllar",
     color: { primary: "#f59e0b", secondary: "#d97706", accent: "#fcd34d" },
     description:
-      "The Crystal Masons are the asteroid clans of Yllar: short, stubborn, and the finest shipwrights in the Crystal zone. Their hulls are stout, pontooned and trimmed in copper and cream, with a crystal set in every one. A mason crew does everything together. It cuts the rock, carries it home, mends its own and fights as one.",
+      "The Crystal Masons are the asteroid clans of Yllar: short, stubborn, and the finest shipwrights in the Crystal zone. Their great guild, the Crystal Consortium, runs the mines, the markets and the shipyards. Their hulls are stout, pontooned and trimmed in copper and cream, with a crystal set in every one. A mason crew does everything together. It cuts the rock, carries it home, mends its own and fights as one.",
     abilities: [
       "Crystal Lances",
       "Shield Wall",
@@ -521,7 +521,7 @@ export const factions: Record<string, Faction> = {
     ],
     playstyle:
       "A mason clan fights like a work crew. Marines hold the line behind a shield wall, Tanks guard whoever stands near them, Snipers work from the far edge of the fight, Demolition crews break what is dug in, and Priests keep the whole clan standing. Away from the fight the same clans mine, haul and build, so a quiet mason colony gets richer, and harder to crack, every minute you leave it alone.",
-    lore: "The clans have cut the deep seams of Yllar for longer than anyone has kept records. They share the planet with the Crystal Consortium under an old and uneasy treaty: the Consortium sings to the crystal, and the dwarves dig it out. Every clan answers to a High Thane. Every crew keeps a mentor, and every mentor remembers who paid for their last load. Cross a mason crew and the whole roster comes for your ship at once. Stand with one and you will hear about it every time your fire passes too close.",
+    lore: "The clans have cut the deep seams of Yllar for longer than anyone has kept records. Every clan, crew and guild hall is bound into the Crystal Consortium, the great guild of the masons, which sets the price of every gem that leaves Yllar and settles every claim on every seam. Every clan answers to the Starhammer crown, the royal line that has ruled the masons since the first seam was cut, and today to King Arkanvil, the greediest king the line has produced. Every crew keeps a mentor, and every mentor remembers who paid for their last load. Cross a mason crew and the whole roster comes for your ship at once. Stand with one and you will hear about it every time your fire passes too close.",
     strengths: [
       "Tough, heavily armoured hulls",
       "Layered protection: shield walls, bastions and fortified allies",

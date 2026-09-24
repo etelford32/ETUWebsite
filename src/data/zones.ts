@@ -140,7 +140,7 @@ export const zones: Record<string, Zone> = {
     fullName: "Zone 10: Crystal",
     tagline: "Yllar's harmonic canyons. Light bends. Weapons forget.",
     description:
-      "The Crystal Consortium and the Space Dwarves share Yllar under uneasy treaty. Zone 10 sings — and answers.",
+      "Home of the Space Dwarves and their great guild, the Crystal Consortium, under the Starhammer crown. Zone 10 sings — and answers.",
     color: { primary: "#60a5fa", secondary: "#3b82f6", accent: "#93c5fd" },
     aliases: ["crystal", "zone 10"],
     heroImage: "/Crystal_Race.jpg",
