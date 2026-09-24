@@ -12,11 +12,85 @@ interface RoadmapItem {
   description: string;
   status: "completed" | "in-progress" | "planned";
   date: string;
-  category: "alpha" | "beta" | "launch" | "post-launch";
+  category: "now" | "alpha" | "beta" | "launch" | "post-launch";
   features: string[];
 }
 
 const roadmapData: RoadmapItem[] = [
+  {
+    id: "space-dwarves",
+    title: "NOW: The Space Dwarves Arrive",
+    description: "The Crystal Masons — asteroid clans who forge starships the way smiths forge swords — are becoming a full faction. They mine, haul, heal and fight as one crew, and they fight the ship all at once when you cross them.",
+    status: "in-progress",
+    date: "Q3–Q4 2026",
+    category: "now",
+    features: [
+      "Full clan roster: Workers, Dwarven Scouts, Snipers, Marines, Demolition crews, Tanks and Priests",
+      "Scouts get a role of their own: faster, longer-legged and lighter-armed than the Marines",
+      "A working dwarven economy: crews scout a seam, cut the rock, fill the hold and bank it at home",
+      "Ore Barges and mining depots, and a hold that always comes home, even when the depot is gone",
+      "Priests sing canticle motes across the gap to heal allies you can watch arrive",
+      "Hitboxes that match the hull you can see, and rounds that leave the muzzle, not the middle of the ship",
+      "Billybob, the clans' mentor, as a face and a voice in the Crystal zone",
+      "Yllar (Zone 10): an uneasy treaty with the Crystal Consortium, and the High Thane holding court"
+    ]
+  },
+  {
+    id: "projectiles",
+    title: "NOW: Every Shot Lands Where It Flies",
+    description: "A ground-up pass on projectiles. Every bolt, shell and missile flies the whole distance you see, hits what it actually reaches, and plays its impact where it dies.",
+    status: "in-progress",
+    date: "Q3–Q4 2026",
+    category: "now",
+    features: [
+      "Bolts stay visible for their whole flight — no more instant hits that skip the travel",
+      "Long-range shots connect with asteroids and meteors at any stand-off",
+      "Impacts play at the point of contact, not beside your ship",
+      "Every unit family can be shot: spores, nanobots, mecha scouts and the rest",
+      "All seven laser doctrines fire, fly and land correctly",
+      "Quantum paths: the Entangling Shot splits in flight, and the beat never drops a bolt",
+      "Station Flak Burst: turret shells fragment on hit",
+      "Each faction's ordnance reads as its own weapon, at every zoom level",
+      "Boss volleys stay on screen under heavy pressure",
+      "Cyl leads her shots, solving the intercept on crossing targets",
+      "Next: dwarven ordnance, and black-hole gravity bending projectiles in flight"
+    ]
+  },
+  {
+    id: "strategy-layer",
+    title: "NOW: The Strategy Layer",
+    description: "Above the dogfight sits a living galaxy. Five races run their own economies, raise colonies, build their own ships from their own materials, and defend what they hold — whether you are watching or not.",
+    status: "in-progress",
+    date: "Q3–Q4 2026",
+    category: "now",
+    features: [
+      "Five playable economies: Terran Federation, Evil Robots, Mycelari, Wild Clans and Crystal Masons",
+      "Strategic directors that decide what each race builds next and send crews out to work",
+      "Colonies that raise shipyards and industry only when something is in the way",
+      "Cornerstone resources: each race digs its own best, and some races share a seam",
+      "Signature materials: every race's hulls are made of something only it refines",
+      "Flight envelopes: who can turn inside a missile, and who can't",
+      "Planetary defence turrets, and stations that grow into a ring of what they built",
+      "Trading outposts, and allied contacts who fight at your level"
+    ]
+  },
+  {
+    id: "unit-roster",
+    title: "NOW: Building Out the Units",
+    description: "Every faction's units are getting the same treatment: a clear role on the battlefield, a silhouette you can read, and damage that makes sense against your own.",
+    status: "in-progress",
+    date: "Q3–Q4 2026",
+    category: "now",
+    features: [
+      "Evil Robots roster complete — from Mecha Scouts to the Dominion Core",
+      "Mecha Scouts and Assault Mechas that take the damage they are dealt",
+      "Mini Mechas and Mecha Medics that fight and heal like a squad",
+      "Wild Clan allies whose damage scales with your level",
+      "Cyl heals on instinct and sees the whole fight",
+      "Mycelari Glowcap lance and blooming grenade",
+      "Construct test arenas that pit whole rosters against the ship"
+    ]
+  },
   {
     id: "milestone-1",
     title: "MILESTONE 1: The Foundations",
@@ -120,6 +194,7 @@ const roadmapData: RoadmapItem[] = [
 
 const categories = [
   { id: "all", name: "All Milestones", color: "bg-slate-600" },
+  { id: "now", name: "In Progress Now", color: "bg-amber-600" },
   { id: "alpha", name: "Q1 2025", color: "bg-cyan-600" },
   { id: "beta", name: "Q2 2025", color: "bg-blue-600" },
   { id: "launch", name: "Q3-Q4 2025", color: "bg-purple-600" },
@@ -269,39 +344,42 @@ export default function RoadmapPage() {
         <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-2xl p-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-4xl">🎯</span>
-            <h2 className="text-3xl font-bold text-cyan-400">Current Focus: Q1 2025 - Core Experience Polish</h2>
+            <h2 className="text-3xl font-bold text-cyan-400">Current Focus: Units &amp; the Strategy Layer</h2>
           </div>
           <p className="text-slate-300 text-lg mb-6">
-            Building the solid gameplay foundation that makes ETU2175 incredible
+            Filling the galaxy with factions that fight, build and trade on their own, and making every shot they fire land where it flies
           </p>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
               <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">⛏️</span>
+                <h3 className="font-bold text-cyan-400">Space Dwarves</h3>
+              </div>
+              <p className="text-sm text-slate-400">The Crystal Masons join as a full faction: a seven-role clan roster, a mining and hauling economy, and priests who heal across the gap</p>
+              <Link href="/factions/space-dwarves" className="inline-block mt-2 text-xs font-semibold text-amber-400 hover:text-amber-300">
+                Meet the clans →
+              </Link>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🎯</span>
+                <h3 className="font-bold text-cyan-400">Projectiles That Land</h3>
+              </div>
+              <p className="text-sm text-slate-400">Bolts fly the full distance, hit what they reach, and burst where they die, for every weapon and every faction</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🌌</span>
+                <h3 className="font-bold text-cyan-400">Strategy Layer</h3>
+              </div>
+              <p className="text-sm text-slate-400">Five races with their own directors, colonies, shipyards and materials, working the galaxy around you</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">🤖</span>
-                <h3 className="font-bold text-cyan-400">Cyl AI Companion Evolution</h3>
+                <h3 className="font-bold text-cyan-400">Unit Roster Build-Out</h3>
               </div>
-              <p className="text-sm text-slate-400">Your AI companion gets smarter dialogue, energy warnings, and personality</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🚀</span>
-                <h3 className="font-bold text-cyan-400">Ship Designer</h3>
-              </div>
-              <p className="text-sm text-slate-400">Customize your ship with full website → game integration</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">⚔️</span>
-                <h3 className="font-bold text-cyan-400">Scoring & Damage Logic Polish</h3>
-              </div>
-              <p className="text-sm text-slate-400">Making combat feel incredible and rewarding</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">💎</span>
-                <h3 className="font-bold text-cyan-400">First 10 Crystal Memories</h3>
-              </div>
-              <p className="text-sm text-slate-400">Unlock the story through collectible memories</p>
+              <p className="text-sm text-slate-400">Clear roles, readable silhouettes and fair damage for the Evil Robots, Wild Clans, Mycelari and Cyl</p>
             </div>
           </div>
         </div>
@@ -483,7 +561,7 @@ export default function RoadmapPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-cyan-400 font-semibold mb-2">Current Sprint Focus</h3>
-              <p className="text-slate-300">Ship Designer + Cyl Dialogue + Combat Polish</p>
+              <p className="text-slate-300">Space Dwarves + Projectiles + Strategy Layer</p>
             </div>
             <div>
               <h3 className="text-cyan-400 font-semibold mb-2">Team Size</h3>

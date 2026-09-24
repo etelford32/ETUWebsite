@@ -4,18 +4,66 @@
 
 ---
 
-## 🎯 Current Focus: Q1 2025 - Core Experience Polish
+## 🎯 Current Focus: Q3–Q4 2026 - Units & the Strategy Layer
 
-### ✨ Foundation Systems (In Progress)
-Building the solid gameplay foundation that makes ETU2175 incredible:
+Filling the galaxy with factions that fight, build and trade on their own, and making every shot they fire land where it flies.
 
 | Feature | Status | Impact | Notes |
 |---------|--------|--------|-------|
-| **Cyl AI Companion Evolution** | 🔨 Active | 🔥 High | Your AI companion gets smarter dialogue, energy warnings, and personality |
-| **Ship Designer** | 🔨 Active | 🔥 High | Customize your ship with full website → game integration |
-| **Scoring & Damage Logic Polish** | 🔨 Active | 🔥 High | Making combat feel incredible and rewarding |
-| **Station Worker Systems** | 🔨 Active | ⚡ Medium | Visuals, recharge, hitpoints, and combat capabilities |
-| **First 10 Crystal Memories** | 🔨 Active | ⚡ Medium | Unlock the story through collectible memories |
+| **Space Dwarves (Crystal Masons)** | 🔨 Active | 🔥 High | A full faction: clan roster, mining economy, priests who heal across the gap |
+| **Projectiles That Land** | 🔨 Active | 🔥 High | Every bolt, shell and missile flies the full distance and hits what it reaches |
+| **Strategy Layer** | 🔨 Active | 🔥 High | Five races with their own directors, colonies, shipyards and materials |
+| **Unit Roster Build-Out** | 🔨 Active | ⚡ Medium | Clear roles, readable silhouettes and fair damage across every faction |
+
+### ⛏️ The Space Dwarves Arrive
+The Crystal Masons, asteroid clans who forge starships the way smiths forge swords, are becoming a full faction.
+
+- **Seven-role clan roster**: Workers, Dwarven Scouts, Snipers, Marines, Demolition crews, Tanks and Priests
+- **Dwarven Scouts** get a role of their own: faster, longer-legged and lighter-armed than the Marines
+- **A working dwarven economy**: crews scout a seam, cut the rock, fill the hold and bank it at home
+- **Ore Barges and mining depots**, and a hold that always comes home, even when the depot is gone
+- **Priests** sing canticle motes across the gap to heal allies you can watch arrive
+- **Hitboxes match the hull you can see**, and rounds leave the muzzle, not the middle of the ship
+- **Clan onslaught**: the whole roster can take on your ship at once
+- **Billybob**, the clans' mentor, as a face and a voice in the Crystal zone
+- **Yllar (Zone 10)**: an uneasy treaty with the Crystal Consortium, and the High Thane holding court
+
+### 🎯 Every Shot Lands Where It Flies
+A ground-up pass on projectiles, building on the latest combat work:
+
+- ✅ Bolts stay visible for their whole flight, with no instant hits that skip the travel
+- ✅ Long-range shots connect with asteroids and meteors at any stand-off
+- ✅ Impacts play at the point of contact, not beside your ship
+- ✅ Every unit family can be shot: spores, nanobots, mecha scouts and the rest
+- ✅ All seven laser doctrines fire, fly and land correctly
+- ✅ Quantum paths: the Entangling Shot splits in flight, and the beat never drops a bolt
+- ✅ Station Flak Burst: turret shells fragment on hit
+- ✅ Each faction's ordnance reads as its own weapon, at every zoom level
+- ✅ Boss volleys stay on screen under heavy pressure
+- ✅ Cyl leads her shots, solving the intercept on crossing targets
+- 🔨 Dwarven ordnance: clean muzzles and visible healing motes
+- 🔜 Black-hole gravity bending projectiles in flight
+
+### 🌌 The Strategy Layer
+Above the dogfight sits a living galaxy that keeps running whether you are watching or not.
+
+- **Five economies**: Terran Federation, Evil Robots, Mycelari, Wild Clans and Crystal Masons
+- **Strategic directors** decide what each race builds next and send crews out to work
+- **Colonies** raise shipyards and industry only when something is in the way
+- **Cornerstone resources**: each race digs its own best, and some races share a seam
+- **Signature materials**: every race's hulls are made of something only it refines
+- **Flight envelopes**: who can turn inside a missile, and who can't
+- **Planetary defence turrets**, and stations that grow into a ring of what they built
+- **Trading outposts**, and allied contacts who fight at your level
+
+### 🤖 Building Out the Units
+- ✅ Evil Robots roster complete, from Mecha Scouts to the Dominion Core
+- 🔨 Mecha Scouts and Assault Mechas that take the damage they are dealt
+- 🔨 Mini Mechas and Mecha Medics that fight and heal like a squad
+- 🔨 Wild Clan allies whose damage scales with your level
+- 🔨 Cyl heals on instinct and sees the whole fight
+- 🔨 Mycelari Glowcap lance and blooming grenade
+- 🔨 Construct test arenas that pit whole rosters against the ship
 
 ---
 
@@ -162,6 +210,7 @@ The galaxy is alive with:
 - Construction Droid, Square Wing, Assault Mecha
 - Mine variants: Split, Magnet, Web, Sensor
 - Beast Mecha, Dwarf Airships
+- **Crystal Mason clans** (now in progress, see Current Focus)
 - **Ancestral Zoids** - Special controllable elite units!
 
 ---
@@ -248,7 +297,13 @@ Visit our **[Backlog Page](/backlog)** to:
 
 ## 🎯 Quick Reference: What's Coming When?
 
-### ⚡ Q1 2025 (NOW)
+### ⚡ Q3–Q4 2026 (NOW)
+- Space Dwarves (Crystal Masons) faction
+- Projectile overhaul across every weapon
+- Strategy layer: five-race economies
+- Unit roster build-out
+
+### ⚡ Q1 2025
 - Ship Designer
 - Cyl AI upgrades
 - Core combat polish
@@ -276,7 +331,7 @@ Visit our **[Backlog Page](/backlog)** to:
 
 ## 📈 Transparency Dashboard
 
-**Current Sprint Focus**: Ship Designer + Cyl Dialogue + Combat Polish
+**Current Sprint Focus**: Space Dwarves + Projectiles + Strategy Layer
 **Team Size**: Indie dev (scaling with success)
 **Update Frequency**: Bi-weekly dev blogs, monthly major updates
 **Community Influence**: High - Your votes shape priorities
