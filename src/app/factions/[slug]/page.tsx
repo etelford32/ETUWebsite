@@ -382,7 +382,7 @@ export default function FactionPage() {
                           color: boss.color.accent,
                         }}
                       >
-                        {boss.tier}
+                        {boss.tier ?? 'Boss'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 line-clamp-2">{boss.tagline}</p>

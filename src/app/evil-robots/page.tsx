@@ -161,18 +161,17 @@ const CAMPAIGN_PATHS = [
   },
 ];
 
-const TIER_ORDER: Record<Boss["tier"], number> = {
-  "God-tier": 0,
-  Galactic: 1,
-  Sector: 2,
-  Wave: 3,
+const TIER_ORDER: Record<NonNullable<Boss["tier"]>, number> = {
+  Legendary: 0,
+  Epic: 1,
+  Rare: 2,
 };
 
 function sortBosses(list: Boss[]): Boss[] {
   return list.slice().sort((a, b) => {
     const s = (a.status === "live" ? 0 : 1) - (b.status === "live" ? 0 : 1);
     if (s !== 0) return s;
-    return TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || a.name.localeCompare(b.name);
+    return (a.tier ? TIER_ORDER[a.tier] : 3) - (b.tier ? TIER_ORDER[b.tier] : 3) || a.name.localeCompare(b.name);
   });
 }
 
@@ -301,7 +300,7 @@ function TierPill({ boss }: { boss: Boss }) {
         color: boss.color.accent,
       }}
     >
-      {boss.tier}
+      {boss.tier ?? "Boss"}
     </span>
   );
 }

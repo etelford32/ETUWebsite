@@ -170,7 +170,7 @@ export default function MegabotPage() {
 
           <div className="relative z-10 max-w-6xl mx-auto px-4 lg:px-6 pt-10 pb-12">
             <div className="flex flex-wrap items-center gap-2 mb-5">
-              <span className="etu-pill etu-pill--red">{boss?.tier ?? "Galactic"} · Boss</span>
+              <span className="etu-pill etu-pill--red">{boss?.tier ?? "Legendary"} · Boss</span>
               <span className="etu-pill etu-pill--green">
                 <span className="ping" /> Live in the playtest
               </span>
@@ -248,7 +248,7 @@ export default function MegabotPage() {
             <div>
               <div className="eyebrow mb-1">Tier</div>
               <div className="font-mono tabular-nums text-lg text-cyan-300">
-                {boss?.tier ?? "Galactic"}
+                {boss?.tier ?? "Legendary"}
               </div>
             </div>
             <div>
@@ -455,7 +455,7 @@ export default function MegabotPage() {
                         color: g.color.accent,
                       }}
                     >
-                      {g.tier}
+                      {g.tier ?? "Boss"}
                     </span>
                   </div>
                   <p className="text-sm text-slate-300 leading-snug">{g.tagline}</p>
@@ -521,21 +521,6 @@ export default function MegabotPage() {
             </div>
           </div>
         </section>
-
-        {/* ---------------------------------------------------------- lore --- */}
-        {boss?.lore && (
-          <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
-            <div className="max-w-4xl">
-              <SectionHeading eyebrow="Origin">Where it came from</SectionHeading>
-              <div
-                className="etu-glass p-8 border-l-2"
-                style={{ borderLeftColor: "#ef4444", background: "rgba(239,68,68,0.04)" }}
-              >
-                <p className="text-lg text-slate-200 leading-relaxed italic">{boss.lore}</p>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* ----------------------------------------------------------- CTA --- */}
         <section className="max-w-6xl mx-auto px-4 lg:px-6 py-16 border-t border-slate-800/60">
