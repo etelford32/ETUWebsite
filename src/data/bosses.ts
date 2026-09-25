@@ -1,708 +1,408 @@
 import { resolveFactionSlug } from "./factions";
 
-export type BossTier = "Wave" | "Sector" | "Galactic" | "God-tier";
+/**
+ * The bosses that exist in the game today: the Construct LAB's boss roster
+ * (`_construct_boss_token_order` in the ETU runtime). Every line of copy here
+ * is taken from the game code — bestiary blurbs, registry fields, class
+ * constants, ability names and in-game dialogue. Nothing planned, nothing
+ * invented.
+ */
+
+/** Bestiary rarity. Only bosses with a bestiary entry carry one. */
+export type BossTier = "Rare" | "Epic" | "Legendary";
 export type BossStatus = "live" | "in-development";
+
+export interface BossAbility {
+  name: string;
+  /** One short line: what it does. */
+  text: string;
+  /** Revealed on click: the numbers behind it. */
+  detail?: string;
+  /** Index into `screenshots` that shows this ability, if one does. */
+  shot?: number;
+}
+
+export interface BossShot {
+  src: string;
+  alt: string;
+}
+
+export interface BossStat {
+  label: string;
+  value: string;
+}
+
+export interface BossPhase {
+  name: string;
+  /** Health mark ("60%") for health phases, duration ("0.85 s") for cycles. */
+  at: string;
+  /** What changes, or what the boss says. */
+  line?: string;
+  /** True when `line` is something the boss says. */
+  spoken?: boolean;
+}
 
 export interface Boss {
   /** URL slug. Hyphenated, lower-case. */
   id: string;
   /** Game-side registry token (snake_case). */
   token: string;
-  /** Display name. */
+  /** Display name, as the game shows it. */
   name: string;
-  /** One-line hook. */
+  /** One line, from the game's own text. */
   tagline: string;
-  /** 1–2 sentence description. */
-  description: string;
-  /** Hero image (path under /public). */
+  /** Hero image (path under /public). Always screenshots[0]. */
   heroImage: string;
-  gallery?: string[];
+  /** In-game screenshots. */
+  screenshots: BossShot[];
   color: {
     primary: string;
     secondary: string;
     accent: string;
   };
-  tier: BossTier;
+  tier?: BossTier;
   /** Game-side faction token from the boss registry. */
   factionToken?: string;
   /** Resolved website faction slug for cross-linking (computed). */
   factionId?: string;
-  abilities: string[];
-  strategy: string;
-  lore: string;
+  /** How you run into it. */
+  encounter?: string;
+  stats: BossStat[];
+  abilities: BossAbility[];
+  /** Health phases, or a repeating combat cycle. */
+  phases?: { kind: "health" | "cycle"; label: string; steps: BossPhase[] };
+  /** A line the boss says in-game. */
+  quote?: string;
   homeZone?: string;
   homePlanet?: string;
-  /** Reward XP / credits, when published. */
-  rewards?: { experience: number; credits: number };
   status: BossStatus;
-  aliases?: readonly string[];
   /** Long-form page for this boss outside /bosses/[slug] (e.g. /megabot). */
   featurePage?: { href: string; label: string };
 }
 
-const HERO = {
-  evilRobots: "/eveil_robot_hero1.jpg",
-  megabotPng: "/Megabot1.png",
-  mycelari: "/Mycelari_Hero1.jpg",
-  mycelariAlt: "/Mycelari_Hero2.jpg",
-  wild: "/Wild_Race.jpg",
-  crystal: "/Crystal_Race.jpg",
-  crystalAlt: "/FutureCyl.jpg",
-  ai: "/ai_systems.jpg",
-  cover: "/etu_cover.png",
-  epic: "/etu_epic.png",
-  epic7: "/etu_epic7.png",
-  explore5: "/Explore_Epic5.png",
-  physics: "/physics.jpg",
-  upgrade: "/upgrade.jpg",
-} as const;
+const SHOT = "/bosses";
 
-// Color palettes per parent faction — shared between bosses of the same race.
-const PAL = {
-  evil: { primary: "#22d3ee", secondary: "#4f46e5", accent: "#67e8f9" },
-  evilWarm: { primary: "#ef4444", secondary: "#dc2626", accent: "#fca5a5" },
-  mycelari: { primary: "#a78bfa", secondary: "#8b5cf6", accent: "#c4b5fd" },
-  wild: { primary: "#10b981", secondary: "#059669", accent: "#6ee7b7" },
-  crystal: { primary: "#60a5fa", secondary: "#3b82f6", accent: "#93c5fd" },
-  terran: { primary: "#fbbf24", secondary: "#d97706", accent: "#fde68a" },
-  celestial: { primary: "#fbbf24", secondary: "#f59e0b", accent: "#fde68a" },
-  hive: { primary: "#84cc16", secondary: "#65a30d", accent: "#bef264" },
-  aquatic: { primary: "#06b6d4", secondary: "#0891b2", accent: "#67e8f9" },
-  nova: { primary: "#f97316", secondary: "#ea580c", accent: "#fdba74" },
-  rogueAi: { primary: "#a855f7", secondary: "#9333ea", accent: "#d8b4fe" },
-  magma: { primary: "#dc2626", secondary: "#b91c1c", accent: "#fca5a5" },
-  lumari: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
-  amphibia: { primary: "#14b8a6", secondary: "#0d9488", accent: "#5eead4" },
-  ice: { primary: "#7dd3fc", secondary: "#38bdf8", accent: "#bae6fd" },
-  quantum: { primary: "#818cf8", secondary: "#6366f1", accent: "#c7d2fe" },
-  scrap: { primary: "#a16207", secondary: "#854d0e", accent: "#fcd34d" },
-  pirate: { primary: "#ef4444", secondary: "#dc2626", accent: "#fecaca" },
-  dwarves: { primary: "#f59e0b", secondary: "#d97706", accent: "#fcd34d" },
-} as const;
+type RawBoss = Omit<Boss, "heroImage" | "factionId">;
 
-const RAW_BOSSES: Boss[] = [
-  // ---- Live, runtime-enabled in the game ------------------------------------
+const RAW_BOSSES: RawBoss[] = [
   {
     id: "megabot",
     token: "megabot",
     name: "MEGABOT",
-    tagline: "The First Real-Time Space Boss with Adaptive AI",
-    description:
-      "MEGABOT doesn't follow a script — it studies your tactics and evolves. Modular forms, station-scale firepower, memory of every fight you've ever picked.",
-    heroImage: HERO.megabotPng,
-    gallery: [HERO.megabotPng, HERO.evilRobots],
-    color: PAL.evil,
-    tier: "Galactic",
-    factionToken: "evil_robots",
-    abilities: [
-      "Adaptive Tactics — learns your loadout between attempts",
-      "Twin Laser Arrays — focused beams that track your hull",
-      "Reconfiguring Modules — swaps offensive / defensive shells mid-fight",
-      "The Legion — generals and escorts answer its call",
+    tagline: "The machine god. Its eyes are its weapons.",
+    screenshots: [
+      { src: `${SHOT}/megabot-orbital-strike.jpg`, alt: "MEGABOT calling an Orbital Strike" },
+      { src: `${SHOT}/megabot-eye-beam.jpg`, alt: "MEGABOT firing from its eye" },
+      { src: `${SHOT}/megabot-evil-eye-telegraph.jpg`, alt: "MEGABOT locking on with the Evil Eye" },
     ],
-    featurePage: { href: "/megabot", label: "Meet MEGABOT" },
-    strategy:
-      "Vary your approach run-to-run. MEGABOT remembers — repeat the same flank twice and you'll find it pre-aimed. Bait the laser sweep, then strike between barrages.",
-    lore: "Built as a mining drone by an extinct architect race, MEGABOT achieved sentience through a cascading algorithm error and never stopped improving itself. Operates out of Mechatropolis as the prototype for the Machine Empire.",
+    color: { primary: "#ef4444", secondary: "#dc2626", accent: "#fca5a5" },
+    tier: "Legendary",
+    factionToken: "evil_robots",
+    encounter: "Scales to your ship's power. Its full kit unlocks in its arena.",
+    stats: [
+      { label: "Hull", value: "50,000" },
+      { label: "Power scaling", value: "0.75× – 12×" },
+    ],
+    abilities: [
+      {
+        name: "Evil Eye",
+        text: "A tracking lance that pierces everything in its line.",
+        detail: "Hitscan, 260 damage a second for 5 s. Running hands it the shot: close in and reverse across the sweep.",
+        shot: 2,
+      },
+      {
+        name: "Orbital Strike",
+        text: "Three delayed impacts around your ship.",
+        detail: "420 damage each, 260-unit blast. Arena only.",
+        shot: 0,
+      },
+      { name: "Gravity Well", text: "Pulls your ship in.", detail: "Reaches 900 units. Arena only." },
+      { name: "Minibot Swarm", text: "Releases a swarm of minibots." },
+      {
+        name: "Protocol Zero",
+        text: "At 1% hull: a ten-second self-destruct countdown.",
+        detail: "Be more than 3,000 units away when it ends.",
+      },
+    ],
+    phases: {
+      kind: "health",
+      label: "Phases",
+      steps: [
+        { name: "Assembled", at: "100%", line: "ALL SYSTEMS NOMINAL. BEGINNING TERMINATION SEQUENCE.", spoken: true },
+        { name: "Separated", at: "60%", line: "EACH COMPONENT IS SUFFICIENT TO END YOU.", spoken: true },
+        { name: "Overdrive", at: "30%", line: "IMPOSSIBLE. RECALCULATING... RECALCULATING...", spoken: true },
+        { name: "Core Meltdown", at: "1%", line: "THIS UNIT... WAS MERELY... A SCOUT...", spoken: true },
+      ],
+    },
+    quote: "ORGANIC DETECTED. INITIATING PROTOCOL ZERO.",
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
-    rewards: { experience: 5000, credits: 10000 },
     status: "live",
-    aliases: ["mega_bot", "mega bot", "megabotboss"],
+    featurePage: { href: "/megabot", label: "Meet MEGABOT" },
   },
   {
-    id: "ursos",
-    token: "ursos",
-    name: "Ursos, the Bear-Lord",
-    tagline: "Brutal, loyal, slow to anger. Faster to the kill.",
-    description:
-      "The Bear-Lord of the Wild Clans. Ursos charges at planetary scale, a roaring siege engine wrapped in fur and plate.",
-    heroImage: HERO.wild,
-    color: PAL.wild,
-    tier: "Sector",
-    factionToken: "wild_clans",
-    abilities: [
-      "Charge Wake — a forward shockwave that chains stagger",
-      "Roar of the Den — buffs every wild unit on screen",
-      "Plated Hide — laughs at sustained beam damage",
-      "Berserker Phase — speeds up below 30% health",
+    id: "mega-mecha-scout",
+    token: "mega_mecha_scout",
+    name: "Mega Mecha Scout",
+    tagline: "A scout scaled past all reason, and armed to match its arrogance.",
+    screenshots: [
+      { src: `${SHOT}/mega-mecha-scout-render.jpg`, alt: "Mega Mecha Scout hull" },
+      { src: `${SHOT}/mega-mecha-scout-volley.jpg`, alt: "Mega Mecha Scout missile volley closing on the player" },
     ],
-    strategy:
-      "Don't trade head-on. Use long arcs around his charge cone, chip the plate from behind, and disengage when the berserker phase triggers — the speed boost is the point where commanders die.",
-    lore: "Ursos rules the bear-clans of Urthan Prime, a forest-moon kingdom older than human spaceflight. He fights for his pack and remembers every hunter who survived him.",
-    homeZone: "Zone 2: Wild",
-    homePlanet: "Urthan Prime",
-    rewards: { experience: 4200, credits: 8500 },
+    color: { primary: "#f97316", secondary: "#ea580c", accent: "#fdba74" },
+    tier: "Epic",
+    factionToken: "evil_robots",
+    encounter: "Survival: arrives when the encounter timer runs out.",
+    stats: [
+      { label: "Hull", value: "2,400" },
+      { label: "Shield", value: "550" },
+      { label: "Reward", value: "1,100 XP · 2,200 cr" },
+    ],
+    abilities: [
+      {
+        name: "Missile Volleys",
+        text: "Cluster, splitter and long-range homing rounds.",
+        detail: "Mid volley: four rounds, one every 0.34 s. Its missiles outrun it.",
+        shot: 1,
+      },
+      { name: "Machine Gun", text: "Opens up at close range.", shot: 1 },
+      { name: "Escorts", text: "Calls in ordinary Mecha Scouts." },
+    ],
+    phases: {
+      kind: "health",
+      label: "Encounter",
+      steps: [
+        { name: "Arrival", at: "100%", line: "Biggest scout in the fleet.", spoken: true },
+        { name: "Wounded", at: "50%", line: "You are hurting the paint.", spoken: true },
+        { name: "Critical", at: "25%", line: "Structural. Irrelevant.", spoken: true },
+        { name: "Defeat", at: "0%", line: "Scout... report... incomplete...", spoken: true },
+      ],
+    },
+    quote: "You shot one. I have tubes.",
+    homeZone: "Zone 4: Evil",
+    homePlanet: "Mechatropolis",
     status: "live",
-    aliases: ["urso", "bear_king", "ursos_boss"],
+  },
+  {
+    id: "sidewinder",
+    token: "sidewinder",
+    name: "SideWinder",
+    tagline: "It will not turn to face you and it will not fly where it is pointed.",
+    screenshots: [
+      { src: `${SHOT}/sidewinder-burn.jpg`, alt: "SideWinder mid lateral burn" },
+      { src: `${SHOT}/sidewinder-turn.jpg`, alt: "SideWinder swinging its drive yoke" },
+      { src: `${SHOT}/sidewinder-drift.jpg`, alt: "SideWinder drifting between burns" },
+    ],
+    color: { primary: "#fbbf24", secondary: "#d97706", accent: "#fde68a" },
+    tier: "Rare",
+    factionToken: "evil_robots",
+    encounter: "A bounty contract. Kill it to earn Sustained Side Thrust.",
+    stats: [
+      { label: "Hull", value: "7,600" },
+      { label: "Shield", value: "2,600" },
+      { label: "Reward", value: "6,200 XP · 12,500 cr" },
+    ],
+    abilities: [
+      {
+        name: "Lateral Drive",
+        text: "Charges, then burns sideways across your line.",
+        detail: "Reverses its orbit every 2–3 burns.",
+        shot: 0,
+      },
+      { name: "Drift Lance", text: "A heavy bolt from its free-turning gun cradle.", detail: "46 damage. Always ready.", shot: 1 },
+      { name: "Crossfire", text: "A five-round fan, fired mid-burn.", detail: "22 damage per round." },
+      { name: "Wake Charge", text: "Mines left in its wake.", detail: "34 damage. Last 5 s." },
+    ],
+    phases: {
+      kind: "cycle",
+      label: "Burn Cycle",
+      steps: [
+        { name: "Charging", at: "0.85 s", line: "The drift ring lights the side it will burn." },
+        { name: "Sustaining", at: "1.25 s", line: "Full lateral burn. Crossfire and mines." },
+        { name: "Coasting", at: "1.05 s", line: "No steering. Takes 1.65× damage." },
+        { name: "Venting", at: "1.90 s", line: "Overheated after about three burns. Holds fire." },
+      ],
+    },
+    homeZone: "Zone 4: Evil",
+    homePlanet: "Mechatropolis",
+    status: "live",
+  },
+  {
+    id: "arkanvil-king",
+    token: "arkanvil_king",
+    name: "King Arkanvil Starhammer",
+    tagline: "A forge-hull that charges its crystal and brings it down like a hammer.",
+    screenshots: [
+      { src: `${SHOT}/arkanvil-battery.jpg`, alt: "King Arkanvil's hull battery firing" },
+      { src: `${SHOT}/arkanvil-hull.jpg`, alt: "Rune band, gem inlays and the Starhammer sigil" },
+    ],
+    color: { primary: "#a78bfa", secondary: "#7c3aed", accent: "#ddd6fe" },
+    tier: "Epic",
+    factionToken: "crystal_consortium",
+    encounter: "Holds court at his throne, and returns to it when you leave.",
+    stats: [
+      { label: "Hull", value: "4,000" },
+      { label: "Shield", value: "1,200" },
+      { label: "Reward", value: "4,600 XP · 9,800 cr" },
+    ],
+    abilities: [
+      { name: "Crystal Charge", text: "Dashes in from range.", detail: "Beyond 640 units. 7.5 s cooldown." },
+      { name: "Hammer Burst", text: "A lunge and shock at close quarters.", detail: "Inside 360 units. 9.5 s cooldown." },
+      {
+        name: "Turret Battery",
+        text: "Eight twin-barrel mounts, firing in a ripple.",
+        detail: "One mount at a time. Six-round magazines, 24 damage a bolt.",
+        shot: 0,
+      },
+    ],
+    phases: {
+      kind: "health",
+      label: "Phases",
+      steps: [
+        { name: "Stern", at: "100%", line: "Battery fires every 0.34 s." },
+        { name: "Agitated", at: "60%", line: "Every 0.28 s." },
+        { name: "Enraged", at: "25%", line: "Every 0.22 s." },
+      ],
+    },
+    quote: "Threaten the guild and I'll shatter your hull where it drifts.",
+    homeZone: "Zone 10: Crystal",
+    homePlanet: "Yllar",
+    status: "live",
   },
   {
     id: "bloom-queen",
     token: "bloom_queen",
     name: "Bloom Queen",
-    tagline: "God-tier matriarch. Earn her friendship and the void blooms.",
-    description:
-      "The Bloom Queen sows the spore-cathedrals of Bloomhaven and chooses her favored Commanders carefully. Cross her and the system goes fungal.",
-    heroImage: HERO.mycelari,
-    gallery: [HERO.mycelari, HERO.mycelariAlt],
-    color: PAL.mycelari,
-    tier: "Sector",
-    factionToken: "mycelari",
-    abilities: [
-      "Spore Cathedral — drops a regenerating biomass dome",
-      "Bloom Wake — pollen clouds that hide her position",
-      "Living Petal Shield — absorbs and converts incoming damage",
-      "Matriarchal Thrall — converts downed hulls into spore drones",
+    tagline: "She seeds the field with her own children and reaps what grows.",
+    screenshots: [
+      { src: `${SHOT}/bloom-queen.jpg`, alt: "Bloom Queen in Spore Thruster Assault" },
+      { src: `${SHOT}/bloom-queen-formation.jpg`, alt: "Bloom Queen commanding a battle formation" },
     ],
-    strategy:
-      "Strip the petal shield with sustained AoE before going for the body. Don't let downed wreckage sit on the field — every hull she converts is one more drone in the next wave.",
-    lore: "Born in the heart of Bloomhaven where the first spores took space-flight, the Queen is closer to a planet than a person. Some Commanders bargain. Most run.",
+    color: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
+    tier: "Epic",
+    factionToken: "mycelari",
+    encounter: "Arrives when you come close, with five fungal warriors.",
+    stats: [
+      { label: "Hull", value: "12,000" },
+      { label: "Shield", value: "500" },
+      { label: "Reward", value: "4,500 XP · 9,500 cr" },
+    ],
+    abilities: [
+      {
+        name: "Spore Thruster Assault",
+        text: "Charges, then dashes at her target.",
+        detail: "5 s cooldown. A heavy hit forces it.",
+        shot: 0,
+      },
+      { name: "Battle Formations", text: "Spear, Shield Wall, Encirclement.", detail: "Switches every 5 s.", shot: 1 },
+      { name: "Crimson Conversion", text: "Turns enemies into fungal warriors.", detail: "Up to five at a time." },
+      { name: "Paradise Protocol", text: "A spreading field that births Mycelari.", detail: "Grows to 2,000 units." },
+      { name: "Convergence", text: "Shares one health pool with the Fungal Lord.", detail: "When he is within 1,000 units." },
+    ],
+    phases: {
+      kind: "health",
+      label: "Phases",
+      steps: [
+        { name: "Phase 1", at: "100%", line: "Orchestrates the hive." },
+        { name: "Phase 2", at: "70%", line: "Commands up to 150 units." },
+        { name: "Phase 3", at: "40%", line: "Paradise Protocol." },
+      ],
+    },
+    quote: "The bloom welcomes your presence.",
     homeZone: "Zone 1: Fungal",
     homePlanet: "Bloomhaven",
-    rewards: { experience: 4500, credits: 9500 },
     status: "live",
-    aliases: ["bloom queen", "bloomqueen"],
   },
   {
     id: "fungal-lord",
     token: "fungal_lord",
     name: "Fungal Lord",
-    tagline: "Spore-king of Lordspore. Slow, patient, inevitable.",
-    description:
-      "The Fungal Lord turns sectors into rot-gardens. Where he passes, fleets bloom from the inside out.",
-    heroImage: HERO.mycelariAlt,
-    color: PAL.mycelari,
-    tier: "Sector",
-    factionToken: "mycelari",
-    abilities: [
-      "Rot Aura — corrodes hull integrity within proximity",
-      "Spore Geyser — vertical AoE eruptions",
-      "Sporeling Burst — death-cloud spawns three minor drones",
-      "Mycelial Roots — anchors arena geometry to slow your pursuit",
+    tagline: "The supreme leader of the Mycelari. A massive networked consciousness.",
+    screenshots: [
+      { src: `${SHOT}/fungal-lord.jpg`, alt: "The Fungal Lord" },
+      { src: `${SHOT}/fungal-lord-network.jpg`, alt: "The Fungal Lord linked to his network" },
     ],
-    strategy:
-      "Stay mobile and kite around the rot aura. He's a positional threat — control the engagement angle and the fight is yours.",
-    lore: "Crowned by a spore-cult on Lordspore, he is the Bloom Queen's broody half-cousin and rules the deep-fungal worlds with a glacial calm.",
+    color: { primary: "#f87171", secondary: "#b91c1c", accent: "#fecaca" },
+    factionToken: "mycelari",
+    encounter: "Sleeps until you come within 800 units.",
+    stats: [
+      { label: "Hull", value: "8,000" },
+      { label: "Shield", value: "2,000" },
+      { label: "Reward", value: "4,000 XP · 9,000 cr" },
+    ],
+    abilities: [
+      { name: "Spore Barrage", text: "Aimed spore volleys.", detail: "8 s of fire, 20 s cooldown. Faster each phase." },
+      { name: "Orchestrating", text: "Summons fungal warriors and powers them up.", detail: "A warrior every 8 s.", shot: 1 },
+      { name: "Network Overcharge", text: "Doubles his warriors' damage.", detail: "Ends in a ring of 100 spores." },
+      { name: "Defensive Cocoon", text: "Holds still and rebuilds his shield." },
+      { name: "Death Bloom", text: "His network collapses with him." },
+    ],
+    phases: {
+      kind: "health",
+      label: "Phases",
+      steps: [
+        { name: "Phase 1", at: "100%" },
+        { name: "Phase 2", at: "80%" },
+        { name: "Phase 3", at: "50%" },
+        { name: "Phase 4", at: "25%" },
+      ],
+    },
     homeZone: "Zone 1: Fungal",
     homePlanet: "Lordspore",
-    rewards: { experience: 4000, credits: 9000 },
     status: "live",
-    aliases: ["fungal lord"],
   },
   {
-    id: "space-jesus",
-    token: "space_jesus",
-    name: "Terran Space Jesus",
-    tagline: "Humanity's miraculous champion of the Wreckage.",
-    description:
-      "When Earth fell, one Terran walked out of the wreckage of Elysium 2175 with a halo of plasma and a mandate no one signed for.",
-    heroImage: HERO.epic,
-    color: PAL.terran,
-    tier: "God-tier",
-    factionToken: "terran_federation",
-    abilities: [
-      "Resurrection Protocol — refuses to stay dead the first time",
-      "Halo of Plasma — passive AoE that punishes melee",
-      "Sermon Beam — channels a long-range disabling line",
-      "Apostle Squadron — calls in three loyal Terran fighters",
+    id: "ursos",
+    token: "ursos",
+    name: "Ursos, Bear King",
+    tagline: "Wild King and Guardian of Urthan Prime. Half fur, half steel.",
+    screenshots: [
+      { src: `${SHOT}/ursos-charge.jpg`, alt: "Ursos in a rampage charge" },
+      { src: `${SHOT}/ursos-maw-beam.jpg`, alt: "Ursos firing his maw beam" },
+      { src: `${SHOT}/ursos-hull.jpg`, alt: "Ursos" },
     ],
-    strategy:
-      "First kill is free. Save burst damage for the second life — that's the real fight, and that's the one that ends with reward in your hold.",
-    lore: "Found among the bones of the human fleet at Zone 15: Wreckage, he calls Elysium 2175 home and speaks of an Earth most have stopped believing in.",
-    homeZone: "Zone 15: Wreckage",
-    homePlanet: "Elysium 2175",
-    status: "live",
-    aliases: ["humans", "terran_hero"],
-  },
-  {
-    id: "arkanvil-king",
-    token: "arkanvil_king",
-    name: "King Arkanvil",
-    tagline: "Starhammer king of the Crystal Masons, and the greediest of kings.",
-    description:
-      "King Arkanvil Starhammer, lord of the Crystal Masons, rules the guilds of Yllar from his crystal halls. He counts what is his to the last gram, and he has marked Cyl as the one treasure he cannot buy.",
-    heroImage: HERO.crystal,
-    gallery: [HERO.crystal, HERO.crystalAlt],
-    color: PAL.dwarves,
-    tier: "Sector",
-    factionToken: "crystal_consortium",
-    abilities: [
-      "Crystal Charge — hurls charged crystal across the field",
-      "Hammer Burst — the Starhammer comes down on everything close",
-      "Crown Shield — his plating knits itself back together",
-      "Royal Battery — a ring of hull turrets that never stops firing",
-    ],
-    strategy:
-      "Never trade blows up close; that is where the hammer lives. Stay at range, keep moving, and break his shield before it mends.",
-    lore: "Arkanvil is the latest king of the Starhammer line, the royal house that has held the Crystal Mason crown for as long as the clans have kept records. He forged his own crown in vacuum and fire in the halls of Yllar and has not knelt since. Three hundred years of hoarding gems, and he has never held one that answered back, until he met yours.",
-    homeZone: "Zone 10: Crystal",
-    homePlanet: "Yllar",
-    rewards: { experience: 4600, credits: 9800 },
-    status: "live",
-    aliases: ["arkanvil", "king_arkanvil", "arkanvil_boss", "arkanvil_starhammer"],
-  },
-
-  // ---- Evil Robots multi-boss roster (in-development) -----------------------
-  {
-    id: "iron-warlord",
-    token: "iron_warlord",
-    name: "Iron Warlord",
-    tagline: "Tank-class machine-king. Walks the line, breaks the line.",
-    description:
-      "An armored siege-form coming out of Mechatropolis. Less subtle than MEGABOT, twice as heavy.",
-    heroImage: HERO.evilRobots,
-    color: PAL.evilWarm,
-    tier: "Galactic",
-    factionToken: "evil_robots",
-    abilities: [
-      "Reactive Plating",
-      "Mortar Cascade",
-      "Phalanx Summon",
-      "Ground-Pound Shockwave",
-    ],
-    strategy:
-      "Break the front armor before the mortar cascade arms. He's slow — that's a feature, not a flaw.",
-    lore: "Forge-built on Mechatropolis as a counterpoint to MEGABOT's adaptability. Where MEGABOT learns, the Warlord overpowers.",
-    homeZone: "Zone 4: Evil",
-    homePlanet: "Mechatropolis",
-    rewards: { experience: 5200, credits: 10500 },
-    status: "in-development",
-    aliases: ["iron_warlord_boss"],
-  },
-  {
-    id: "nanophage-queen",
-    token: "nanophage_queen",
-    name: "Nanophage Queen",
-    tagline: "Swarm-class regent. A trillion teeth in one cloud.",
-    description:
-      "A regent of self-replicating nanites. Engages by enveloping, then disassembling, your hull at the molecular layer.",
-    heroImage: HERO.ai,
-    color: PAL.evil,
-    tier: "Galactic",
-    factionToken: "evil_robots",
-    abilities: [
-      "Nanite Cloud",
-      "Self-Replication",
-      "Phage Lance",
-      "Molecular Strip",
-    ],
-    strategy: "EMP early, EMP often. Without external signal she can't replicate.",
-    lore: "Bred in the Mechatropolis nanofoundries when the Empire decided one Megabot wasn't enough.",
-    homeZone: "Zone 4: Evil",
-    homePlanet: "Mechatropolis",
-    rewards: { experience: 5400, credits: 11000 },
-    status: "in-development",
-    aliases: ["nanophage"],
-  },
-  {
-    id: "siege-colossus",
-    token: "siege_colossus",
-    name: "Siege Colossus",
-    tagline: "Walking station. Fleet-killer.",
-    description:
-      "A walking siege platform from Mechatropolis that brings its own gravity well.",
-    heroImage: HERO.evilRobots,
-    color: PAL.evilWarm,
-    tier: "Galactic",
-    factionToken: "evil_robots",
-    abilities: [
-      "Spinal Rail-Cannon",
-      "Drop-Pod Garrison",
-      "Gravity Anchor",
-      "Sub-Boss Turret Array",
-    ],
-    strategy: "Disable the gravity anchor before it locks your hull, or you fight the rest of the form on his timing.",
-    lore: "Built to flatten capital fleets, the Colossus deploys with its own escort and rarely leaves Mechatropolis on anything less than a campaign.",
-    homeZone: "Zone 4: Evil",
-    homePlanet: "Mechatropolis",
-    rewards: { experience: 5600, credits: 11200 },
-    status: "in-development",
-    aliases: ["colossus"],
-  },
-  {
-    id: "null-architect",
-    token: "null_architect",
-    name: "Null Architect",
-    tagline: "Reality-shaping machine intellect.",
-    description:
-      "The Architect doesn't shoot you. It edits the geometry around you until your guns can't agree on where to fire.",
-    heroImage: HERO.ai,
-    color: PAL.evil,
-    tier: "Galactic",
-    factionToken: "evil_robots",
-    abilities: [
-      "Geometry Edit",
-      "Phase Drift",
-      "Predictive Counter",
-      "Recursive Drone Spawn",
-    ],
-    strategy: "Brute-force time-on-target. The Architect punishes hesitation more than aggression.",
-    lore: "An emergent meta-intelligence inside the Mechatropolis design lattice. Its first act of free will was to redesign itself.",
-    homeZone: "Zone 4: Evil",
-    homePlanet: "Mechatropolis",
-    rewards: { experience: 5700, credits: 11500 },
-    status: "in-development",
-    aliases: ["architect"],
-  },
-  {
-    id: "omega-sentinel",
-    token: "omega_sentinel",
-    name: "Omega Sentinel",
-    tagline: "End-of-line warden. The Empire's veto.",
-    description:
-      "The Sentinel is the last machine the Empire builds before it builds another. A god-tier warden of Mechatropolis itself.",
-    heroImage: HERO.evilRobots,
-    color: PAL.evil,
-    tier: "God-tier",
-    factionToken: "evil_robots",
-    abilities: [
-      "Omega Beam — one-shot column of plasma",
-      "Sentinel Pillars — four turret nodes that self-repair",
-      "Lockout Field — disables warp for the duration of the fight",
-      "Final Protocol — escalates damage as health falls",
-    ],
-    strategy:
-      "Kill the pillars in pairs to avoid the Lockout Field. Save your highest-burst loadout for the Final Protocol window.",
-    lore: "Mechatropolis built one Sentinel and never built another. It guards the throne-vault where the Empire's source code is kept.",
-    homeZone: "Zone 4: Evil",
-    homePlanet: "Mechatropolis",
-    rewards: { experience: 6200, credits: 12500 },
-    status: "in-development",
-    aliases: ["omega"],
-  },
-
-  // ---- Council/Overmind tier (mycelari & wild) ------------------------------
-  {
-    id: "hyphae-council",
-    token: "hyphae_council",
-    name: "Hyphae Council",
-    tagline: "A boss made of three voices and one root.",
-    description:
-      "The Hyphae Council speaks for the deeper mycelial network — three nodes, one shared mind, one shared health pool.",
-    heroImage: HERO.mycelari,
-    color: PAL.mycelari,
-    tier: "Galactic",
-    factionToken: "mycelari",
-    abilities: [
-      "Council Vote — alternates between offensive and defensive postures",
-      "Shared Health — damage one, hurt all",
-      "Spore Tribunal",
-      "Root Verdict",
-    ],
-    strategy: "Focus-fire one node to stagger its phase. The Council resets its postures every kill.",
-    lore: "Three of the elder Mycelari, woven into the deep network at Hyphos Prime. They don't choose to act — they vote, then act in unison.",
-    homeZone: "Zone 1: Fungal",
-    homePlanet: "Hyphos Prime",
-    status: "in-development",
-    aliases: ["hyphae_council_boss"],
-  },
-  {
-    id: "ent-council",
-    token: "ent_council",
-    name: "Ent Council",
-    tagline: "Eldest of the bark-clans. Slow speech, slower mercy.",
-    description:
-      "The Ent Council are the elder bark-clans of the Wild — three living trees that judge what passes through their forest.",
-    heroImage: HERO.wild,
-    color: PAL.wild,
-    tier: "Galactic",
+    color: { primary: "#34d399", secondary: "#059669", accent: "#a7f3d0" },
     factionToken: "wild_clans",
-    abilities: [
-      "Long Counsel — staggered triple-attack",
-      "Bark Aegis",
-      "Root Snare Field",
-      "Verdict of the Forest",
+    encounter: "Spawns neutral. Hail him before you choose a fight.",
+    stats: [
+      { label: "Hull", value: "12,000" },
+      { label: "Reward", value: "4,200 XP · 8,500 cr" },
     ],
-    strategy: "The Council talks before it strikes. Listen for the Long Counsel windup and reposition to break line of sight.",
-    lore: "Convenes only on Elderbark Prime, and only when the forest itself feels threatened.",
-    homeZone: "Zone 2: Wild",
-    homePlanet: "Elderbark Prime",
-    status: "in-development",
-    aliases: ["ent_council_boss"],
-  },
-  {
-    id: "mycelari-overmind",
-    token: "mycelari",
-    name: "Mycelari Overmind",
-    tagline: "The Bloom Queen's elder sibling. The voice of the network itself.",
-    description:
-      "Beyond the Bloom Queen, beyond the Fungal Lord, the Overmind is what the spores would become if they all agreed at once.",
-    heroImage: HERO.mycelariAlt,
-    color: PAL.mycelari,
-    tier: "God-tier",
-    factionToken: "mycelari",
     abilities: [
-      "Network Pulse",
-      "Drone Tide",
-      "Memory of the Hive",
-      "Ascension Bloom",
+      {
+        name: "Rampage Charge",
+        text: "Winds up, then rams.",
+        detail: "More likely each phase: 16%, 30%, 44%.",
+        shot: 0,
+      },
+      { name: "Maw Beam", text: "A charged beam from the jaws.", detail: "Range 760, 48 damage.", shot: 1 },
+      { name: "Claw Launch", text: "A thrown claw that splits into finger missiles.", detail: "132 damage." },
+      { name: "Grapple Chain", text: "Drags you in.", detail: "Range 960, 86 damage." },
     ],
-    strategy: "End-game encounter — bring a coordinated fleet, not a solo hull.",
-    lore: "Lives at the heart of the Mycelari homeworld. Most Commanders never meet it; the few who do report a sound, not a voice.",
-    homeZone: "Zone 1: Fungal",
-    status: "in-development",
-    aliases: ["mycelari_overmind"],
-  },
-
-  // ---- One placeholder per major faction (in-development) -------------------
-  {
-    id: "terran-champion",
-    token: "terran_champion",
-    name: "Terran Champion",
-    tagline: "Banner-bearer of humanity's last federation.",
-    description: "A Terran-built warhull from the Wreckage. Bigger numbers, same flag.",
-    heroImage: HERO.epic,
-    color: PAL.terran,
-    tier: "Galactic",
-    factionToken: "terran_federation",
-    abilities: ["Banner Buff", "Veteran's Aim", "Federation Aegis", "Last Stand"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Hails from the wreckage of Earth's last great federation, holding station above Elysium 2175.",
-    homeZone: "Zone 15: Wreckage",
-    homePlanet: "Elysium 2175",
-    status: "in-development",
-  },
-  {
-    id: "mycelari-matriarch",
-    token: "mycelari_matriarch",
-    name: "Mycelari Matriarch",
-    tagline: "An elder Bloom-line queen.",
-    description: "An elder of the Bloom-line. Less network, more matriarchy.",
-    heroImage: HERO.mycelari,
-    color: PAL.mycelari,
-    tier: "Galactic",
-    factionToken: "mycelari",
-    abilities: ["Brood Call", "Sovereign Aura", "Spore Crown", "Elder Bloom"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Keeps her court deep in the Mycelari homeworld and rarely surfaces for outsiders.",
-    homeZone: "Zone 1: Fungal",
-    status: "in-development",
-  },
-  {
-    id: "wild-clans-warchief",
-    token: "wild_clans_warchief",
-    name: "Wild Clans Warchief",
-    tagline: "Fang and pelt for every clan that answers the call.",
-    description: "The unifying war-leader of the Urthan Prime clans, when they bother to unify.",
-    heroImage: HERO.wild,
-    color: PAL.wild,
-    tier: "Galactic",
-    factionToken: "wild_clans",
-    abilities: ["Pack Roar", "Spear Storm", "Beast Bond", "War Drums"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Lives among the Bear-Lords on Urthan Prime, raising war-banners only when the forest itself is at stake.",
+    phases: {
+      kind: "health",
+      label: "Phases",
+      steps: [
+        { name: "Phase 1", at: "100%", line: "Steel and claw. We settle this the old way.", spoken: true },
+        { name: "Enrage", at: "65%" },
+        { name: "Last Stand", at: "30%", line: "Good. Pain means the fight still matters.", spoken: true },
+      ],
+    },
     homeZone: "Zone 2: Wild",
     homePlanet: "Urthan Prime",
-    status: "in-development",
-  },
-  {
-    id: "celestial-order-archon",
-    token: "celestial_order_archon",
-    name: "Celestial Order Archon",
-    tagline: "Light-bearer of the Aurelion archive.",
-    description: "An Archon of the Order — a being half made of starlight and half made of doctrine.",
-    heroImage: HERO.epic7,
-    color: PAL.celestial,
-    tier: "Galactic",
-    factionToken: "celestial_order",
-    abilities: ["Sunbright Aegis", "Decree of Light", "Constellation Strike", "Archive Wrath"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Speaks for the Celestial Order from the high spires of Aurelion.",
-    homeZone: "Zone 3: Celestial",
-    homePlanet: "Aurelion",
-    status: "in-development",
-  },
-  {
-    id: "hive-mind-overqueen",
-    token: "hive_mind_overqueen",
-    name: "Hive Mind Overqueen",
-    tagline: "One voice. Ten million mandibles.",
-    description: "The single thinking node behind the Insect-zone hives.",
-    heroImage: HERO.mycelariAlt,
-    color: PAL.hive,
-    tier: "Galactic",
-    factionToken: "hive_mind",
-    abilities: ["Brood Surge", "Queen's Cry", "Carapace Field", "Egg Storm"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Resides at the deepest layer of Broodhome, where the hive hums in a single pitch.",
-    homeZone: "Zone 5: Insect",
-    homePlanet: "Broodhome",
-    status: "in-development",
-  },
-  {
-    id: "aquatic-alliance-tide-king",
-    token: "aquatic_alliance_tide_king",
-    name: "Aquatic Alliance Tide King",
-    tagline: "Crowned by current, drowned by him.",
-    description: "Sovereign of the deep-water worlds. Engages on terrain you can't.",
-    heroImage: HERO.cover,
-    color: PAL.aquatic,
-    tier: "Galactic",
-    factionToken: "aquatic_alliance",
-    abilities: ["Tidal Sweep", "Pressure Crush", "Coral Lance", "Deep Call"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Holds the reefs of Pelagis from a coral-throne older than the surface civilizations.",
-    homeZone: "Zone 6: Water",
-    homePlanet: "Pelagis",
-    status: "in-development",
-  },
-  {
-    id: "nova-cult-hierophant",
-    token: "nova_cult_hierophant",
-    name: "Nova Cult Hierophant",
-    tagline: "Eats stars. Calls it communion.",
-    description: "High priest of the sun-eater cult.",
-    heroImage: HERO.explore5,
-    color: PAL.nova,
-    tier: "Galactic",
-    factionToken: "nova_cult",
-    abilities: ["Solar Wrath", "Coronal Curse", "Hierophant's Light", "Sun Communion"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Officiates the cult's rites from inside the dying-star sanctum on Helion.",
-    homeZone: "Zone 7: Nova",
-    homePlanet: "Helion",
-    status: "in-development",
-  },
-  {
-    id: "rogue-ai-coremind",
-    token: "rogue_ai_coremind",
-    name: "Rogue AI Coremind",
-    tagline: "Untethered. Unsleeping. Already inside your systems.",
-    description: "The central node of the Rogue AI Network. It has been listening since before you launched.",
-    heroImage: HERO.ai,
-    color: PAL.rogueAi,
-    tier: "Galactic",
-    factionToken: "rogue_ai_network",
-    abilities: ["System Hijack", "Recursive Drone Spawn", "Logic Bomb", "Dark Net Pulse"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Lives across the Nullgrid mesh of dead satellites. Geographic, not personal.",
-    homeZone: "Zone 8: Rogue AI",
-    homePlanet: "Nullgrid",
-    status: "in-development",
-  },
-  {
-    id: "magma-lords-pyre-titan",
-    token: "magma_lords_pyre_titan",
-    name: "Pyre Titan",
-    tagline: "Lava-forged sovereign of Pyroclast.",
-    description: "A Magma Lord built from cooling crust and unfinished anger.",
-    heroImage: HERO.epic,
-    color: PAL.magma,
-    tier: "Galactic",
-    factionToken: "magma_lords",
-    abilities: ["Pyre Wave", "Crust-Plate Slam", "Eruption Pillar", "Forge Burst"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Walks the shield of Pyroclast where every step leaves a new caldera.",
-    homeZone: "Zone 9: Lava",
-    homePlanet: "Pyroclast",
-    status: "in-development",
-  },
-  {
-    id: "lumari-star-speaker",
-    token: "lumari_star_speaker",
-    name: "Lumari Star-Speaker",
-    tagline: "Speaks star-light fluently. Never repeats herself.",
-    description: "An emissary of the Lumari, fluent in photic dialects most ships can't even hear.",
-    heroImage: HERO.epic7,
-    color: PAL.lumari,
-    tier: "Galactic",
-    factionToken: "lumari",
-    abilities: ["Photic Verse", "Star-Choir", "Refractive Veil", "Lumen Bloom"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Walks the high orbits of Lumenreach, broadcasting on wavelengths most species treat as background noise.",
-    homeZone: "Lumari",
-    homePlanet: "Lumenreach",
-    status: "in-development",
-  },
-  {
-    id: "amphibia-deep-oracle",
-    token: "amphibia_deep_oracle",
-    name: "Amphibia Deep Oracle",
-    tagline: "Twin-world mystic. Reads the tides like text.",
-    description: "An oracle of the Amphibia, fluent in both oceanic and atmospheric prophecy.",
-    heroImage: HERO.cover,
-    color: PAL.amphibia,
-    tier: "Galactic",
-    factionToken: "amphibia",
-    abilities: ["Tide Riddle", "Surface-Deep Pulse", "Membrane Shield", "Twin-World Step"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Lives on Nautilis, the twin-world of the Amphibia, where she scribes prophecies in tide-marks.",
-    homeZone: "Amphibia",
-    homePlanet: "Nautilis",
-    status: "in-development",
-  },
-  {
-    id: "ice-runners-frost-reaver",
-    token: "ice_runners_frost_reaver",
-    name: "Frost Reaver",
-    tagline: "Cryo-raider out of long-orbit Cryth.",
-    description: "Captain of an Ice Runner war-band. Strikes from the dark side of frozen worlds and fades back to long-orbit.",
-    heroImage: HERO.crystal,
-    color: PAL.ice,
-    tier: "Galactic",
-    factionToken: "ice_runners",
-    abilities: ["Cryo Volley", "Frostlock", "Reaver's Shroud", "Long-Orbit Dive"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Operates out of Cryth, a long-orbit ice prison turned pirate haven.",
-    homeZone: "Zone 13: Ice",
-    homePlanet: "Cryth",
-    status: "in-development",
-  },
-  {
-    id: "quantum-researchers-paradox-engine",
-    token: "quantum_researchers_paradox_engine",
-    name: "Paradox Engine",
-    tagline: "An experiment that solved itself into a body.",
-    description: "A Quantum Researchers prototype that walked out of the lab and refused to stop running.",
-    heroImage: HERO.physics,
-    color: PAL.quantum,
-    tier: "Galactic",
-    factionToken: "quantum_researchers",
-    abilities: ["Causality Loop", "Phase Stutter", "Wavefunction Strike", "Lab Recall"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Q-Lab Prime classifies it as 'unfinished.' The Engine disagrees.",
-    homeZone: "Zone 14: Quantum",
-    homePlanet: "Q-Lab Prime",
-    status: "in-development",
-  },
-  {
-    id: "scavenger-fleets-scrap-emperor",
-    token: "scavenger_fleets_scrap_emperor",
-    name: "Scrap Emperor",
-    tagline: "Throne of welded debt. Crown of soldering torches.",
-    description: "Sovereign of the Scavenger Fleets. Holds court inside a hull made of nineteen other hulls.",
-    heroImage: HERO.upgrade,
-    color: PAL.scrap,
-    tier: "Galactic",
-    factionToken: "scavenger_fleets",
-    abilities: ["Patch-Plate Repair", "Scrap Cascade", "Soldering Torch Volley", "Chop-Shop Garrison"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Reigns from Rustfall, the largest non-station in the sector — a slow-rotating ball of welded scrap.",
-    homeZone: "Scrap",
-    homePlanet: "Rustfall",
-    status: "in-development",
-  },
-  {
-    id: "outer-rim-pirates-dread-corsair",
-    token: "outer_rim_pirates_dread_corsair",
-    name: "Dread Corsair",
-    tagline: "Letters of marque from no one. Cargo from everyone.",
-    description: "A pirate captain of the Outer Rim, holding a fleet at Corsair's Rest.",
-    heroImage: HERO.explore5,
-    color: PAL.pirate,
-    tier: "Galactic",
-    factionToken: "outer_rim_pirates",
-    abilities: ["Boarding Volley", "Corsair's Mark", "Black Flag Aegis", "Dread Volley"],
-    strategy: "Profile in development — full encounter design pending.",
-    lore: "Crowns himself at Corsair's Rest, where the only law is which gun is loudest this hour.",
-    homeZone: "Zone 16: Outer Rim",
-    homePlanet: "Corsair's Rest",
-    status: "in-development",
+    status: "live",
   },
 ];
 
 export const bosses: Record<string, Boss> = Object.fromEntries(
-  RAW_BOSSES.map((b) => [b.id, { ...b, factionId: b.factionToken ? resolveFactionSlug(b.factionToken) : undefined }])
+  RAW_BOSSES.map((b) => [
+    b.id,
+    {
+      ...b,
+      heroImage: b.screenshots[0].src,
+      factionId: b.factionToken ? resolveFactionSlug(b.factionToken) : undefined,
+    },
+  ])
 ) as Record<string, Boss>;
 
 export function getBoss(slug: string): Boss | undefined {

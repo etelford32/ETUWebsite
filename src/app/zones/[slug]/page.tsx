@@ -278,7 +278,7 @@ export default function ZonePage() {
                             color: b.color.accent,
                           }}
                         >
-                          {b.tier}
+                          {b.tier ?? 'Boss'}
                         </span>
                         {b.status === 'in-development' && (
                           <span className="etu-pill etu-pill--amber">
