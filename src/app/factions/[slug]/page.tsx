@@ -424,8 +424,30 @@ export default function FactionPage() {
                     >
                       {String(idx + 1).padStart(2, '0')}
                     </div>
-                    <h3 className="font-display font-semibold text-lg mb-2">{unit.name}</h3>
+                    <h3 className="font-display font-semibold text-lg mb-1">{unit.name}</h3>
+                    {(unit.role || unit.weightClass) && (
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {unit.weightClass && (
+                          <span
+                            className="etu-pill"
+                            style={{
+                              borderColor: faction.color.primary + '66',
+                              background: faction.color.primary + '14',
+                              color: faction.color.accent,
+                            }}
+                          >
+                            {unit.weightClass}
+                          </span>
+                        )}
+                        {unit.role && <span className="text-xs text-slate-400">{unit.role}</span>}
+                      </div>
+                    )}
                     <p className="text-sm text-slate-300 leading-relaxed">{unit.description}</p>
+                    {unit.quote && (
+                      <p className="mt-3 text-sm italic" style={{ color: faction.color.accent }}>
+                        &ldquo;{unit.quote}&rdquo;
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
