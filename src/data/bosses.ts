@@ -238,7 +238,7 @@ const RAW_BOSSES: RawBoss[] = [
     ],
     color: { primary: "#a78bfa", secondary: "#7c3aed", accent: "#ddd6fe" },
     tier: "Epic",
-    factionToken: "space_dwarves",
+    factionToken: "crystal_consortium",
     encounter: "Holds court at his throne, and returns to it when you leave.",
     stats: [
       { label: "Hull", value: "4,000" },
