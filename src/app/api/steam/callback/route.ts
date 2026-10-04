@@ -113,9 +113,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (existingProfile) {
-      // Update existing profile with latest Steam data
+      // Refresh the Steam avatar only. The username is the callsign the
+      // player claimed and must not be overwritten by the Steam persona name.
       const updateData = {
-        username: steamProfile?.personaname || (existingProfile as any).username,
         avatar_url: steamProfile?.avatarfull || (existingProfile as any).avatar_url,
       }
 

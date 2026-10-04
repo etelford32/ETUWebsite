@@ -4,6 +4,9 @@ import { getSessionFromRequest } from '@/lib/session'
 import { validateCSRFFromRequest } from '@/lib/csrf'
 import { Database } from '@/lib/types'
 
+// Same rule the game's callsign screen will enforce (ACCOUNT-01).
+const USERNAME_PATTERN = /^[A-Za-z0-9_-]{3,20}$/
+
 /**
  * GET /api/profile - Get current user's profile
  */
@@ -66,16 +69,37 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, avatar_url, faction_choice, is_public, is_alpha_tester } = body
+    // is_alpha_tester, role and stats are server-granted, never self-set.
+    const { username, avatar_url, faction_choice, is_public } = body
+
+    const supabase = createServerClient()
 
     // Validate and build update object
     const updates: Record<string, any> = {}
 
-    if (username !== undefined) updates.username = username
+    if (username !== undefined) {
+      const { data: current } = await (supabase
+        .from('profiles') as any)
+        .select('username')
+        .eq('id', session.userId)
+        .single()
+
+      const requested = typeof username === 'string' ? username.trim() : ''
+      // Re-sending the current username (the profile form always sends it)
+      // is not a rename, so legacy usernames stay editable alongside faction.
+      if (requested !== (current?.username ?? '')) {
+        if (!USERNAME_PATTERN.test(requested)) {
+          return NextResponse.json(
+            { error: 'Username must be 3-20 letters, numbers, _ or -' },
+            { status: 400 }
+          )
+        }
+        updates.username = requested
+      }
+    }
     if (avatar_url !== undefined) updates.avatar_url = avatar_url
     if (faction_choice !== undefined) updates.faction_choice = faction_choice
     if (is_public !== undefined) updates.is_public = Boolean(is_public)
-    if (is_alpha_tester !== undefined) updates.is_alpha_tester = Boolean(is_alpha_tester)
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
@@ -83,8 +107,6 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    const supabase = createServerClient()
 
     // Update profile (RLS ensures user can only update their own)
     // Type assertion needed due to Supabase type inference limitations
