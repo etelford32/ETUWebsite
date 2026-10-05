@@ -6,6 +6,8 @@ Cut the ETU 2175 title letters out of the official reference sheet
   public/brand/etu-glyphs.webp         RGBA letters (solid body + glow)
   public/brand/etu-glyphs-sm.webp      the same at half resolution (small titles)
   public/brand/etu-glyphs-energy.webp  the cyan emission only, same layout
+  public/brand/etu-glyphs-shadow.webp  unlit silhouettes, quarter resolution (tiny;
+                                       shown first while the lit art loads)
   public/brand/etu-glyphs.json         atlas metrics for any tool or engine
   src/lib/etuTitle/spriteFont.ts       the same metrics for the site (generated)
 
@@ -29,6 +31,7 @@ SRC = os.path.join(ROOT, 'public/brand/etu-title-typography.webp')
 OUT_ART = os.path.join(ROOT, 'public/brand/etu-glyphs.webp')
 OUT_ART_SM = os.path.join(ROOT, 'public/brand/etu-glyphs-sm.webp')
 OUT_ENERGY = os.path.join(ROOT, 'public/brand/etu-glyphs-energy.webp')
+OUT_SHADOW = os.path.join(ROOT, 'public/brand/etu-glyphs-shadow.webp')
 OUT_JSON = os.path.join(ROOT, 'public/brand/etu-glyphs.json')
 OUT_TS = os.path.join(ROOT, 'src/lib/etuTitle/spriteFont.ts')
 
@@ -244,6 +247,15 @@ def kerning(glyphs, chars):
     return pairs
 
 
+def shadow_map(rgba):
+    """The letter with its lights off: dark metal, faint plate texture, no glow."""
+    solid = cv2.GaussianBlur(rgba[..., 4], (0, 0), 1.0)
+    a = np.maximum(rgba[..., 3:4], 1e-4)
+    lum = (rgba[..., :3] / a).mean(2)
+    shade = np.clip(lum * 0.16, 0, 1)[..., None] + np.array([0.035, 0.05, 0.075])
+    return np.dstack([shade * solid[..., None], solid])
+
+
 def energy_map(rgba):
     """Isolate the cyan emission (premultiplied) for the pulse layer."""
     a = np.maximum(rgba[..., 3:4], 1e-4)
@@ -316,10 +328,12 @@ def main():
     height = y + frame_h
     art = np.zeros((height, width, 4), np.float32)
     energy = np.zeros_like(art)
+    shadow = np.zeros_like(art)
     for ch, (gx, gy, gw) in rects.items():
         rgba = glyphs[ch]['rgba']
         art[gy:gy + frame_h, gx:gx + gw] = rgba[..., :4]
         energy[gy:gy + frame_h, gx:gx + gw] = energy_map(rgba[..., :4])
+        shadow[gy:gy + frame_h, gx:gx + gw] = shadow_map(rgba)
 
     def save(arr, path, scale=1.0, quality=84):
         if scale != 1.0:
@@ -334,6 +348,8 @@ def main():
     save(art, OUT_ART_SM, scale=0.5, quality=82)
     # The energy layer is soft light: half resolution is plenty.
     save(energy, OUT_ENERGY, scale=0.5, quality=70)
+    # Silhouettes have almost no detail: quarter resolution loads near-instantly.
+    save(shadow, OUT_SHADOW, scale=0.25, quality=60)
 
     kern_chars = [c for c in order if c not in '’–—']
     kern = kerning(glyphs, kern_chars)
@@ -346,6 +362,7 @@ def main():
         'art': '/brand/etu-glyphs.webp',
         'artSmall': '/brand/etu-glyphs-sm.webp',
         'energy': '/brand/etu-glyphs-energy.webp',
+        'shadow': '/brand/etu-glyphs-shadow.webp',
         'width': int(width),
         'height': int(height),
         'frameHeight': int(frame_h),
@@ -368,7 +385,7 @@ def main():
         f.write('export interface SpriteGlyph {\n  /** Cell in the atlas, px. */\n  x: number\n  y: number\n  w: number\n')
         f.write('  /** Width of the glyph body; the cell adds `margin` of glow each side. */\n  advance: number\n}\n\n')
         f.write('export const ETU_SPRITE_FONT = {\n')
-        for key in ('art', 'artSmall', 'energy'):
+        for key in ('art', 'artSmall', 'energy', 'shadow'):
             f.write(f"  {key}: '{font[key]}',\n")
         f.write(f"  width: {font['width']},\n  height: {font['height']},\n")
         f.write(f"  /** Every cell is this tall: margin + depth + margin. */\n  frameHeight: {font['frameHeight']},\n")

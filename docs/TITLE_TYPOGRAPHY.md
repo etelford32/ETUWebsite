@@ -110,9 +110,10 @@ P. −46, C- −48. Tunables: `KERN_BANDS`, `KERN_TARGET`, `KERN_STRENGTH`,
 
 | Output | Size | |
 |--------|------|-|
-| `public/brand/etu-glyphs.webp` | ~620 KB | Full-resolution RGBA atlas |
-| `public/brand/etu-glyphs-sm.webp` | ~200 KB | Half resolution, for small titles |
-| `public/brand/etu-glyphs-energy.webp` | ~120 KB | Cyan emission, half resolution |
+| `public/brand/etu-glyphs.webp` | ~620 KB | Full-resolution RGBA atlas (wide screens only) |
+| `public/brand/etu-glyphs-sm.webp` | ~200 KB | Half resolution — what every title lights up with |
+| `public/brand/etu-glyphs-shadow.webp` | ~26 KB | Unlit silhouettes, quarter resolution (intro first paint) |
+| `public/brand/etu-glyphs-energy.webp` | ~120 KB | Cyan emission, half resolution (fetched once lit) |
 | `public/brand/etu-glyphs.json` | ~10 KB | Metrics + kerning (any tool or engine) |
 | `src/lib/etuTitle/spriteFont.ts` | | The same metrics for the site |
 
@@ -152,7 +153,7 @@ import EtuTitle from '@/components/EtuTitle'
 | `variant` | `cyan` | `amber` / `violet` hue-shift the energy for faction pages; silver barely changes. |
 | `kerning` | `true` | Optical kerning. |
 | `animate` | `true` | Any motion at all (`false` = a still title, no JS work). |
-| `intro` / `stagger` | `true` / `0.07` | Letters drop in the first time the title is seen. |
+| `intro` / `stagger` | `true` / `0.055` | Start as unlit shadows; the holographic lighting powers on letter by letter once the art has loaded and the title is on screen. |
 | `interactive` | `true` | Hover lifts and charges letters; click sends a shockwave. |
 | `glints` | `true` | Idle star glints. |
 
@@ -162,13 +163,26 @@ inside a line, words wrap when they don't fit (unless `fit`).
 **DOM.** The real text sits in an `sr-only` span for screen readers and
 search; the visual is `aria-hidden`. Each glyph is
 `span.etu-glyph` (width = advance, margin-right = tracking + kerning) holding
-three layers positioned into the atlas through CSS variables
+layers positioned into the atlas through CSS variables
 (`--gx --gy --gw --ga --kern`, atlas size and URLs on the title):
 
-- `__art` — the letter.
+- `__shadow` — the unlit silhouette (intro only).
+- `__art` — the letter: half-res atlas, with the full-res one layered on top
+  at ≥768px wide.
 - `__energy` — the cyan emission in `screen` blend, breathing on a CSS loop
   phase-shifted per letter, so a slow wave of light runs across the title.
 - `__charge` — the same emission, driven by JS on hover and impact.
+- `__holo` — scanlines and a light band, masked to the letter's shape by the
+  shadow atlas (intro only).
+
+**Loading.** The component preloads the shadow atlas and the half-res atlas
+with high priority, so they download with the HTML instead of after CSS and
+hydration. The full-res atlas is only referenced inside a ≥768px media
+query, so phones never fetch it and wide screens fetch it after the lights
+are on. Measured on a
+throttled mid-range phone (fast 4G, 4× CPU): shadows visible at ~0.3 s,
+lights on at ~1.4 s (previously nothing showed until ~7.4 s and the title
+finished at ~10 s). Phones never download the full-res atlas.
 
 **Fit** uses CSS container units: the title is an `inline-size` container,
 and its body's font-size is `clamp(0.5em, 100cqw / widest-line-em, 1em)`,
@@ -186,12 +200,28 @@ free space (`flex: 1 1 auto`). Don't use `fit` in shrink-to-content contexts.
 
 - `Spring` — damped spring (stiffness, damping ratio; < 1 overshoots).
 - `GlyphActor` — one per letter: springs for x, y, tilt, scale and charge,
-  plus opacity and flash. `apply()` writes `transform`, `opacity`, a
-  brightness `filter` and the charge layer's opacity.
-- `TitleMotion` — owns the actors and the choreography:
-  - **Intro**: each letter starts above its slot (0.75em up, random tilt,
-    1.35× scale), springs into place on a stagger (0.07s, compressed to fit
-    1.2s for long titles), fades in, and on landing flashes and throws a glint.
+  plus flash. `apply()` writes `transform`, a brightness `filter` and the
+  charge layer's opacity.
+- `TitleMotion` — owns the actors and the interactions.
+
+**Intro — lights on.** Titles render as unlit shadows straight from the
+server. A tiny inline script (`powerOnScript`, emitted after each title's
+markup) waits for the half-res atlas and for the title to be on screen, then
+sets `data-lit` on it — before React hydrates. `TitleMotion` does the same
+after hydration in case the script didn't run. `data-lit` starts a pure-CSS
+sequence per letter, staggered by `--i × --etu-stagger`:
+
+1. the hologram projects: cyan scanlines over the silhouette (`etu-holo`);
+2. a bright band crosses the letter — staggered, the bands form one sweep;
+3. the art flickers on like a tube catching, flares at 2.2× brightness and
+   settles (`etu-power-on`), while the crystal flashes (`etu-energy-flash`);
+4. the shadow fades out underneath (`etu-shadow-out`).
+
+Each letter takes 1.1s; a 21-letter title is fully lit about 2.2s after the
+lights come on. Without JS, the lights come on after 6s anyway.
+
+**Interactions:**
+
   - **Hover**: proximity to the cursor (Gaussian, ~0.9em) lifts letters by up
     to 0.07em, scales them 5% and charges their crystal.
   - **Click**: a shockwave travels outward from the click; each letter gets
@@ -199,9 +229,9 @@ free space (`flex: 1 1 auto`). Don't use `fit` in shrink-to-content contexts.
   - **Idle**: every 1.8–4.6s a random letter gets a star glint on an edge.
 
 The rAF loop runs only while something moves and stops when everything is at
-rest; the intro waits until the title is on screen; glints pause offscreen
-and in background tabs. `prefers-reduced-motion` gets a still title: no
-intro, hover, glints or breathing.
+rest; the power-on waits until the title is on screen; glints pause offscreen
+and in background tabs. `prefers-reduced-motion` gets a lit, still title: no
+power-on, hover, glints or breathing.
 
 ## 8. Outside the website
 
@@ -235,8 +265,9 @@ default. Same atlas, spacing and kerning as the site.
 - **Resolution.** Letters are ~172 px deep; above ~8rem on high-DPI screens
   they upscale and soften. A 2× export of the sheet fixes this with no code
   changes beyond rerunning the extractor.
-- **Weight.** The full atlas is ~620 KB. If first load matters, split it so
-  a page loads only its glyphs, or preload it on the home page.
+- **Weight.** Wide screens still fetch the ~620 KB full atlas (after the
+  lights are already on). Splitting it so a page loads only its glyphs would
+  cut that further.
 - **Lighting is baked.** Mirrored and rotated glyphs (2, 3, 9) have mirrored
   highlights; acceptable at title sizes.
 

@@ -1,13 +1,19 @@
 /**
- * Motion for ETU titles. Every rendered letter is a GlyphActor wrapping its
- * DOM element: springs for position, tilt and scale, plus `charge` (lights
- * the crystal layer) and `flash` (a brightness spike). TitleMotion owns the
- * actors and plays the choreography:
- *   - intro: letters drop in one by one, tumble, land with a flash and a glint
+ * Motion for ETU titles.
+ *
+ * The intro is "lights on": titles render as unlit shadows straight from the
+ * server, and once the lit art has loaded and the title is on screen the
+ * host gets `data-lit`, which starts the CSS power-on sequence (see
+ * .etu-title in globals.css). A tiny inline script (POWER_ON_SCRIPT) does
+ * this before React hydrates; TitleMotion does the same after, in case the
+ * script didn't run.
+ *
+ * After that, every letter is a GlyphActor wrapping its DOM element: springs
+ * for position, tilt and scale, plus `charge` (lights the crystal layer) and
+ * `flash` (a brightness spike). TitleMotion plays the interactions:
  *   - hover: letters near the cursor lift and charge
  *   - click: a shockwave kicks letters outward from the click point
  *   - idle: random star glints on the letters
- * The ambient crystal "breathing" is pure CSS (see .etu-glyph__energy).
  * The rAF loop only runs while something is moving.
  */
 
@@ -40,13 +46,20 @@ export class Spring {
   }
 }
 
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = Math.min(Math.max((x - a) / (b - a), 0), 1)
-  return t * t * (3 - 2 * t)
-}
-
-/** Seconds from an actor's intro start until it lands. */
-const LAND_TIME = 0.36
+/**
+ * Runs inline right after a title's markup, before hydration: wait for the
+ * lit art and for the title to be on screen, then set `data-lit`.
+ * Plain ES5 so it runs anywhere; `src` is the art URL to wait for.
+ */
+export const powerOnScript = (src: string) =>
+  `(function(h,s){if(!h||h.hasAttribute('data-lit'))return;` +
+  `function lit(){h.setAttribute('data-lit','')}` +
+  `if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return lit();` +
+  `var i=new Image();i.src=s;` +
+  `var a=i.decode?i.decode().catch(function(){}):new Promise(function(r){i.onload=i.onerror=r});` +
+  `var v=new Promise(function(r){if(!('IntersectionObserver'in window))return r();` +
+  `var o=new IntersectionObserver(function(e){if(e[0].isIntersecting){o.disconnect();r()}},{threshold:0.15});o.observe(h)});` +
+  `Promise.all([a,v]).then(lit)})(document.currentScript&&document.currentScript.parentElement,${JSON.stringify(src)})`
 
 export class GlyphActor {
   readonly el: HTMLElement
@@ -59,11 +72,8 @@ export class GlyphActor {
   rot = new Spring(0, 90, 0.45)
   zoom = new Spring(1, 140, 0.5)
   charge = new Spring(0, 70, 0.9)
-  opacity = 1
   flash = 0
 
-  private introAt = -1
-  private landed = true
   private pulseAt = -1
 
   constructor(el: HTMLElement) {
@@ -78,52 +88,17 @@ export class GlyphActor {
     }
   }
 
-  /** Hide and park the letter above its slot, tilted and enlarged. */
-  stageDrop(size: number) {
-    this.opacity = 0
-    this.x.snap((Math.random() - 0.5) * 0.3 * size)
-    this.y.snap(-0.75 * size)
-    this.rot.snap((Math.random() - 0.5) * 0.5)
-    this.zoom.snap(1.35)
-    this.landed = false
-  }
-
-  dropAt(t: number) {
-    this.introAt = t
-  }
-
   pulse(at: number) {
     this.pulseAt = at
   }
 
   hover(proximity: number, size: number) {
     this.charge.target = proximity
-    if (this.introAt >= 0 || !this.landed) return
     this.y.target = -0.07 * size * proximity
     this.zoom.target = 1 + 0.05 * proximity
   }
 
-  get introducing() {
-    return !this.landed || this.introAt >= 0
-  }
-
-  /** Returns true when the letter has just landed (for glints). */
-  update(t: number, dt: number, size: number): boolean {
-    let landedNow = false
-    if (this.introAt >= 0 && t >= this.introAt) {
-      const local = t - this.introAt
-      this.x.target = 0
-      this.y.target = 0
-      this.rot.target = 0
-      this.zoom.target = 1
-      this.opacity = smoothstep(0, 0.2, local)
-      if (!this.landed && local >= LAND_TIME) {
-        this.landed = true
-        this.flash = 1
-        landedNow = true
-      }
-      if (local > 1.2) this.introAt = -1
-    }
+  update(t: number, dt: number, size: number) {
     if (this.pulseAt >= 0 && t >= this.pulseAt) {
       this.pulseAt = -1
       this.flash = Math.max(this.flash, 0.8)
@@ -133,14 +108,12 @@ export class GlyphActor {
     }
     this.flash *= Math.exp(-dt * 3.5)
     for (const s of [this.x, this.y, this.rot, this.zoom, this.charge]) s.step(dt)
-    return landedNow
   }
 
   apply() {
     const s = this.el.style
-    s.opacity = this.opacity >= 0.999 ? '' : this.opacity.toFixed(3)
     const still = this.x.atRest && this.y.atRest && this.rot.atRest && this.zoom.atRest &&
-      this.x.value === 0 && this.y.value === 0 && this.rot.value === 0 && this.zoom.value === 1
+      Math.abs(this.y.value) < 0.01 && Math.abs(this.rot.value) < 1e-4 && Math.abs(this.zoom.value - 1) < 1e-4
     s.transform = still
       ? ''
       : `translate(${this.x.value.toFixed(2)}px, ${this.y.value.toFixed(2)}px) rotate(${this.rot.value.toFixed(4)}rad) scale(${this.zoom.value.toFixed(4)})`
@@ -153,25 +126,24 @@ export class GlyphActor {
 
   get calm() {
     return (
-      this.introAt < 0 && this.pulseAt < 0 && this.flash < 0.01 &&
+      this.pulseAt < 0 && this.flash < 0.01 &&
       this.x.atRest && this.y.atRest && this.rot.atRest && this.zoom.atRest && this.charge.atRest
     )
   }
 
-  settle() {
-    this.introAt = -1
-    this.landed = true
-    this.opacity = 1
+  reset() {
     this.flash = 0
+    this.pulseAt = -1
     for (const s of [this.x, this.y, this.rot, this.charge]) s.snap(0)
     this.zoom.snap(1)
   }
 }
 
 export interface TitleMotionOptions {
+  /** Power the lights on (set data-lit) once `art` has loaded and the title is seen. */
   intro?: boolean
-  /** Seconds between letters in the intro (compressed for long titles). */
-  stagger?: number
+  /** Atlas URL the intro waits for. */
+  art?: string
   interactive?: boolean
   /** Idle glints. */
   glints?: boolean
@@ -185,7 +157,6 @@ export class TitleMotion {
   private running = false
   private last = 0
   private clock0 = performance.now()
-  private introPending: boolean
   private visible = false
   private pointer: { x: number; y: number } | null = null
   private glintTimer = 0
@@ -195,22 +166,22 @@ export class TitleMotion {
     this.host = host
     this.opts = {
       intro: options.intro ?? true,
-      stagger: options.stagger ?? 0.07,
+      art: options.art ?? '',
       interactive: options.interactive ?? true,
       glints: options.glints ?? true,
     }
     this.actors = Array.from(host.querySelectorAll<HTMLElement>('.etu-glyph')).map((el) => new GlyphActor(el))
-    this.introPending = this.opts.intro && this.actors.length > 0
     this.measure()
-    if (this.introPending) {
-      const size = this.size()
-      for (const a of this.actors) {
-        a.stageDrop(size)
-        a.apply()
-      }
-    }
 
-    const io = new IntersectionObserver(([e]) => this.setVisible(e.isIntersecting), { threshold: 0.2 })
+    if (!this.opts.intro) host.setAttribute('data-lit', '')
+    const artReady = this.opts.art ? loadImage(this.opts.art) : Promise.resolve()
+
+    const io = new IntersectionObserver(([e]) => {
+      this.setVisible(e.isIntersecting)
+      if (e.isIntersecting && !host.hasAttribute('data-lit')) {
+        artReady.then(() => host.setAttribute('data-lit', ''))
+      }
+    }, { threshold: 0.15 })
     io.observe(host)
     const ro = new ResizeObserver(() => this.measure())
     ro.observe(host)
@@ -250,24 +221,26 @@ export class TitleMotion {
     window.clearTimeout(this.glintTimer)
     for (const d of this.disposers) d()
     for (const a of this.actors) {
-      a.settle()
+      a.reset()
       a.apply()
     }
   }
 
   /** Shockwave from an x position (px within the title). */
   pulse(x: number) {
+    if (!this.host.hasAttribute('data-lit')) return
     const t = this.now()
     const size = this.size()
     for (const a of this.actors) a.pulse(t + Math.abs(a.center.x - x) / (size * 14))
     this.wake()
   }
 
+  /** Switch the lights off and on again. */
   replayIntro() {
-    const size = this.size()
-    for (const a of this.actors) a.stageDrop(size)
-    this.introPending = true
-    if (this.visible) this.playIntro()
+    const h = this.host
+    h.removeAttribute('data-lit')
+    void h.offsetWidth // restart the CSS animations
+    h.setAttribute('data-lit', '')
   }
 
   /** The letters' font size (after any fit scaling), px. */
@@ -286,24 +259,15 @@ export class TitleMotion {
 
   private setVisible(v: boolean) {
     this.visible = v
-    const active = v && !document.hidden
-    if (active && this.introPending) this.playIntro()
     window.clearTimeout(this.glintTimer)
-    if (active && this.opts.glints) this.scheduleGlint()
-  }
-
-  private playIntro() {
-    this.introPending = false
-    const t = this.now() + 0.05
-    const stagger = Math.min(this.opts.stagger, 1.2 / this.actors.length)
-    this.actors.forEach((a, i) => a.dropAt(t + i * stagger))
-    this.wake()
+    if (v && !document.hidden && this.opts.glints) this.scheduleGlint()
   }
 
   private scheduleGlint() {
     this.glintTimer = window.setTimeout(() => {
-      const idle = this.actors.filter((a) => !a.introducing)
-      if (idle.length) this.glint(idle[Math.floor(Math.random() * idle.length)])
+      if (this.host.hasAttribute('data-lit') && this.actors.length) {
+        this.glint(this.actors[Math.floor(Math.random() * this.actors.length)])
+      }
       this.scheduleGlint()
     }, 1800 + Math.random() * 2800)
   }
@@ -337,7 +301,7 @@ export class TitleMotion {
       }
       let calm = !this.pointer
       for (const a of this.actors) {
-        if (a.update(t, dt, size)) this.glint(a)
+        a.update(t, dt, size)
         a.apply()
         if (!a.calm) calm = false
       }
@@ -349,4 +313,10 @@ export class TitleMotion {
     }
     this.raf = requestAnimationFrame(tick)
   }
+}
+
+function loadImage(src: string) {
+  const img = new Image()
+  img.src = src
+  return (img.decode ? img.decode() : new Promise((r) => (img.onload = img.onerror = r))).catch(() => undefined)
 }

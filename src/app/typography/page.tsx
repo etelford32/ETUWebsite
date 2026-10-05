@@ -15,7 +15,7 @@ const SPEC = [
   ['Material', 'Riveted silver plating peeled back to glowing cyan crystal tiles'],
   ['Character set', 'A–Z, 0–9 and . , - : ! ’ — digits and punctuation built from letter parts'],
   ['Spacing', 'Measured advances, even tracking and 490 optical kerning pairs'],
-  ['Motion', 'Letters drop in and land with a flash; hover lifts, click sends a shockwave'],
+  ['Motion', 'Unlit shadows power on as holograms; hover lifts, click sends a shockwave'],
   ['Accessibility', 'Real text for screen readers; reduced-motion users get a still title'],
 ]
 
@@ -29,7 +29,7 @@ const USAGE = `import EtuTitle from '@/components/EtuTitle'
 //   compact      half-resolution atlas, < ~3rem      [false]
 //   kerning      optical kerning                     [true]
 //   animate      any motion at all                   [true]
-//   intro / stagger / interactive / glints           [true / 0.07 / true / true]`
+//   intro / stagger / interactive / glints           [true / 0.055 / true / true]`
 
 const EXPORT = `# PNG for social posts, Steam art, thumbnails ("|" breaks lines)
 python3 scripts/render-title.py "Explore the|Universe 2175" --height 120 -o title.png
@@ -79,7 +79,8 @@ export default function TypographyPage() {
               heavy, chamfered capitals built like hull armour, with riveted silver plates peeled
               back to a crystalline core that leaks cyan energy. Nothing is redrawn — each letter
               is cut from the sheet, measured and kerned, and on the site each one is a live
-              object that drops into place, lifts toward your cursor and rings when you click.
+              object: it waits as an unlit shadow, powers on as a flickering hologram, lifts
+              toward your cursor and rings when you click.
             </p>
             <dl className="grid gap-3 sm:grid-cols-2">
               {SPEC.map(([term, detail]) => (

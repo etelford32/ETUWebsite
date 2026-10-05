@@ -15,6 +15,7 @@ export const ETU_SPRITE_FONT = {
   art: '/brand/etu-glyphs.webp',
   artSmall: '/brand/etu-glyphs-sm.webp',
   energy: '/brand/etu-glyphs-energy.webp',
+  shadow: '/brand/etu-glyphs-shadow.webp',
   width: 2042,
   height: 822,
   /** Every cell is this tall: margin + depth + margin. */
