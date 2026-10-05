@@ -66,7 +66,7 @@ export default function TypographyPage() {
             <EtuTitle as="p" text="JKLMNOPQR" className="text-6xl md:text-7xl" />
             <EtuTitle as="p" text="STUVWXYZ" className="text-6xl md:text-7xl" />
             <EtuTitle as="p" text="0123456789" className="text-5xl md:text-6xl" />
-            <EtuTitle as="p" text=". , - : ! '" className="text-5xl md:text-6xl" />
+            <EtuTitle as="p" text="Captain's log: T-minus 10!" fit className="text-4xl md:text-5xl" />
           </div>
           <p className="eyebrow mt-10">Hover the letters · click to send a shockwave</p>
         </section>
