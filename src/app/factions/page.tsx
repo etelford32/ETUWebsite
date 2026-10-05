@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { getAllFactions, type Faction } from '@/data/factions'
+import EtuTitle from '@/components/EtuTitle'
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -43,9 +44,7 @@ export default function FactionsIndexPage() {
       <main className="min-h-screen bg-deep-900 text-slate-100">
         <section className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 pb-10">
           <div className="eyebrow mb-3">Pick Your Allegiance</div>
-          <h1 className="font-display text-4xl md:text-6xl font-bold etu-headline-grad tracking-tight">
-            One Galaxy at War.
-          </h1>
+          <EtuTitle as="h1" text="One Galaxy at War." fit className="text-4xl md:text-6xl" />
           <p className="mt-4 max-w-2xl text-lg text-slate-300">
             A taste of the roster, Commander. Choose carefully — every alliance closes another door.{' '}
             <span className="font-mono text-cyan-300">{liveCount} live</span>,{' '}

@@ -27,6 +27,7 @@ const STATIC_ROUTES = [
   '/missile-game',
   '/press-kit',
   '/privacy',
+  '/typography',
   '/zones',
 ]
 

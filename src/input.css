@@ -245,16 +245,6 @@
   }
 }
 
-/* Hero title with text shadow for depth */
-.hero-title {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9),
-               0 4px 8px rgba(0, 0, 0, 0.8),
-               0 8px 16px rgba(0, 0, 0, 0.7),
-               0 16px 32px rgba(0, 0, 0, 0.6),
-               0 4px 40px rgba(251, 146, 60, 0.3),
-               0 8px 60px rgba(245, 158, 11, 0.2);
-}
-
 /* Floating light particles */
 .hero-particles {
   position: absolute;
