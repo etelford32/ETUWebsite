@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Image from 'next/image';
+import EtuTitle from '@/components/EtuTitle';
 
 export default function PressKitPage() {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -102,11 +103,7 @@ export default function PressKitPage() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_4px_20px_rgba(59,130,246,0.8)]">
-                Explore the Universe 2175
-              </span>
-            </h1>
+            <EtuTitle as="h1" text={['Explore the', 'Universe 2175']} fit className="text-5xl md:text-7xl mb-6" />
 
             <p className="text-xl md:text-2xl text-slate-200 mb-4 font-semibold">
               Media Resources & Brand Assets

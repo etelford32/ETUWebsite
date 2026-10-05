@@ -170,6 +170,7 @@ export default function HomePage() {
           <EtuTitle
             as="h1"
             text={["Explore the", "Universe 2175"]}
+            fit
             className="text-[2.6rem] sm:text-6xl md:text-7xl xl:text-8xl"
           />
 

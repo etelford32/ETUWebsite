@@ -504,14 +504,29 @@ body { font-family: var(--font-body); }
    ============================================ */
 
 .etu-title {
-  /* letter depth (face + extrusion) is 0.8em; --k converts sprite px → em */
+  /* letter depth (face + extrusion) is 0.8em; --k converts sprite px → em.
+     Keep 0.8 / 12 / 64 in sync with src/lib/etuTitle/layout.ts. */
   --k: calc(0.8em / var(--etu-depth));
   --etu-track: 12;
+  --etu-gap: 64;
   position: relative;
   font-family: var(--font-display);
   font-weight: 900;
   line-height: 1;
-  word-spacing: 0.12em;
+}
+
+.etu-title__body { display: block; }
+
+/* Fit: shrink (to half size at most) so the widest line fits the container
+   instead of wrapping. --etu-fit-em is the widest line's width in em. */
+.etu-title--fit {
+  container-type: inline-size;
+  /* containment zeroes the content width, so in a flex row take the free space */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.etu-title--fit .etu-title__body {
+  font-size: clamp(0.5em, calc(100cqw / var(--etu-fit-em)), 1em);
 }
 
 .etu-title__line { display: block; }
@@ -522,6 +537,8 @@ body { font-family: var(--font-body); }
   white-space: nowrap;
   vertical-align: top;
 }
+.etu-title__word:not(:last-child) { margin-right: calc(var(--etu-gap) * var(--k)); }
+.etu-title__space { font-size: 0; }
 
 .etu-glyph {
   position: relative;
@@ -529,7 +546,8 @@ body { font-family: var(--font-body); }
   vertical-align: top;
   width: calc(var(--ga) * var(--k));
   height: calc(var(--etu-depth) * var(--k));
-  margin-right: calc(var(--etu-track) * var(--k));
+  /* tracking plus optical kerning to the next letter (from the extractor) */
+  margin-right: calc((var(--etu-track) + var(--kern, 0)) * var(--k));
   transform-origin: 50% 60%;
 }
 .etu-glyph:last-child { margin-right: 0; }
@@ -615,6 +633,8 @@ body { font-family: var(--font-body); }
 @keyframes etu-title-fallback-in {
   to { opacity: 1; }
 }
+
+.etu-title--still .etu-glyph__energy { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .etu-glyph__energy { animation: none; }

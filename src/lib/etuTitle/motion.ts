@@ -270,8 +270,10 @@ export class TitleMotion {
     if (this.visible) this.playIntro()
   }
 
+  /** The letters' font size (after any fit scaling), px. */
   private size() {
-    return parseFloat(getComputedStyle(this.host).fontSize) || 48
+    const el = this.actors[0]?.el ?? this.host
+    return parseFloat(getComputedStyle(el).fontSize) || 48
   }
 
   private now() {

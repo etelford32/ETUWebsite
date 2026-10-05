@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import EtuTitle from "@/components/EtuTitle";
 
 interface DevlogEntry {
   id: string;
@@ -80,9 +81,7 @@ export default function DevlogPage() {
               </Link>
             )}
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-            ✍️ Elliot's Devlog
-          </h1>
+          <EtuTitle as="h1" text="Elliot's Devlog" fit className="text-5xl md:text-7xl mb-6" />
           <p className="text-xl text-slate-300 max-w-3xl mb-4">
             <strong>Behind the Scenes:</strong> Follow my journey building Explore the Universe 2175.
             Regular updates on development progress, technical challenges, design decisions, and what's coming next.
