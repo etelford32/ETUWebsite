@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import StickyHeaderCTA from "@/components/StickyHeaderCTA";
+import EtuTitle from "@/components/EtuTitle";
 import { initPerformanceOptimizations } from "@/lib/performance";
 
 export default function HomePage() {
@@ -166,20 +167,11 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1
-            className="reveal hero-title font-orbitron text-5xl sm:text-6xl md:text-7xl lg:text-8xl"
-            style={{ lineHeight: 1.05 }}
-          >
-            <span className="hero-title__line hero-title__line--1">
-              Explore the
-            </span>
-            <span
-              className="hero-title__line hero-title__line--2"
-              data-text="Universe 2175"
-            >
-              Universe 2175
-            </span>
-          </h1>
+          <EtuTitle
+            as="h1"
+            text={["Explore the", "Universe 2175"]}
+            className="text-[2.6rem] sm:text-6xl md:text-7xl xl:text-8xl"
+          />
 
           <p
             className="reveal mt-6 max-w-2xl text-lg md:text-xl text-slate-200 leading-relaxed"

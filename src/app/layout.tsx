@@ -1,9 +1,16 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { Orbitron, Exo_2, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import '../input.css'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
 import { SITE_URL } from '@/lib/siteUrl'
+
+// Self-hosted at build time: the CSP (next.config.js) only allows fonts and
+// stylesheets from 'self', so a Google Fonts <link>/@import is blocked.
+const orbitron = Orbitron({ subsets: ['latin'], display: 'swap', variable: '--font-orbitron-face' })
+const exo2 = Exo_2({ subsets: ['latin'], display: 'swap', variable: '--font-exo2-face' })
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], display: 'swap', variable: '--font-jetbrains-face' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -48,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${orbitron.variable} ${exo2.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
         {/* Google Analytics */}
         <Script
