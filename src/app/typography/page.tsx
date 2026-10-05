@@ -7,16 +7,16 @@ import EtuTitle from '@/components/EtuTitle'
 export const metadata: Metadata = {
   title: 'Title Typography — Explore the Universe 2175 Brand',
   description:
-    'The official Explore the Universe 2175 title typography: extruded Orbitron letterforms tiled with silver plating and glowing cyan crystal.',
+    'The official Explore the Universe 2175 title typography: chamfered block capitals tiled with riveted silver plating and glowing cyan crystal.',
 }
 
 const SPEC = [
-  ['Typeface', 'Orbitron Black (900), uppercase, +0.04em tracking'],
-  ['Material', 'Irregular tiles — silver plating with exposed cyan crystal'],
-  ['Energy', 'Cyan #22d3ee — seams, inner rim, halo and sparkles'],
-  ['Depth', 'Chamfered silver bevel, dark-metal extrusion down-right'],
-  ['Motion', 'Tiles lock in left → right; seams pulse, sparkles twinkle'],
-  ['Fallback', 'Silver → cyan gradient text when WebGL is unavailable'],
+  ['Letterforms', 'ETU Block — custom chamfered capitals, digits and punctuation'],
+  ['Material', 'Raised irregular tiles — riveted silver plating over cyan crystal'],
+  ['Energy', 'Cyan #22d3ee — crystal seams, panel line, halo, glints'],
+  ['Depth', 'Flat silver chamfer; stacked walls toward a vanishing point'],
+  ['Motion', 'Letters drop in and lock; hover lifts, click sends a shockwave'],
+  ['Fallback', 'The same glyphs as SVG with a silver → cyan fill'],
 ]
 
 const USAGE = `import EtuTitle from '@/components/EtuTitle'
@@ -28,7 +28,7 @@ const USAGE = `import EtuTitle from '@/components/EtuTitle'
 />
 
 // Options: variant="cyan" | "amber" | "violet", energy={1.2},
-// intro={false}, animate={false}, interactive={false}`
+// intro={false}, stagger={0.1}, animate={false}, interactive={false}`
 
 export default function TypographyPage() {
   return (
@@ -46,20 +46,23 @@ export default function TypographyPage() {
           </div>
           <div className="space-y-4 md:space-y-6">
             <EtuTitle as="p" text="ABCDEFGHI" className="text-[2.4rem] sm:text-6xl md:text-7xl" />
-            <EtuTitle as="p" text="JKLMNOPQR" className="text-[2.4rem] sm:text-6xl md:text-7xl" introDuration={2.6} />
-            <EtuTitle as="p" text="STUVWXYZ" className="text-[2.4rem] sm:text-6xl md:text-7xl" introDuration={3} />
-            <EtuTitle as="p" text="0123456789" className="text-[2.1rem] sm:text-5xl md:text-6xl" introDuration={3.2} />
+            <EtuTitle as="p" text="JKLMNOPQR" className="text-[2.4rem] sm:text-6xl md:text-7xl" />
+            <EtuTitle as="p" text="STUVWXYZ" className="text-[2.4rem] sm:text-6xl md:text-7xl" />
+            <EtuTitle as="p" text="0123456789" className="text-[2.1rem] sm:text-5xl md:text-6xl" />
+            <EtuTitle as="p" text=". , - : ! ? ' / + ·" className="text-[1.8rem] sm:text-4xl md:text-5xl" />
           </div>
+          <p className="eyebrow mt-10">Hover the letters · click to send a shockwave</p>
         </section>
 
         <section className="max-w-6xl mx-auto px-4 lg:px-6 mt-24 grid gap-10 lg:grid-cols-2 items-start">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold headline-gradient mb-4">The official treatment</h2>
             <p className="text-slate-300 leading-relaxed mb-6">
-              Every Explore the Universe 2175 title is set in heavy, squared letterforms built
-              like hull armour: silver plates bolted over a crystalline core that leaks cyan
-              energy through the seams. On the site it is rendered live, so the letters
-              assemble, pulse and react to the cursor while staying real, selectable text.
+              Every Explore the Universe 2175 title is set in ETU Block: heavy, chamfered
+              capitals built like hull armour — riveted silver plates bolted over a
+              crystalline core that leaks cyan energy through the seams. On the site each
+              letter is a live object: it drops in, locks its tiles, lifts toward your
+              cursor and rings when you click, while the title stays real, selectable text.
             </p>
             <dl className="grid gap-3 sm:grid-cols-2">
               {SPEC.map(([term, detail]) => (
@@ -110,7 +113,7 @@ export default function TypographyPage() {
           <ul className="mt-6 space-y-2 text-slate-300 text-sm list-disc pl-5">
             <li>Reserve it for page titles and hero moments — one or two per screen.</li>
             <li>Keep titles short; each instance runs its own WebGL canvas.</li>
-            <li>Body copy and section headings stay in Exo 2 / Orbitron as before.</li>
+            <li>Section headings and body copy stay in Orbitron / Exo 2.</li>
             <li>Reduced-motion users get a single static frame — no intro or ambient loop.</li>
           </ul>
         </section>

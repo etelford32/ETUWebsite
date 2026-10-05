@@ -133,8 +133,9 @@
   --tracking-body:    0.01em;
 
   /* ---- Title typography (see .etu-title) ---- */
-  --etu-title-tracking: 0.04em;
-  --etu-title-fallback-fill: linear-gradient(180deg, #f8fafc 0%, #c3cdd9 34%, #6b7889 52%, #67e8f9 70%, #0891b2 100%);
+  --etu-title-fill-top:    #e2e8f0;
+  --etu-title-fill-mid:    #7b8899;
+  --etu-title-fill-bottom: #22d3ee;
 
   /* ---- Spacing / radius / motion ---- */
   --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
@@ -502,38 +503,53 @@ body { font-family: var(--font-body); }
 /* ============================================
    ETU 2175 TITLE TYPOGRAPHY
    Official title treatment — reference: public/brand/etu-title-typography.webp
-   Rendered by <EtuTitle> (src/components/EtuTitle.tsx): heavy Orbitron
-   glyphs, extruded, tiled with silver plating + glowing cyan crystal.
-   The rules below lay out the real DOM text and style it as the CSS
-   fallback; once WebGL is up (data-gl="on") the text goes transparent
-   (still selectable / read aloud) and the canvas draws the material.
+   Rendered by <EtuTitle> (src/components/EtuTitle.tsx). Letters come from
+   the ETU glyph set as inline SVG (layout + no-WebGL fallback); real text
+   sits transparent on top for selection and screen readers; a WebGL canvas
+   draws the animated material once ready (data-gl="on").
    ============================================ */
 
 .etu-title {
   position: relative;
   font-family: var(--font-display);
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: var(--etu-title-tracking);
   line-height: 1.12;
+  /* the gap between words, sized by the display font's space */
+  word-spacing: 0.06em;
 }
 
 .etu-title__line {
   display: block;
-  /* fallback extrusion + halo (filter on inline boxes is unreliable) */
+  /* fallback extrusion + halo */
   filter:
     drop-shadow(0 2px 0 #4b5563)
-    drop-shadow(0 3px 0 #111827)
-    drop-shadow(0 0 16px rgba(34, 211, 238, 0.45));
+    drop-shadow(0 4px 0 #111827)
+    drop-shadow(0 0 14px rgba(34, 211, 238, 0.45));
 }
 
 .etu-title__word {
+  position: relative;
+  display: inline-block;
   white-space: nowrap;
-  background: var(--etu-title-fallback-fill);
-  -webkit-background-clip: text;
-          background-clip: text;
+}
+
+.etu-title__glyphs {
+  display: inline-block;
+  overflow: visible;
+  vertical-align: baseline;
+}
+
+/* Real text, invisible but selectable and read aloud. */
+.etu-title__text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  white-space: nowrap;
   color: transparent;
   -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  line-height: 1.4;
 }
 
 .etu-title__canvas {
@@ -545,10 +561,10 @@ body { font-family: var(--font-body); }
 
 .etu-title[data-gl="on"] .etu-title__canvas { visibility: visible; }
 .etu-title[data-gl="on"] .etu-title__line { filter: none; }
-.etu-title[data-gl="on"] .etu-title__word { background: none; }
+.etu-title[data-gl="on"] .etu-title__glyphs { visibility: hidden; }
 
 /* With an intro queued, hold the fallback back so it doesn't flash before
-   the tiles assemble. If WebGL never arrives it fades in on its own. */
+   the letters drop in. If WebGL never arrives it fades in on its own. */
 .etu-title--intro[data-gl="pending"] .etu-title__line {
   animation: etu-title-fallback-in 0.6s ease 1.4s both;
 }
