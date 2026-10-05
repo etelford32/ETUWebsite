@@ -7,16 +7,16 @@ import EtuTitle from '@/components/EtuTitle'
 export const metadata: Metadata = {
   title: 'Title Typography — Explore the Universe 2175 Brand',
   description:
-    'The official Explore the Universe 2175 title typography: chamfered block capitals tiled with riveted silver plating and glowing cyan crystal.',
+    'The official Explore the Universe 2175 title typography: extruded block capitals of riveted silver plating over glowing cyan crystal.',
 }
 
 const SPEC = [
-  ['Letterforms', 'ETU Block — custom chamfered capitals, digits and punctuation'],
-  ['Material', 'Raised irregular tiles — riveted silver plating over cyan crystal'],
-  ['Energy', 'Cyan #22d3ee — crystal seams, panel line, halo, glints'],
-  ['Depth', 'Flat silver chamfer; stacked walls toward a vanishing point'],
-  ['Motion', 'Letters drop in and lock; hover lifts, click sends a shockwave'],
-  ['Fallback', 'The same glyphs as SVG with a silver → cyan fill'],
+  ['Letterforms', 'Heavy chamfered block capitals, cut straight from the official artwork'],
+  ['Material', 'Riveted silver plating peeled back to glowing cyan crystal tiles'],
+  ['Energy', 'Cyan crystal light that breathes across the title'],
+  ['Motion', 'Letters drop in and land with a flash; hover lifts, click sends a shockwave'],
+  ['Digits', 'Assembled from the letters until a dedicated digits sheet exists'],
+  ['Accessibility', 'Real text for screen readers; reduced-motion users get a still title'],
 ]
 
 const USAGE = `import EtuTitle from '@/components/EtuTitle'
@@ -27,8 +27,8 @@ const USAGE = `import EtuTitle from '@/components/EtuTitle'
   className="text-6xl md:text-8xl"
 />
 
-// Options: variant="cyan" | "amber" | "violet", energy={1.2},
-// intro={false}, stagger={0.1}, animate={false}, interactive={false}`
+// Options: variant="cyan" | "amber" | "violet",
+// intro={false}, stagger={0.1}, interactive={false}, glints={false}`
 
 export default function TypographyPage() {
   return (
@@ -37,7 +37,7 @@ export default function TypographyPage() {
       <main className="min-h-screen bg-gradient-to-b from-deep-900 via-[#04101a] to-black pt-28 pb-24 overflow-hidden">
         <section className="max-w-6xl mx-auto px-4 lg:px-6 text-center">
           <p className="eyebrow mb-6">Brand · Title Typography</p>
-          <EtuTitle as="h1" text="ETU" className="text-[6rem] sm:text-[8rem] md:text-[10rem] leading-none" />
+          <EtuTitle as="h1" text="ETU" className="text-[6rem] sm:text-[8rem] md:text-[10rem]" />
           <div
             aria-hidden="true"
             className="relative mx-auto mt-6 mb-10 h-px max-w-4xl bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_rgba(34,211,238,0.8)]"
@@ -49,7 +49,6 @@ export default function TypographyPage() {
             <EtuTitle as="p" text="JKLMNOPQR" className="text-[2.4rem] sm:text-6xl md:text-7xl" />
             <EtuTitle as="p" text="STUVWXYZ" className="text-[2.4rem] sm:text-6xl md:text-7xl" />
             <EtuTitle as="p" text="0123456789" className="text-[2.1rem] sm:text-5xl md:text-6xl" />
-            <EtuTitle as="p" text=". , - : ! ? ' / + ·" className="text-[1.8rem] sm:text-4xl md:text-5xl" />
           </div>
           <p className="eyebrow mt-10">Hover the letters · click to send a shockwave</p>
         </section>
@@ -58,11 +57,10 @@ export default function TypographyPage() {
           <div>
             <h2 className="text-2xl md:text-3xl font-bold headline-gradient mb-4">The official treatment</h2>
             <p className="text-slate-300 leading-relaxed mb-6">
-              Every Explore the Universe 2175 title is set in ETU Block: heavy, chamfered
-              capitals built like hull armour — riveted silver plates bolted over a
-              crystalline core that leaks cyan energy through the seams. On the site each
-              letter is a live object: it drops in, locks its tiles, lifts toward your
-              cursor and rings when you click, while the title stays real, selectable text.
+              Every Explore the Universe 2175 title uses the letters from the official artwork:
+              heavy, chamfered capitals built like hull armour, with riveted silver plates peeled
+              back to a crystalline core that leaks cyan energy. On the site each letter is a
+              live object: it drops into place, lifts toward your cursor and rings when you click.
             </p>
             <dl className="grid gap-3 sm:grid-cols-2">
               {SPEC.map(([term, detail]) => (
@@ -112,9 +110,9 @@ export default function TypographyPage() {
           </pre>
           <ul className="mt-6 space-y-2 text-slate-300 text-sm list-disc pl-5">
             <li>Reserve it for page titles and hero moments — one or two per screen.</li>
-            <li>Keep titles short; each instance runs its own WebGL canvas.</li>
+            <li>Letters A–Z and digits are supported; other characters fall back to plain styled text.</li>
             <li>Section headings and body copy stay in Orbitron / Exo 2.</li>
-            <li>Reduced-motion users get a single static frame — no intro or ambient loop.</li>
+            <li>To regenerate the letters, run <code className="font-mono text-cyan-200">python3 scripts/extract-title-glyphs.py</code>.</li>
           </ul>
         </section>
       </main>

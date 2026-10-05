@@ -132,11 +132,6 @@
   --tracking-eyebrow: 0.20em;
   --tracking-body:    0.01em;
 
-  /* ---- Title typography (see .etu-title) ---- */
-  --etu-title-fill-top:    #e2e8f0;
-  --etu-title-fill-mid:    #7b8899;
-  --etu-title-fill-bottom: #22d3ee;
-
   /* ---- Spacing / radius / motion ---- */
   --space-1: 4px;   --space-2: 8px;   --space-3: 12px;  --space-4: 16px;
   --space-5: 24px;  --space-6: 32px;  --space-7: 48px;  --space-8: 64px;
@@ -502,80 +497,128 @@ body { font-family: var(--font-body); }
 
 /* ============================================
    ETU 2175 TITLE TYPOGRAPHY
-   Official title treatment — reference: public/brand/etu-title-typography.webp
-   Rendered by <EtuTitle> (src/components/EtuTitle.tsx). Letters come from
-   the ETU glyph set as inline SVG (layout + no-WebGL fallback); real text
-   sits transparent on top for selection and screen readers; a WebGL canvas
-   draws the animated material once ready (data-gl="on").
+   Official title treatment, built from the letters of the reference art
+   (public/brand/etu-title-typography.webp) cut into a sprite font
+   (public/brand/etu-glyphs.webp) by scripts/extract-title-glyphs.py.
+   Rendered by <EtuTitle>; sprite metrics arrive as --etu-* / --g* vars.
    ============================================ */
 
 .etu-title {
+  /* letter depth (face + extrusion) is 0.8em; --k converts sprite px → em */
+  --k: calc(0.8em / var(--etu-depth));
+  --etu-track: 12;
   position: relative;
   font-family: var(--font-display);
   font-weight: 900;
-  line-height: 1.12;
-  /* the gap between words, sized by the display font's space */
-  word-spacing: 0.06em;
+  line-height: 1;
+  word-spacing: 0.12em;
 }
 
-.etu-title__line {
-  display: block;
-  /* fallback extrusion + halo */
-  filter:
-    drop-shadow(0 2px 0 #4b5563)
-    drop-shadow(0 4px 0 #111827)
-    drop-shadow(0 0 14px rgba(34, 211, 238, 0.45));
-}
+.etu-title__line { display: block; }
+.etu-title__line + .etu-title__line { margin-top: 0.1em; }
 
 .etu-title__word {
+  display: inline-block;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.etu-glyph {
   position: relative;
   display: inline-block;
-  white-space: nowrap;
+  vertical-align: top;
+  width: calc(var(--ga) * var(--k));
+  height: calc(var(--etu-depth) * var(--k));
+  margin-right: calc(var(--etu-track) * var(--k));
+  transform-origin: 50% 60%;
 }
+.etu-glyph:last-child { margin-right: 0; }
 
-.etu-title__glyphs {
-  display: inline-block;
-  overflow: visible;
-  vertical-align: baseline;
-}
-
-/* Real text, invisible but selectable and read aloud. */
-.etu-title__text {
+.etu-glyph__art,
+.etu-glyph__energy,
+.etu-glyph__charge {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  text-transform: uppercase;
-  font-size: 0.8em;
-  line-height: 1.4;
-}
-
-.etu-title__canvas {
-  position: absolute;
-  display: block;
+  left: calc(var(--etu-margin) * var(--k) * -1);
+  top: calc(var(--etu-margin) * var(--k) * -1);
+  width: calc(var(--gw) * var(--k));
+  height: calc(var(--etu-frame) * var(--k));
+  background-repeat: no-repeat;
+  background-size: calc(var(--etu-aw) * var(--k)) calc(var(--etu-ah) * var(--k));
+  background-position: calc(var(--gx) * var(--k) * -1) calc(var(--gy) * var(--k) * -1);
   pointer-events: none;
-  visibility: hidden;
+}
+.etu-glyph__art { background-image: var(--etu-art); }
+
+/* The crystal's own light, re-applied in screen mode to make it pulse. */
+.etu-glyph__energy,
+.etu-glyph__charge {
+  background-image: var(--etu-energy);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+.etu-glyph__energy {
+  animation: etu-energy-breathe 4.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.21s);
 }
 
-.etu-title[data-gl="on"] .etu-title__canvas { visibility: visible; }
-.etu-title[data-gl="on"] .etu-title__line { filter: none; }
-.etu-title[data-gl="on"] .etu-title__glyphs { visibility: hidden; }
+@keyframes etu-energy-breathe {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 0.7; }
+}
 
-/* With an intro queued, hold the fallback back so it doesn't flash before
-   the letters drop in. If WebGL never arrives it fades in on its own. */
-.etu-title--intro[data-gl="pending"] .etu-title__line {
-  animation: etu-title-fallback-in 0.6s ease 1.4s both;
+/* Characters the artwork doesn't have */
+.etu-title__char {
+  display: inline-block;
+  vertical-align: top;
+  height: calc(var(--etu-depth) * var(--k));
+  margin-right: calc(var(--etu-track) * var(--k));
+  font-size: 0.82em;
+  line-height: 0.95;
+  background: linear-gradient(180deg, #f1f5f9, #94a3b8 55%, #22d3ee);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+/* Star glint spawned by TitleMotion */
+.etu-glint {
+  position: absolute;
+  width: 0.55em;
+  height: 0.55em;
+  margin: -0.275em 0 0 -0.275em;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle, #fff 0 5%, rgba(165, 243, 252, 0.9) 10%, rgba(34, 211, 238, 0.35) 24%, transparent 46%),
+    linear-gradient(90deg, transparent 0 46%, rgba(224, 252, 255, 0.95) 50%, transparent 54%) center / 100% 5% no-repeat,
+    linear-gradient(0deg, transparent 0 46%, rgba(224, 252, 255, 0.95) 50%, transparent 54%) center / 5% 100% no-repeat;
+  animation: etu-glint 0.9s ease-out forwards;
+}
+
+@keyframes etu-glint {
+  0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  25%  { opacity: 1; transform: scale(1) rotate(25deg); }
+  100% { opacity: 0; transform: scale(0.5) rotate(50deg); }
+}
+
+/* Energy colour variants: shift the cyan, the silver barely changes */
+.etu-title[data-variant="amber"] .etu-title__line  { filter: hue-rotate(-150deg) saturate(1.25); }
+.etu-title[data-variant="violet"] .etu-title__line { filter: hue-rotate(75deg) saturate(1.1); }
+
+/* Before TitleMotion takes over, hold intro letters back; without JS they
+   fade in on their own. */
+.etu-title--intro:not([data-state="live"]) .etu-glyph {
+  opacity: 0;
+  animation: etu-title-fallback-in 0.6s ease 1.6s forwards;
 }
 
 @keyframes etu-title-fallback-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .etu-title--intro[data-gl="pending"] .etu-title__line { animation: none; }
+  .etu-glyph__energy { animation: none; }
+  .etu-title--intro:not([data-state="live"]) .etu-glyph { opacity: 1; animation: none; }
 }
 
 /* ============================================
