@@ -178,7 +178,7 @@ its parent: fine in blocks and grid cells; in a flex row it grows to fill the
 free space (`flex: 1 1 auto`). Don't use `fit` in shrink-to-content contexts.
 
 **Pages using it:** home hero, `/bosses`, `/factions`, `/devlog`,
-`/press-kit`, and the `/typography` specimen.
+`/press-kit`, `/cyl`, and the `/typography` specimen.
 
 ## 7. Motion
 
