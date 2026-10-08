@@ -16,28 +16,28 @@ const SIGNUP_URL = "/login?mode=signup";
 
 const PILLARS = [
   {
-    title: "An AI That Learns You",
+    title: "An AI That Learns From You",
     color: "text-cyan-300",
     ring: "ring-cyan-400/25",
     image: "/ai_systems.jpg",
-    lead: "MEGABOT doesn't follow a script.",
-    body: "It studies your tactics and adapts. Beat it with missiles and the next encounter brings countermeasures. Every player faces a different boss.",
+    lead: "MEGABOT has no script.",
+    body: "It watches how you fight and adapts. Win with missiles, and next time it brings countermeasures.",
   },
   {
     title: "Real Orbital Physics",
     color: "text-amber-300",
     ring: "ring-amber-400/25",
     image: "/physics.jpg",
-    lead: "Built in Rust by a computational astrophysicist.",
-    body: "Fuel, velocity and gravity all matter. Slingshot around planets, plan transfers, and make every burn count.",
+    lead: "Made by an astrophysicist.",
+    body: "Fuel, speed and gravity all matter. Slingshot around planets and make every engine burn count.",
   },
   {
     title: "A Galaxy That Remembers",
     color: "text-purple-300",
     ring: "ring-purple-400/25",
     image: "/upgrade.jpg",
-    lead: "Choices that stick.",
-    body: "Level your commander, grow weapon ability trees and refit your ship. Lose your base, keep your knowledge.",
+    lead: "Your choices stick.",
+    body: "Level up, unlock weapon abilities and upgrade your ship. Lose your base, keep what you learned.",
   },
 ];
 
@@ -47,28 +47,28 @@ const FACTIONS = [
     image: "/Crystal_Race.jpg",
     name: "CYL",
     kind: "Crystal Intelligences",
-    blurb: "Light-bending defenses and precision strikes.",
+    blurb: "Crystal minds that bend light to defend and strike.",
   },
   {
     href: "/factions/mycelari",
     image: "/Mycelari_Hero2.jpg",
     name: "Mycelari",
     kind: "Fungal Swarm",
-    blurb: "Spore-based expansion and a biomass economy.",
+    blurb: "A fungal swarm that spreads by spores.",
   },
   {
     href: "/factions/megabot",
     image: "/eveil_robot_hero1.jpg",
     name: "Megabot",
     kind: "Machine Empire",
-    blurb: "Modular forms and station-scale bosses.",
+    blurb: "Shape-shifting robots and station-sized bosses.",
   },
   {
     href: "/factions/wild",
     image: "/Wild_Race.jpg",
     name: "Wild",
     kind: "Ent-born Guardians",
-    blurb: "Pollen-based growth and terrain control.",
+    blurb: "Tree-born guardians who control the land.",
   },
 ];
 
@@ -100,7 +100,7 @@ export default function HomePage() {
       {/* HERO — brand, pitch, then Wishlist › Playtest › Sign up */}
       <section
         id="home"
-        className="relative min-h-[100svh] flex items-center overflow-hidden"
+        className="relative min-h-[92svh] flex items-center overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
           <video
@@ -125,44 +125,51 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-24 pb-16 md:pt-28 md:pb-20 text-center">
-          <div className="reveal flex justify-center mb-6">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-8 pb-12 md:pt-14 md:pb-16 text-center">
+          <div className="reveal flex justify-center mb-5">
             <span className="etu-pill etu-pill--amber etu-pill--lg">
-              <span className="ping" /> Steam Playtest Open Now
+              <span className="ping" /> Playtest Open Now
             </span>
           </div>
 
-          <EtuTitle
-            as="h1"
-            text={["Explore the", "Universe 2175"]}
-            fit
-            className="mx-auto text-[3.25rem] sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[8.75rem]"
-          />
+          {/* Phones get a stacked title so each line can run much larger */}
+          <h1>
+            <EtuTitle
+              as="span"
+              text={["Explore", "the", "Universe", "2175"]}
+              fit
+              className="block sm:hidden -mx-2 text-[7rem]"
+            />
+            <EtuTitle
+              as="span"
+              text={["Explore the", "Universe 2175"]}
+              fit
+              className="hidden sm:block mx-auto sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[8.75rem]"
+            />
+          </h1>
 
           <p
-            className="reveal mt-4 font-display uppercase tracking-[0.3em] text-sm md:text-lg text-slate-300"
+            className="reveal mt-4 uppercase font-semibold tracking-[0.12em] text-base md:text-xl text-slate-100"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
           >
             A game by Elliot Telford
           </p>
 
           <p
-            className="reveal mt-8 mx-auto max-w-4xl text-2xl md:text-4xl font-semibold text-white leading-snug text-balance"
+            className="reveal mt-6 md:mt-8 mx-auto max-w-4xl text-2xl md:text-4xl font-bold text-white leading-tight text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
             Real orbital physics. An AI that learns how you fight.
-            A galaxy that remembers.
           </p>
 
           <p
-            className="reveal mt-4 mx-auto max-w-2xl text-lg md:text-2xl text-slate-200 leading-relaxed text-balance"
+            className="reveal mt-3 mx-auto max-w-2xl text-lg md:text-2xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            An open-world space adventure for PC. Join the free playtest now,
-            Early Access in 2027.
+            Open-world space adventure for PC. Free playtest open now.
           </p>
 
-          <div className="reveal mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+          <div className="reveal mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
             <a
               href={STEAM_URL}
               target="_blank"
@@ -183,7 +190,7 @@ export default function HomePage() {
             </a>
           </div>
 
-          <p className="reveal mt-6 text-lg md:text-xl text-slate-300">
+          <p className="reveal mt-5 text-lg md:text-xl text-slate-100">
             Want launch news?{" "}
             <Link
               href={SIGNUP_URL}
@@ -193,8 +200,8 @@ export default function HomePage() {
             </Link>
           </p>
 
-          <p className="reveal mt-10 font-display uppercase tracking-[0.2em] text-xs md:text-sm text-slate-400">
-            Windows · macOS · Linux&nbsp;&nbsp;|&nbsp;&nbsp;Early Access 2027
+          <p className="reveal mt-8 text-base md:text-lg font-medium text-slate-300">
+            Windows · macOS · Linux · Early Access 2027
           </p>
         </div>
       </section>
@@ -202,12 +209,12 @@ export default function HomePage() {
       {/* What makes 2175 different */}
       <section
         id="features"
-        className="py-24 md:py-32 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900"
+        className="py-16 md:py-24 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900"
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <header className="reveal text-center max-w-3xl mx-auto mb-14 md:mb-20">
-            <h2 className="font-display text-4xl md:text-6xl font-bold headline-gradient leading-tight">
-              What Makes 2175 Different
+          <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              Why 2175 Is Different
             </h2>
           </header>
 
@@ -215,9 +222,9 @@ export default function HomePage() {
             {PILLARS.map((p) => (
               <article
                 key={p.title}
-                className={`reveal p-8 md:p-10 rounded-2xl bg-white/[0.04] ring-1 ${p.ring}`}
+                className={`reveal p-7 md:p-9 rounded-2xl bg-white/[0.04] ring-1 ${p.ring}`}
               >
-                <div className="w-16 h-16 rounded-xl overflow-hidden ring-2 ring-white/10 mb-6">
+                <div className="w-14 h-14 rounded-xl overflow-hidden ring-2 ring-white/10 mb-5">
                   <Image
                     src={p.image}
                     alt=""
@@ -226,10 +233,10 @@ export default function HomePage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className={`font-display text-2xl md:text-3xl font-bold leading-tight ${p.color}`}>
+                <h3 className={`text-2xl md:text-3xl font-bold leading-tight text-balance ${p.color}`}>
                   {p.title}
                 </h3>
-                <p className="mt-4 text-lg md:text-xl text-slate-200 leading-relaxed">
+                <p className="mt-3 text-lg md:text-xl text-slate-100 leading-relaxed">
                   <span className="font-semibold text-white">{p.lead}</span>{" "}
                   {p.body}
                 </p>
@@ -240,14 +247,14 @@ export default function HomePage() {
       </section>
 
       {/* Official trailer */}
-      <section id="trailer" className="reveal py-24 md:py-32 bg-deep-900">
+      <section id="trailer" className="reveal py-16 md:py-24 bg-deep-900">
         <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <header className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight">
+          <header className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               Watch the Trailer
             </h2>
-            <p className="mt-5 text-lg md:text-2xl text-slate-300 leading-relaxed">
-              Deep-space travel, station sieges and faction AI in motion.
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              Space travel, station battles and faction AI in action.
             </p>
           </header>
 
@@ -280,15 +287,15 @@ export default function HomePage() {
       {/* Factions */}
       <section
         id="factions"
-        className="py-24 md:py-32 bg-gradient-to-b from-deep-900 to-deep-800"
+        className="py-16 md:py-24 bg-gradient-to-b from-deep-900 to-deep-800"
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <header className="reveal text-center max-w-3xl mx-auto mb-14">
-            <h2 className="font-display text-4xl md:text-6xl font-bold headline-gradient leading-tight">
-              Four Factions, One Galaxy
+          <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              Four Factions
             </h2>
-            <p className="mt-5 text-lg md:text-2xl text-slate-300 leading-relaxed">
-              Each civilization plays by its own rules.
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              One galaxy. Each faction plays by its own rules.
             </p>
           </header>
 
@@ -309,13 +316,13 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="p-6">
-                  <h3 className="font-display text-2xl font-bold text-white">
+                  <h3 className="text-2xl font-bold text-white">
                     {f.name}
                   </h3>
-                  <p className="mt-1 font-display uppercase tracking-[0.15em] text-sm text-cyan-300">
+                  <p className="mt-0.5 uppercase font-semibold tracking-wider text-sm md:text-base text-cyan-300">
                     {f.kind}
                   </p>
-                  <p className="mt-3 text-base md:text-lg text-slate-300 leading-relaxed">
+                  <p className="mt-2 text-lg text-slate-100 leading-relaxed">
                     {f.blurb}
                   </p>
                 </div>
@@ -328,38 +335,38 @@ export default function HomePage() {
       {/* Final CTA — same order as the hero: Wishlist › Playtest › Sign up */}
       <section
         id="download"
-        className="relative py-24 md:py-32 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-cyan-500/20 overflow-hidden"
+        className="relative py-16 md:py-24 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-cyan-500/20 overflow-hidden"
       >
         <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <header className="reveal text-center max-w-3xl mx-auto mb-14">
-            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight">
+          <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               Join the Mission
             </h2>
-            <p className="mt-5 text-lg md:text-2xl text-slate-300 leading-relaxed">
-              Three ways to be part of Explore the Universe 2175.
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              Three ways to get involved.
             </p>
           </header>
 
           <ol className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <CtaCard
-              step="01"
+              step="Step 1"
               title="Wishlist on Steam"
-              body="The single biggest way to help. You'll get notified the moment Early Access launches."
+              body="The best way to support the game. Steam tells you when Early Access launches."
               href={STEAM_URL}
               cta="Wishlist Now"
               featured
             />
             <CtaCard
-              step="02"
-              title="Play the Playtest"
-              body="Free on Steam. Request access, play the current build, and help shape the balance and AI."
+              step="Step 2"
+              title="Join the Playtest"
+              body="Free on Steam. Play the latest build and tell us what to fix."
               href={STEAM_URL}
               cta="Request Access"
             />
             <CtaCard
-              step="03"
+              step="Step 3"
               title="Sign Up for Updates"
-              body="Create a commander account for devlogs, leaderboards and playtest news."
+              body="Get devlogs, playtest news and a spot on the leaderboard."
               href={SIGNUP_URL}
               cta="Create Account"
               internal
@@ -406,19 +413,19 @@ function CtaCard({
 
   return (
     <li
-      className={`reveal flex flex-col p-8 md:p-10 rounded-2xl ${
+      className={`reveal flex flex-col p-7 md:p-9 rounded-2xl ${
         featured
           ? "bg-gradient-to-b from-sky-500/15 to-sky-500/5 ring-2 ring-sky-400/50 shadow-[0_0_50px_rgba(56,189,248,0.15)]"
           : "bg-white/[0.04] ring-1 ring-white/10"
       }`}
     >
-      <span className="font-display text-sm md:text-base tracking-[0.25em] text-slate-400">
+      <span className="text-base md:text-lg font-bold text-cyan-300">
         {step}
       </span>
-      <h3 className="mt-3 font-display text-2xl md:text-3xl font-bold text-white leading-tight">
+      <h3 className="mt-1 text-2xl md:text-3xl font-bold text-white leading-tight">
         {title}
       </h3>
-      <p className="mt-4 mb-8 flex-1 text-lg text-slate-300 leading-relaxed">
+      <p className="mt-3 mb-7 flex-1 text-lg text-slate-100 leading-relaxed">
         {body}
       </p>
       {button}
