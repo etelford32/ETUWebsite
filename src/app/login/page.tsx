@@ -120,7 +120,7 @@ function LoginForm() {
     const isAlpha = redirect === '/alpha-testing'
     setRedirectTo(redirect)
     setIsAlphaRedirect(isAlpha)
-    if (isAlpha) setMode('signup')
+    if (isAlpha || searchParams?.get('mode') === 'signup') setMode('signup')
 
     const msg = searchParams?.get('message')
     const err = searchParams?.get('error')

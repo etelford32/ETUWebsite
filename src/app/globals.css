@@ -280,6 +280,9 @@ body { font-family: var(--font-body); }
 .etu-pill--purple { border-color: rgba(168,85,247,.45); color: #c4b5fd;              background: rgba(168,85,247,.06); }
 .etu-pill--green  { border-color: rgba(52,211,153,.45); color: var(--etu-emerald-300);background: rgba(52,211,153,.06); }
 .etu-pill--red    { border-color: rgba(239,68,68,.45);  color: #fca5a5;              background: rgba(239,68,68,.06); }
+/* Larger pill for hero-scale use */
+.etu-pill--lg { font-size: 13px; padding: 9px 18px; gap: 10px; }
+@media (min-width: 768px) { .etu-pill--lg { font-size: 15px; } }
 @keyframes etu-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
 
 /* Ghost button — outlined cyan, all-caps */
@@ -303,6 +306,10 @@ body { font-family: var(--font-body); }
   background: rgba(34,211,238,.08);
   box-shadow: 0 0 24px rgba(34,211,238,.3);
 }
+
+/* Larger ghost button — pairs with a hero-size .btn-3d */
+.btn-ghost--lg { padding: 1.15rem 2rem; font-size: 1rem; border-radius: 12px; }
+@media (min-width: 768px) { .btn-ghost--lg { font-size: 1.125rem; } }
 
 /* Sticky-header glow lines — apply alongside Tailwind sticky header */
 .etu-header-glow { position: relative; }
