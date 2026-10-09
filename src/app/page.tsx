@@ -14,28 +14,32 @@ const SIGNUP_URL = "/login?mode=signup";
 
 const PILLARS = [
   {
-    title: "An AI That Learns From You",
+    title: "A New Galaxy Every Run",
     color: "text-cyan-300",
-    ring: "ring-cyan-400/25",
-    image: "/ai_systems.jpg",
-    lead: "MEGABOT has no script.",
-    body: "It watches how you fight and adapts. Win with missiles, and next time it brings countermeasures.",
+    bar: "bg-cyan-400",
+    lead: "Spiral arms, nebulae, pulsars and thousands of worlds.",
+    body: "Generated fresh every run across sixteen regions, from fungal jungles to the frozen Outer Rim.",
   },
   {
-    title: "Real Orbital Physics",
+    title: "Real Cosmic Danger",
     color: "text-amber-300",
-    ring: "ring-amber-400/25",
-    image: "/physics.jpg",
-    lead: "Made by an astrophysicist.",
-    body: "Fuel, speed and gravity all matter. Slingshot around planets and make every engine burn count.",
+    bar: "bg-amber-400",
+    lead: "Slingshot around black holes. Outrun solar storms.",
+    body: "Flares and coronal mass ejections follow real observations, and no two black holes are alike.",
   },
   {
-    title: "A Galaxy That Remembers",
+    title: "Quests and a Buried Mystery",
     color: "text-purple-300",
-    ring: "ring-purple-400/25",
-    image: "/upgrade.jpg",
-    lead: "Your choices stick.",
-    body: "Level up, unlock weapon abilities and upgrade your ship. Lose your base, keep what you learned.",
+    bar: "bg-purple-400",
+    lead: "Wake ancient stations and earn the trust of strange allies.",
+    body: "Follow the Khepri Signal with Cyl to learn why her people, the Lumari, were erased.",
+  },
+  {
+    title: "Bosses Built to Be Broken",
+    color: "text-rose-300",
+    bar: "bg-rose-400",
+    lead: "Strip MEGABOT's armour plate by plate.",
+    body: "Escape the Null Architect's prison rooms. MEGABOT remembers what you did to his empire.",
   },
 ];
 
@@ -148,14 +152,14 @@ export default function HomePage() {
             className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-2xl md:text-4xl font-bold text-white leading-tight text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
-            Real orbital physics. An AI that learns how you fight.
+            Explore a new galaxy of quests, bosses and cosmic wonders.
           </p>
 
           <p
-            className="reveal mt-3 mx-auto max-w-2xl text-lg md:text-2xl text-slate-100 leading-relaxed text-balance"
+            className="reveal mt-4 mx-auto max-w-3xl text-lg md:text-2xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            Open-world space adventure for PC. Free playtest open now.
+            Chart black holes, outrun solar storms and uncover a lost civilization with Cyl, a crystal AI who learns who you are.
           </p>
 
           <div className="reveal mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
@@ -203,25 +207,17 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
             <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
-              Why 2175 Is Different
+              What Awaits Out There
             </h2>
           </header>
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
             {PILLARS.map((p) => (
               <article
                 key={p.title}
-                className={`reveal p-7 md:p-9 rounded-2xl bg-white/[0.04] ring-1 ${p.ring}`}
+                className="reveal p-7 md:p-9 rounded-2xl bg-white/[0.04] ring-1 ring-white/10"
               >
-                <div className="w-14 h-14 rounded-xl overflow-hidden ring-2 ring-white/10 mb-5">
-                  <Image
-                    src={p.image}
-                    alt=""
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <span className={`block h-1 w-12 rounded-full mb-6 ${p.bar}`} aria-hidden="true" />
                 <h3 className={`text-2xl md:text-3xl font-bold leading-tight text-balance ${p.color}`}>
                   {p.title}
                 </h3>
@@ -243,7 +239,7 @@ export default function HomePage() {
               Watch the Trailer
             </h2>
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              Space travel, station battles and faction AI in action.
+              Black holes, solar storms, boss fights and the galaxy in motion.
             </p>
           </header>
 

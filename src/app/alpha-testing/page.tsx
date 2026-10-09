@@ -715,7 +715,7 @@ export default function AlphaTestingPage() {
             {
               icon: Brain,
               title: 'AI Difficulty',
-              description: 'Test our adaptive AI systems and provide feedback on difficulty curves'
+              description: 'Test boss fights and companion AI, and give feedback on difficulty curves'
             },
             {
               icon: Bug,

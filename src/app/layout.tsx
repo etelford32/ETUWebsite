@@ -14,8 +14,8 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], display: 'swap', vari
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
-  description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+  title: 'Explore the Universe 2175 — Open-Galaxy Space Adventure | Free Steam Playtest',
+  description: 'Explore a new galaxy every run: quests, bosses, black holes and solar storms, with a crystal AI companion who learns who you are. Free Steam playtest.',
   alternates: {
     // Relative — resolves per page against metadataBase, so every route
     // self-canonicalizes instead of pointing at the homepage.
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   openGraph: {
-    title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
-    description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+    title: 'Explore the Universe 2175 — Open-Galaxy Space Adventure | Free Steam Playtest',
+    description: 'Explore a new galaxy every run: quests, bosses, black holes and solar storms, with a crystal AI companion who learns who you are. Free Steam playtest.',
     url: `${SITE_URL}/`,
     siteName: 'Explore the Universe 2175',
     images: [
@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Explore the Universe 2175 — Roguelike Space RTS | Steam Playtest Open',
-    description: 'A roguelike space RTS where 17 AI-driven factions wage real-time war. Physics-driven combat, permanent base loss, custom Rust engine. Playtest open on Steam.',
+    title: 'Explore the Universe 2175 — Open-Galaxy Space Adventure | Free Steam Playtest',
+    description: 'Explore a new galaxy every run: quests, bosses, black holes and solar storms, with a crystal AI companion who learns who you are. Free Steam playtest.',
     images: [`${SITE_URL}/etu_epic7.png`],
   },
 }

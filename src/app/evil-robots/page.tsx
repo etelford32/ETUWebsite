@@ -572,9 +572,9 @@ export default function EvilRobotsPage() {
               <p className="mt-3 text-xl text-slate-200">Enemy of the Universe. Bow to your God-AI.</p>
               <div className="mt-5 space-y-4 text-slate-300 leading-relaxed">
                 <p>
-                  Before there was an Empire there was one machine. The first real-time space
-                  boss with adaptive AI does not follow a script: it studies how you fight,
-                  remembers every run you have flown against it, and comes back changed.
+                  Before there was an Empire there was one machine. MEGABOT reads every loss
+                  you deal its empire, every station you wake and every route you open, then
+                  decides whether to raid your work or hunt you down.
                 </p>
                 <p>
                   Every scout, walker and dreadnought the forges of Mechatropolis produce is an

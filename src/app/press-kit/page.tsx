@@ -175,24 +175,25 @@ export default function PressKitPage() {
             <div className="space-y-4">
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-3">Genre</h3>
-                <p className="text-slate-200">Space RPG, Simulation, Action</p>
+                <p className="text-slate-200">Open-galaxy space action-RPG · Solo or co-op (2–4)</p>
               </div>
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-3">Description</h3>
                 <p className="text-slate-200 leading-relaxed">
-                  The space game where your enemy learns from you. Battle MEGABOT, an evolving AI boss that adapts to your tactics. Master realistic Newtonian physics, level your ship through deep RPG progression, and survive a procedurally generated galaxy that remembers every choice you make.
+                  Explore a new galaxy every run. Chart black holes, outrun solar storms and follow the signal of an erased civilization with Cyl, a crystal AI who learns who you are. Take on quests and break colossal bosses, solo or with up to three friends.
                 </p>
               </div>
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-3">Key Features</h3>
                 <ul className="text-slate-200 space-y-1 list-disc list-inside">
-                  <li>Adaptive AI boss that evolves with each encounter</li>
-                  <li>Real orbital mechanics, built by a computational astrophysicist</li>
-                  <li>Deep RPG progression with skill trees</li>
-                  <li>Four unique playable factions</li>
-                  <li>Online leaderboards and competitions</li>
+                  <li>A new procedurally generated spiral galaxy every run</li>
+                  <li>Black holes, pulsars, nebulae and solar storms with real physics behind them</li>
+                  <li>Cyl, a companion who learns who you are and remembers it</li>
+                  <li>Quests, factions and a mystery about an erased civilization</li>
+                  <li>Huge bosses with breakable armour, weak points and puzzle arenas</li>
+                  <li>Co-op for 2–4 pilots</li>
                 </ul>
               </div>
             </div>
