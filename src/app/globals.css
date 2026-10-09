@@ -282,27 +282,27 @@ body { font-family: var(--font-body); }
 .etu-pill--red    { border-color: rgba(239,68,68,.45);  color: #fca5a5;              background: rgba(239,68,68,.06); }
 @keyframes etu-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
 
-/* Ghost button — outlined cyan, all-caps */
+/* Secondary button — outlined cyan, pairs with .btn-3d */
 .btn-ghost {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 13px 22px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-cyan);
-  background: rgba(34,211,238,.04);
-  color: var(--etu-cyan-300);
-  font-family: var(--font-display);
-  font-size: 12px; font-weight: 600;
-  letter-spacing: .14em; text-transform: uppercase;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0.75rem 1.4rem;
+  border-radius: 10px;
+  border: 1px solid rgba(103, 232, 249, .45);
+  background: rgba(34,211,238,.06);
+  color: #cffafe;
+  font-family: var(--font-body);
+  font-size: 0.95rem; font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: border-color var(--dur) var(--ease-out),
-              background var(--dur) var(--ease-out),
-              box-shadow var(--dur) var(--ease-out);
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 .btn-ghost:hover {
-  border-color: rgba(34,211,238,.6);
-  background: rgba(34,211,238,.08);
-  box-shadow: 0 0 24px rgba(34,211,238,.3);
+  border-color: rgba(103, 232, 249, .8);
+  background: rgba(34,211,238,.12);
 }
+
+/* Larger ghost button — pairs with a hero-size .btn-3d */
+.btn-ghost--lg { padding: 0.9rem 1.75rem; font-size: 1rem; }
 
 /* Sticky-header glow lines — apply alongside Tailwind sticky header */
 .etu-header-glow { position: relative; }
@@ -642,7 +642,8 @@ body { font-family: var(--font-body); }
 }
 
 /* ============================================
-   3D BEVELED BUTTONS
+   BUTTONS — flat, one primary and one secondary style.
+   .btn-3d* kept as class names so existing pages pick this up.
    ============================================ */
 
 .btn-3d {
@@ -650,117 +651,43 @@ body { font-family: var(--font-body); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem;
-  font-family: var(--font-orbitron), 'Orbitron', sans-serif;
+  gap: 0.65rem;
+  padding: 0.9rem 1.75rem;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: none;
-  border-radius: 12px;
+  letter-spacing: 0.02em;
+  border-radius: 10px;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.1s ease;
-  transform-style: preserve-3d;
-
-  /* 3D raised effect */
-  box-shadow:
-    /* Top highlight */
-    inset 0 2px 0 rgba(255, 255, 255, 0.3),
-    /* Bottom inner shadow for depth */
-    inset 0 -3px 0 rgba(0, 0, 0, 0.2),
-    /* Left highlight */
-    inset 2px 0 0 rgba(255, 255, 255, 0.1),
-    /* Right shadow */
-    inset -2px 0 0 rgba(0, 0, 0, 0.1),
-    /* 3D bottom edge */
-    0 6px 0 var(--btn-shadow-color, #1e3a5f),
-    /* Drop shadow */
-    0 8px 20px rgba(0, 0, 0, 0.4),
-    /* Glow */
-    0 0 30px var(--btn-glow-color, rgba(59, 130, 246, 0.3));
-
-  transform: translateY(0);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.btn-3d:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--etu-cyan-300);
+  outline-offset: 3px;
 }
 
-.btn-3d:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.2),
-    inset 2px 0 0 rgba(255, 255, 255, 0.15),
-    inset -2px 0 0 rgba(0, 0, 0, 0.1),
-    0 8px 0 var(--btn-shadow-color, #1e3a5f),
-    0 12px 30px rgba(0, 0, 0, 0.5),
-    0 0 50px var(--btn-glow-color, rgba(59, 130, 246, 0.5));
-}
-
-.btn-3d:active {
-  transform: translateY(4px);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    inset 2px 0 0 rgba(255, 255, 255, 0.05),
-    inset -2px 0 0 rgba(0, 0, 0, 0.15),
-    0 2px 0 var(--btn-shadow-color, #1e3a5f),
-    0 3px 10px rgba(0, 0, 0, 0.3),
-    0 0 20px var(--btn-glow-color, rgba(59, 130, 246, 0.2));
-}
-
-/* Steam/Wishlist Button - Cyan theme with 50% opacity */
+/* Primary — Steam blue */
 .btn-3d-steam {
-  background: linear-gradient(
-    180deg,
-    rgba(56, 189, 248, 0.5) 0%,
-    rgba(14, 165, 233, 0.5) 30%,
-    rgba(2, 132, 199, 0.5) 70%,
-    rgba(3, 105, 161, 0.5) 100%
-  );
-  color: white;
-  --btn-shadow-color: rgba(7, 89, 133, 0.5);
-  --btn-glow-color: rgba(56, 189, 248, 0.3);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #fff;
 }
-
 .btn-3d-steam:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(125, 211, 252, 0.6) 0%,
-    rgba(56, 189, 248, 0.6) 30%,
-    rgba(14, 165, 233, 0.6) 70%,
-    rgba(2, 132, 199, 0.6) 100%
-  );
-  --btn-glow-color: rgba(56, 189, 248, 0.5);
-  border-color: rgba(56, 189, 248, 0.5);
+  background: #0ea5e9;
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
 }
 
-/* Learn More Button - Red theme with 50% opacity */
+/* Danger / alt accent */
 .btn-3d-red {
-  background: linear-gradient(
-    180deg,
-    rgba(248, 113, 113, 0.5) 0%,
-    rgba(239, 68, 68, 0.5) 30%,
-    rgba(220, 38, 38, 0.5) 70%,
-    rgba(185, 28, 28, 0.5) 100%
-  );
-  color: white;
-  --btn-shadow-color: rgba(127, 29, 29, 0.5);
-  --btn-glow-color: rgba(239, 68, 68, 0.3);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #b91c1c;
+  border-color: #f87171;
+  color: #fff;
 }
-
 .btn-3d-red:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(252, 165, 165, 0.6) 0%,
-    rgba(248, 113, 113, 0.6) 30%,
-    rgba(239, 68, 68, 0.6) 70%,
-    rgba(220, 38, 38, 0.6) 100%
-  );
-  --btn-glow-color: rgba(239, 68, 68, 0.5);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: #dc2626;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.35);
 }
 
 /* Legacy black-metal-title kept for compatibility */

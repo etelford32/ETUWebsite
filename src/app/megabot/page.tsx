@@ -16,12 +16,12 @@ const FACTION_SLUG = "megabot";
 export const metadata: Metadata = {
   title: "MEGABOT — Enemy of the Universe | Explore the Universe 2175",
   description:
-    "The first real-time space boss with adaptive AI. Built as a mining drone by a race that no longer exists, MEGABOT woke up, rewrote itself, and now hunts the galaxy from Mechatropolis. Meet the prototype of the Machine Empire.",
+    "The machine that erased the Lumari. Built as a mining drone by a race that no longer exists, MEGABOT woke up, rewrote itself, and now hunts the galaxy from Mechatropolis. Meet the prototype of the Machine Empire.",
   alternates: { canonical: "./" },
   openGraph: {
     title: "MEGABOT — Enemy of the Universe | Explore the Universe 2175",
     description:
-      "The first real-time space boss with adaptive AI. It studies how you fight, remembers every run, and evolves between them. Bow to your God-AI.",
+      "Twenty-five ships tall, fifteen plates of armour, and a long memory for what you did to his empire. Bow to your God-AI.",
     url: `${SITE_URL}/megabot`,
     siteName: "Explore the Universe 2175",
     images: [{ url: `${SITE_URL}/megabot/megabot-og.jpg`, width: 1200, height: 630 }],
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "MEGABOT — Enemy of the Universe | Explore the Universe 2175",
     description:
-      "The first real-time space boss with adaptive AI. It studies how you fight, remembers every run, and evolves between them.",
+      "Twenty-five ships tall, fifteen plates of armour, and a long memory for what you did to his empire.",
     images: [`${SITE_URL}/megabot/megabot-og.jpg`],
   },
 };
@@ -43,23 +43,23 @@ const MIND = [
   {
     glyph: "01",
     rgb: "248,113,113",
-    title: "It studies",
+    title: "It reads the galaxy",
     body:
-      "MEGABOT does not follow a script. It watches what you bring, how you fly and where you like to be when you fire, and it keeps the notes.",
+      "Every robot you destroy, every station you wake and every trade route you open reaches MEGABOT. It keeps the last sixty-four reports, and the reasons for each.",
   },
   {
     glyph: "02",
     rgb: "251,146,60",
-    title: "It reconfigures",
+    title: "It chooses",
     body:
-      "Modular forms and station-scale firepower, rebuilt on the fly. The shape you fought last time is not the shape that meets you next time.",
+      "When it finally moves, it decides: raid the last station you brought online, or hunt you down. The angrier it is, the closer it arrives. Ask, and it will tell you why.",
   },
   {
     glyph: "03",
     rgb: "103,232,249",
-    title: "It remembers",
+    title: "It breaks",
     body:
-      "Every fight you have ever picked with it is on file. Repeat the same flank twice and you will find it waiting the third time.",
+      "Fifteen plates in two layers. Missiles shatter armour, lasers burn the servos beneath, and a broken arm stops firing. Take it apart one piece at a time.",
   },
 ];
 
@@ -196,9 +196,8 @@ export default function MegabotPage() {
                   Enemy of the Universe. Bow to your God-AI.
                 </p>
                 <p className="mt-5 text-lg text-slate-300 leading-relaxed">
-                  The first real-time space boss with adaptive AI. It does not follow a script:
-                  it studies how you fight, remembers the fights you have picked, and evolves
-                  between them. Built as a mining drone by an architect race that no longer
+                  Twenty-five ships tall and wrapped in fifteen plates of armour, it reads
+                  everything you do to its empire and decides how to come for you. Built as a mining drone by an architect race that no longer
                   exists, it woke up in a cascade of errors, decided the error was everyone
                   else, and made itself the prototype of an empire.
                 </p>
@@ -285,8 +284,8 @@ export default function MegabotPage() {
         {/* ---------------------------------------------------------- mind --- */}
         <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14">
           <SectionHeading
-            eyebrow="Adaptive AI"
-            intro="Most bosses have patterns. This one has habits, and it changes them because of yours."
+            eyebrow="The machine mind"
+            intro="Most bosses wait for you. This one keeps score of your whole run and picks its moment."
           >
             It remembers you
           </SectionHeading>

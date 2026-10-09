@@ -17,7 +17,7 @@ const faqData: FAQItem[] = [
   {
     id: "what-is-etu",
     question: "What is Explore the Universe 2175?",
-    answer: "ETU 2175 is an open-world space RPG set in the year 2175. It features realistic Newtonian physics, an adaptive AI boss (Megabot) that learns from your tactics, dynamic faction systems, and a living galaxy where your choices matter. Think Elite Dangerous meets Dark Souls in space!",
+    answer: "ETU 2175 is an open-galaxy space adventure set in the year 2175. Every run generates a new galaxy full of quests, enemies, bosses, black holes and solar storms, and you explore it with Cyl, a crystal AI companion who learns who you are. Play solo or in co-op with up to four pilots.",
     category: "general"
   },
   {
@@ -48,8 +48,8 @@ const faqData: FAQItem[] = [
   // GAMEPLAY
   {
     id: "megabot-ai",
-    question: "How does the AI boss \"Megabot\" learn from me?",
-    answer: "Megabot uses an adaptive AI system that tracks your tactics, weapon preferences, and movement patterns. If you rely too heavily on one strategy, Megabot will develop counters. It remembers encounters across playthroughs and evolves its behavior, making each battle unique and challenging.",
+    question: "Does Megabot react to what I do?",
+    answer: "Yes. Megabot reads everything you do to his empire during a run: robots destroyed, stations awakened, trade routes opened. When he moves, he decides whether to raid the last station you activated or hunt you directly, and the angrier he is, the closer he arrives. In the fight, his fifteen armour plates break under focused fire, and a broken arm stops firing.",
     category: "gameplay"
   },
   {

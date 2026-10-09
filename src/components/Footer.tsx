@@ -24,7 +24,7 @@ export default function Footer() {
               loading="lazy"
             />
             <p className="mt-3 max-w-xs">
-              An open-world space adventure by Telford Projects. Built with
+              Telford Projects presents Explore the Universe 2175. Built with
               science, art, and a pinch of chaos.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -36,7 +36,7 @@ export default function Footer() {
               >
                 <span className="ping" />Live · Steam Page
               </a>
-              <span className="etu-pill etu-pill--amber">☢ Alpha 0.7</span>
+              <span className="etu-pill etu-pill--amber">Alpha 0.7.3</span>
             </div>
           </div>
           <nav className="space-y-2">
@@ -96,9 +96,6 @@ export default function Footer() {
         </div>
         <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
           <p>© {year} Telford Projects. All rights reserved.</p>
-          <p className="font-mono tracking-[0.16em] text-slate-500 uppercase">
-            Build 0.7.3-α
-          </p>
         </div>
       </div>
     </footer>
