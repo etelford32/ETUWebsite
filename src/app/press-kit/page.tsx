@@ -157,7 +157,7 @@ export default function PressKitPage() {
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-2">Developer</h3>
-                <p className="text-slate-200">Elliot Telford / Telford Projects</p>
+                <p className="text-slate-200">Telford Projects</p>
               </div>
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
@@ -430,7 +430,7 @@ export default function PressKitPage() {
             </p>
             <div className="space-y-2 text-lg text-slate-300">
               <p>
-                <strong className="text-cyan-300">Developer:</strong> Elliot Telford
+                <strong className="text-cyan-300">Developer:</strong> Telford Projects
               </p>
               <p>
                 <strong className="text-cyan-300">Website:</strong>{' '}
@@ -453,7 +453,7 @@ export default function PressKitPage() {
 
             <div className="mt-8 pt-8 border-t border-white/10">
               <p className="text-sm text-slate-400">
-                All assets are free to use for editorial coverage. Please credit &quot;Elliott Telford / Telford Projects&quot; when using these materials.
+                All assets are free to use for editorial coverage. Please credit &quot;Telford Projects&quot; when using these materials.
               </p>
             </div>
           </div>

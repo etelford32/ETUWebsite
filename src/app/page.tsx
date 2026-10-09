@@ -5,8 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import ExitIntentPopup from "@/components/ExitIntentPopup";
-import StickyHeaderCTA from "@/components/StickyHeaderCTA";
 import EtuTitle from "@/components/EtuTitle";
 import { initPerformanceOptimizations } from "@/lib/performance";
 
@@ -92,9 +90,6 @@ export default function HomePage() {
 
   return (
     <>
-      <StickyHeaderCTA />
-      <ExitIntentPopup />
-
       <Header />
 
       {/* HERO — brand, pitch, then Wishlist › Playtest › Sign up */}
@@ -126,11 +121,12 @@ export default function HomePage() {
         />
 
         <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-8 pb-12 md:pt-14 md:pb-16 text-center">
-          <div className="reveal flex justify-center mb-5">
-            <span className="etu-pill etu-pill--amber etu-pill--lg">
-              <span className="ping" /> Playtest Open Now
-            </span>
-          </div>
+          <p
+            className="reveal mb-4 md:mb-6 uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
+            style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
+          >
+            Telford Projects presents
+          </p>
 
           {/* Phones get a stacked title so each line can run much larger */}
           <h1>
@@ -149,14 +145,7 @@ export default function HomePage() {
           </h1>
 
           <p
-            className="reveal mt-4 uppercase font-semibold tracking-[0.12em] text-base md:text-xl text-slate-100"
-            style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
-          >
-            A game by Elliot Telford
-          </p>
-
-          <p
-            className="reveal mt-6 md:mt-8 mx-auto max-w-4xl text-2xl md:text-4xl font-bold text-white leading-tight text-balance"
+            className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-2xl md:text-4xl font-bold text-white leading-tight text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
             Real orbital physics. An AI that learns how you fight.
@@ -174,7 +163,7 @@ export default function HomePage() {
               href={STEAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-3d btn-3d-steam group w-full sm:w-auto text-lg md:text-xl px-6 md:px-10 py-5 whitespace-nowrap"
+              className="btn-3d btn-3d-steam group w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
             >
               <SteamIcon className="w-7 h-7 transition-transform group-hover:scale-110" />
               <span>Wishlist on Steam</span>
@@ -184,9 +173,9 @@ export default function HomePage() {
               href={STEAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-ghost btn-ghost--lg w-full sm:w-auto justify-center whitespace-nowrap"
+              className="btn-ghost btn-ghost--lg w-full sm:w-auto whitespace-nowrap text-lg md:text-xl md:px-9 md:py-4"
             >
-              ▶ Join the Free Playtest
+              Join the Free Playtest
             </a>
           </div>
 
@@ -275,7 +264,7 @@ export default function HomePage() {
               href={STEAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-3d btn-3d-steam group text-lg px-9 py-4"
+              className="btn-3d btn-3d-steam group text-lg"
             >
               <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
               <span>Wishlist on Steam</span>
@@ -292,10 +281,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
             <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
-              Four Factions
+              The Factions
             </h2>
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              One galaxy. Each faction plays by its own rules.
+              Four are playable now, with more in development. Each plays by its own rules.
             </p>
           </header>
 
