@@ -134,6 +134,12 @@ function LoginForm() {
       setMessage({ type: 'error', text: 'Magic link expired. Please request a new one.' })
     } else if (err === 'magic_link_failed') {
       setMessage({ type: 'error', text: 'Magic link authentication failed. Please try again.' })
+    } else if (err === 'oauth_cancelled') {
+      setMessage({ type: 'error', text: 'Google sign-in was cancelled.' })
+    } else if (err === 'oauth_expired') {
+      setMessage({ type: 'error', text: 'Google sign-in took too long. Please try again.' })
+    } else if (err === 'oauth_failed' || err === 'server_error') {
+      setMessage({ type: 'error', text: 'Google sign-in failed. Please try again or use another method.' })
     }
   }, [searchParams])
 
@@ -226,10 +232,14 @@ function LoginForm() {
     }
   }
 
-  async function handleOAuth(provider: 'google' | 'apple') {
+  function handleOAuth(provider: 'google' | 'apple') {
+    if (provider === 'google') {
+      window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectTo)}`
+      return
+    }
     setMessage({
       type: 'error',
-      text: `${provider === 'apple' ? 'Apple' : 'Google'} sign-in is coming soon. Use Steam, email, or a magic link for now.`,
+      text: 'Apple sign-in is coming soon. Use Google, Steam, email, or a magic link for now.',
     })
   }
 
@@ -481,7 +491,6 @@ function LoginForm() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
                 Continue with Google
-                <span className="text-xs text-slate-500 ml-auto">(Coming Soon)</span>
               </button>
 
               {/* Apple */}
