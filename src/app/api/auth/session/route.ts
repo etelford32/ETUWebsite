@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         email: session.email,
         displayName: user.display_name,
         role: user.role || 'user',
+        isSuperuser: user.is_superuser === true,
         isAlphaTester: user.is_alpha_tester ?? false,
         status: user.status,
         createdAt: user.created_at,
