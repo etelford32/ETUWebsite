@@ -158,17 +158,29 @@ export default function HomePage() {
           </h1>
 
           <p
-            className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-2xl md:text-4xl font-bold text-white leading-tight text-balance"
+            className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
-            Explore a new galaxy of quests, bosses and cosmic wonders.
+            Explore a new galaxy full of quests, alien boss encounters and
+            dynamic alliances in a galactic war around{" "}
+            <span className="hero-key hero-key--amber">Black Holes</span> for
+            Stars, Planets for the resources to conquer, or{" "}
+            <span className="hero-key">save the galaxy</span>.
           </p>
 
+          <div className="hero-rule reveal mt-5 md:mt-6" aria-hidden="true" />
+
           <p
-            className="reveal mt-4 mx-auto max-w-3xl text-lg md:text-2xl text-slate-100 leading-relaxed text-balance"
+            className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            Chart black holes, outrun solar storms and uncover a lost civilization with Cyl, a crystal AI who learns who you are.
+            Chart <span className="hero-key hero-key--amber">SuperMassive Black Holes</span>{" "}
+            down to tiny moons, Superboost around Stars, and uncover lost
+            civilizations with <span className="hero-key">Cyl</span>, a crystal
+            that learns who you are. Together, with allies, you&apos;ll fight{" "}
+            <span className="hero-key hero-key--rose">Megabot</span>, a
+            self-replicating, self-augmenting machine overlord that adapts to how
+            you play.
           </p>
 
           <div className="reveal mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
