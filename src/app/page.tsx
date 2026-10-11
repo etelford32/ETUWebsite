@@ -161,11 +161,11 @@ export default function HomePage() {
             className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
-            Explore a new galaxy full of quests, alien boss encounters and
-            dynamic alliances in a galactic war around{" "}
-            <span className="hero-key hero-key--amber">Black Holes</span> for
-            Stars, Planets for the resources to conquer, or{" "}
-            <span className="hero-key">save the galaxy</span>.
+            Explore an open galaxy full of quests, aliens &amp; boss encounters.
+            Create your defense network and dynamic alliances in a galactic war
+            around <span className="hero-key hero-key--amber">Black Holes</span>,
+            Stars, Planets and Moons to exploit their resources to dominate, or{" "}
+            <span className="hero-key">free the galaxy</span>.
           </p>
 
           <div className="hero-rule reveal mt-5 md:mt-6" aria-hidden="true" />
