@@ -24,8 +24,12 @@ export interface LaidGlyph {
 }
 
 export interface LaidWord {
+  text: string
   glyphs: LaidGlyph[]
+  /** Width at the word's own scale, sprite px. */
   width: number
+  /** Size relative to the title (1 = title size). */
+  scale: number
 }
 
 /** Rough width of a fallback character (plain styled text), sprite px. */
@@ -38,9 +42,17 @@ export function hasGlyph(char: string) {
 export interface LayoutOptions {
   /** Apply the optical kerning table (default true). */
   kerning?: boolean
+  /** Per-word size multipliers, keyed by word (case-insensitive). */
+  wordScale?: Record<string, number>
 }
 
-export function layoutWord(word: string, { kerning = true }: LayoutOptions = {}): LaidWord {
+export function scaleFor(word: string, wordScale?: Record<string, number>) {
+  if (!wordScale) return 1
+  const key = Object.keys(wordScale).find((k) => k.toUpperCase() === word.toUpperCase())
+  return key ? wordScale[key] : 1
+}
+
+export function layoutWord(word: string, { kerning = true, wordScale }: LayoutOptions = {}): LaidWord {
   const chars = Array.from(word.toUpperCase())
   const glyphs = chars.map((char, i) => ({
     char,
@@ -51,12 +63,14 @@ export function layoutWord(word: string, { kerning = true }: LayoutOptions = {})
     (w, g, i) => w + (g.glyph ? g.glyph.advance : FALLBACK_WIDTH) + g.kern + (i < glyphs.length - 1 ? TRACK : 0),
     0,
   )
-  return { glyphs, width }
+  const scale = scaleFor(word, wordScale)
+  return { text: word, glyphs, width: width * scale, scale }
 }
 
 export function layoutLine(line: string, options: LayoutOptions = {}) {
   const words = line.split(/\s+/).filter(Boolean).map((w) => layoutWord(w, options))
-  const width = words.reduce((w, word, i) => w + word.width + (i ? WORD_GAP : 0), 0)
+  // the gap after a word is sized in that word's em (margin-right in CSS)
+  const width = words.reduce((w, word, i) => w + word.width + (i ? WORD_GAP * words[i - 1].scale : 0), 0)
   return { words, width }
 }
 

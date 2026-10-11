@@ -7,8 +7,11 @@
  *   - hover: letters near the cursor lift and charge
  *   - click: a shockwave kicks letters outward from the click point
  *   - idle: random star glints on the letters
+ *   - inner light: a 3D point light drifts through the letters, lighting the
+ *     crystal from within (.etu-glyph__core); it follows the cursor on hover
  * The ambient crystal "breathing" is pure CSS (see .etu-glyph__energy).
- * The rAF loop only runs while something is moving.
+ * The rAF loop only runs while something is moving (always, while the
+ * inner light is on and the title is on screen).
  */
 
 export class Spring {
@@ -51,6 +54,9 @@ const LAND_TIME = 0.36
 export class GlyphActor {
   readonly el: HTMLElement
   private chargeEl: HTMLElement | null
+  readonly coreEl: HTMLElement | null
+  /** Top-left of the core layer relative to the title, px. */
+  coreOrigin = { x: 0, y: 0 }
   /** Rest centre relative to the title, px. */
   center = { x: 0, y: 0 }
 
@@ -69,6 +75,7 @@ export class GlyphActor {
   constructor(el: HTMLElement) {
     this.el = el
     this.chargeEl = el.querySelector('.etu-glyph__charge')
+    this.coreEl = el.querySelector('.etu-glyph__core')
   }
 
   measure() {
@@ -76,6 +83,28 @@ export class GlyphActor {
       x: this.el.offsetLeft + this.el.offsetWidth / 2,
       y: this.el.offsetTop + this.el.offsetHeight / 2,
     }
+    this.coreOrigin = {
+      x: this.el.offsetLeft + (this.coreEl?.offsetLeft ?? 0),
+      y: this.el.offsetTop + (this.coreEl?.offsetTop ?? 0),
+    }
+  }
+
+  /** Light the crystal from a point light at (x, y) px, `z` px off the face. */
+  light(x: number, y: number, z: number, reach: number, power: number) {
+    if (!this.coreEl) return
+    const d2 = ((x - this.center.x) ** 2 + (y - this.center.y) ** 2 + z * z) / (reach * reach)
+    const s = this.coreEl.style
+    s.setProperty('--lx', `${(x - this.coreOrigin.x).toFixed(1)}px`)
+    s.setProperty('--ly', `${(y - this.coreOrigin.y).toFixed(1)}px`)
+    s.setProperty('--li', Math.min(power / (1 + d2), 1).toFixed(3))
+  }
+
+  unlight() {
+    const s = this.coreEl?.style
+    if (!s) return
+    s.removeProperty('--lx')
+    s.removeProperty('--ly')
+    s.removeProperty('--li')
   }
 
   /** Hide and park the letter above its slot, tilted and enlarged. */
@@ -175,6 +204,8 @@ export interface TitleMotionOptions {
   interactive?: boolean
   /** Idle glints. */
   glints?: boolean
+  /** Drifting point light inside the letters. */
+  innerLight?: boolean
 }
 
 export class TitleMotion {
@@ -190,6 +221,9 @@ export class TitleMotion {
   private pointer: { x: number; y: number } | null = null
   private glintTimer = 0
   private disposers: (() => void)[] = []
+  /** Inner light position (px within the title) and depth off the face. */
+  private lamp = { x: 0, y: 0, z: 0, ready: false }
+  private lampEl: HTMLElement | null = null
 
   constructor(host: HTMLElement, options: TitleMotionOptions = {}) {
     this.host = host
@@ -198,9 +232,17 @@ export class TitleMotion {
       stagger: options.stagger ?? 0.07,
       interactive: options.interactive ?? true,
       glints: options.glints ?? true,
+      innerLight: options.innerLight ?? true,
     }
     this.actors = Array.from(host.querySelectorAll<HTMLElement>('.etu-glyph')).map((el) => new GlyphActor(el))
     this.introPending = this.opts.intro && this.actors.length > 0
+    if (this.opts.innerLight && this.actors.length) {
+      // soft spill of the light between the letters; painted under them
+      this.lampEl = document.createElement('span')
+      this.lampEl.className = 'etu-title__lamp'
+      this.lampEl.setAttribute('aria-hidden', 'true')
+      host.prepend(this.lampEl)
+    }
     this.measure()
     if (this.introPending) {
       const size = this.size()
@@ -249,9 +291,11 @@ export class TitleMotion {
     this.running = false
     window.clearTimeout(this.glintTimer)
     for (const d of this.disposers) d()
+    this.lampEl?.remove()
     for (const a of this.actors) {
       a.settle()
       a.apply()
+      a.unlight()
     }
   }
 
@@ -270,9 +314,9 @@ export class TitleMotion {
     if (this.visible) this.playIntro()
   }
 
-  /** The letters' font size (after any fit scaling), px. */
+  /** The title's letter size (after any fit scaling, before word scales), px. */
   private size() {
-    const el = this.actors[0]?.el ?? this.host
+    const el = this.host.querySelector('.etu-title__body') ?? this.actors[0]?.el ?? this.host
     return parseFloat(getComputedStyle(el).fontSize) || 48
   }
 
@@ -290,6 +334,40 @@ export class TitleMotion {
     if (active && this.introPending) this.playIntro()
     window.clearTimeout(this.glintTimer)
     if (active && this.opts.glints) this.scheduleGlint()
+    if (active && this.opts.innerLight) this.wake()
+  }
+
+  /** Move the inner light along its drift (or toward the cursor) and shine it. */
+  private updateLamp(t: number, dt: number, size: number) {
+    const w = this.host.clientWidth
+    const h = this.host.clientHeight
+    // a slow 3D Lissajous through the title, dipping in and out of the face
+    let tx = w * (0.5 + 0.46 * Math.sin(t * 0.38))
+    let ty = h * (0.5 + 0.32 * Math.sin(t * 0.83 + 1.1))
+    let tz = size * (0.42 + 0.3 * Math.sin(t * 0.57 + 0.4))
+    if (this.pointer) {
+      tx = this.pointer.x
+      ty = this.pointer.y
+      tz = size * 0.12
+    }
+    const l = this.lamp
+    if (!l.ready) {
+      Object.assign(l, { x: tx, y: ty, z: tz, ready: true })
+    } else {
+      const k = 1 - Math.exp(-dt * (this.pointer ? 7 : 2.5))
+      l.x += (tx - l.x) * k
+      l.y += (ty - l.y) * k
+      l.z += (tz - l.z) * k
+    }
+    // a faint hologram shimmer on top of the falloff
+    const power = 1.25 * (0.93 + 0.07 * Math.sin(t * 13.7) * Math.sin(t * 4.1))
+    const reach = size * 1.05
+    for (const a of this.actors) a.light(l.x, l.y, l.z, reach, power)
+    if (this.lampEl) {
+      const s = this.lampEl.style
+      s.transform = `translate(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px) translate(-50%, -50%)`
+      s.opacity = (0.75 - 0.5 * Math.min(l.z / size, 1)).toFixed(3)
+    }
   }
 
   private playIntro() {
@@ -335,7 +413,9 @@ export class TitleMotion {
           a.hover(Math.exp(-d * d), size)
         }
       }
-      let calm = !this.pointer
+      const lit = this.opts.innerLight && this.visible && !document.hidden
+      if (lit) this.updateLamp(t, dt, size)
+      let calm = !this.pointer && !lit
       for (const a of this.actors) {
         if (a.update(t, dt, size)) this.glint(a)
         a.apply()

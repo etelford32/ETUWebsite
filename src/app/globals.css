@@ -536,6 +536,8 @@ body { font-family: var(--font-body); }
   display: inline-block;
   white-space: nowrap;
   vertical-align: top;
+  /* as tall as its letters, so an enlarged word adds no space below it */
+  line-height: calc(var(--etu-depth) * var(--k));
 }
 .etu-title__word:not(:last-child) { margin-right: calc(var(--etu-gap) * var(--k)); }
 .etu-title__space { font-size: 0; }
@@ -554,7 +556,8 @@ body { font-family: var(--font-body); }
 
 .etu-glyph__art,
 .etu-glyph__energy,
-.etu-glyph__charge {
+.etu-glyph__charge,
+.etu-glyph__core {
   position: absolute;
   left: calc(var(--etu-margin) * var(--k) * -1);
   top: calc(var(--etu-margin) * var(--k) * -1);
@@ -582,6 +585,94 @@ body { font-family: var(--font-body); }
 @keyframes etu-energy-breathe {
   0%, 100% { opacity: 0; }
   50%      { opacity: 0.7; }
+}
+
+/* Inner light: a point light inside the crystal, cut to the crystal by the
+   energy layer's alpha. TitleMotion moves it (--lx/--ly, px in this box)
+   and sets its strength from 3D distance (--li). */
+.etu-glyph__core { display: none; }
+.etu-title--lit .etu-glyph__core {
+  display: block;
+  background-image: radial-gradient(
+    circle 0.95em at var(--lx, 50%) var(--ly, 45%),
+    #ffffff 0,
+    rgba(207, 250, 254, 0.95) 0.12em,
+    rgba(103, 232, 249, 0.7) 0.32em,
+    rgba(34, 211, 238, 0.28) 0.6em,
+    transparent 0.95em
+  );
+  background-size: 100% 100%;
+  background-position: 0 0;
+  -webkit-mask-image: var(--etu-energy);
+          mask-image: var(--etu-energy);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-size: calc(var(--etu-aw) * var(--k)) calc(var(--etu-ah) * var(--k));
+          mask-size: calc(var(--etu-aw) * var(--k)) calc(var(--etu-ah) * var(--k));
+  -webkit-mask-position: calc(var(--gx) * var(--k) * -1) calc(var(--gy) * var(--k) * -1);
+          mask-position: calc(var(--gx) * var(--k) * -1) calc(var(--gy) * var(--k) * -1);
+  mix-blend-mode: screen;
+  opacity: var(--li, 0.3);
+}
+
+/* The light's spill between and around the letters, under the glyphs */
+.etu-title__lamp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(165, 243, 252, 0.45), rgba(34, 211, 238, 0.18) 35%, transparent 70%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+/* Ruled line: holographic rules either side of the words (e.g. the year) */
+.etu-title__line--ruled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+}
+.etu-title__line--ruled::before,
+.etu-title__line--ruled::after {
+  content: "";
+  flex: 1 1 0;
+  max-width: 3.2em;
+  height: 0.05em;
+  min-height: 2px;
+  /* lift to the letters' visual centre (they're 0.8em deep, top-aligned) */
+  margin-bottom: 0.08em;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 50%, transparent) 0 0 / 30% 100% no-repeat,
+    repeating-linear-gradient(90deg, rgba(165, 243, 252, 0.95) 0 0.5em, rgba(34, 211, 238, 0.45) 0.5em 0.62em),
+    #22d3ee;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 85%);
+          mask-image: linear-gradient(90deg, transparent, #000 85%);
+  box-shadow: 0 0 0.12em rgba(34, 211, 238, 0.9), 0 0 0.4em rgba(34, 211, 238, 0.45);
+  animation: etu-rule-scan 3.2s linear infinite, etu-rule-flicker 5.3s steps(1) infinite;
+}
+.etu-title__line--ruled::after {
+  -webkit-mask-image: linear-gradient(270deg, transparent, #000 85%);
+          mask-image: linear-gradient(270deg, transparent, #000 85%);
+  animation-direction: reverse, normal;
+}
+
+/* a bright pulse runs along the rule toward the words */
+@keyframes etu-rule-scan {
+  from { background-position: -40% 0, 0 0, 0 0; }
+  to   { background-position: 140% 0, 0.62em 0, 0 0; }
+}
+@keyframes etu-rule-flicker {
+  0%, 100% { opacity: 1; }
+  47%      { opacity: 0.55; }
+  48%      { opacity: 1; }
+  83%      { opacity: 0.75; }
+  84%      { opacity: 1; }
 }
 
 /* Characters the artwork doesn't have */
@@ -622,6 +713,8 @@ body { font-family: var(--font-body); }
 /* Energy colour variants: shift the cyan, the silver barely changes */
 .etu-title[data-variant="amber"] .etu-title__line  { filter: hue-rotate(-150deg) saturate(1.25); }
 .etu-title[data-variant="violet"] .etu-title__line { filter: hue-rotate(75deg) saturate(1.1); }
+.etu-title[data-variant="amber"] .etu-title__lamp  { filter: hue-rotate(-150deg) saturate(1.25); }
+.etu-title[data-variant="violet"] .etu-title__lamp { filter: hue-rotate(75deg) saturate(1.1); }
 
 /* Before TitleMotion takes over, hold intro letters back; without JS they
    fade in on their own. */
@@ -634,11 +727,41 @@ body { font-family: var(--font-body); }
   to { opacity: 1; }
 }
 
-.etu-title--still .etu-glyph__energy { animation: none; }
+.etu-title--still .etu-glyph__energy,
+.etu-title--still .etu-title__line--ruled::before,
+.etu-title--still .etu-title__line--ruled::after { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .etu-glyph__energy { animation: none; }
+  .etu-title__lamp { display: none; }
+  .etu-title__line--ruled::before,
+  .etu-title__line--ruled::after { animation: none; }
   .etu-title--intro:not([data-state="live"]) .etu-glyph { opacity: 1; animation: none; }
+}
+
+/* Hero copy accents: key terms glow in the title's energy colours */
+.hero-key {
+  color: #a5f3fc;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.55), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+.hero-key--amber {
+  color: #fcd34d;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+.hero-key--rose {
+  color: #fda4af;
+  text-shadow: 0 0 10px rgba(244, 63, 94, 0.5), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* Thin holographic divider between the hero lead and body copy */
+.hero-rule {
+  width: min(16rem, 60%);
+  height: 2px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.9), transparent);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
 }
 
 /* ============================================
