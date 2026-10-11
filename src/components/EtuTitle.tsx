@@ -40,6 +40,8 @@ export interface EtuTitleProps {
   innerLight?: boolean
   /** Per-word size multipliers, e.g. `{ Universe: 1.5, '2175': 0.7 }`. */
   wordScale?: Record<string, number>
+  /** Line indexes flanked by holographic rules on either side. */
+  ruled?: number[]
   className?: string
   style?: CSSProperties
   id?: string
@@ -66,6 +68,7 @@ export default function EtuTitle({
   glints = true,
   innerLight = true,
   wordScale,
+  ruled,
   className = '',
   style,
   id,
@@ -124,7 +127,7 @@ export default function EtuTitle({
         // words are top-aligned; push smaller words down so all letters share a baseline
         const tallest = Math.max(...words.map((w) => w.scale))
         return (
-          <span key={i} className="etu-title__line">
+          <span key={i} className={ruled?.includes(i) ? 'etu-title__line etu-title__line--ruled' : 'etu-title__line'}>
             {words.map((word, j) => (
               <Fragment key={j}>
                 <span

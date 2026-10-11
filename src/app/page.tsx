@@ -13,7 +13,7 @@ const STEAM_URL =
 const SIGNUP_URL = "/login?mode=signup";
 
 // Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
-const TITLE_SCALE = { Explore: 1.12, the: 0.62, Universe: 1.55, "2175": 0.62 };
+const TITLE_SCALE = { Explore: 1.12, the: 0.62, Universe: 1.55, "2175": 0.72 };
 // Stacked phone title: one word per line, so the small words can be a bit bigger
 const TITLE_SCALE_STACKED = { Explore: 1.12, the: 0.7, Universe: 1.55, "2175": 0.8 };
 
@@ -143,13 +143,15 @@ export default function HomePage() {
               as="span"
               text={["Explore", "the", "Universe", "2175"]}
               wordScale={TITLE_SCALE_STACKED}
+              ruled={[3]}
               fit
               className="block sm:hidden -mx-2 text-[4.5rem]"
             />
             <EtuTitle
               as="span"
-              text={["Explore the", "Universe 2175"]}
+              text={["Explore the", "Universe", "2175"]}
               wordScale={TITLE_SCALE}
+              ruled={[2]}
               fit
               className="hidden sm:block mx-auto sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[8.75rem]"
             />
