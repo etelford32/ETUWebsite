@@ -1,3 +1,5 @@
+import { emailLogoImg } from '@/lib/emailBrand'
+
 /**
  * Send a user invitation email via Resend.
  * Returns true if sent (or skipped because Resend isn't configured in dev).
@@ -47,6 +49,7 @@ export async function sendInviteEmail(opts: {
 <body>
   <div class="container">
     <div class="header">
+      ${emailLogoImg()}
       <div class="logo">Explore the Universe 2175</div>
     </div>
     <div class="content">

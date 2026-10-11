@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
+import { emailLogoImg } from '@/lib/emailBrand'
 import { getSessionFromRequest } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
 <body>
   <div class="container">
     <div class="header">
+      ${emailLogoImg(72, 'left')}
       <h1 style="margin: 0;">🚀 New Alpha Testing Application</h1>
       <p style="margin: 10px 0 0 0; opacity: 0.9;">Explore the Universe 2175</p>
     </div>

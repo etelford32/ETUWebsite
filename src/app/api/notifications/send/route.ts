@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
+import { emailLogoImg } from '@/lib/emailBrand'
 
 
 // POST - Process pending email notifications
@@ -155,6 +156,7 @@ function generateEmailBody(notification: any): string {
     <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center;">
+          ${emailLogoImg()}
           <h1 style="color: white; margin: 0;">✅ Feedback Resolved!</h1>
         </div>
 

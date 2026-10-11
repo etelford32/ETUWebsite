@@ -1,3 +1,5 @@
+import { emailLogoImg } from '@/lib/emailBrand'
+
 /**
  * Outbound lifecycle emails, sent via Resend (same provider/sender used for
  * auth + invite emails). Each function returns true when an email was actually
@@ -33,7 +35,7 @@ function shell(title: string, bodyHtml: string, footerNote?: string): string {
 </head>
 <body>
   <div class="container">
-    <div class="header"><div class="logo">Explore the Universe 2175</div></div>
+    <div class="header">${emailLogoImg()}<div class="logo">Explore the Universe 2175</div></div>
     <div class="content">
       <h2 style="margin-top:0;">${title}</h2>
       ${bodyHtml}

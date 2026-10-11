@@ -17,7 +17,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-5 gap-6">
           <div>
             <Image
-              src="/logo2.png"
+              src="/brand/etu-logo-512.png"
               alt="Explore the Universe 2175"
               width={32}
               height={32}

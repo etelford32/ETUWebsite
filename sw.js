@@ -1,5 +1,5 @@
 // ETU 2175 - Service Worker for PWA
-const CACHE_NAME = 'etu-2175-v1';
+const CACHE_NAME = 'etu-2175-v2';
 const RUNTIME_CACHE = 'etu-runtime-v1';
 
 // Critical assets to cache on install
@@ -8,7 +8,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/pages/rise-of-machines.html',
   '/dist/output.css',
-  '/logo2.png',
+  '/brand/etu-logo-512.png',
   '/js/star-map-hero.js'
 ];
 
