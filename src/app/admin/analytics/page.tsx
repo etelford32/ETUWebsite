@@ -194,6 +194,12 @@ export default function AnalyticsPage() {
               Analytics
             </Link>
             <Link
+              href="/admin/google-analytics"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Google Analytics
+            </Link>
+            <Link
               href="/admin/feedback"
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
             >

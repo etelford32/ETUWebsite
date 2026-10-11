@@ -202,6 +202,14 @@ export default function AdminDashboard() {
             >
               ✏️ Content Editor
             </Link>
+            {user?.role === 'admin' && (
+              <Link
+                href="/admin/google-analytics"
+                className="px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/30 text-emerald-300 rounded-lg transition-colors whitespace-nowrap"
+              >
+                📈 Google Analytics
+              </Link>
+            )}
             {user?.isSuperuser && (
               <Link
                 href="/admin/superuser"
