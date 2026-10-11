@@ -116,7 +116,7 @@ function ResetPasswordForm() {
           className="w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <img src="/brand/etu-logo-512.png" alt="ETU Logo" className="w-16 h-16 mx-auto mb-4" />
+            <img src="/brand/etu-wordmark.png" alt="ETU Logo" width={640} height={264} className="w-40 h-auto mx-auto mb-4" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               New Password
             </h1>

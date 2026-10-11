@@ -51,8 +51,8 @@ export default function PressKitPage() {
   ];
 
   const logos = [
-    { title: 'ETU Logo (Primary)', filename: '/brand/etu-logo.jpg', size: '420 KB' },
-    { title: 'ETU Logo (Transparent PNG)', filename: '/brand/etu-logo-512.png', size: '81 KB' },
+    { title: 'ETU Logo (Primary)', filename: '/brand/etu-logo.jpg', size: '325 KB' },
+    { title: 'ETU Wordmark (Transparent PNG)', filename: '/brand/etu-wordmark.png', size: '110 KB' },
     { title: 'ETU Logo (Legacy)', filename: '/logo2.png', size: '1.6 MB' },
     { title: 'ETU Logo (JPEG)', filename: '/ETU_LOGO.jpg', size: '155 KB' }
   ];
