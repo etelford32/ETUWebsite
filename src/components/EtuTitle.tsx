@@ -1,7 +1,7 @@
 'use client'
 
 import { createElement, Fragment, useEffect, useRef, type CSSProperties } from 'react'
-import { ETU_SPRITE_FONT as FONT, TitleMotion, layoutLine, titleWidthEm } from '@/lib/etuTitle'
+import { DEPTH_EM, ETU_SPRITE_FONT as FONT, TitleMotion, layoutLine, titleWidthEm } from '@/lib/etuTitle'
 
 type TitleTag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'div' | 'span'
 export type EtuTitleVariant = 'cyan' | 'amber' | 'violet'
@@ -33,6 +33,13 @@ export interface EtuTitleProps {
   interactive?: boolean
   /** Idle star glints. */
   glints?: boolean
+  /**
+   * A drifting 3D point light inside the letters that lights the crystal
+   * from within; it follows the cursor while hovered. Default true.
+   */
+  innerLight?: boolean
+  /** Per-word size multipliers, e.g. `{ Universe: 1.5, '2175': 0.7 }`. */
+  wordScale?: Record<string, number>
   className?: string
   style?: CSSProperties
   id?: string
@@ -57,6 +64,8 @@ export default function EtuTitle({
   stagger,
   interactive = true,
   glints = true,
+  innerLight = true,
+  wordScale,
   className = '',
   style,
   id,
@@ -65,6 +74,7 @@ export default function EtuTitle({
   const lines = Array.isArray(text) ? text : [text]
   const label = lines.join(' ')
   const playIntro = animate && intro
+  const scaleKey = wordScale ? JSON.stringify(wordScale) : ''
 
   useEffect(() => {
     const host = hostRef.current
@@ -75,13 +85,14 @@ export default function EtuTitle({
       stagger,
       interactive: interactive && !reduced,
       glints: glints && !reduced,
+      innerLight: innerLight && !reduced,
     })
     host.dataset.state = 'live'
     return () => {
       motion.dispose()
       delete host.dataset.state
     }
-  }, [label, animate, intro, stagger, interactive, glints])
+  }, [label, scaleKey, animate, intro, stagger, interactive, glints, innerLight])
 
   const vars = {
     '--etu-art': `url(${compact ? FONT.artSmall : FONT.art})`,
@@ -91,7 +102,7 @@ export default function EtuTitle({
     '--etu-frame': FONT.frameHeight,
     '--etu-margin': FONT.margin,
     '--etu-depth': FONT.depth,
-    '--etu-fit-em': titleWidthEm(lines, { kerning }),
+    '--etu-fit-em': titleWidthEm(lines, { kerning, wordScale }),
     ...style,
   } as CSSProperties
 
@@ -99,6 +110,7 @@ export default function EtuTitle({
   if (fit) classes.push('etu-title--fit')
   if (playIntro) classes.push('etu-title--intro')
   if (!animate) classes.push('etu-title--still')
+  if (animate && innerLight) classes.push('etu-title--lit')
   if (className) classes.push(className)
 
   let index = 0
@@ -108,12 +120,24 @@ export default function EtuTitle({
     <span className="sr-only">{label}</span>,
     <span className="etu-title__body" aria-hidden="true">
       {lines.map((line, i) => {
-        const { words } = layoutLine(line, { kerning })
+        const { words } = layoutLine(line, { kerning, wordScale })
+        // words are top-aligned; push smaller words down so all letters share a baseline
+        const tallest = Math.max(...words.map((w) => w.scale))
         return (
           <span key={i} className="etu-title__line">
             {words.map((word, j) => (
               <Fragment key={j}>
-                <span className="etu-title__word">
+                <span
+                  className="etu-title__word"
+                  style={
+                    word.scale !== 1 || tallest !== 1
+                      ? {
+                          fontSize: `${word.scale}em`,
+                          marginTop: `${((DEPTH_EM * (tallest - word.scale)) / word.scale).toFixed(4)}em`,
+                        }
+                      : undefined
+                  }
+                >
                   {word.glyphs.map(({ char, glyph, kern }, k) =>
                     glyph ? (
                       <span
@@ -133,6 +157,7 @@ export default function EtuTitle({
                         <span className="etu-glyph__art" />
                         <span className="etu-glyph__energy" />
                         <span className="etu-glyph__charge" />
+                        <span className="etu-glyph__core" />
                       </span>
                     ) : (
                       <span key={k} className="etu-title__char">

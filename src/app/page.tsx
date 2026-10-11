@@ -12,6 +12,11 @@ const STEAM_URL =
   "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/";
 const SIGNUP_URL = "/login?mode=signup";
 
+// Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
+const TITLE_SCALE = { Explore: 1.12, the: 0.62, Universe: 1.55, "2175": 0.62 };
+// Stacked phone title: one word per line, so the small words can be a bit bigger
+const TITLE_SCALE_STACKED = { Explore: 1.12, the: 0.7, Universe: 1.55, "2175": 0.8 };
+
 const PILLARS = [
   {
     title: "A New Galaxy Every Run",
@@ -129,7 +134,7 @@ export default function HomePage() {
             className="reveal mb-4 md:mb-6 uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
           >
-            Telford Projects presents
+            Elliot Telford of Telford Projects Presents
           </p>
 
           {/* Phones get a stacked title so each line can run much larger */}
@@ -137,12 +142,14 @@ export default function HomePage() {
             <EtuTitle
               as="span"
               text={["Explore", "the", "Universe", "2175"]}
+              wordScale={TITLE_SCALE_STACKED}
               fit
-              className="block sm:hidden -mx-2 text-[7rem]"
+              className="block sm:hidden -mx-2 text-[4.5rem]"
             />
             <EtuTitle
               as="span"
               text={["Explore the", "Universe 2175"]}
+              wordScale={TITLE_SCALE}
               fit
               className="hidden sm:block mx-auto sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[8.75rem]"
             />
