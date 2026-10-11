@@ -111,10 +111,10 @@ export default function Header() {
           {/* Logo */}
           <Link href="/#home" className="flex items-center gap-3 shrink-0">
             <Image
-              src="/brand/etu-logo-512.png"
+              src="/brand/etu-wordmark.png"
               alt=""
-              width={36}
-              height={36}
+              width={73}
+              height={30}
             />
             <span className="font-display font-bold text-sm sm:text-base tracking-wide text-white whitespace-nowrap">
               Explore the Universe 2175

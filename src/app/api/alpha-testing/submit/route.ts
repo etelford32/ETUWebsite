@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 <body>
   <div class="container">
     <div class="header">
-      ${emailLogoImg(72, 'left')}
+      ${emailLogoImg(160, 'left')}
       <h1 style="margin: 0;">🚀 New Alpha Testing Application</h1>
       <p style="margin: 10px 0 0 0; opacity: 0.9;">Explore the Universe 2175</p>
     </div>

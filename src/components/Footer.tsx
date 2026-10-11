@@ -17,10 +17,10 @@ export default function Footer() {
         <div className="grid md:grid-cols-5 gap-6">
           <div>
             <Image
-              src="/brand/etu-logo-512.png"
+              src="/brand/etu-wordmark.png"
               alt="Explore the Universe 2175"
-              width={32}
-              height={32}
+              width={116}
+              height={48}
               loading="lazy"
             />
             <p className="mt-3 max-w-xs">
