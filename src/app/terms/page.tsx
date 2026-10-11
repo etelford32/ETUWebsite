@@ -234,7 +234,11 @@ const sections = [
       },
       {
         subtitle: "Governing Law",
-        text: "These Terms are governed by the federal laws of the United States of America, without regard to conflict-of-law rules, except where the law of your country of residence requires otherwise.",
+        text: "These Terms are governed by the laws of the State of California and applicable federal laws of the United States of America, without regard to conflict-of-law rules, except where the law of your country of residence requires otherwise.",
+      },
+      {
+        subtitle: "Where Disputes Are Heard",
+        text: "Any lawsuit arising out of or relating to these Terms or the Services must be brought exclusively in the state or federal courts located in California, and you and Telford Projects LLC consent to the personal jurisdiction of those courts. Either party may still bring an individual claim in small claims court, and nothing here removes any right you have under applicable law to bring a claim in the courts where you live.",
       },
     ],
   },
