@@ -111,7 +111,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/#home" className="flex items-center gap-3 shrink-0">
             <Image
-              src="/logo2.png"
+              src="/brand/etu-logo-512.png"
               alt=""
               width={36}
               height={36}
