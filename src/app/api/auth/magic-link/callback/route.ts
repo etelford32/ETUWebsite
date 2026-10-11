@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { setSessionOnResponse } from '@/lib/session'
 import { recordAuthEvent } from '@/lib/authEvents'
+import { safeNextPath } from '@/lib/oauth'
 
 /**
  * GET /api/auth/magic-link/callback - Handle magic link callback
@@ -19,14 +20,12 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash')
   const token = searchParams.get('token')
   const type = searchParams.get('type')
-  const redirect = searchParams.get('redirect') || '/dashboard'
+  const redirect = safeNextPath(searchParams.get('redirect'))
   const error = searchParams.get('error')
   const error_description = searchParams.get('error_description')
 
   // Get the base URL for redirect
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.VERCEL_URL ||
-    'http://localhost:3000'
+  const baseUrl = request.nextUrl.origin
 
   // Handle error from Supabase
   if (error) {

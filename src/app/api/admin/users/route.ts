@@ -71,6 +71,26 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = createServerClient()
+
+    // Administrators are managed from the superuser console: only a
+    // superuser may grant admin, or change an existing admin or superuser.
+    const { data: target } = await (supabase.from('profiles') as any)
+      .select('role, is_superuser')
+      .eq('id', userId)
+      .maybeSingle()
+    if (!gate.session.isSuperuser && (role === 'admin' || target?.role === 'admin' || target?.is_superuser)) {
+      return NextResponse.json(
+        { error: 'Only a superuser can grant or change admin access' },
+        { status: 403 }
+      )
+    }
+    if (target?.is_superuser && role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Superusers are always admins. Remove superuser in the superuser console first.' },
+        { status: 400 }
+      )
+    }
+
     const { data, error } = await (supabase.from('profiles') as any)
       .update({ role })
       .eq('id', userId)
