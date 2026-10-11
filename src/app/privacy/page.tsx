@@ -106,7 +106,7 @@ export default function PrivacyPolicyPage() {
         },
         {
           subtitle: "Data Deletion",
-          text: "You can request deletion of your account and associated data by contacting us at privacy@exploretheuniverse2175.com. Some data may be retained for legal or legitimate business purposes.",
+          text: "You can request deletion of your account and associated data by contacting us at etelford32@gmail.com. Some data may be retained for legal or legitimate business purposes.",
         },
         {
           subtitle: "Opt-Out",
@@ -245,10 +245,10 @@ export default function PrivacyPolicyPage() {
               <div>
                 <p className="font-medium text-white">Email</p>
                 <a
-                  href="mailto:privacy@exploretheuniverse2175.com"
+                  href="mailto:etelford32@gmail.com"
                   className="text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
-                  privacy@exploretheuniverse2175.com
+                  etelford32@gmail.com
                 </a>
               </div>
             </div>

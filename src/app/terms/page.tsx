@@ -53,7 +53,7 @@ const sections = [
     content: [
       {
         subtitle: "Account Security",
-        text: "You are responsible for keeping your login credentials confidential and for all activity that occurs under your account. Notify us promptly at support@exploretheuniverse2175.com if you suspect unauthorized access.",
+        text: "You are responsible for keeping your login credentials confidential and for all activity that occurs under your account. Notify us promptly at etelford32@gmail.com if you suspect unauthorized access.",
       },
       {
         subtitle: "Accurate Information",
@@ -168,7 +168,7 @@ const sections = [
       },
       {
         subtitle: "Your Rights",
-        text: "You may stop using the Services and request deletion of your account at any time by contacting privacy@exploretheuniverse2175.com.",
+        text: "You may stop using the Services and request deletion of your account at any time by contacting etelford32@gmail.com.",
       },
     ],
   },
@@ -190,7 +190,16 @@ const sections = [
       },
       {
         subtitle: "Health",
-        text: "Some people may experience seizures or discomfort when exposed to flashing lights or patterns. Please read our health warning before playing and stop immediately if you feel unwell.",
+        text: (
+          <>
+            Some people may experience seizures or discomfort when exposed to
+            flashing lights or patterns. Please read our{" "}
+            <Link href="/health-warning" className="text-cyan-400 hover:underline">
+              health warning
+            </Link>{" "}
+            before playing and stop immediately if you feel unwell.
+          </>
+        ),
       },
     ],
   },
@@ -199,7 +208,7 @@ const sections = [
     content: [
       {
         subtitle: "Limits",
-        text: "To the maximum extent permitted by law, Telford Projects and its team will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any loss of data, profits, or goodwill, arising from your use of the Services. Our total liability for any claim will not exceed the greater of the amount you paid us in the 12 months before the claim or US $50.",
+        text: "To the maximum extent permitted by law, Telford Projects and its team will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any loss of data, profits, or goodwill, arising from your use of the Services. Our total liability for any claim will not exceed the greater of the amount you paid us in the 12 months before the claim or US $20.",
       },
       {
         subtitle: "Where Limits Don't Apply",
@@ -225,7 +234,7 @@ const sections = [
       },
       {
         subtitle: "Governing Law",
-        text: "These Terms are governed by the laws of the United States and the state in which Telford Projects is based, without regard to conflict-of-law rules, except where the law of your country of residence requires otherwise.",
+        text: "These Terms are governed by the federal laws of the United States of America, without regard to conflict-of-law rules, except where the law of your country of residence requires otherwise.",
       },
     ],
   },
@@ -322,10 +331,10 @@ export default function TermsOfUsePage() {
                 <div>
                   <p className="font-medium text-white">Email</p>
                   <a
-                    href="mailto:support@exploretheuniverse2175.com"
+                    href="mailto:etelford32@gmail.com"
                     className="text-cyan-400 hover:text-cyan-300 transition-colors"
                   >
-                    support@exploretheuniverse2175.com
+                    etelford32@gmail.com
                   </a>
                 </div>
               </div>
