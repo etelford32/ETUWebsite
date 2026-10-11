@@ -75,8 +75,34 @@ const PRIMARY_LINKS = [
   { href: "/faq", label: "FAQ" },
 ] as const;
 
+type StaffAccess = { isAdmin: boolean; isSuperuser: boolean };
+
+/** Admin/superuser shortcuts for the signed-in account (role read server-side). */
+function useStaffAccess(): StaffAccess {
+  const [access, setAccess] = useState<StaffAccess>({ isAdmin: false, isSuperuser: false });
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled || !data?.authenticated) return;
+        const role = data.user?.role;
+        setAccess({
+          isAdmin: role === "admin" || role === "staff",
+          isSuperuser: data.user?.isSuperuser === true,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return access;
+}
+
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const staff = useStaffAccess();
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
@@ -158,6 +184,8 @@ export default function Header() {
 
           {/* Actions */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
+            {staff.isSuperuser && <NavLink href="/admin/superuser">👑 Superuser</NavLink>}
+            {staff.isAdmin && <NavLink href="/admin">Admin</NavLink>}
             <NavLink href="/profile">Profile</NavLink>
             <a
               href={STEAM_URL}
@@ -219,6 +247,12 @@ export default function Header() {
               </MobileNavLink>
             ))}
             <MobileNavLink href="/profile" onNavigate={closeMobileMenu}>Profile</MobileNavLink>
+            {staff.isAdmin && (
+              <MobileNavLink href="/admin" onNavigate={closeMobileMenu}>Admin</MobileNavLink>
+            )}
+            {staff.isSuperuser && (
+              <MobileNavLink href="/admin/superuser" onNavigate={closeMobileMenu}>👑 Superuser</MobileNavLink>
+            )}
           </MobileSection>
 
           <MobileSection

@@ -11,6 +11,7 @@ interface SessionUser {
   email: string
   displayName?: string | null
   role: string
+  isSuperuser?: boolean
   isAlphaTester: boolean
   status?: string | null
   createdAt?: string | null
@@ -108,6 +109,14 @@ export default function DashboardPage() {
             <p className="text-slate-400 mt-1">Your commander profile and playtest status</p>
           </div>
           <div className="flex items-center gap-3">
+            {account?.isSuperuser && (
+              <a
+                href="/admin/superuser"
+                className="px-4 py-2 rounded-lg bg-amber-600/30 border border-amber-500/40 text-amber-200 hover:bg-amber-600/50 text-sm transition-colors"
+              >
+                👑 Superuser
+              </a>
+            )}
             {account?.role === 'admin' || account?.role === 'staff' ? (
               <a
                 href="/admin"
@@ -147,6 +156,11 @@ export default function DashboardPage() {
                   {account?.isAlphaTester && (
                     <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/40">
                       ☢ Alpha Tester
+                    </span>
+                  )}
+                  {account?.isSuperuser && (
+                    <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      👑 Superuser
                     </span>
                   )}
                   {(account?.role === 'admin' || account?.role === 'staff') && (
