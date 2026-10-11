@@ -53,7 +53,17 @@ function assignExperimentCookies(request: NextRequest, response: NextResponse) {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
+
+  // Google sign-in safety net: when /api/auth/callback isn't in Supabase's
+  // Redirect URLs allowlist, Supabase drops redirect_to and sends the browser
+  // to a fallback URL (e.g. "/?code=..."), where nothing redeems the code.
+  // Forward the OAuth result to the real callback. No page uses ?code=.
+  if (searchParams.has('code') || searchParams.has('error_description')) {
+    const callbackUrl = new URL('/api/auth/callback', request.url)
+    callbackUrl.search = request.nextUrl.search
+    return NextResponse.redirect(callbackUrl)
+  }
 
   // Check if route requires authentication
   const isProtectedRoute =

@@ -3,6 +3,17 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 import { resolveEmailFromInput } from '@/lib/resolveEmail'
 import { recordAuthEvent } from '@/lib/authEvents'
+import { safeNextPath } from '@/lib/oauth'
+
+/**
+ * Point the emailed link straight at our callback with the token hash, which
+ * verifies it server-side via verifyOtp. Supabase's own action_link would
+ * bounce through /auth/v1/verify, which needs the callback in the Redirect
+ * URLs allowlist and returns tokens in a #fragment the server can't read.
+ */
+function buildMagicLink(callbackURL: string, tokenHash: string): string {
+  return `${callbackURL}&token_hash=${encodeURIComponent(tokenHash)}&type=magiclink`
+}
 
 /**
  * POST /api/auth/magic-link - Send a magic link email for passwordless login
@@ -66,13 +77,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the base URL for the redirect
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.VERCEL_URL ||
-      'http://localhost:3000'
-
-    // Build the redirect URL - where the user will land after clicking the magic link
-    const finalRedirect = redirectTo || '/dashboard'
+    // Link back to the host the request came in on, so the session cookie
+    // lands on the same domain the user is browsing.
+    const baseUrl = request.nextUrl.origin
+    const finalRedirect = safeNextPath(redirectTo)
     const callbackURL = `${baseUrl}/api/auth/magic-link/callback?redirect=${encodeURIComponent(finalRedirect)}`
 
     // Check if user exists first
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      if (linkError || !linkData?.properties?.action_link) {
+      if (linkError || !linkData?.properties?.hashed_token) {
         console.error('Magic link generation error:', linkError)
         return NextResponse.json(
           { error: linkError?.message || 'Failed to generate magic link' },
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      magicLinkUrl = linkData.properties.action_link
+      magicLinkUrl = buildMagicLink(callbackURL, linkData.properties.hashed_token)
     } else {
       // Create new user first (without password - they'll use magic links)
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -127,7 +135,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      if (linkError || !linkData?.properties?.action_link) {
+      if (linkError || !linkData?.properties?.hashed_token) {
         console.error('Magic link generation error for new user:', linkError)
         return NextResponse.json(
           { error: linkError?.message || 'Failed to generate magic link' },
@@ -135,7 +143,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      magicLinkUrl = linkData.properties.action_link
+      magicLinkUrl = buildMagicLink(callbackURL, linkData.properties.hashed_token)
     }
 
     // Telemetry: a magic link was requested (sign-in funnel entry).
