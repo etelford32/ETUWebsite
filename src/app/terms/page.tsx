@@ -78,7 +78,7 @@ const sections = [
       },
       {
         subtitle: "Ownership",
-        text: "The Services and all related content — including the game, characters (such as Cyl), factions, artwork, music, code, and trademarks — are owned by Telford Projects or its licensors and are protected by intellectual property laws. All rights not expressly granted are reserved.",
+        text: "The Services and all related content — including the game, characters (such as Cyl), factions, artwork, music, code, and trademarks — are owned by Telford Projects LLC or its licensors and are protected by intellectual property laws. All rights not expressly granted are reserved.",
       },
     ],
   },
@@ -121,7 +121,7 @@ const sections = [
       },
       {
         subtitle: "License to Us",
-        text: "You grant Telford Projects a worldwide, non-exclusive, royalty-free license to host, store, reproduce, display, and distribute your User Content as needed to operate, promote, and improve the Services.",
+        text: "You grant Telford Projects LLC a worldwide, non-exclusive, royalty-free license to host, store, reproduce, display, and distribute your User Content as needed to operate, promote, and improve the Services.",
       },
       {
         subtitle: "Feedback & Suggestions",
@@ -208,7 +208,7 @@ const sections = [
     content: [
       {
         subtitle: "Limits",
-        text: "To the maximum extent permitted by law, Telford Projects and its team will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any loss of data, profits, or goodwill, arising from your use of the Services. Our total liability for any claim will not exceed the greater of the amount you paid us in the 12 months before the claim or US $20.",
+        text: "To the maximum extent permitted by law, Telford Projects LLC and its team will not be liable for any indirect, incidental, special, consequential, or punitive damages, or for any loss of data, profits, or goodwill, arising from your use of the Services. Our total liability for any claim will not exceed the greater of the amount you paid us in the 12 months before the claim or US $20.",
       },
       {
         subtitle: "Where Limits Don't Apply",
@@ -221,7 +221,7 @@ const sections = [
     content: [
       {
         subtitle: "Your Responsibility",
-        text: "You agree to indemnify and hold harmless Telford Projects from claims, damages, and expenses (including reasonable legal fees) arising from your User Content, your misuse of the Services, or your violation of these Terms or the rights of others.",
+        text: "You agree to indemnify and hold harmless Telford Projects LLC from claims, damages, and expenses (including reasonable legal fees) arising from your User Content, your misuse of the Services, or your violation of these Terms or the rights of others.",
       },
     ],
   },
@@ -282,7 +282,7 @@ export default function TermsOfUsePage() {
             <p className="text-slate-300 leading-relaxed mb-4">
               Welcome to Explore the Universe 2175 (&quot;ETU 2175&quot;,
               &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), developed by
-              Telford Projects. These Terms of Use govern your access to and use
+              Telford Projects LLC. These Terms of Use govern your access to and use
               of exploretheuniverse2175.com, the game, and related services.
             </p>
             <p className="text-slate-300 leading-relaxed">
@@ -342,7 +342,7 @@ export default function TermsOfUsePage() {
                 <span className="text-cyan-400">🏢</span>
                 <div>
                   <p className="font-medium text-white">Company</p>
-                  <p className="text-slate-300">Telford Projects</p>
+                  <p className="text-slate-300">Telford Projects LLC</p>
                 </div>
               </div>
             </div>

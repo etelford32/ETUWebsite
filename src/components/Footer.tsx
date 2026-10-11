@@ -95,7 +95,7 @@ export default function Footer() {
           </nav>
         </div>
         <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <p>© {year} Telford Projects. All rights reserved.</p>
+          <p>© {year} Telford Projects LLC. All rights reserved.</p>
         </div>
       </div>
     </footer>
