@@ -202,6 +202,14 @@ export default function AdminDashboard() {
             >
               ✏️ Content Editor
             </Link>
+            {user?.isSuperuser && (
+              <Link
+                href="/admin/superuser"
+                className="px-4 py-2 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/30 text-amber-300 rounded-lg transition-colors whitespace-nowrap"
+              >
+                👑 Superuser
+              </Link>
+            )}
           </div>
         </motion.div>
 
