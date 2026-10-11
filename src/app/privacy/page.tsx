@@ -106,7 +106,7 @@ export default function PrivacyPolicyPage() {
         },
         {
           subtitle: "Data Deletion",
-          text: "You can request deletion of your account and associated data by contacting us at privacy@exploretheuniverse2175.com. Some data may be retained for legal or legitimate business purposes.",
+          text: "You can request deletion of your account and associated data by contacting us at etelford32@gmail.com. Some data may be retained for legal or legitimate business purposes.",
         },
         {
           subtitle: "Opt-Out",
@@ -199,7 +199,7 @@ export default function PrivacyPolicyPage() {
           </h2>
           <p className="text-slate-300 leading-relaxed mb-4">
             Welcome to Explore the Universe 2175 ("ETU 2175", "we", "us", or
-            "our"). This Privacy Policy explains how Telford Projects collects,
+            "our"). This Privacy Policy explains how Telford Projects LLC collects,
             uses, discloses, and safeguards your information when you use our
             website, game, and related services (collectively, the "Services").
           </p>
@@ -245,10 +245,10 @@ export default function PrivacyPolicyPage() {
               <div>
                 <p className="font-medium text-white">Email</p>
                 <a
-                  href="mailto:privacy@exploretheuniverse2175.com"
+                  href="mailto:etelford32@gmail.com"
                   className="text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
-                  privacy@exploretheuniverse2175.com
+                  etelford32@gmail.com
                 </a>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function PrivacyPolicyPage() {
               <span className="text-cyan-400">🏢</span>
               <div>
                 <p className="font-medium text-white">Company</p>
-                <p className="text-slate-300">Telford Projects</p>
+                <p className="text-slate-300">Telford Projects LLC</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -291,7 +291,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="mt-12 pt-8 border-t border-slate-700/50 text-center">
           <p className="text-slate-500 text-sm">
-            © 2026 Telford Projects. All rights reserved. | Explore the Universe
+            © 2026 Telford Projects LLC. All rights reserved. | Explore the Universe
             2175
           </p>
         </div>
