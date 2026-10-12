@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Link from 'next/link'
@@ -45,6 +45,74 @@ interface SystemHealth {
   api: 'healthy' | 'warning' | 'error'
 }
 
+interface RecentFeedback {
+  id: string
+  type: string
+  title: string
+  description: string
+  status: string
+  priority: string
+  source: string
+  email: string | null
+  created_at: string
+  profile?: { username?: string; display_name?: string; email?: string } | null
+}
+
+interface RecentApplication {
+  id: string
+  kind: 'alpha' | 'career'
+  name: string
+  email: string
+  headline: string
+  summary: string
+  status: string
+  created_at: string
+}
+
+const RECENT_LIMIT = 10
+
+const FEEDBACK_STATUS_COLORS: Record<string, string> = {
+  open: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  resolved: 'bg-green-500/20 text-green-400 border-green-500/30',
+  closed: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  duplicate: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+}
+
+const APPLICATION_STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  reviewing: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  interviewed: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  approved: 'bg-green-500/20 text-green-400 border-green-500/30',
+  accepted: 'bg-green-500/20 text-green-400 border-green-500/30',
+  rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
+}
+
+const FEEDBACK_TYPE_ICONS: Record<string, string> = {
+  bug: '🐛',
+  feature: '✨',
+  suggestion: '💡',
+  support: '🛟',
+  other: '💬',
+}
+
+function blurb(text: string, max = 140) {
+  const clean = (text || '').replace(/\s+/g, ' ').trim()
+  return clean.length > max ? clean.slice(0, max).trimEnd() + '…' : clean
+}
+
+function timeAgo(iso: string) {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(iso).toLocaleDateString()
+}
+
 const SEVERITY_COLORS = {
   low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -71,6 +139,8 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[] | null>(null)
+  const [recentApplications, setRecentApplications] = useState<RecentApplication[] | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -111,12 +181,17 @@ export default function AdminDashboard() {
     try {
       setRefreshing(true)
 
-      const response = await fetch('/api/admin/stats')
-      const data = await response.json()
+      const [statsRes, feedbackRes, applicationsRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch(`/api/admin/feedback?limit=${RECENT_LIMIT}`),
+        fetch(`/api/admin/applications?limit=${RECENT_LIMIT}`),
+      ])
 
-      if (response.ok) {
-        setStats(data)
+      if (statsRes.ok) {
+        setStats(await statsRes.json())
       }
+      setRecentFeedback(feedbackRes.ok ? (await feedbackRes.json()).feedback || [] : [])
+      setRecentApplications(applicationsRes.ok ? (await applicationsRes.json()).applications || [] : [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -191,6 +266,12 @@ export default function AdminDashboard() {
               ✉️ Invitations
             </Link>
             <Link
+              href="/admin/applications"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Applications
+            </Link>
+            <Link
               href="/admin/feedback"
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
             >
@@ -252,6 +333,82 @@ export default function AdminDashboard() {
             hint={stats ? `${stats.stats.signups30d} new signups` : undefined}
             icon="🔑"
             color="from-orange-500 to-red-500"
+          />
+        </div>
+
+        {/* Recent Applications & Feedback */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <RecentPanel
+            title="Latest Applications"
+            icon="📝"
+            viewAllHref="/admin/applications"
+            delay={0.05}
+            items={recentApplications}
+            emptyText="No applications yet"
+            renderItem={(app) => (
+              <Link
+                key={`${app.kind}-${app.id}`}
+                href={`/admin/applications?id=${app.id}&kind=${app.kind}`}
+                className="block p-3 bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-purple-500/30 rounded-lg transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-white font-medium truncate">
+                      {app.kind === 'alpha' ? '🚀' : '💼'} {app.name}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">{app.headline}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-xs border capitalize ${APPLICATION_STATUS_COLORS[app.status] || FEEDBACK_STATUS_COLORS.closed}`}>
+                      {app.status}
+                    </span>
+                    <span className="text-xs text-slate-500">{timeAgo(app.created_at)}</span>
+                  </div>
+                </div>
+                {app.summary && (
+                  <p className="text-sm text-slate-400 mt-2">{blurb(app.summary)}</p>
+                )}
+              </Link>
+            )}
+          />
+
+          <RecentPanel
+            title="Latest User Feedback"
+            icon="💬"
+            viewAllHref="/admin/feedback"
+            delay={0.1}
+            items={recentFeedback}
+            emptyText="No feedback yet"
+            renderItem={(item) => (
+              <Link
+                key={item.id}
+                href={`/admin/feedback?id=${item.id}`}
+                className="block p-3 bg-slate-800/50 hover:bg-slate-800 border border-transparent hover:border-cyan-500/30 rounded-lg transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-white font-medium truncate">
+                      {FEEDBACK_TYPE_ICONS[item.type] || '💬'} {item.title}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate capitalize">
+                      {item.type} · {item.priority} priority · {item.source} ·{' '}
+                      <span className="normal-case">
+                        {item.profile?.username || item.profile?.display_name || item.email || 'Anonymous'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-xs border capitalize ${FEEDBACK_STATUS_COLORS[item.status] || FEEDBACK_STATUS_COLORS.closed}`}>
+                      {item.status.replace('_', ' ')}
+                    </span>
+                    <span className="text-xs text-slate-500">{timeAgo(item.created_at)}</span>
+                  </div>
+                </div>
+                {item.description && (
+                  <p className="text-sm text-slate-400 mt-2">{blurb(item.description)}</p>
+                )}
+              </Link>
+            )}
           />
         </div>
 
@@ -336,7 +493,7 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <span>⚡</span> Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/admin/invites"
               className="p-4 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg transition-all group"
@@ -347,6 +504,18 @@ export default function AdminDashboard() {
               </div>
               <div className="text-slate-400 text-sm">
                 Send email invitations to new users
+              </div>
+            </Link>
+            <Link
+              href="/admin/applications"
+              className="p-4 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-lg transition-all group"
+            >
+              <div className="text-2xl mb-2">📝</div>
+              <div className="text-white font-semibold group-hover:text-cyan-300">
+                Review Applications
+              </div>
+              <div className="text-slate-400 text-sm">
+                Alpha tester and career applications
               </div>
             </Link>
             <Link
@@ -377,6 +546,55 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+// Recent-items panel (latest applications / feedback)
+function RecentPanel<T>({
+  title,
+  icon,
+  viewAllHref,
+  delay,
+  items,
+  emptyText,
+  renderItem,
+}: {
+  title: string
+  icon: string
+  viewAllHref: string
+  delay: number
+  items: T[] | null
+  emptyText: string
+  renderItem: (item: T) => ReactNode
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6 flex flex-col"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <span>{icon}</span> {title}
+        </h2>
+        <Link
+          href={viewAllHref}
+          className="text-sm text-purple-300 hover:text-purple-200 whitespace-nowrap"
+        >
+          View all →
+        </Link>
+      </div>
+      <div className="space-y-2 max-h-[36rem] overflow-y-auto pr-1">
+        {items === null ? (
+          <p className="text-slate-400">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="text-slate-400">{emptyText}</p>
+        ) : (
+          items.map(renderItem)
+        )}
+      </div>
+    </motion.div>
   )
 }
 
