@@ -15,17 +15,22 @@ async function requireStaff(request: NextRequest) {
   return { session }
 }
 
-// GET /api/admin/feedback — list all feedback with submitter profile (staff+)
+// GET /api/admin/feedback[?limit=N] — list feedback with submitter profile (staff+)
 export async function GET(request: NextRequest) {
   const gate = await requireStaff(request)
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
   try {
     const supabase = createServerClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('feedback')
       .select('*, profile:profiles(username, display_name, email)')
       .order('created_at', { ascending: false })
+
+    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '', 10)
+    if (Number.isFinite(limit) && limit > 0) query = query.limit(Math.min(limit, 1000))
+
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

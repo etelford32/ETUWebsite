@@ -105,6 +105,11 @@ export default function AdminFeedbackPage() {
 
       setFeedback(data || [])
       setFilteredFeedback(data || [])
+
+      // Deep link from the dashboard: /admin/feedback?id=<uuid> opens that item.
+      const linkedId = new URLSearchParams(window.location.search).get('id')
+      const linked = linkedId && (data || []).find((f: FeedbackItem) => f.id === linkedId)
+      if (linked) setSelectedItem(linked)
     } catch (err) {
       console.error('Error fetching feedback:', err)
     } finally {
