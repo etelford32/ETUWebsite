@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
       browser: body.browser ?? null,
       os: body.os ?? null,
       ip_address: ip,
+      metadata: {
+        visitor_id: typeof body.visitor_id === 'string' && body.visitor_id.length <= 64 ? body.visitor_id : null,
+      },
     })
 
     // Bump the rolling page-view count + exit page on the session.
