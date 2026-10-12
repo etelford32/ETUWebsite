@@ -4,6 +4,12 @@ import { getSession } from '@/lib/session'
 import { getClientInfo } from '@/lib/authEvents'
 import { RateLimiters, getIdentifier } from '@/lib/ratelimit'
 
+/** The browser's persistent visitor ID, if it sent a sane one. */
+function visitorId(body: any): string | null {
+  const id = body?.visitor_id
+  return typeof id === 'string' && id.length <= 64 ? id : null
+}
+
 /**
  * POST /api/analytics/session — initialize (or upsert) a visitor session.
  * Best-effort: failures never surface to the client.
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
         browser: body.browser ?? null,
         os: body.os ?? null,
         ip_address: ip,
-        metadata: { ...(body.metadata ?? {}), user_agent: userAgent },
+        metadata: { ...(body.metadata ?? {}), user_agent: userAgent, visitor_id: visitorId(body) },
       },
       { onConflict: 'session_id', ignoreDuplicates: true }
     )

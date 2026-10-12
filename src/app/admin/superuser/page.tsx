@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import AnalyticsPanel from './AnalyticsPanel'
 
 type Role = 'user' | 'moderator' | 'staff' | 'admin'
 type Status = 'active' | 'suspended' | 'banned' | 'deleted'
@@ -228,6 +229,9 @@ export default function SuperuserConsole() {
           </div>
         </motion.div>
 
+        <AnalyticsPanel />
+
+        <h2 className="text-xl font-semibold mb-3">Accounts</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           {[
             ['Accounts', counts.total],

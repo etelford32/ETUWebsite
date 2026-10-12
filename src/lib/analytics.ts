@@ -29,6 +29,22 @@ function getSessionId(): string {
   return sessionId
 }
 
+// Persistent per-browser ID, so unique visitors can be counted across sessions.
+function getVisitorId(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    let visitorId = localStorage.getItem('analytics_visitor_id')
+    if (!visitorId) {
+      visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+      localStorage.setItem('analytics_visitor_id', visitorId)
+    }
+    return visitorId
+  } catch {
+    // Storage blocked (private mode, cookies disabled) — fall back to IP + UA server-side.
+    return null
+  }
+}
+
 // Get device type
 function getDeviceType(): string {
   if (typeof window === 'undefined') return 'unknown'
@@ -95,6 +111,7 @@ export async function initializeSession() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId,
+        visitor_id: getVisitorId(),
         entry_page: window.location.pathname,
         referrer: document.referrer || null,
         utm_source: utm.source,
@@ -135,6 +152,7 @@ export async function trackPageView(pageUrl?: string, pageTitle?: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId,
+        visitor_id: getVisitorId(),
         page_url: pageUrl || window.location.pathname,
         page_title: pageTitle || document.title,
         referrer: document.referrer || null,
@@ -217,6 +235,8 @@ export async function endSession() {
   try {
     await fetch('/api/analytics/end-session', {
       method: 'POST',
+      // Lets the request outlive the page when fired from beforeunload.
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: sessionId }),
     })
