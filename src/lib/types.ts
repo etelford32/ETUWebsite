@@ -30,6 +30,9 @@ export interface Database {
           highest_score?: number
           ship_class?: string | null
           is_alpha_tester?: boolean
+          display_name?: string | null
+          email?: string | null
+          signup_method?: string | null
         }
         Insert: {
           id: string

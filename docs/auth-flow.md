@@ -444,10 +444,12 @@ Redirect to /dashboard
 ### Steam App ID: 4094340
 
 ### Current State
-- Steam OpenID login works ✅
-- Steam profile fetch (avatar, username) works ✅
+- Steam OpenID sign-in on the website works ✅ — `/api/steam/auth?redirect=…` → Steam → `/api/steam/callback` issues the normal `etu_session` cookie. First-time Steam players get an account via `findOrCreateSteamAccount` (same one the game's `/api/game/steam-session` uses, so web and game resolve to one user per Steam ID) and land on `/profile?message=steam_welcome` to pick a callsign.
+- Steam profile fetch (avatar, persona) works ✅ — best effort with `STEAM_WEB_API_KEY`; sign-in works without it.
+- Steam link from profile settings and dashboard works ✅ — `/api/steam/auth?link=1&redirect=…` requires a session and attaches the Steam ID to that account (`profiles.steam_id` + `app_metadata.steam_id`). A Steam ID already on another account is refused (`?error=steam_already_linked`); replacing a linked Steam account requires unlinking first.
+- Unlink works ✅ — `POST /api/steam/unlink` (session + CSRF). Refused for Steam-created accounts with a synthetic email, since Steam is their only way to sign in.
+- Login/link CSRF: the intent (sign-in vs link, destination, user) and a one-time nonce live in the `etu_steam_intent` cookie; the nonce is also inside the Steam-signed `openid.return_to`, so a callback is only honoured by the browser that started it.
 - Purchase verification: NOT implemented ❌
-- Steam link from profile settings: NOT implemented ❌
 
 ### Purchase Verification
 

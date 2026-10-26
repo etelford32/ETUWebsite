@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Profile, LeaderboardEntry } from '@/lib/types'
 import { SteamProfileLink } from '@/components/SteamProfileLink'
+import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
 import Header from '@/components/Header'
 
 interface SessionUser {
@@ -92,7 +93,14 @@ export default function DashboardPage() {
     )
   }
 
-  const name = profile?.username || account?.displayName || account?.email?.split('@')[0] || 'Commander'
+  // Steam-created accounts carry a synthetic, never-mailed address; don't
+  // show it as if it were the player's email.
+  const steamOnly = isSyntheticSteamEmail(account?.email)
+  const name =
+    profile?.username ||
+    account?.displayName ||
+    (steamOnly ? null : account?.email?.split('@')[0]) ||
+    'Commander'
   const memberSince = account?.createdAt
     ? new Date(account.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
     : null
@@ -169,7 +177,9 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-slate-400 text-sm mt-1">{account?.email}</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {steamOnly ? 'Signed in with Steam' : account?.email}
+                </p>
                 {profile?.faction_choice && (
                   <p className="text-slate-300 text-sm mt-1">
                     Faction: <span className="capitalize">{profile.faction_choice}</span>
@@ -195,9 +205,16 @@ export default function DashboardPage() {
           <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800">
             <h3 className="font-semibold text-white mb-1">Steam</h3>
             <p className="text-sm text-slate-400 mb-4">
-              Link Steam to sync your avatar and request playtest access.
+              {profile?.steam_id
+                ? 'Your Steam account signs you in here and ties game progress to this profile.'
+                : 'Link Steam to sign in with one click, sync your avatar and request playtest access.'}
             </p>
-            <SteamProfileLink currentSteamId={profile?.steam_id} />
+            <SteamProfileLink
+              currentSteamId={profile?.steam_id}
+              returnTo="/dashboard"
+              canUnlink={!steamOnly}
+              onUnlinked={() => setProfile((p) => (p ? { ...p, steam_id: null } : p))}
+            />
           </div>
         </div>
 

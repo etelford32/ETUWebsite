@@ -126,6 +126,20 @@ function LoginForm() {
     const err = searchParams?.get('error')
     if (msg === 'steam_linked') {
       setMessage({ type: 'success', text: 'Steam account linked successfully!' })
+    } else if (err === 'steam_cancelled') {
+      setMessage({ type: 'error', text: 'Steam sign-in was cancelled.' })
+    } else if (err === 'steam_expired') {
+      setMessage({ type: 'error', text: 'Steam sign-in took too long. Please try again.' })
+    } else if (err === 'steam_unavailable') {
+      setMessage({ type: 'error', text: "Steam didn't respond. Please try again in a minute." })
+    } else if (err === 'steam_rate_limited') {
+      setMessage({ type: 'error', text: 'Too many Steam attempts. Please wait a minute and try again.' })
+    } else if (err === 'steam_account_suspended' || err === 'steam_account_deleted') {
+      setMessage({ type: 'error', text: 'This account is not active. Contact support if you think that is a mistake.' })
+    } else if (err === 'steam_session_expired') {
+      setMessage({ type: 'error', text: 'Your session ended before Steam came back. Sign in, then link Steam from your profile.' })
+    } else if (err === 'steam_failed' || err === 'steam_server_error') {
+      setMessage({ type: 'error', text: 'Steam sign-in failed. Please try again or use another method.' })
     } else if (msg === 'password_reset') {
       setMessage({ type: 'success', text: 'Password updated! Please sign in with your new password.' })
     } else if (err === 'invalid_magic_link') {
@@ -470,7 +484,7 @@ function LoginForm() {
             <div className="space-y-3">
               {/* Steam */}
               <a
-                href="/api/steam/auth"
+                href={`/api/steam/auth?redirect=${encodeURIComponent(redirectTo)}`}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#1b2838] hover:bg-[#2a475e] rounded-lg transition font-medium"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

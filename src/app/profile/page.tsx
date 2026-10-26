@@ -6,6 +6,8 @@ import { Profile } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { SteamProfileLink } from '@/components/SteamProfileLink'
+import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
 
 interface PlayerProfile {
   id: string
@@ -50,6 +52,13 @@ interface MatchHistory {
   date: string
 }
 
+/** Mutating profile routes require the session's CSRF token in a header. */
+async function csrfHeaders(): Promise<Record<string, string>> {
+  const res = await fetch('/api/csrf-token')
+  const data = res.ok ? await res.json() : {}
+  return { 'Content-Type': 'application/json', 'x-csrf-token': data.csrfToken ?? '' }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -60,6 +69,8 @@ export default function ProfilePage() {
   const [editedFaction, setEditedFaction] = useState('')
   const [editedShipClass, setEditedShipClass] = useState('')
   const [activeTab, setActiveTab] = useState<'stats' | 'achievements' | 'history' | 'settings'>('stats')
+  // First visit after creating an account through Steam: nudge for a callsign.
+  const [steamWelcome, setSteamWelcome] = useState(false)
 
   // Change password state
   const [newPassword, setNewPassword] = useState('')
@@ -158,6 +169,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadProfile()
+
+    // Deep links from the Steam flow: /profile?tab=settings&message=steam_linked
+    // and /profile?message=steam_welcome for a brand-new Steam player.
+    const url = new URL(window.location.href)
+    const tab = url.searchParams.get('tab')
+    if (tab === 'stats' || tab === 'achievements' || tab === 'history' || tab === 'settings') {
+      setActiveTab(tab)
+    }
+    if (url.searchParams.get('message') === 'steam_welcome') {
+      setSteamWelcome(true)
+      url.searchParams.delete('message')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+    }
   }, [])
 
   async function loadProfile() {
@@ -182,11 +206,17 @@ export default function ProfilePage() {
 
       if (profileRes.ok && profileData.profile) {
         const dbProfile = profileData.profile as Profile
+        const sessionEmail: string | undefined = sessionData.user?.email
 
-        // Use database data if available, otherwise use defaults
+        // Use database data if available, otherwise use defaults. A Steam-only
+        // account's email is synthetic, so never derive a name from it.
         const profile: PlayerProfile = {
           id: dbProfile.id,
-          username: dbProfile.username || sessionData.user.email?.split('@')[0] || 'Commander',
+          username:
+            dbProfile.username ||
+            dbProfile.display_name ||
+            (isSyntheticSteamEmail(sessionEmail) ? null : sessionEmail?.split('@')[0]) ||
+            'Commander',
           steam_id: dbProfile.steam_id || null,
           avatar_url: dbProfile.avatar_url || null,
           faction_choice: dbProfile.faction_choice || 'neutral',
@@ -225,7 +255,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await csrfHeaders(),
         body: JSON.stringify({
           username: editedUsername,
           faction_choice: editedFaction
@@ -332,6 +362,36 @@ export default function ProfilePage() {
       </div>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        {steamWelcome && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="status"
+            className="mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-900/40 to-indigo-900/40 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center gap-3"
+          >
+            <div className="flex-1">
+              <div className="font-semibold text-cyan-200">Welcome aboard, Commander</div>
+              <p className="text-sm text-slate-300 mt-0.5">
+                Your Steam account is now your ETU sign-in. Pick a callsign so other players can find you on the leaderboard.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setIsEditing(true); setSteamWelcome(false) }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 transition"
+              >
+                Choose callsign
+              </button>
+              <button
+                onClick={() => setSteamWelcome(false)}
+                className="px-3 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 transition"
+              >
+                Later
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -721,13 +781,30 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Sign-in Email
                   </label>
-                  <input
-                    type="email"
-                    disabled
-                    value={userEmail}
-                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed"
-                  />
+                  {isSyntheticSteamEmail(userEmail) ? (
+                    <div className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400">
+                      Signed in with Steam — no email on file
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      disabled
+                      value={userEmail}
+                      className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed"
+                    />
+                  )}
                   <p className="text-xs text-slate-500 mt-1">Contact support to change your email address</p>
+                </div>
+
+                {/* Connected accounts — Steam */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Connected Accounts</label>
+                  <SteamProfileLink
+                    currentSteamId={profile?.steam_id}
+                    returnTo="/profile?tab=settings"
+                    canUnlink={!isSyntheticSteamEmail(userEmail)}
+                    onUnlinked={() => setProfile((p) => (p ? { ...p, steam_id: null } : p))}
+                  />
                 </div>
 
                 {/* Security — Change Password */}
@@ -824,7 +901,7 @@ export default function ProfilePage() {
                             try {
                               const response = await fetch('/api/profile', {
                                 method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: await csrfHeaders(),
                                 body: JSON.stringify({ is_public: newValue })
                               })
 
