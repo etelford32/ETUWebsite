@@ -63,6 +63,21 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
       },
     ],
   },
+  {
+    title: 'Steam',
+    rows: [
+      {
+        label: 'Active users with Steam',
+        hint: 'Active accounts that have a Steam ID linked',
+        value: (m) => int(m.activeSteamUsers),
+        sub: (m) => (m.activeUsers ? `${Math.round((m.activeSteamUsers / m.activeUsers) * 100)}% of active users` : null),
+      },
+      { label: 'Steam sign-ins', hint: 'Successful logins via Steam (website or game)', value: (m) => int(m.steamSignIns) },
+      { label: 'Steam sign-ups', hint: 'Accounts created via Steam (website or game)', value: (m) => int(m.steamSignUps) },
+      { label: 'Steam links', hint: 'Existing accounts that attached Steam', value: (m) => int(m.steamLinks) },
+      { label: 'Wishlist clicks', hint: 'Clicks on any Wishlist / Steam store button', value: (m) => int(m.wishlistClicks) },
+    ],
+  },
 ]
 
 /** Start of the viewer's local day, week (Monday) and month. */
@@ -151,7 +166,7 @@ export default function AnalyticsPanel() {
 
       {data && today && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-4">
             {[
               ['Visits today', int(today.visits)],
               ['Unique visitors today', int(today.uniqueVisitors)],
@@ -159,6 +174,8 @@ export default function AnalyticsPanel() {
               ['Sign-ups today', int(today.signUps)],
               ['Registered accounts', int(data.totals.accounts)],
               ['Admin accounts', int(data.totals.admins)],
+              ['Steam-linked accounts', int(data.totals.steamLinked)],
+              ['Verified Steam owners', int(data.totals.verifiedOwners)],
             ].map(([label, value]) => (
               <div key={label} className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
                 <div className="text-2xl font-bold tabular-nums">{value}</div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EtuTitle from "@/components/EtuTitle";
+import WishlistButton from "@/components/WishlistButton";
 import { initPerformanceOptimizations } from "@/lib/performance";
 
 const STEAM_URL =
@@ -184,24 +185,21 @@ export default function HomePage() {
           </p>
 
           <div className="reveal mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <WishlistButton
+              placement="home-hero"
               className="btn-3d btn-3d-steam group w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
             >
               <SteamIcon className="w-7 h-7 transition-transform group-hover:scale-110" />
               <span>Wishlist on Steam</span>
-            </a>
+            </WishlistButton>
 
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <WishlistButton
+              placement="home-hero"
+              intent="playtest"
               className="btn-ghost btn-ghost--lg w-full sm:w-auto whitespace-nowrap text-lg md:text-xl md:px-9 md:py-4"
             >
               Join the Free Playtest
-            </a>
+            </WishlistButton>
           </div>
 
           <p className="reveal mt-5 text-lg md:text-xl text-slate-100">
@@ -277,15 +275,10 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 flex justify-center">
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-3d btn-3d-steam group text-lg"
-            >
+            <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
               <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
               <span>Wishlist on Steam</span>
-            </a>
+            </WishlistButton>
           </div>
         </div>
       </section>
@@ -360,6 +353,7 @@ export default function HomePage() {
               body="The best way to support the game. Steam tells you when Early Access launches."
               href={STEAM_URL}
               cta="Wishlist Now"
+              placement="home-cta-wishlist"
               featured
             />
             <CtaCard
@@ -368,6 +362,8 @@ export default function HomePage() {
               body="Free on Steam. Play the latest build and tell us what to fix."
               href={STEAM_URL}
               cta="Request Access"
+              placement="home-cta-playtest"
+              intent="playtest"
             />
             <CtaCard
               step="Step 3"
@@ -394,6 +390,8 @@ function CtaCard({
   cta,
   featured = false,
   internal = false,
+  placement,
+  intent,
 }: {
   step: string;
   title: string;
@@ -402,6 +400,9 @@ function CtaCard({
   cta: string;
   featured?: boolean;
   internal?: boolean;
+  /** Analytics placement for external (Steam) links. */
+  placement?: string;
+  intent?: "wishlist" | "playtest";
 }) {
   const buttonClass = featured
     ? "btn-3d btn-3d-steam w-full whitespace-nowrap !px-5 text-base md:text-lg"
@@ -411,10 +412,10 @@ function CtaCard({
       {cta}
     </Link>
   ) : (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+    <WishlistButton href={href} placement={placement ?? "home-cta"} intent={intent} className={buttonClass}>
       {featured && <SteamIcon className="w-6 h-6" />}
       {cta}
-    </a>
+    </WishlistButton>
   );
 
   return (

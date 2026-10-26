@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('profiles')
       .select(
-        'id, email, username, display_name, role, avatar_url, created_at, last_login_at, login_count, steam_id, faction_choice, level, xp, is_alpha_tester, status'
+        'id, email, username, display_name, role, avatar_url, created_at, last_login_at, login_count, steam_id, is_verified_owner, faction_choice, level, xp, is_alpha_tester, status'
       )
       .order('created_at', { ascending: false })
 

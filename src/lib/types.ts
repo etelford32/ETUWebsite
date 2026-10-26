@@ -33,6 +33,9 @@ export interface Database {
           display_name?: string | null
           email?: string | null
           signup_method?: string | null
+          is_verified_owner?: boolean
+          steam_purchase_verified_at?: string | null
+          steam_ownership_checked_at?: string | null
         }
         Insert: {
           id: string

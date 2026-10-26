@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabaseServer'
 import { getSessionFromRequest } from '@/lib/session'
 import { validateCSRFFromRequest } from '@/lib/csrf'
 import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
+import { clearOwnership } from '@/lib/steamOwnership'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
         .update({ steam_id: null })
         .eq('id', session.userId)
       if (updateError) throw updateError
+      await clearOwnership(session.userId)
 
       const { error: metaError } = await supabase.auth.admin.updateUserById(session.userId, {
         app_metadata: { steam_id: null },

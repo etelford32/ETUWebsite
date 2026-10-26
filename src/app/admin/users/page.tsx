@@ -17,6 +17,7 @@ interface User {
   created_at: string
   last_sign_in_at: string
   steam_id: string | null
+  is_verified_owner: boolean
   faction_choice: string | null
   level: number
   xp: number
@@ -88,6 +89,7 @@ export default function UserManagement() {
         created_at: profile.created_at,
         last_sign_in_at: profile.last_login_at || 'N/A',
         steam_id: profile.steam_id,
+        is_verified_owner: profile.is_verified_owner === true,
         faction_choice: profile.faction_choice,
         level: profile.level || 1,
         xp: profile.xp || 0,
@@ -313,7 +315,21 @@ export default function UserManagement() {
                           </div>
                         )}
                         <div>
-                          <div className="text-white font-medium">{user.username || 'Anonymous'}</div>
+                          <div className="text-white font-medium flex items-center gap-2">
+                            {user.username || 'Anonymous'}
+                            {user.steam_id && (
+                              <span
+                                title={user.is_verified_owner ? 'Steam linked · verified game owner' : 'Steam linked'}
+                                className={`px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide border ${
+                                  user.is_verified_owner
+                                    ? 'bg-cyan-500/15 text-cyan-200 border-cyan-400/40'
+                                    : 'bg-slate-700/60 text-slate-300 border-slate-600'
+                                }`}
+                              >
+                                {user.is_verified_owner ? 'Steam ✓ owner' : 'Steam'}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-slate-400">{user.id.slice(0, 8)}...</div>
                         </div>
                       </div>

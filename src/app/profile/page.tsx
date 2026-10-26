@@ -6,7 +6,7 @@ import { Profile } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { SteamProfileLink } from '@/components/SteamProfileLink'
+import { SteamProfileLink, SteamIcon } from '@/components/SteamProfileLink'
 import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
 
 interface PlayerProfile {
@@ -20,6 +20,9 @@ interface PlayerProfile {
   updated_at: string
   is_public: boolean
   is_alpha_tester: boolean
+  is_verified_owner: boolean
+  steam_purchase_verified_at: string | null
+  steam_ownership_checked_at: string | null
   // Stats - always populated (from DB or defaults)
   level: number
   xp: number
@@ -225,6 +228,9 @@ export default function ProfilePage() {
           updated_at: dbProfile.updated_at || new Date().toISOString(),
           is_public: dbProfile.is_public ?? true,
           is_alpha_tester: dbProfile.is_alpha_tester ?? false,
+          is_verified_owner: dbProfile.is_verified_owner === true,
+          steam_purchase_verified_at: dbProfile.steam_purchase_verified_at ?? null,
+          steam_ownership_checked_at: dbProfile.steam_ownership_checked_at ?? null,
           // Stats - use DB values or defaults
           level: dbProfile.level ?? 1,
           xp: dbProfile.xp ?? 0,
@@ -471,6 +477,25 @@ export default function ProfilePage() {
                         <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
+                      </motion.div>
+                    )}
+                    {/* Steam Verified Owner Badge */}
+                    {profile.is_verified_owner && (
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.3, type: 'spring' }}
+                        title={
+                          profile.steam_purchase_verified_at
+                            ? `Game ownership confirmed by Steam on ${new Date(profile.steam_purchase_verified_at).toLocaleDateString()}`
+                            : 'Game ownership confirmed by Steam'
+                        }
+                        className="inline-flex items-center gap-2 mt-2 ml-0 sm:ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-900/60 to-sky-900/60 border border-cyan-400/50 shadow-lg shadow-cyan-500/20"
+                      >
+                        <SteamIcon className="w-5 h-5 text-cyan-300" />
+                        <span className="font-bold text-cyan-300 tracking-wide uppercase text-sm">
+                          Steam Verified
+                        </span>
                       </motion.div>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-slate-300">
@@ -803,7 +828,32 @@ export default function ProfilePage() {
                     currentSteamId={profile?.steam_id}
                     returnTo="/profile?tab=settings"
                     canUnlink={!isSyntheticSteamEmail(userEmail)}
-                    onUnlinked={() => setProfile((p) => (p ? { ...p, steam_id: null } : p))}
+                    onUnlinked={() =>
+                      setProfile((p) =>
+                        p ? { ...p, steam_id: null, is_verified_owner: false, steam_purchase_verified_at: null, steam_ownership_checked_at: null } : p
+                      )
+                    }
+                    ownership={
+                      profile
+                        ? {
+                            isVerifiedOwner: profile.is_verified_owner,
+                            verifiedAt: profile.steam_purchase_verified_at,
+                            checkedAt: profile.steam_ownership_checked_at,
+                          }
+                        : undefined
+                    }
+                    onOwnershipChanged={(state) =>
+                      setProfile((p) =>
+                        p
+                          ? {
+                              ...p,
+                              is_verified_owner: state.isVerifiedOwner,
+                              steam_purchase_verified_at: state.verifiedAt,
+                              steam_ownership_checked_at: state.checkedAt,
+                            }
+                          : p
+                      )
+                    }
                   />
                 </div>
 

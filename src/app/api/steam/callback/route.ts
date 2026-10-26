@@ -4,6 +4,7 @@ import { getSessionFromRequest, setSessionOnResponse } from '@/lib/session'
 import { recordAuthEvent } from '@/lib/authEvents'
 import { checkRateLimit, getIdentifier } from '@/lib/ratelimit'
 import { findOrCreateSteamAccount } from '@/lib/steamAccount'
+import { verifyOwnership } from '@/lib/steamOwnership'
 import {
   STEAM_INTENT_COOKIE,
   STEAM_INTENT_COOKIE_OPTIONS,
@@ -151,6 +152,12 @@ async function linkSteam(
     if (metaError) console.error('Steam link app_metadata update failed:', metaError)
   }
 
+  // Purchase verification is best effort: a Steam hiccup here must not
+  // undo a link that already succeeded.
+  await verifyOwnership(session.userId, steamId).catch((err) =>
+    console.error('Steam ownership check after link failed:', err)
+  )
+
   return redirectTo(withParam(intent.next || LINK_FALLBACK, 'message', 'steam_linked'))
 }
 
@@ -184,6 +191,11 @@ async function signInWithSteam(
 
   const role = profile?.role || 'user'
 
+  const ownership = await verifyOwnership(account.userId, steamId).catch((err) => {
+    console.error('Steam ownership check after sign-in failed:', err)
+    return null
+  })
+
   if (account.created) {
     await recordAuthEvent({
       eventType: 'signup',
@@ -198,7 +210,10 @@ async function signInWithSteam(
     request,
     userId: account.userId,
     method: 'steam',
-    metadata: { client: 'web' },
+    metadata: {
+      client: 'web',
+      owns_app: ownership?.status === 'owned' ? true : ownership?.status === 'not_owned' ? false : null,
+    },
   })
 
   // A brand-new Steam player has no callsign yet: take them to the profile

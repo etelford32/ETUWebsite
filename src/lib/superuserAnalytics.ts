@@ -32,6 +32,16 @@ export interface PeriodMetrics {
   passwordResetsCompleted: number
   profileVisits: number
   publicProfileVisits: number
+  /** Successful sign-ins through Steam (website or game). */
+  steamSignIns: number
+  /** Accounts created through Steam (website or game). */
+  steamSignUps: number
+  /** Steam accounts attached to existing accounts from the website. */
+  steamLinks: number
+  /** Active users whose account has a Steam ID. */
+  activeSteamUsers: number
+  /** Clicks on any "Wishlist on Steam" / store button. */
+  wishlistClicks: number
 }
 
 export interface DailyPoint {
@@ -44,7 +54,7 @@ export interface DailyPoint {
 export interface SiteAnalytics {
   periods: Record<PeriodKey, PeriodMetrics>
   daily: DailyPoint[]
-  totals: { accounts: number; admins: number }
+  totals: { accounts: number; admins: number; steamLinked: number; verifiedOwners: number }
   generatedAt: string
 }
 
@@ -85,7 +95,7 @@ export async function getSiteAnalytics(
   const supabase: Supabase = createServerClient()
   const since = new Date(Math.min(...PERIOD_KEYS.map((k) => starts[k].getTime()))).toISOString()
 
-  const [allSessions, allPageViews, authEvents, profiles] = await Promise.all([
+  const [allSessions, allPageViews, authEvents, profiles, steamFunnel] = await Promise.all([
     fetchAll<any>((a, b) =>
       (supabase.from('user_sessions') as any)
         .select('session_id, user_id, started_at, ended_at, duration_seconds, ip_address, metadata')
@@ -103,7 +113,7 @@ export async function getSiteAnalytics(
     ),
     fetchAll<any>((a, b) =>
       (supabase.from('auth_events') as any)
-        .select('event_type, created_at')
+        .select('event_type, method, created_at')
         .in('event_type', ['signup', 'login_success', 'password_reset_requested', 'password_reset_completed'])
         .gte('created_at', since)
         .order('created_at', { ascending: true })
@@ -111,11 +121,22 @@ export async function getSiteAnalytics(
     ),
     fetchAll<any>((a, b) =>
       (supabase.from('profiles') as any)
-        .select('id, role, is_superuser, created_at')
+        .select('id, role, is_superuser, created_at, steam_id, is_verified_owner')
         .order('id', { ascending: true })
         .range(a, b)
     ),
+    // Wishlist clicks and completed Steam links come from the client-side
+    // event pipeline (trackWishlistClick / trackSteamEvent).
+    fetchAll<any>((a, b) =>
+      (supabase.from('analytics_events') as any)
+        .select('event_name, user_agent, created_at')
+        .in('event_name', ['wishlist_steam', 'steam_linked'])
+        .gte('created_at', since)
+        .order('created_at', { ascending: true })
+        .range(a, b)
+    ),
   ])
+  const funnelEvents = steamFunnel.filter((ev) => !BOT_UA.test(ev.user_agent || ''))
 
   const sessions = allSessions.filter((s) => !BOT_UA.test(s.metadata?.user_agent || ''))
   const pageViews = allPageViews.filter((ev) => !BOT_UA.test(ev.user_agent || ''))
@@ -134,9 +155,13 @@ export async function getSiteAnalytics(
 
   const accountCreated = new Map<string, number>()
   const adminIds = new Set<string>()
+  const steamIds = new Set<string>()
+  let verifiedOwners = 0
   for (const p of profiles) {
     accountCreated.set(p.id, new Date(p.created_at).getTime())
     if (p.is_superuser || ADMIN_ROLES.includes(p.role)) adminIds.add(p.id)
+    if (p.steam_id) steamIds.add(p.id)
+    if (p.is_verified_owner) verifiedOwners++
   }
 
   // Page views carry the user from the session cookie at view time, so they
@@ -218,9 +243,29 @@ export async function getSiteAnalytics(
     })
 
     const counts = { signup: 0, login_success: 0, password_reset_requested: 0, password_reset_completed: 0 } as Record<string, number>
+    let steamSignIns = 0
+    let steamSignUps = 0
     for (const ev of authEvents) {
-      if (new Date(ev.created_at).getTime() >= start) counts[ev.event_type]++
+      if (new Date(ev.created_at).getTime() < start) continue
+      counts[ev.event_type]++
+      if (ev.method === 'steam') {
+        if (ev.event_type === 'login_success') steamSignIns++
+        else if (ev.event_type === 'signup') steamSignUps++
+      }
     }
+
+    let steamLinks = 0
+    let wishlistClicks = 0
+    for (const ev of funnelEvents) {
+      if (new Date(ev.created_at).getTime() < start) continue
+      if (ev.event_name === 'wishlist_steam') wishlistClicks++
+      else if (ev.event_name === 'steam_linked') steamLinks++
+    }
+
+    let activeSteamUsers = 0
+    activeUsers.forEach((u) => {
+      if (steamIds.has(u)) activeSteamUsers++
+    })
 
     const uniqueVisitors = visitors.size
     periods[key] = {
@@ -239,6 +284,11 @@ export async function getSiteAnalytics(
       passwordResetsCompleted: counts.password_reset_completed,
       profileVisits,
       publicProfileVisits,
+      steamSignIns,
+      steamSignUps,
+      steamLinks,
+      activeSteamUsers,
+      wishlistClicks,
     }
   }
 
@@ -262,7 +312,7 @@ export async function getSiteAnalytics(
     daily: Array.from(daily.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, d]) => ({ date, visits: d.visits.size, uniqueVisitors: d.visitors.size, pageViews: d.pageViews })),
-    totals: { accounts: profiles.length, admins: adminIds.size },
+    totals: { accounts: profiles.length, admins: adminIds.size, steamLinked: steamIds.size, verifiedOwners },
     generatedAt: new Date().toISOString(),
   }
 }

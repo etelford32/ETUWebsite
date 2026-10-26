@@ -15,6 +15,11 @@ interface DashboardStats {
     pendingInvites: number
     signups30d: number
     logins30d: number
+    steamLinked: number
+    steamVerifiedOwners: number
+    steamSignins30d: number
+    steamSignups30d: number
+    wishlistClicks30d: number
   }
   recentActivity: ActivityItem[]
   securityAlerts: SecurityAlert[]
@@ -303,7 +308,7 @@ export default function AdminDashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
           <StatsCard
             title="Total Users"
             value={stats?.stats.totalUsers || 0}
@@ -333,6 +338,24 @@ export default function AdminDashboard() {
             hint={stats ? `${stats.stats.signups30d} new signups` : undefined}
             icon="🔑"
             color="from-orange-500 to-red-500"
+          />
+          <StatsCard
+            title="Steam Accounts"
+            value={stats?.stats.steamLinked || 0}
+            hint={
+              stats
+                ? `${stats.stats.steamVerifiedOwners} verified owners · ${stats.stats.steamSignins30d} Steam sign-ins (30d)`
+                : undefined
+            }
+            icon="🎮"
+            color="from-sky-500 to-indigo-500"
+          />
+          <StatsCard
+            title="Wishlist Clicks (30d)"
+            value={stats?.stats.wishlistClicks30d || 0}
+            hint={stats ? `${stats.stats.steamSignups30d} signed up via Steam` : undefined}
+            icon="🎯"
+            color="from-cyan-500 to-teal-500"
           />
         </div>
 

@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
       pendingInvites,
       signups30d,
       logins30d,
+      steamLinked,
+      steamVerifiedOwners,
+      steamSignins30d,
+      steamSignups30d,
+      wishlistClicks30d,
     ] = await Promise.all([
       safeCount(supabase.from('profiles').select('*', { count: 'exact', head: true })),
       safeCount(
@@ -77,6 +82,37 @@ export async function GET(request: NextRequest) {
           .from('auth_events')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'login_success')
+          .gte('created_at', since30d)
+      ),
+      // Steam funnel: accounts with Steam attached, confirmed owners, and
+      // how much of the last month's auth traffic came through Steam.
+      safeCount(
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).not('steam_id', 'is', null)
+      ),
+      safeCount(
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_verified_owner', true)
+      ),
+      safeCount(
+        supabase
+          .from('auth_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_type', 'login_success')
+          .eq('method', 'steam')
+          .gte('created_at', since30d)
+      ),
+      safeCount(
+        supabase
+          .from('auth_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_type', 'signup')
+          .eq('method', 'steam')
+          .gte('created_at', since30d)
+      ),
+      safeCount(
+        supabase
+          .from('analytics_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_name', 'wishlist_steam')
           .gte('created_at', since30d)
       ),
     ])
@@ -150,6 +186,11 @@ export async function GET(request: NextRequest) {
         pendingInvites,
         signups30d,
         logins30d,
+        steamLinked,
+        steamVerifiedOwners,
+        steamSignins30d,
+        steamSignups30d,
+        wishlistClicks30d,
       },
       recentActivity,
       securityAlerts,

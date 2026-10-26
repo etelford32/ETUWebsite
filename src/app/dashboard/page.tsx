@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Profile, LeaderboardEntry } from '@/lib/types'
 import { SteamProfileLink } from '@/components/SteamProfileLink'
 import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
+import WishlistButton from '@/components/WishlistButton'
+import { SteamIcon } from '@/components/SteamIcon'
 import Header from '@/components/Header'
 
 interface SessionUser {
@@ -19,8 +21,6 @@ interface SessionUser {
   lastLoginAt?: string | null
   loginCount: number
 }
-
-const STEAM_URL = 'https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -166,6 +166,11 @@ export default function DashboardPage() {
                       ☢ Alpha Tester
                     </span>
                   )}
+                  {profile?.is_verified_owner && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-cyan-500/15 text-cyan-200 border border-cyan-400/40">
+                      <SteamIcon className="w-3 h-3" /> Steam Verified
+                    </span>
+                  )}
                   {account?.isSuperuser && (
                     <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                       👑 Superuser
@@ -213,7 +218,32 @@ export default function DashboardPage() {
               currentSteamId={profile?.steam_id}
               returnTo="/dashboard"
               canUnlink={!steamOnly}
-              onUnlinked={() => setProfile((p) => (p ? { ...p, steam_id: null } : p))}
+              onUnlinked={() =>
+                setProfile((p) =>
+                  p ? { ...p, steam_id: null, is_verified_owner: false, steam_purchase_verified_at: null } : p
+                )
+              }
+              ownership={
+                profile
+                  ? {
+                      isVerifiedOwner: profile.is_verified_owner === true,
+                      verifiedAt: profile.steam_purchase_verified_at ?? null,
+                      checkedAt: profile.steam_ownership_checked_at ?? null,
+                    }
+                  : undefined
+              }
+              onOwnershipChanged={(state) =>
+                setProfile((p) =>
+                  p
+                    ? {
+                        ...p,
+                        is_verified_owner: state.isVerifiedOwner,
+                        steam_purchase_verified_at: state.verifiedAt,
+                        steam_ownership_checked_at: state.checkedAt,
+                      }
+                    : p
+                )
+              }
             />
           </div>
         </div>
@@ -226,14 +256,21 @@ export default function DashboardPage() {
               Request access on Steam — 100 testers approved daily. Be ready for Early Access in 2027.
             </p>
           </div>
-          <a
-            href={STEAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="whitespace-nowrap px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white transition"
-          >
-            ▶ Request Playtest Access
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <WishlistButton
+              placement="dashboard-cta"
+              intent="playtest"
+              className="whitespace-nowrap px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white transition text-center"
+            >
+              ▶ Request Playtest Access
+            </WishlistButton>
+            {!profile?.is_verified_owner && (
+              <WishlistButton
+                placement="dashboard-cta"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap px-6 py-3 rounded-lg font-semibold bg-[#1b2838] hover:bg-[#2a475e] text-white transition"
+              />
+            )}
+          </div>
         </div>
 
         {/* Leaderboard */}
@@ -311,10 +348,10 @@ export default function DashboardPage() {
             <h4 className="font-semibold text-white">Leaderboard</h4>
             <p className="text-sm text-slate-400 mt-1">See top commanders</p>
           </a>
-          <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
+          <WishlistButton placement="dashboard-quick-actions" className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
             <h4 className="font-semibold text-white">Steam Page</h4>
             <p className="text-sm text-slate-400 mt-1">Wishlist & playtest</p>
-          </a>
+          </WishlistButton>
         </div>
       </main>
     </div>
