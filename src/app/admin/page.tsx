@@ -48,6 +48,8 @@ interface SystemHealth {
   database: 'healthy' | 'warning' | 'error'
   authentication: 'healthy' | 'warning' | 'error'
   api: 'healthy' | 'warning' | 'error'
+  steamPublisherKey?: 'healthy' | 'warning' | 'error'
+  steamWebApiKey?: 'healthy' | 'warning' | 'error'
 }
 
 interface RecentFeedback {
@@ -460,6 +462,16 @@ export default function AdminDashboard() {
                 label="API Endpoints"
                 status={stats?.systemHealth.api || 'healthy'}
               />
+              <HealthItem
+                label="Steam publisher key (ownership checks, game sign-in)"
+                status={stats?.systemHealth.steamPublisherKey || 'warning'}
+                statusLabel={{ healthy: 'configured', warning: 'missing', error: 'error' }}
+              />
+              <HealthItem
+                label="Steam Web API key (persona & avatar)"
+                status={stats?.systemHealth.steamWebApiKey || 'warning'}
+                statusLabel={{ healthy: 'configured', warning: 'missing', error: 'error' }}
+              />
             </div>
           </motion.div>
 
@@ -658,16 +670,19 @@ function StatsCard({
 function HealthItem({
   label,
   status,
+  statusLabel,
 }: {
   label: string
   status: 'healthy' | 'warning' | 'error'
+  /** Optional wording per status (e.g. configured / missing). */
+  statusLabel?: Partial<Record<'healthy' | 'warning' | 'error', string>>
 }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+    <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-lg">
       <span className="text-slate-300">{label}</span>
-      <span className={`flex items-center gap-2 font-semibold ${HEALTH_COLORS[status]}`}>
+      <span className={`flex items-center gap-2 font-semibold whitespace-nowrap ${HEALTH_COLORS[status]}`}>
         <span>{HEALTH_ICONS[status]}</span>
-        <span className="capitalize">{status}</span>
+        <span className="capitalize">{statusLabel?.[status] ?? status}</span>
       </span>
     </div>
   )

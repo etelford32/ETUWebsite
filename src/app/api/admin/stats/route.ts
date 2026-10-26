@@ -198,6 +198,11 @@ export async function GET(request: NextRequest) {
         database: 'healthy',
         authentication: 'healthy',
         api: 'healthy',
+        // Presence only — never the values. The publisher key gates purchase
+        // verification and game sign-in; the Web API key only enriches
+        // persona/avatar after Steam sign-in.
+        steamPublisherKey: process.env.STEAM_PUBLISHER_KEY ? 'healthy' : 'warning',
+        steamWebApiKey: process.env.STEAM_WEB_API_KEY ? 'healthy' : 'warning',
       },
     })
   } catch (error: any) {
