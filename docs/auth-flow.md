@@ -532,6 +532,11 @@ After signup or from profile settings:
 
 ## 11. Game Client Authentication
 
+> **Status (Oct 2026):** the Steam build signs in with a Steam auth ticket
+> (`POST /api/game/steam-session`, see §9 and `docs/GAME_API.md`) and needs
+> no device code. The device-code flow below remains the plan for non-Steam
+> builds (itch.io, DRM-free) and is not implemented.
+
 ### Background
 
 ETU 2175 uses a custom game engine. The web auth system uses HTTP-only cookies which native apps cannot access. A separate token-based auth system is needed for the game client.

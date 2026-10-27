@@ -73,7 +73,15 @@ You now have a **fully functional, beautiful leaderboard system** integrated wit
 
 ### For Game Developers (You!):
 
-#### Submit Scores from Unity Game
+> **Current contract:** the examples below predate the Steam build. The game
+> now signs in with a Steam ticket (`POST /api/game/steam-session`) and
+> submits scores to `POST /api/game/submit-score` with a bearer token plus a
+> fresh ticket; verified runs are mirrored to Steam leaderboards. See
+> **docs/GAME_API.md** for the live request/response shapes. The website's
+> own `/api/submit-score` is cookie-authenticated and used by the Megabot
+> Arena web mini-game only.
+
+#### Submit Scores from Unity Game (legacy example)
 
 ```csharp
 // Example: Submit score when player completes a run
