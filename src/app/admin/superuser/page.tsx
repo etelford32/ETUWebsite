@@ -6,8 +6,8 @@ import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AnalyticsPanel from './AnalyticsPanel'
+import { ROLES, ROLE_COLORS, TIER_LABELS, type Role, type Tier } from '@/lib/accountTiers'
 
-type Role = 'user' | 'moderator' | 'staff' | 'admin'
 type Status = 'active' | 'suspended' | 'banned' | 'deleted'
 
 interface ManagedUser {
@@ -16,6 +16,7 @@ interface ManagedUser {
   username: string | null
   displayName: string | null
   role: Role
+  tier: Tier
   status: Status
   isSuperuser: boolean
   isAlphaTester: boolean
@@ -38,14 +39,6 @@ interface AuditEntry {
   details: Record<string, any>
 }
 
-const ROLES: Role[] = ['user', 'moderator', 'staff', 'admin']
-
-const ROLE_COLORS: Record<Role, string> = {
-  admin: 'bg-red-500/20 text-red-300 border-red-500/30',
-  staff: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  moderator: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
-  user: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
-}
 
 const STATUS_COLORS: Record<Status, string> = {
   active: 'text-green-400',
@@ -366,6 +359,14 @@ export default function SuperuserConsole() {
                         />
                         Alpha tester
                       </label>
+                      <div className="pt-1">
+                        <span
+                          title={TIER_LABELS[u.tier]?.hint}
+                          className={`inline-block px-2 py-0.5 rounded-full text-[11px] border ${(TIER_LABELS[u.tier] || TIER_LABELS.player).className}`}
+                        >
+                          {(TIER_LABELS[u.tier] || TIER_LABELS.player).label} build
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 align-top text-right">
                       <button

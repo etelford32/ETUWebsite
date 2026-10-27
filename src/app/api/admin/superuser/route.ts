@@ -3,6 +3,8 @@ import type { User } from '@supabase/supabase-js'
 import { createServerClient } from '@/lib/supabaseServer'
 import { requireSuperuser, type SessionData } from '@/lib/session'
 import { validateCSRFToken } from '@/lib/csrf'
+import { ROLES, asTier, isRole } from '@/lib/accountTiers'
+import { writeAdminAudit as audit } from '@/lib/adminAudit'
 
 /**
  * Superuser console API — manage every account, administrators included.
@@ -11,7 +13,6 @@ import { validateCSRFToken } from '@/lib/csrf'
  * (requireSuperuser), and every change is written to admin_audit_log.
  */
 
-const ROLES = ['user', 'moderator', 'staff', 'admin'] as const
 const STATUSES = ['active', 'suspended', 'banned'] as const
 // Supabase has no "forever" ban; 100 years is its documented stand-in.
 const BAN_DURATION = '876000h'
@@ -43,24 +44,6 @@ async function listAllAuthUsers(supabase: ReturnType<typeof createServerClient>)
   }
 }
 
-async function audit(
-  supabase: ReturnType<typeof createServerClient>,
-  actor: SessionData,
-  target: { id: string; email: string | null },
-  action: string,
-  details: Record<string, unknown>
-) {
-  const { error } = await (supabase.from('admin_audit_log') as any).insert({
-    actor_id: actor.userId,
-    actor_email: actor.email,
-    target_id: target.id,
-    target_email: target.email,
-    action,
-    details,
-  })
-  if (error) console.error('Audit log insert failed:', error)
-}
-
 // GET /api/admin/superuser — every account plus the recent audit trail
 export async function GET(request: NextRequest) {
   const g = await gate(request, false)
@@ -71,7 +54,7 @@ export async function GET(request: NextRequest) {
     const [authUsers, profilesRes, auditRes] = await Promise.all([
       listAllAuthUsers(supabase),
       (supabase.from('profiles') as any).select(
-        'id, email, username, display_name, role, status, is_superuser, is_alpha_tester, steam_id, created_at, last_login_at, login_count'
+        'id, email, username, display_name, role, tier, status, is_superuser, is_alpha_tester, steam_id, created_at, last_login_at, login_count'
       ),
       (supabase.from('admin_audit_log') as any)
         .select('id, created_at, actor_email, target_email, action, details')
@@ -89,6 +72,7 @@ export async function GET(request: NextRequest) {
         username: p.username ?? null,
         displayName: p.display_name ?? null,
         role: p.role || 'user',
+        tier: asTier(p.tier),
         status: p.status || 'active',
         isSuperuser: p.is_superuser === true,
         isAlphaTester: p.is_alpha_tester === true,
@@ -146,7 +130,7 @@ export async function PATCH(request: NextRequest) {
     let updates: Record<string, unknown>
     switch (action) {
       case 'set_role': {
-        if (!ROLES.includes(value)) {
+        if (!isRole(value)) {
           return NextResponse.json({ error: `Role must be one of: ${ROLES.join(', ')}` }, { status: 400 })
         }
         if (target.is_superuser && value !== 'admin') {
