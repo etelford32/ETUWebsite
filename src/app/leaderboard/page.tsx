@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LeaderboardEntry } from '@/lib/types'
 import Header from '@/components/Header'
+import { BOARDS, getBoard } from '@/lib/leaderboards'
 
 type TimeWindow = 'today' | '7d' | '30d' | '90d' | 'all'
 
@@ -15,14 +16,25 @@ const WINDOWS = [
   { key: 'all' as TimeWindow, label: 'All-Time' },
 ]
 
-const MODE_TABS = [
+// LEADERBOARD-00: game boards are keyed `board:<STEAM NAME>` and served by
+// /api/leaderboard?board=, one best run per player, matching Steam's board.
+const BOARD_PREFIX = 'board:'
+
+const MODE_TABS: { key: string; label: string; primary?: boolean }[] = [
   { key: 'megabot', label: 'Megabot Arena', primary: true },
+  ...BOARDS.map(b => ({ key: `${BOARD_PREFIX}${b.name}`, label: b.label })),
   { key: 'all', label: 'All Modes' },
-  { key: 'speedrun', label: 'Speedrun' },
-  { key: 'survival', label: 'Survival' },
-  { key: 'discovery', label: 'Discovery' },
-  { key: 'boss_rush', label: 'Boss Rush' },
 ]
+
+function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds || 0))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`
+}
 
 const PLATFORMS = ['all', 'PC', 'Mac', 'Linux', 'PS', 'Xbox', 'Switch']
 
@@ -43,6 +55,9 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     checkUser()
+    // /leaderboard?board=SURVIVAL_HARD — the game's "view on the website" link.
+    const requested = new URLSearchParams(globalThis.location.search).get('board')
+    if (requested && getBoard(requested)) setMode(`${BOARD_PREFIX}${requested}`)
   }, [])
 
   async function checkUser() {
@@ -72,7 +87,9 @@ export default function LeaderboardPage() {
         sortDir: 'desc',
       })
 
-      if (mode !== 'all') {
+      if (mode.startsWith(BOARD_PREFIX)) {
+        params.append('board', mode.slice(BOARD_PREFIX.length))
+      } else if (mode !== 'all') {
         params.append('mode', mode)
       }
 
@@ -112,6 +129,8 @@ export default function LeaderboardPage() {
 
   const totalPages = Math.ceil(total / pageSize)
   const isMegabot = mode === 'megabot'
+  const board = mode.startsWith(BOARD_PREFIX) ? getBoard(mode.slice(BOARD_PREFIX.length)) : undefined
+  const ranksTime = board?.ranks === 'time'
 
   // Megabot Arena stat tiles — derived from the loaded page. The API sorts by
   // score desc, so entries[0] is the current Top Score. Top Wave reads off
@@ -136,7 +155,7 @@ export default function LeaderboardPage() {
         <div className="mb-8">
           <div className="eyebrow mb-3">Global Standings</div>
           <h1 className="font-display text-4xl md:text-5xl font-bold etu-headline-grad tracking-tight">
-            {isMegabot ? 'Megabot Arena Leaderboard' : 'Global Leaderboards'}
+            {isMegabot ? 'Megabot Arena Leaderboard' : board ? `${board.label} Leaderboard` : 'Global Leaderboards'}
           </h1>
           <p className="text-slate-400 text-lg mt-3 font-body">
             <span className="font-mono text-cyan-300">{total.toLocaleString()}</span>{' '}
@@ -244,9 +263,11 @@ export default function LeaderboardPage() {
                   {userEntry.profile?.username || 'Commander'}
                 </div>
                 <div className="text-slate-300 text-sm mt-1">
-                  Best score:{' '}
+                  {ranksTime ? 'Longest run:' : 'Best score:'}{' '}
                   <span className="font-mono text-cyan-300 tabular-nums">
-                    {userEntry.score.toLocaleString()}
+                    {ranksTime
+                      ? formatDuration(userEntry.value ?? userEntry.time_seconds ?? 0)
+                      : userEntry.score.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -348,12 +369,14 @@ export default function LeaderboardPage() {
                     <tr className="text-left">
                       <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 w-20">Rank</th>
                       <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Commander</th>
-                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Score</th>
-                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Level</th>
-                      {!isMegabot && (
+                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{ranksTime ? 'Survived' : 'Score'}</th>
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{board || isMegabot ? 'Wave' : 'Level'}</th>
+                      {board ? (
+                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{ranksTime ? 'Score' : 'Time'}</th>
+                      ) : !isMegabot && (
                         <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mode</th>
                       )}
-                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</th>
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{board ? 'Difficulty' : 'Platform'}</th>
                       <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Date</th>
                     </tr>
                   </thead>
@@ -366,6 +389,8 @@ export default function LeaderboardPage() {
                           index={idx}
                           isCurrentUser={entry.user_id === currentUser?.id}
                           showMode={!isMegabot}
+                          isBoard={Boolean(board)}
+                          ranksTime={ranksTime}
                         />
                       ))}
                     </AnimatePresence>
@@ -445,11 +470,15 @@ function LeaderboardRow({
   index,
   isCurrentUser,
   showMode,
+  isBoard,
+  ranksTime,
 }: {
   entry: LeaderboardEntry
   index: number
   isCurrentUser: boolean
   showMode: boolean
+  isBoard: boolean
+  ranksTime: boolean
 }) {
   const rank = entry.rank || index + 1
 
@@ -502,9 +531,9 @@ function LeaderboardRow({
                 </span>
               )}
             </div>
-            {entry.profile?.steam_id && (
-              <div className="text-xs text-slate-500 font-mono truncate">
-                Steam · {entry.profile.steam_id}
+            {entry.steam_synced && (
+              <div className="text-xs text-slate-500 font-mono truncate" title="This run is on the Steam leaderboard">
+                ✓ Steam
               </div>
             )}
           </div>
@@ -512,21 +541,29 @@ function LeaderboardRow({
       </td>
       <td className="py-4 px-4 text-right">
         <span className="font-mono text-lg font-bold tabular-nums text-cyan-300">
-          {entry.score.toLocaleString()}
+          {ranksTime ? formatDuration(entry.value ?? entry.time_seconds ?? 0) : entry.score.toLocaleString()}
         </span>
       </td>
       <td className="py-4 px-4 text-center">
         <span className="font-mono tabular-nums text-xs px-2 py-1 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
-          Lv {entry.level}
+          {isBoard ? `Wave ${entry.level}` : `Lv ${entry.level}`}
         </span>
       </td>
-      {showMode && (
+      {isBoard ? (
+        <td className="py-4 px-4">
+          <span className="font-mono tabular-nums text-slate-300 text-sm">
+            {ranksTime ? entry.score.toLocaleString() : formatDuration(entry.time_seconds ?? 0)}
+          </span>
+        </td>
+      ) : showMode && (
         <td className="py-4 px-4">
           <span className="capitalize text-slate-300 text-sm">{entry.mode}</span>
         </td>
       )}
       <td className="py-4 px-4 text-center">
-        <span className="font-mono text-xs text-slate-400">{entry.platform}</span>
+        <span className="font-mono text-xs text-slate-400 capitalize">
+          {isBoard ? entry.difficulty || '—' : entry.platform}
+        </span>
       </td>
       <td className="py-4 px-4 text-slate-400 font-mono tabular-nums text-xs whitespace-nowrap">
         {new Date(entry.submitted_at).toLocaleDateString()}
