@@ -92,6 +92,13 @@ export interface Database {
           submitted_at: string
           is_verified: boolean
           metadata: Json | null
+          run_id: string | null
+          difficulty: string | null
+          game_version: string | null
+          steam_leaderboards: string[]
+          steam_synced_at: string | null
+          steam_sync_error: string | null
+          steam_sync_attempts: number
         }
         Insert: {
           id?: string
@@ -104,6 +111,13 @@ export interface Database {
           submitted_at?: string
           is_verified?: boolean
           metadata?: Json | null
+          run_id?: string | null
+          difficulty?: string | null
+          game_version?: string | null
+          steam_leaderboards?: string[]
+          steam_synced_at?: string | null
+          steam_sync_error?: string | null
+          steam_sync_attempts?: number
         }
         Update: {
           id?: string
@@ -355,9 +369,24 @@ export type BacklogVote = Database['public']['Tables']['backlog_votes']['Row']
 export type CareerApplication = Database['public']['Tables']['career_applications']['Row']
 export type InvestorInquiry = Database['public']['Tables']['investor_inquiries']['Row']
 
-export interface LeaderboardEntry extends PlayerScore {
-  profile: Profile
+/**
+ * A leaderboard row as /api/leaderboard returns it. `profile` carries public
+ * fields only. Board rows (?board=) also carry `value` (what the board ranks:
+ * score, or seconds survived), `difficulty`, `details` and `steam_synced`.
+ */
+export interface LeaderboardEntry extends Omit<Partial<PlayerScore>, 'profile'> {
+  id: string
+  user_id: string
+  score: number
+  level: number
+  mode: string
+  platform: string
+  submitted_at: string
+  profile: Pick<Profile, 'username' | 'avatar_url'> & Partial<Profile>
   rank?: number
+  value?: number
+  details?: number[]
+  steam_synced?: boolean
 }
 
 export interface BacklogItemWithProfile extends BacklogItem {

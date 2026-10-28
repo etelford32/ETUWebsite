@@ -21,7 +21,8 @@ comment on column public.profiles.steam_ownership_checked_at is
 create index if not exists idx_profiles_verified_owner
   on public.profiles (is_verified_owner) where is_verified_owner;
 
--- Expose the badge to the game and the public-profile page.
+-- Expose the badge to the game. Keeps every field TIER-01 added
+-- (20261026_tier01_account_tiers.sql); this must stay a superset.
 create or replace function public.get_my_profile()
 returns jsonb
 language sql
@@ -39,6 +40,7 @@ as $$
     'is_public', p.is_public,
     'needs_username', p.username is null,
     'status', p.status,
+    'tier', p.tier,
     'is_verified_owner', p.is_verified_owner,
     'steam_purchase_verified_at', p.steam_purchase_verified_at
   )

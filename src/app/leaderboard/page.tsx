@@ -4,9 +4,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LeaderboardEntry } from '@/lib/types'
 import Header from '@/components/Header'
-import SteamLeaderboardPanel from '@/components/SteamLeaderboardPanel'
 import WishlistButton from '@/components/WishlistButton'
-import { maskSteamId } from '@/lib/steamIdentity'
+import { BOARDS, getBoard } from '@/lib/leaderboards'
 
 type TimeWindow = 'today' | '7d' | '30d' | '90d' | 'all'
 
@@ -18,14 +17,25 @@ const WINDOWS = [
   { key: 'all' as TimeWindow, label: 'All-Time' },
 ]
 
-const MODE_TABS = [
+// LEADERBOARD-00: game boards are keyed `board:<STEAM NAME>` and served by
+// /api/leaderboard?board=, one best run per player, matching Steam's board.
+const BOARD_PREFIX = 'board:'
+
+const MODE_TABS: { key: string; label: string; primary?: boolean }[] = [
   { key: 'megabot', label: 'Megabot Arena', primary: true },
+  ...BOARDS.map(b => ({ key: `${BOARD_PREFIX}${b.name}`, label: b.label })),
   { key: 'all', label: 'All Modes' },
-  { key: 'speedrun', label: 'Speedrun' },
-  { key: 'survival', label: 'Survival' },
-  { key: 'discovery', label: 'Discovery' },
-  { key: 'boss_rush', label: 'Boss Rush' },
 ]
+
+function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds || 0))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`
+}
 
 const PLATFORMS = ['all', 'PC', 'Mac', 'Linux', 'PS', 'Xbox', 'Switch']
 
@@ -38,9 +48,6 @@ export default function LeaderboardPage() {
   const [window, setWindow] = useState<TimeWindow>('30d')
   const [mode, setMode] = useState<string>('megabot')
   const [platform, setPlatform] = useState('all')
-  // Which board to show for the four game modes: the website's score log or
-  // Steam's mirrored global board (best score per player).
-  const [source, setSource] = useState<'etu' | 'steam'>('etu')
   const [searchQuery, setSearchQuery] = useState('')
 
   const [page, setPage] = useState(1)
@@ -49,6 +56,9 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     checkUser()
+    // /leaderboard?board=SURVIVAL_HARD — the game's "view on the website" link.
+    const requested = new URLSearchParams(globalThis.location.search).get('board')
+    if (requested && getBoard(requested)) setMode(`${BOARD_PREFIX}${requested}`)
   }, [])
 
   async function checkUser() {
@@ -78,7 +88,9 @@ export default function LeaderboardPage() {
         sortDir: 'desc',
       })
 
-      if (mode !== 'all') {
+      if (mode.startsWith(BOARD_PREFIX)) {
+        params.append('board', mode.slice(BOARD_PREFIX.length))
+      } else if (mode !== 'all') {
         params.append('mode', mode)
       }
 
@@ -118,8 +130,8 @@ export default function LeaderboardPage() {
 
   const totalPages = Math.ceil(total / pageSize)
   const isMegabot = mode === 'megabot'
-  const hasSteamBoard = ['speedrun', 'survival', 'discovery', 'boss_rush'].includes(mode)
-  const showSteam = hasSteamBoard && source === 'steam'
+  const board = mode.startsWith(BOARD_PREFIX) ? getBoard(mode.slice(BOARD_PREFIX.length)) : undefined
+  const ranksTime = board?.ranks === 'time'
 
   // Megabot Arena stat tiles — derived from the loaded page. The API sorts by
   // score desc, so entries[0] is the current Top Score. Top Wave reads off
@@ -144,7 +156,7 @@ export default function LeaderboardPage() {
         <div className="mb-8">
           <div className="eyebrow mb-3">Global Standings</div>
           <h1 className="font-display text-4xl md:text-5xl font-bold etu-headline-grad tracking-tight">
-            {isMegabot ? 'Megabot Arena Leaderboard' : 'Global Leaderboards'}
+            {isMegabot ? 'Megabot Arena Leaderboard' : board ? `${board.label} Leaderboard` : 'Global Leaderboards'}
           </h1>
           <p className="text-slate-400 text-lg mt-3 font-body">
             <span className="font-mono text-cyan-300">{total.toLocaleString()}</span>{' '}
@@ -252,9 +264,11 @@ export default function LeaderboardPage() {
                   {userEntry.profile?.username || 'Commander'}
                 </div>
                 <div className="text-slate-300 text-sm mt-1">
-                  Best score:{' '}
+                  {ranksTime ? 'Longest run:' : 'Best score:'}{' '}
                   <span className="font-mono text-cyan-300 tabular-nums">
-                    {userEntry.score.toLocaleString()}
+                    {ranksTime
+                      ? formatDuration(userEntry.value ?? userEntry.time_seconds ?? 0)
+                      : userEntry.score.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -268,197 +282,164 @@ export default function LeaderboardPage() {
           </motion.div>
         )}
 
-        {/* Board source — the website's score log vs Steam's mirrored global board */}
-        {hasSteamBoard && (
-          <div className="mb-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Leaderboard source">
-            {([
-              { key: 'etu', label: 'ETU Records', hint: 'Every verified run, filterable by period and platform' },
-              { key: 'steam', label: 'Steam Global', hint: 'Best score per player, as mirrored to Steam' },
-            ] as const).map((s) => {
-              const active = source === s.key
-              return (
+        {/* Filters */}
+        <div className="etu-glass p-5 mb-6 space-y-5">
+          {/* Time Window */}
+          <div>
+            <div className="eyebrow mb-3">Time Period</div>
+            <div className="flex flex-wrap gap-2">
+              {WINDOWS.map(w => (
                 <button
-                  key={s.key}
-                  role="tab"
-                  aria-selected={active}
-                  title={s.hint}
-                  onClick={() => setSource(s.key)}
+                  key={w.key}
+                  onClick={() => { setWindow(w.key); setPage(1) }}
                   className={`
                     px-4 py-2 rounded-md text-sm font-display font-semibold
                     uppercase tracking-[0.14em] transition-all
-                    ${active
+                    ${window === w.key
                       ? 'bg-cyan-500/15 border border-cyan-400/50 text-cyan-200'
                       : 'bg-white/[0.03] border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
                     }
                   `}
                 >
-                  {s.label}
+                  {w.label}
                 </button>
-              )
-            })}
+              ))}
+            </div>
           </div>
-        )}
 
-        {showSteam ? (
-          <SteamLeaderboardPanel mode={mode} currentUserId={currentUser?.id ?? null} pageSize={pageSize} />
-        ) : (
-          <>
-          {/* Filters */}
-          <div className="etu-glass p-5 mb-6 space-y-5">
-            {/* Time Window */}
+          {/* Platform & Search */}
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <div className="eyebrow mb-3">Time Period</div>
-              <div className="flex flex-wrap gap-2">
-                {WINDOWS.map(w => (
-                  <button
-                    key={w.key}
-                    onClick={() => { setWindow(w.key); setPage(1) }}
-                    className={`
-                      px-4 py-2 rounded-md text-sm font-display font-semibold
-                      uppercase tracking-[0.14em] transition-all
-                      ${window === w.key
-                        ? 'bg-cyan-500/15 border border-cyan-400/50 text-cyan-200'
-                        : 'bg-white/[0.03] border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
-                      }
-                    `}
-                  >
-                    {w.label}
-                  </button>
+              <div className="eyebrow mb-2">Platform</div>
+              <select
+                value={platform}
+                onChange={e => { setPlatform(e.target.value); setPage(1) }}
+                className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none font-mono text-sm"
+              >
+                {PLATFORMS.map(p => (
+                  <option key={p} value={p}>
+                    {p === 'all' ? 'All Platforms' : p}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
-
-            {/* Platform & Search */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <div className="eyebrow mb-2">Platform</div>
-                <select
-                  value={platform}
-                  onChange={e => { setPlatform(e.target.value); setPage(1) }}
-                  className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none font-mono text-sm"
-                >
-                  {PLATFORMS.map(p => (
-                    <option key={p} value={p}>
-                      {p === 'all' ? 'All Platforms' : p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <div className="eyebrow mb-2">Search Commander</div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Username..."
-                  className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none placeholder:text-slate-600"
-                />
-              </div>
+            <div>
+              <div className="eyebrow mb-2">Search Commander</div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Username..."
+                className="w-full px-4 py-2.5 rounded-md bg-deep-900/80 border border-white/10 hover:border-white/20 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 outline-none placeholder:text-slate-600"
+              />
             </div>
           </div>
+        </div>
 
-          {/* Leaderboard Card */}
-          <div className="etu-glass overflow-hidden">
-            {loading ? (
-              <div className="p-12 text-center">
-                <div className="inline-block w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="eyebrow text-slate-400">Loading leaderboard…</div>
+        {/* Leaderboard Card */}
+        <div className="etu-glass overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
+              <div className="eyebrow text-slate-400">Loading leaderboard…</div>
+            </div>
+          ) : error ? (
+            <div className="p-12 text-center">
+              <div className="text-rose-400 mb-3">⚠ {error}</div>
+              <button
+                onClick={fetchLeaderboard}
+                className="btn-ghost"
+              >
+                Retry
+              </button>
+            </div>
+          ) : filteredEntries.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="eyebrow text-slate-400 mb-2">No Records</div>
+              <div className="text-slate-300">
+                {isMegabot
+                  ? 'No Megabot Arena scores yet. Be the first to set a record.'
+                  : 'No scores found. Be the first to set a record.'}
               </div>
-            ) : error ? (
-              <div className="p-12 text-center">
-                <div className="text-rose-400 mb-3">⚠ {error}</div>
-                <button
-                  onClick={fetchLeaderboard}
-                  className="btn-ghost"
-                >
-                  Retry
-                </button>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-white/[0.03] border-b border-white/10">
+                    <tr className="text-left">
+                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 w-20">Rank</th>
+                      <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Commander</th>
+                      <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{ranksTime ? 'Survived' : 'Score'}</th>
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{board || isMegabot ? 'Wave' : 'Level'}</th>
+                      {board ? (
+                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{ranksTime ? 'Score' : 'Time'}</th>
+                      ) : !isMegabot && (
+                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mode</th>
+                      )}
+                      <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{board ? 'Difficulty' : 'Platform'}</th>
+                      <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence mode="popLayout">
+                      {filteredEntries.map((entry, idx) => (
+                        <LeaderboardRow
+                          key={entry.id}
+                          entry={entry}
+                          index={idx}
+                          isCurrentUser={entry.user_id === currentUser?.id}
+                          showMode={!isMegabot}
+                          isBoard={Boolean(board)}
+                          ranksTime={ranksTime}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
               </div>
-            ) : filteredEntries.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="eyebrow text-slate-400 mb-2">No Records</div>
-                <div className="text-slate-300">
-                  {isMegabot
-                    ? 'No Megabot Arena scores yet. Be the first to set a record.'
-                    : 'No scores found. Be the first to set a record.'}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-white/[0.03] border-b border-white/10">
-                      <tr className="text-left">
-                        <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 w-20">Rank</th>
-                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Commander</th>
-                        <th className="py-4 px-4 text-right font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Score</th>
-                        <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Level</th>
-                        {!isMegabot && (
-                          <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mode</th>
-                        )}
-                        <th className="py-4 px-4 text-center font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</th>
-                        <th className="py-4 px-4 font-display text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <AnimatePresence mode="popLayout">
-                        {filteredEntries.map((entry, idx) => (
-                          <LeaderboardRow
-                            key={entry.id}
-                            entry={entry}
-                            index={idx}
-                            isCurrentUser={entry.user_id === currentUser?.id}
-                            showMode={!isMegabot}
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </tbody>
-                  </table>
-                </div>
 
-                {/* Pagination */}
-                <div className="p-4 border-t border-white/10 bg-white/[0.02]">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs text-slate-400 font-mono tabular-nums">
-                      {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={page === 1}
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
-                      >
-                        ← Prev
-                      </button>
-                      <div className="px-4 py-2 text-xs text-slate-400 font-mono tabular-nums">
-                        Page {page} / {totalPages}
-                      </div>
-                      <button
-                        disabled={page >= totalPages}
-                        onClick={() => setPage(p => p + 1)}
-                        className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
-                      >
-                        Next →
-                      </button>
-                    </div>
-
-                    <select
-                      value={pageSize}
-                      onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
-                      className="px-3 py-2 rounded-md bg-deep-900/80 border border-white/10 text-sm font-mono"
-                    >
-                      <option value={25}>25 / page</option>
-                      <option value={50}>50 / page</option>
-                      <option value={100}>100 / page</option>
-                    </select>
+              {/* Pagination */}
+              <div className="p-4 border-t border-white/10 bg-white/[0.02]">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs text-slate-400 font-mono tabular-nums">
+                    {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={page === 1}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
+                    >
+                      ← Prev
+                    </button>
+                    <div className="px-4 py-2 text-xs text-slate-400 font-mono tabular-nums">
+                      Page {page} / {totalPages}
+                    </div>
+                    <button
+                      disabled={page >= totalPages}
+                      onClick={() => setPage(p => p + 1)}
+                      className="px-4 py-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition text-sm font-display uppercase tracking-[0.14em]"
+                    >
+                      Next →
+                    </button>
+                  </div>
+
+                  <select
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
+                    className="px-3 py-2 rounded-md bg-deep-900/80 border border-white/10 text-sm font-mono"
+                  >
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                    <option value={100}>100 / page</option>
+                  </select>
                 </div>
-              </>
-            )}
-          </div>
-          </>
-        )}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* CTA */}
         <div className="etu-glass mt-8 p-8 text-center bg-gradient-to-r from-cyan-500/[0.04] via-blue-500/[0.04] to-indigo-500/[0.06]">
@@ -485,11 +466,15 @@ function LeaderboardRow({
   index,
   isCurrentUser,
   showMode,
+  isBoard,
+  ranksTime,
 }: {
   entry: LeaderboardEntry
   index: number
   isCurrentUser: boolean
   showMode: boolean
+  isBoard: boolean
+  ranksTime: boolean
 }) {
   const rank = entry.rank || index + 1
 
@@ -542,9 +527,9 @@ function LeaderboardRow({
                 </span>
               )}
             </div>
-            {entry.profile?.steam_id && (
-              <div className="text-xs text-slate-500 font-mono truncate">
-                Steam · {maskSteamId(entry.profile.steam_id)}
+            {entry.steam_synced && (
+              <div className="text-xs text-slate-500 font-mono truncate" title="This run is on the Steam leaderboard">
+                ✓ Steam
               </div>
             )}
           </div>
@@ -552,21 +537,29 @@ function LeaderboardRow({
       </td>
       <td className="py-4 px-4 text-right">
         <span className="font-mono text-lg font-bold tabular-nums text-cyan-300">
-          {entry.score.toLocaleString()}
+          {ranksTime ? formatDuration(entry.value ?? entry.time_seconds ?? 0) : entry.score.toLocaleString()}
         </span>
       </td>
       <td className="py-4 px-4 text-center">
         <span className="font-mono tabular-nums text-xs px-2 py-1 rounded-full bg-white/[0.04] border border-white/10 text-slate-300">
-          Lv {entry.level}
+          {isBoard ? `Wave ${entry.level}` : `Lv ${entry.level}`}
         </span>
       </td>
-      {showMode && (
+      {isBoard ? (
+        <td className="py-4 px-4">
+          <span className="font-mono tabular-nums text-slate-300 text-sm">
+            {ranksTime ? entry.score.toLocaleString() : formatDuration(entry.time_seconds ?? 0)}
+          </span>
+        </td>
+      ) : showMode && (
         <td className="py-4 px-4">
           <span className="capitalize text-slate-300 text-sm">{entry.mode}</span>
         </td>
       )}
       <td className="py-4 px-4 text-center">
-        <span className="font-mono text-xs text-slate-400">{entry.platform}</span>
+        <span className="font-mono text-xs text-slate-400 capitalize">
+          {isBoard ? entry.difficulty || '—' : entry.platform}
+        </span>
       </td>
       <td className="py-4 px-4 text-slate-400 font-mono tabular-nums text-xs whitespace-nowrap">
         {new Date(entry.submitted_at).toLocaleDateString()}

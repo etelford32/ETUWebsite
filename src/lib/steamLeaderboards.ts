@@ -1,202 +1,155 @@
 /**
- * Steam leaderboards, server side (ISteamLeaderboards partner API).
+ * LEADERBOARD-00: write scores to Steam leaderboards with the publisher key.
  *
- * The website is the source of truth for scores (player_scores). After a
- * verified game submission it mirrors the score to the matching Steam
- * leaderboard, so Steam's overlay/friends views and the website agree.
- *
- * Boards are created with "trusted writes only": the game client cannot
- * upload directly through Steamworks, so a modified client can't bypass the
- * website's checks. Set STEAM_LEADERBOARD_TRUSTED_WRITES=false before the
- * boards are first created if the game must keep uploading client-side.
- *
- * All calls need STEAM_PUBLISHER_KEY (getSteamConfig()).
+ * Every board is created "trusted writes only", so the game client cannot
+ * post to it: this module is the only writer. Board ids are resolved once
+ * by name (FindOrCreateLeaderboard) and cached in public.steam_leaderboards.
  */
 
-import { SteamApiError, partnerRequest, type SteamConfig } from './steamWebApi'
+import { createServerClient } from '@/lib/supabaseServer'
+import { SteamConfig } from '@/lib/steamWebApi'
+import { getBoard } from '@/lib/leaderboards'
 
-/** Modes that have a Steam board. 'megabot' is web-only; 'global' is a rollup. */
-export const STEAM_LEADERBOARD_MODES = ['speedrun', 'survival', 'discovery', 'boss_rush'] as const
-export type SteamLeaderboardMode = (typeof STEAM_LEADERBOARD_MODES)[number]
+const PARTNER_API = 'https://partner.steam-api.com'
+const REQUEST_TIMEOUT_MS = 8000
 
-export function isSteamLeaderboardMode(mode: string): mode is SteamLeaderboardMode {
-  return (STEAM_LEADERBOARD_MODES as readonly string[]).includes(mode)
+export class SteamLeaderboardError extends Error {}
+
+/** Percent-encode raw bytes for a rawbinary Web API parameter. */
+function encodeBytes(bytes: Uint8Array): string {
+  let out = ''
+  for (const b of bytes) out += '%' + b.toString(16).padStart(2, '0').toUpperCase()
+  return out
 }
 
-/** Steam leaderboard name for a mode. Changing these creates new boards. */
-export function steamLeaderboardName(mode: SteamLeaderboardMode): string {
-  return `etu_${mode}`
+/** int32[] → little-endian bytes, the layout ISteamUserStats details use. */
+export function detailsToBytes(details: number[]): Uint8Array {
+  const buffer = new ArrayBuffer(details.length * 4)
+  const view = new DataView(buffer)
+  details.forEach((value, i) => view.setInt32(i * 4, value | 0, true))
+  return new Uint8Array(buffer)
 }
 
-/** Steam scores are int32. */
-export const STEAM_SCORE_MAX = 2_147_483_647
-
-export interface SteamLeaderboard {
-  id: number
-  name: string
-  entryCount: number
-  sortMethod: string
-  displayType: string
-  onlyTrustedWrites: boolean
-}
-
-export interface SteamLeaderboardEntry {
-  steamId: string
-  score: number
-  rank: number
-}
-
-export interface SteamScoreUpload {
-  leaderboardId: number
-  scoreChanged: boolean
-  rankPrevious: number | null
-  rankNew: number | null
-}
-
-function trustedWrites(): boolean {
-  return process.env.STEAM_LEADERBOARD_TRUSTED_WRITES !== 'false'
-}
-
-function toInt(value: unknown): number | null {
-  const n = typeof value === 'string' ? Number(value) : value
-  return typeof n === 'number' && Number.isFinite(n) ? n : null
-}
-
-function parseLeaderboard(raw: any): SteamLeaderboard | null {
-  const id = toInt(raw?.leaderBoardID ?? raw?.id)
-  if (id == null) return null
-  return {
-    id,
-    name: String(raw.leaderboardName ?? raw.name ?? ''),
-    entryCount: toInt(raw.leaderBoardEntries ?? raw.entries) ?? 0,
-    sortMethod: String(raw.leaderBoardSortMethod ?? raw.sortmethod ?? ''),
-    displayType: String(raw.leaderBoardDisplayType ?? raw.displaytype ?? ''),
-    onlyTrustedWrites: Boolean(raw.onlytrustedwrites),
+async function partnerPost(
+  path: string,
+  params: Record<string, string>,
+  rawBinary: Record<string, Uint8Array> = {}
+): Promise<any> {
+  let body = new URLSearchParams(params).toString()
+  for (const [key, bytes] of Object.entries(rawBinary)) {
+    body += `&${encodeURIComponent(key)}=${encodeBytes(bytes)}`
+  }
+  let response: Response
+  try {
+    response = await fetch(`${PARTNER_API}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+  } catch {
+    throw new SteamLeaderboardError(`Steam request to ${path} failed`)
+  }
+  if (!response.ok) {
+    throw new SteamLeaderboardError(`Steam ${path} returned HTTP ${response.status}`)
+  }
+  try {
+    return await response.json()
+  } catch {
+    throw new SteamLeaderboardError(`Steam ${path} returned non-JSON`)
   }
 }
 
-/** ISteamLeaderboards/GetLeaderboardsForGame/v2 */
-export async function getLeaderboardsForGame(config: SteamConfig): Promise<SteamLeaderboard[]> {
-  const body = await partnerRequest('GET', '/ISteamLeaderboards/GetLeaderboardsForGame/v2/', {
-    key: config.publisherKey,
-    appid: config.appId,
-  })
-  const list = body?.response?.leaderboards
-  if (!Array.isArray(list)) return []
-  return list.map(parseLeaderboard).filter((l): l is SteamLeaderboard => l != null)
+/** Steam reports success as result === 1 (k_EResultOK). */
+function resultOk(body: any): boolean {
+  return Number(body?.result?.result) === 1
 }
 
+const idCache = new Map<string, number>()
+
 /**
- * ISteamLeaderboards/FindOrCreateLeaderboard/v2. Creates the board on first
- * use; an existing board is returned as-is (its settings are not changed).
+ * The Steam leaderboard id for a board, creating the board on first use
+ * with this website as its only writer.
  */
-export async function findOrCreateLeaderboard(
-  config: SteamConfig,
-  name: string
-): Promise<SteamLeaderboard> {
-  const body = await partnerRequest('POST', '/ISteamLeaderboards/FindOrCreateLeaderboard/v2/', {
+export async function resolveLeaderboardId(config: SteamConfig, name: string): Promise<number> {
+  const cached = idCache.get(name)
+  if (cached) return cached
+
+  const supabase = createServerClient()
+  const { data } = await (supabase.from('steam_leaderboards') as any)
+    .select('leaderboard_id')
+    .eq('name', name)
+    .maybeSingle()
+  if (data?.leaderboard_id) {
+    idCache.set(name, Number(data.leaderboard_id))
+    return Number(data.leaderboard_id)
+  }
+
+  const board = getBoard(name)
+  if (!board) throw new SteamLeaderboardError(`unknown board ${name}`)
+
+  const body = await partnerPost('/ISteamLeaderboards/FindOrCreateLeaderboard/v2/', {
     key: config.publisherKey,
     appid: config.appId,
     name,
     sortmethod: 'Descending',
-    displaytype: 'Numeric',
+    displaytype: board.steamDisplayType,
     createifnotfound: 'true',
-    onlytrustedwrites: trustedWrites() ? 'true' : 'false',
+    onlytrustedwrites: 'true',
     onlyfriendsreads: 'false',
   })
-  const result = body?.result
-  const board = parseLeaderboard(result?.leaderboard)
-  if (!board || (result?.result != null && Number(result.result) !== 1)) {
-    throw new SteamApiError('unavailable', `FindOrCreateLeaderboard(${name}) returned result ${result?.result}`)
+  const leaderboard = body?.result?.leaderboard ?? {}
+  const id = Number(leaderboard.leaderBoardID ?? leaderboard.leaderboardid ?? leaderboard.id)
+  if (!resultOk(body) || !Number.isFinite(id) || id <= 0) {
+    throw new SteamLeaderboardError(`FindOrCreateLeaderboard(${name}) failed`)
   }
-  return board
+
+  await (supabase.from('steam_leaderboards') as any)
+    .upsert({ name, leaderboard_id: id }, { onConflict: 'name' })
+  idCache.set(name, id)
+  return id
 }
 
-// Board IDs never change once created; cache them per server instance so a
-// score upload is one Steam call, not two.
-const boardCache = new Map<string, SteamLeaderboard>()
-
-export async function leaderboardForMode(
-  config: SteamConfig,
-  mode: SteamLeaderboardMode
-): Promise<SteamLeaderboard> {
-  const name = steamLeaderboardName(mode)
-  const cached = boardCache.get(name)
-  if (cached) return cached
-  const board = await findOrCreateLeaderboard(config, name)
-  boardCache.set(name, board)
-  return board
-}
-
-/** For tests and admin tooling. */
-export function clearLeaderboardCache(): void {
-  boardCache.clear()
-}
-
-/**
- * ISteamLeaderboards/SetLeaderboardScore/v1 with KeepBest: Steam keeps the
- * player's best, so re-submitting a lower run is a no-op there.
- */
+/** Post a score; KeepBest, so a worse run never lowers the entry. */
 export async function setLeaderboardScore(
   config: SteamConfig,
-  leaderboardId: number,
+  board: string,
   steamId: string,
   score: number,
-  method: 'KeepBest' | 'ForceUpdate' = 'KeepBest'
-): Promise<SteamScoreUpload> {
-  if (!Number.isInteger(score) || score < 0 || score > STEAM_SCORE_MAX) {
-    throw new SteamApiError('invalid_ticket', `score ${score} is not a valid int32 leaderboard score`)
-  }
-  const body = await partnerRequest('POST', '/ISteamLeaderboards/SetLeaderboardScore/v1/', {
+  details: number[]
+): Promise<void> {
+  const leaderboardId = await resolveLeaderboardId(config, board)
+  const params = {
     key: config.publisherKey,
     appid: config.appId,
     leaderboardid: String(leaderboardId),
     steamid: steamId,
-    score: String(score),
-    scoremethod: method,
-  })
-  const result = body?.result
-  if (!result || (result.result != null && Number(result.result) !== 1)) {
-    throw new SteamApiError('unavailable', `SetLeaderboardScore returned result ${result?.result}`)
+    score: String(Math.trunc(score)),
+    scoremethod: 'KeepBest',
   }
-  return {
-    leaderboardId,
-    scoreChanged: Boolean(result.score_changed),
-    rankPrevious: toInt(result.global_rank_previous),
-    rankNew: toInt(result.global_rank_new),
+  const body = await partnerPost('/ISteamLeaderboards/SetLeaderboardScore/v1/', params, {
+    details: detailsToBytes(details),
+  })
+  if (!resultOk(body)) {
+    throw new SteamLeaderboardError(`SetLeaderboardScore(${board}) failed`)
   }
 }
 
-export type LeaderboardDataRequest = 'RequestGlobal' | 'RequestGlobalAroundUser' | 'RequestFriends'
-
-/**
- * ISteamLeaderboards/GetLeaderboardEntries/v1. Ranges are 1-based and
- * inclusive for RequestGlobal; for RequestGlobalAroundUser they are offsets
- * relative to the player's own entry (e.g. -5..5).
- */
-export async function getLeaderboardEntries(
+/** Remove a player's entry, e.g. when staff delete a run. */
+export async function deleteLeaderboardScore(
   config: SteamConfig,
-  leaderboardId: number,
-  options: { rangeStart: number; rangeEnd: number; dataRequest?: LeaderboardDataRequest; steamId?: string }
-): Promise<{ total: number; entries: SteamLeaderboardEntry[] }> {
-  const params: Record<string, string> = {
+  board: string,
+  steamId: string
+): Promise<void> {
+  const leaderboardId = await resolveLeaderboardId(config, board)
+  const body = await partnerPost('/ISteamLeaderboards/DeleteLeaderboardScore/v1/', {
     key: config.publisherKey,
     appid: config.appId,
     leaderboardid: String(leaderboardId),
-    datarequest: options.dataRequest ?? 'RequestGlobal',
-    rangestart: String(options.rangeStart),
-    rangeend: String(options.rangeEnd),
+    steamid: steamId,
+  })
+  if (!resultOk(body)) {
+    throw new SteamLeaderboardError(`DeleteLeaderboardScore(${board}) failed`)
   }
-  if (options.steamId) params.steamid = options.steamId
-  const body = await partnerRequest('GET', '/ISteamLeaderboards/GetLeaderboardEntries/v1/', params)
-  const info = body?.leaderboardEntryInformation
-  const raw = Array.isArray(info?.leaderboardEntries) ? info.leaderboardEntries : []
-  const entries = raw
-    .map((e: any) => ({
-      steamId: String(e.steamID ?? e.steamid ?? ''),
-      score: toInt(e.score) ?? 0,
-      rank: toInt(e.rank) ?? 0,
-    }))
-    .filter((e: SteamLeaderboardEntry) => /^\d{17}$/.test(e.steamId))
-  return { total: toInt(info?.totalLeaderBoardEntryCount) ?? entries.length, entries }
 }

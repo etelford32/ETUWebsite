@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
+import { getBoard } from '@/lib/leaderboards'
+
+// Public profile fields only. This route runs with the service role, so a
+// bare profiles(*) would hand every scored player's email and role to
+// anyone (LEADERBOARD-00 phase 0).
+const PUBLIC_PROFILE = 'profile:profiles(id, username, display_name, avatar_url, level)'
 
 
 export async function GET(request: NextRequest) {
@@ -39,13 +45,62 @@ export async function GET(request: NextRequest) {
         break
     }
 
+    // LEADERBOARD-00 boards: one row per player (their best verified run),
+    // ranked by the same rules as the Steam leaderboard of the same name.
+    const boardParam = searchParams.get('board')
+    if (boardParam) {
+      const board = getBoard(boardParam)
+      if (!board) {
+        return NextResponse.json({ error: 'Invalid board' }, { status: 400 })
+      }
+      const size = Math.min(Math.max(pageSize || 50, 1), 100)
+      const { data, error } = await (supabase as any).rpc('get_leaderboard', {
+        p_board: board.name,
+        p_since: windowKey === 'all' ? null : cutoffDate.toISOString(),
+        p_limit: size,
+        p_offset: (Math.max(page, 1) - 1) * size,
+      })
+      if (error) {
+        console.error('Supabase error:', error)
+        return NextResponse.json({ error: 'Failed to load leaderboard' }, { status: 500 })
+      }
+      const rows = (data || []) as any[]
+      return NextResponse.json({
+        board: board.name,
+        ranks: board.ranks,
+        data: rows.map(row => ({
+          id: `${board.name}:${row.user_id}`,
+          user_id: row.user_id,
+          rank: Number(row.rank),
+          value: Number(row.value),
+          score: row.score,
+          time_seconds: row.time_seconds,
+          level: row.wave,
+          difficulty: row.difficulty,
+          details: row.details,
+          submitted_at: row.submitted_at,
+          steam_synced: row.steam_synced,
+          mode: board.name === 'COOP_SURVIVAL' ? 'coop_survival' : 'survival',
+          platform: 'PC',
+          is_verified: true,
+          metadata: null,
+          profile: {
+            id: row.user_id,
+            username: row.username,
+            display_name: row.display_name,
+            avatar_url: row.avatar_url,
+          },
+        })),
+        total: rows.length ? Number(rows[0].total) : 0,
+        page,
+        pageSize: size,
+      })
+    }
+
     // Build query
     let query = supabase
       .from('player_scores')
-      .select(`
-        *,
-        profile:profiles(*)
-      `, { count: 'exact' })
+      .select(`*, ${PUBLIC_PROFILE}`, { count: 'exact' })
       .gte('submitted_at', cutoffDate.toISOString())
 
     // Verification policy:

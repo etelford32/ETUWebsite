@@ -75,8 +75,8 @@ You now have a **fully functional, beautiful leaderboard system** integrated wit
 
 > **Current contract:** the examples below predate the Steam build. The game
 > now signs in with a Steam ticket (`POST /api/game/steam-session`) and
-> submits scores to `POST /api/game/submit-score` with a bearer token plus a
-> fresh ticket; verified runs are mirrored to Steam leaderboards. See
+> submits runs to `POST /api/game/submit-run` with a bearer token (plus an
+> optional fresh ticket); verified runs are mirrored to Steam leaderboards. See
 > **docs/GAME_API.md** for the live request/response shapes. The website's
 > own `/api/submit-score` is cookie-authenticated and used by the Megabot
 > Arena web mini-game only.
