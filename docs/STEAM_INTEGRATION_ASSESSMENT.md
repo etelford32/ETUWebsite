@@ -365,17 +365,21 @@ POST /api/admin/reset-stats/:userId
 - [ ] Handle offline mode (queue for later sync)
 
 ### Backend
-- [ ] Create /api/stats/update endpoint
-- [ ] Create /api/scores/submit endpoint
+- [x] Create stats endpoint — `POST/GET /api/game/stats` (lifetime totals, monotonic)
+- [x] Create run endpoint — `POST /api/game/submit-run` (LEADERBOARD-00: bearer, optional Steam ticket, plausibility checks, idempotent on run_id; verified runs mirrored to Steam leaderboards via `ISteamLeaderboards/SetLeaderboardScore` with packed details, boards created trusted-writes-only, 10-minute retry cron)
+- [x] Board reads for the site and the game — `GET /api/leaderboard?board=` (best run per player, same ranking as Steam)
+- [x] Purchase verification — `is_verified_owner` via `CheckAppOwnership` after every Steam auth
 - [ ] Create /api/achievements/unlock endpoint
-- [ ] Create /api/steam/sync endpoint
-- [ ] Implement validation and anti-cheat
+- [ ] Pull Steam stats (`GetUserStatsForGame`) — not needed while the game pushes totals to `/api/game/stats`
+- [x] Validation and anti-cheat baseline: ticket-bound identity, int32/score bounds, per-account rate limits, unverified runs kept off the public board. Deeper plausibility checks need the game's scoring model.
+
+See `docs/GAME_API.md` for the contract the game client codes against.
 
 ### Web Profile
 - [x] Display player stats on profile page
 - [ ] Show achievement progress
 - [ ] Add stat history charts (optional)
-- [ ] Show Steam leaderboard rankings
+- [x] Show Steam leaderboard rankings — board tabs on /leaderboard (one row per player, "✓ Steam" when the run is on Steam)
 
 ---
 

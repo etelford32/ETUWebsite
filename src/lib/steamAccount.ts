@@ -1,4 +1,7 @@
 import { createServerClient } from './supabaseServer'
+import { STEAM_ID_PATTERN, syntheticSteamEmail } from './steamIdentity'
+
+export { syntheticSteamEmail } from './steamIdentity'
 
 /**
  * One Supabase user per Steam ID (ACCOUNT-01).
@@ -8,12 +11,6 @@ import { createServerClient } from './supabaseServer'
  * them; steam_id and signup_method go in app_metadata, which only the
  * service role can write, and handle_new_user copies them onto the profile.
  */
-
-const SYNTHETIC_EMAIL_DOMAIN = 'steam.players.exploretheuniverse2175.com'
-
-export function syntheticSteamEmail(steamId: string): string {
-  return `${steamId}@${SYNTHETIC_EMAIL_DOMAIN}`
-}
 
 export interface SteamAccount {
   userId: string
@@ -31,11 +28,15 @@ async function findBySteamId(steamId: string): Promise<{ id: string; email: stri
   return data ?? null
 }
 
+/** Where the account was first created; recorded on profiles.signup_method. */
+export type SteamSignupMethod = 'steam_game' | 'steam_web'
+
 export async function findOrCreateSteamAccount(
   steamId: string,
-  display: { personaName: string | null; avatarUrl: string | null }
+  display: { personaName: string | null; avatarUrl: string | null },
+  signupMethod: SteamSignupMethod = 'steam_game'
 ): Promise<SteamAccount> {
-  if (!/^\d{17}$/.test(steamId)) throw new Error('invalid steam id')
+  if (!STEAM_ID_PATTERN.test(steamId)) throw new Error('invalid steam id')
 
   const existing = await findBySteamId(steamId)
   if (existing) {
@@ -47,7 +48,7 @@ export async function findOrCreateSteamAccount(
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
-    app_metadata: { steam_id: steamId, signup_method: 'steam_game' },
+    app_metadata: { steam_id: steamId, signup_method: signupMethod },
     user_metadata: {
       ...(display.personaName ? { persona_name: display.personaName } : {}),
       ...(display.avatarUrl ? { avatar_url: display.avatarUrl } : {}),

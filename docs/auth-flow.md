@@ -444,10 +444,14 @@ Redirect to /dashboard
 ### Steam App ID: 4094340
 
 ### Current State
-- Steam OpenID login works ✅
-- Steam profile fetch (avatar, username) works ✅
-- Purchase verification: NOT implemented ❌
-- Steam link from profile settings: NOT implemented ❌
+- Steam OpenID sign-in on the website works ✅ — `/api/steam/auth?redirect=…` → Steam → `/api/steam/callback` issues the normal `etu_session` cookie. First-time Steam players get an account via `findOrCreateSteamAccount` (same one the game's `/api/game/steam-session` uses, so web and game resolve to one user per Steam ID) and land on `/profile?message=steam_welcome` to pick a callsign.
+- Steam profile fetch (avatar, persona) works ✅ — best effort with `STEAM_WEB_API_KEY`; sign-in works without it.
+- Steam link from profile settings and dashboard works ✅ — `/api/steam/auth?link=1&redirect=…` requires a session and attaches the Steam ID to that account (`profiles.steam_id` + `app_metadata.steam_id`). A Steam ID already on another account is refused (`?error=steam_already_linked`); replacing a linked Steam account requires unlinking first.
+- Unlink works ✅ — `POST /api/steam/unlink` (session + CSRF). Refused for Steam-created accounts with a synthetic email, since Steam is their only way to sign in.
+- Login/link CSRF: the intent (sign-in vs link, destination, user) and a one-time nonce live in the `etu_steam_intent` cookie; the nonce is also inside the Steam-signed `openid.return_to`, so a callback is only honoured by the browser that started it.
+- Purchase verification works ✅ — after every Steam auth (website sign-in, link, game sign-in) the server calls `ISteamUser/CheckAppOwnership` with `STEAM_PUBLISHER_KEY` and stores the answer on `profiles.is_verified_owner`, `steam_purchase_verified_at` (first confirmation) and `steam_ownership_checked_at` (migration `20261026_steam_ownership_verification.sql`). `POST /api/steam/verify-ownership` (session + CSRF, 5 per 10 min) is the "Verify game ownership" button for players who buy later. Unlinking clears all three. Without the publisher key, checks report `not_configured` and nothing is written. Family-shared copies count as owned (Steam's own answer) and are flagged in the response.
+- Steam Verified badge shows on the dashboard, the profile header, and the Steam card; `get_my_profile()` exposes it to the game.
+- Analytics: every Wishlist / store button is `WishlistButton`, which records a `wishlist_steam` click with its placement; the Steam card records `steam_link_start`, `steam_linked`, `steam_unlinked`, `steam_ownership_verified` / `steam_ownership_not_owned`. The admin dashboard shows Steam-linked accounts, verified owners, Steam sign-ins and wishlist clicks; the superuser console has a Steam section (active users with Steam, Steam sign-ins/sign-ups/links, wishlist clicks) per period.
 
 ### Purchase Verification
 
@@ -527,6 +531,11 @@ After signup or from profile settings:
 ---
 
 ## 11. Game Client Authentication
+
+> **Status (Oct 2026):** the Steam build signs in with a Steam auth ticket
+> (`POST /api/game/steam-session`, see §9 and `docs/GAME_API.md`) and needs
+> no device code. The device-code flow below remains the plan for non-Steam
+> builds (itch.io, DRM-free) and is not implemented.
 
 ### Background
 

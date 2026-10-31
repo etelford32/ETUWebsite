@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import WishlistButton from "@/components/WishlistButton";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllFactions, type Faction } from "@/data/factions";
@@ -55,8 +56,6 @@ function splitFactionName(name: string): { short: string; sub: string } {
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const STEAM_URL =
-  "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/";
 
 // Everything under the "Game" menu, desktop and mobile.
 const GAME_LINKS = [
@@ -187,14 +186,9 @@ export default function Header() {
             {staff.isSuperuser && <NavLink href="/admin/superuser">👑 Superuser</NavLink>}
             {staff.isAdmin && <NavLink href="/admin">Admin</NavLink>}
             <NavLink href="/profile">Profile</NavLink>
-            <a
-              href={STEAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-3d btn-3d-steam !py-2 !px-4 !text-sm"
-            >
+            <WishlistButton placement="header" className="btn-3d btn-3d-steam !py-2 !px-4 !text-sm" icon={false}>
               Wishlist on Steam
-            </a>
+            </WishlistButton>
           </div>
 
           {/* Mobile Menu Button */}
@@ -223,14 +217,9 @@ export default function Header() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-5 space-y-6">
-          <a
-            href={STEAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-3d btn-3d-steam w-full"
-          >
+          <WishlistButton placement="header-mobile" className="btn-3d btn-3d-steam w-full" icon={false}>
             Wishlist on Steam
-          </a>
+          </WishlistButton>
 
           <MobileSection title="Game">
             {GAME_LINKS.map((l) => (

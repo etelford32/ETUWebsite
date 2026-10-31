@@ -207,6 +207,32 @@ export function trackClick(buttonName: string, metadata?: Record<string, any>) {
   return trackEvent(buttonName, 'click', metadata)
 }
 
+/** Steam store page for Explore the Universe 2175 (wishlist + playtest). */
+export const STEAM_STORE_URL = 'https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/'
+
+/**
+ * Wishlist / store click. `placement` says which button (header, hero,
+ * dashboard, …) so the funnel can be compared across the site.
+ */
+export function trackWishlistClick(placement: string, metadata?: Record<string, any>) {
+  return trackEvent('wishlist_steam', 'click', { placement, ...metadata })
+}
+
+/**
+ * Steam account funnel: link started/completed, unlinked, ownership checks,
+ * Steam sign-in landed. Counted on the superuser analytics console.
+ */
+export type SteamAnalyticsEvent =
+  | 'steam_link_start'
+  | 'steam_linked'
+  | 'steam_unlinked'
+  | 'steam_ownership_verified'
+  | 'steam_ownership_not_owned'
+
+export function trackSteamEvent(event: SteamAnalyticsEvent, metadata?: Record<string, any>) {
+  return trackEvent(event, 'steam', metadata)
+}
+
 // Track form submission
 export function trackFormSubmit(formName: string, metadata?: Record<string, any>) {
   return trackEvent(formName, 'form_submit', metadata)

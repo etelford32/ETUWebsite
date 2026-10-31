@@ -6,6 +6,8 @@ import { Profile } from '@/lib/types'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { SteamProfileLink, SteamIcon } from '@/components/SteamProfileLink'
+import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
 
 interface PlayerProfile {
   id: string
@@ -18,6 +20,9 @@ interface PlayerProfile {
   updated_at: string
   is_public: boolean
   is_alpha_tester: boolean
+  is_verified_owner: boolean
+  steam_purchase_verified_at: string | null
+  steam_ownership_checked_at: string | null
   // Stats - always populated (from DB or defaults)
   level: number
   xp: number
@@ -50,6 +55,13 @@ interface MatchHistory {
   date: string
 }
 
+/** Mutating profile routes require the session's CSRF token in a header. */
+async function csrfHeaders(): Promise<Record<string, string>> {
+  const res = await fetch('/api/csrf-token')
+  const data = res.ok ? await res.json() : {}
+  return { 'Content-Type': 'application/json', 'x-csrf-token': data.csrfToken ?? '' }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -60,6 +72,8 @@ export default function ProfilePage() {
   const [editedFaction, setEditedFaction] = useState('')
   const [editedShipClass, setEditedShipClass] = useState('')
   const [activeTab, setActiveTab] = useState<'stats' | 'achievements' | 'history' | 'settings'>('stats')
+  // First visit after creating an account through Steam: nudge for a callsign.
+  const [steamWelcome, setSteamWelcome] = useState(false)
 
   // Change password state
   const [newPassword, setNewPassword] = useState('')
@@ -158,6 +172,19 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadProfile()
+
+    // Deep links from the Steam flow: /profile?tab=settings&message=steam_linked
+    // and /profile?message=steam_welcome for a brand-new Steam player.
+    const url = new URL(window.location.href)
+    const tab = url.searchParams.get('tab')
+    if (tab === 'stats' || tab === 'achievements' || tab === 'history' || tab === 'settings') {
+      setActiveTab(tab)
+    }
+    if (url.searchParams.get('message') === 'steam_welcome') {
+      setSteamWelcome(true)
+      url.searchParams.delete('message')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+    }
   }, [])
 
   async function loadProfile() {
@@ -182,11 +209,17 @@ export default function ProfilePage() {
 
       if (profileRes.ok && profileData.profile) {
         const dbProfile = profileData.profile as Profile
+        const sessionEmail: string | undefined = sessionData.user?.email
 
-        // Use database data if available, otherwise use defaults
+        // Use database data if available, otherwise use defaults. A Steam-only
+        // account's email is synthetic, so never derive a name from it.
         const profile: PlayerProfile = {
           id: dbProfile.id,
-          username: dbProfile.username || sessionData.user.email?.split('@')[0] || 'Commander',
+          username:
+            dbProfile.username ||
+            dbProfile.display_name ||
+            (isSyntheticSteamEmail(sessionEmail) ? null : sessionEmail?.split('@')[0]) ||
+            'Commander',
           steam_id: dbProfile.steam_id || null,
           avatar_url: dbProfile.avatar_url || null,
           faction_choice: dbProfile.faction_choice || 'neutral',
@@ -195,6 +228,9 @@ export default function ProfilePage() {
           updated_at: dbProfile.updated_at || new Date().toISOString(),
           is_public: dbProfile.is_public ?? true,
           is_alpha_tester: dbProfile.is_alpha_tester ?? false,
+          is_verified_owner: dbProfile.is_verified_owner === true,
+          steam_purchase_verified_at: dbProfile.steam_purchase_verified_at ?? null,
+          steam_ownership_checked_at: dbProfile.steam_ownership_checked_at ?? null,
           // Stats - use DB values or defaults
           level: dbProfile.level ?? 1,
           xp: dbProfile.xp ?? 0,
@@ -225,7 +261,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch('/api/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await csrfHeaders(),
         body: JSON.stringify({
           username: editedUsername,
           faction_choice: editedFaction
@@ -332,6 +368,36 @@ export default function ProfilePage() {
       </div>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        {steamWelcome && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="status"
+            className="mb-6 p-4 rounded-xl bg-gradient-to-r from-cyan-900/40 to-indigo-900/40 border border-cyan-500/40 flex flex-col sm:flex-row sm:items-center gap-3"
+          >
+            <div className="flex-1">
+              <div className="font-semibold text-cyan-200">Welcome aboard, Commander</div>
+              <p className="text-sm text-slate-300 mt-0.5">
+                Your Steam account is now your ETU sign-in. Pick a callsign so other players can find you on the leaderboard.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setIsEditing(true); setSteamWelcome(false) }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 transition"
+              >
+                Choose callsign
+              </button>
+              <button
+                onClick={() => setSteamWelcome(false)}
+                className="px-3 py-2 rounded-lg text-sm bg-slate-800 hover:bg-slate-700 transition"
+              >
+                Later
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -411,6 +477,25 @@ export default function ProfilePage() {
                         <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
+                      </motion.div>
+                    )}
+                    {/* Steam Verified Owner Badge */}
+                    {profile.is_verified_owner && (
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.3, type: 'spring' }}
+                        title={
+                          profile.steam_purchase_verified_at
+                            ? `Game ownership confirmed by Steam on ${new Date(profile.steam_purchase_verified_at).toLocaleDateString()}`
+                            : 'Game ownership confirmed by Steam'
+                        }
+                        className="inline-flex items-center gap-2 mt-2 ml-0 sm:ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-900/60 to-sky-900/60 border border-cyan-400/50 shadow-lg shadow-cyan-500/20"
+                      >
+                        <SteamIcon className="w-5 h-5 text-cyan-300" />
+                        <span className="font-bold text-cyan-300 tracking-wide uppercase text-sm">
+                          Steam Verified
+                        </span>
                       </motion.div>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-slate-300">
@@ -721,13 +806,55 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Sign-in Email
                   </label>
-                  <input
-                    type="email"
-                    disabled
-                    value={userEmail}
-                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed"
-                  />
+                  {isSyntheticSteamEmail(userEmail) ? (
+                    <div className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400">
+                      Signed in with Steam — no email on file
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      disabled
+                      value={userEmail}
+                      className="w-full px-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed"
+                    />
+                  )}
                   <p className="text-xs text-slate-500 mt-1">Contact support to change your email address</p>
+                </div>
+
+                {/* Connected accounts — Steam */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Connected Accounts</label>
+                  <SteamProfileLink
+                    currentSteamId={profile?.steam_id}
+                    returnTo="/profile?tab=settings"
+                    canUnlink={!isSyntheticSteamEmail(userEmail)}
+                    onUnlinked={() =>
+                      setProfile((p) =>
+                        p ? { ...p, steam_id: null, is_verified_owner: false, steam_purchase_verified_at: null, steam_ownership_checked_at: null } : p
+                      )
+                    }
+                    ownership={
+                      profile
+                        ? {
+                            isVerifiedOwner: profile.is_verified_owner,
+                            verifiedAt: profile.steam_purchase_verified_at,
+                            checkedAt: profile.steam_ownership_checked_at,
+                          }
+                        : undefined
+                    }
+                    onOwnershipChanged={(state) =>
+                      setProfile((p) =>
+                        p
+                          ? {
+                              ...p,
+                              is_verified_owner: state.isVerifiedOwner,
+                              steam_purchase_verified_at: state.verifiedAt,
+                              steam_ownership_checked_at: state.checkedAt,
+                            }
+                          : p
+                      )
+                    }
+                  />
                 </div>
 
                 {/* Security — Change Password */}
@@ -824,7 +951,7 @@ export default function ProfilePage() {
                             try {
                               const response = await fetch('/api/profile', {
                                 method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: await csrfHeaders(),
                                 body: JSON.stringify({ is_public: newValue })
                               })
 

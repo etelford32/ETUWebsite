@@ -11,6 +11,10 @@
     {
       "path": "/api/automations/run",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/steam-leaderboard-sync",
+      "schedule": "*/10 * * * *"
     }
   ],
   "headers": [

@@ -5,27 +5,49 @@ import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import {
+  ADMIN_ASSIGNABLE_ROLES,
+  ROLE_COLORS,
+  ROLES,
+  TIER_LABELS,
+  asTier,
+  isRole,
+  type Role,
+  type Tier,
+} from '@/lib/accountTiers'
 
-type Role = 'user' | 'admin' | 'staff'
+const ROLE_BUTTON_COLORS: Record<Role, string> = {
+  admin: 'bg-red-600 hover:bg-red-700',
+  dev: 'bg-violet-600 hover:bg-violet-700',
+  staff: 'bg-orange-600 hover:bg-orange-700',
+  moderator: 'bg-sky-600 hover:bg-sky-700',
+  user: 'bg-slate-600 hover:bg-slate-700',
+}
+
+const ROLE_BUTTON_LABELS: Record<Role, string> = {
+  admin: 'Make Admin',
+  dev: 'Make Developer (dev build channel)',
+  staff: 'Make Staff',
+  moderator: 'Make Moderator',
+  user: 'Make Regular User',
+}
 
 interface User {
   id: string
   email: string
   username: string
   role: Role
+  tier: Tier
+  isAlphaTester: boolean
+  isSuperuser: boolean
   avatar_url: string
   created_at: string
   last_sign_in_at: string
   steam_id: string | null
+  is_verified_owner: boolean
   faction_choice: string | null
   level: number
   xp: number
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-500/20 text-red-400 border-red-500/30',
-  staff: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  user: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
 }
 
 export default function UserManagement() {
@@ -38,6 +60,8 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [tierFilter, setTierFilter] = useState<string>('all')
+  const [csrfToken, setCsrfToken] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [page, setPage] = useState(1)
   const pageSize = 20
@@ -48,7 +72,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     filterUsers()
-  }, [searchQuery, roleFilter, users])
+  }, [searchQuery, roleFilter, tierFilter, users])
 
   async function checkAuth() {
     setLoading(true)
@@ -69,7 +93,13 @@ export default function UserManagement() {
 
     setCurrentUser(sessionData.user)
     setIsAdmin(role === 'admin')
-    await fetchUsers()
+    const [csrfRes] = await Promise.all([fetch('/api/csrf-token'), fetchUsers()])
+    try {
+      const csrf = await csrfRes.json()
+      setCsrfToken(csrf.csrfToken ?? null)
+    } catch {
+      setCsrfToken(null)
+    }
     setLoading(false)
   }
 
@@ -83,11 +113,15 @@ export default function UserManagement() {
         id: profile.id,
         email: profile.email || 'N/A',
         username: profile.username || profile.display_name || 'Anonymous',
-        role: (profile.role as Role) || 'user',
+        role: isRole(profile.role) ? profile.role : 'user',
+        tier: asTier(profile.tier),
+        isAlphaTester: profile.is_alpha_tester === true,
+        isSuperuser: profile.is_superuser === true,
         avatar_url: profile.avatar_url || '',
         created_at: profile.created_at,
         last_sign_in_at: profile.last_login_at || 'N/A',
         steam_id: profile.steam_id,
+        is_verified_owner: profile.is_verified_owner === true,
         faction_choice: profile.faction_choice,
         level: profile.level || 1,
         xp: profile.xp || 0,
@@ -106,6 +140,10 @@ export default function UserManagement() {
       filtered = filtered.filter(u => u.role === roleFilter)
     }
 
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(u => u.tier === tierFilter)
+    }
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(u =>
@@ -119,36 +157,75 @@ export default function UserManagement() {
     setPage(1)
   }
 
+  // The server derives the tier from role and the alpha flag; the row it
+  // returns is applied as-is so the table never guesses.
+  async function patchAccess(userId: string, body: Record<string, unknown>, done: string) {
+    setUpdating(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken ?? '' },
+        body: JSON.stringify({ userId, ...body }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+
+      const row = data.user || {}
+      const apply = (u: User): User =>
+        u.id === userId
+          ? {
+              ...u,
+              role: isRole(row.role) ? row.role : u.role,
+              tier: asTier(row.tier),
+              isAlphaTester: row.is_alpha_tester === true,
+            }
+          : u
+      setUsers(users.map(apply))
+      setSelectedUser((current) => (current && current.id === userId ? apply(current) : current))
+      alert(done)
+    } catch (error: any) {
+      console.error('Error updating user access:', error)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   async function updateUserRole(userId: string, newRole: Role) {
     if (!isAdmin) {
       alert('Only admins can change user roles')
       return
     }
-
     if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
       return
     }
+    await patchAccess(userId, { role: newRole }, 'User role updated successfully!')
+  }
 
-    setUpdating(true)
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to update role')
-
-      // Update local state
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u))
-      setSelectedUser(null)
-      alert('User role updated successfully!')
-    } catch (error: any) {
-      console.error('Error updating user role:', error)
-      alert(`Error: ${error.message}`)
-    } finally {
-      setUpdating(false)
+  async function updateAlphaAccess(user: User) {
+    if (!isAdmin) {
+      alert('Only admins can change alpha access')
+      return
     }
+    const next = !user.isAlphaTester
+    if (!confirm(next ? `Give ${user.email} alpha build access?` : `Remove ${user.email}'s alpha build access?`)) {
+      return
+    }
+    await patchAccess(
+      user.id,
+      { action: 'set_alpha', value: next },
+      next ? 'Alpha access granted.' : 'Alpha access removed.'
+    )
+  }
+
+  // What this admin may do to this account: admin stays superuser-only, and
+  // the superuser console is where admins and superusers are managed.
+  function assignableRoles(target: User): Role[] {
+    if (!isAdmin) return []
+    if (target.isSuperuser) return []
+    if (currentUser?.isSuperuser) return [...ROLES]
+    if (target.role === 'admin') return []
+    return [...ADMIN_ASSIGNABLE_ROLES]
   }
 
   if (loading) {
@@ -235,7 +312,7 @@ export default function UserManagement() {
           transition={{ delay: 0.1 }}
           className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-6 mb-6"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-slate-400 mb-2">Search Users</label>
               <input
@@ -254,9 +331,22 @@ export default function UserManagement() {
                 className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
               >
                 <option value="all">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="staff">Staff</option>
-                <option value="user">User</option>
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">Filter by Build Tier</label>
+              <select
+                value={tierFilter}
+                onChange={(e) => setTierFilter(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              >
+                <option value="all">All Tiers</option>
+                <option value="player">Player (demo)</option>
+                <option value="alpha">Alpha</option>
+                <option value="dev">Dev</option>
               </select>
             </div>
           </div>
@@ -286,6 +376,9 @@ export default function UserManagement() {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Tier
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                     Level
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -313,7 +406,21 @@ export default function UserManagement() {
                           </div>
                         )}
                         <div>
-                          <div className="text-white font-medium">{user.username || 'Anonymous'}</div>
+                          <div className="text-white font-medium flex items-center gap-2">
+                            {user.username || 'Anonymous'}
+                            {user.steam_id && (
+                              <span
+                                title={user.is_verified_owner ? 'Steam linked · verified game owner' : 'Steam linked'}
+                                className={`px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide border ${
+                                  user.is_verified_owner
+                                    ? 'bg-cyan-500/15 text-cyan-200 border-cyan-400/40'
+                                    : 'bg-slate-700/60 text-slate-300 border-slate-600'
+                                }`}
+                              >
+                                {user.is_verified_owner ? 'Steam ✓ owner' : 'Steam'}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-slate-400">{user.id.slice(0, 8)}...</div>
                         </div>
                       </div>
@@ -324,6 +431,14 @@ export default function UserManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${ROLE_COLORS[user.role]}`}>
                         {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        title={TIER_LABELS[user.tier].hint}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border ${TIER_LABELS[user.tier].className}`}
+                      >
+                        {TIER_LABELS[user.tier].label}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
@@ -404,38 +519,56 @@ export default function UserManagement() {
                 <div className="text-sm text-slate-400">User ID</div>
                 <div className="text-white text-xs font-mono">{selectedUser.id}</div>
               </div>
-              <div>
-                <div className="text-sm text-slate-400">Current Role</div>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${ROLE_COLORS[selectedUser.role]}`}>
-                  {selectedUser.role}
-                </span>
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-sm text-slate-400">Current Role</div>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${ROLE_COLORS[selectedUser.role]}`}>
+                    {selectedUser.role}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-400">Build Tier</div>
+                  <span
+                    title={TIER_LABELS[selectedUser.tier].hint}
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${TIER_LABELS[selectedUser.tier].className}`}
+                  >
+                    {TIER_LABELS[selectedUser.tier].label}
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500">
+                {TIER_LABELS[selectedUser.tier].hint}. The tier follows the role and the alpha flag;
+                it decides which build the account receives and never unlocks anything inside one.
               </div>
             </div>
 
             {isAdmin && (
               <div className="space-y-3 mb-6">
                 <div className="text-sm text-slate-400 mb-2">Change Role</div>
-                <button
-                  onClick={() => updateUserRole(selectedUser.id, 'admin')}
-                  disabled={updating || selectedUser.role === 'admin'}
-                  className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                >
-                  Make Admin
-                </button>
-                <button
-                  onClick={() => updateUserRole(selectedUser.id, 'staff')}
-                  disabled={updating || selectedUser.role === 'staff'}
-                  className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                >
-                  Make Staff
-                </button>
-                <button
-                  onClick={() => updateUserRole(selectedUser.id, 'user')}
-                  disabled={updating || selectedUser.role === 'user'}
-                  className="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                >
-                  Make Regular User
-                </button>
+                {assignableRoles(selectedUser).map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => updateUserRole(selectedUser.id, role)}
+                    disabled={updating || selectedUser.role === role}
+                    className={`w-full px-4 py-2 ${ROLE_BUTTON_COLORS[role]} disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors`}
+                  >
+                    {ROLE_BUTTON_LABELS[role]}
+                  </button>
+                ))}
+                {assignableRoles(selectedUser).length === 0 && (
+                  <div className="text-xs text-slate-500">
+                    Admins and superusers are managed from the superuser console.
+                  </div>
+                )}
+                <label className="flex items-center gap-2 pt-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={selectedUser.isAlphaTester}
+                    disabled={updating}
+                    onChange={() => updateAlphaAccess(selectedUser)}
+                  />
+                  Alpha tester (alpha build channel)
+                </label>
               </div>
             )}
 

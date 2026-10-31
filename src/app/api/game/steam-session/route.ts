@@ -10,6 +10,7 @@ import {
   getSteamConfig,
 } from '@/lib/steamWebApi'
 import { findOrCreateSteamAccount, mintSession } from '@/lib/steamAccount'
+import { persistOwnership } from '@/lib/steamOwnership'
 
 /**
  * POST /api/game/steam-session — game sign-in (ACCOUNT-01 phase 1).
@@ -79,6 +80,9 @@ export async function POST(request: NextRequest) {
     if (account.status !== 'active') {
       return fail(403, account.status === 'deleted' ? 'account_deleted' : 'account_suspended')
     }
+
+    // Record the answer so the website shows the same "verified owner" badge.
+    await persistOwnership(account.userId, identity.steamId, ownership)
 
     const session = await mintSession(account.email)
 

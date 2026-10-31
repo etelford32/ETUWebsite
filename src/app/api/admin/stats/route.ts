@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
       pendingInvites,
       signups30d,
       logins30d,
+      steamLinked,
+      steamVerifiedOwners,
+      steamSignins30d,
+      steamSignups30d,
+      wishlistClicks30d,
     ] = await Promise.all([
       safeCount(supabase.from('profiles').select('*', { count: 'exact', head: true })),
       safeCount(
@@ -77,6 +82,37 @@ export async function GET(request: NextRequest) {
           .from('auth_events')
           .select('*', { count: 'exact', head: true })
           .eq('event_type', 'login_success')
+          .gte('created_at', since30d)
+      ),
+      // Steam funnel: accounts with Steam attached, confirmed owners, and
+      // how much of the last month's auth traffic came through Steam.
+      safeCount(
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).not('steam_id', 'is', null)
+      ),
+      safeCount(
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_verified_owner', true)
+      ),
+      safeCount(
+        supabase
+          .from('auth_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_type', 'login_success')
+          .eq('method', 'steam')
+          .gte('created_at', since30d)
+      ),
+      safeCount(
+        supabase
+          .from('auth_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_type', 'signup')
+          .eq('method', 'steam')
+          .gte('created_at', since30d)
+      ),
+      safeCount(
+        supabase
+          .from('analytics_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_name', 'wishlist_steam')
           .gte('created_at', since30d)
       ),
     ])
@@ -150,6 +186,11 @@ export async function GET(request: NextRequest) {
         pendingInvites,
         signups30d,
         logins30d,
+        steamLinked,
+        steamVerifiedOwners,
+        steamSignins30d,
+        steamSignups30d,
+        wishlistClicks30d,
       },
       recentActivity,
       securityAlerts,
@@ -157,6 +198,11 @@ export async function GET(request: NextRequest) {
         database: 'healthy',
         authentication: 'healthy',
         api: 'healthy',
+        // Presence only — never the values. The publisher key gates purchase
+        // verification and game sign-in; the Web API key only enriches
+        // persona/avatar after Steam sign-in.
+        steamPublisherKey: process.env.STEAM_PUBLISHER_KEY ? 'healthy' : 'warning',
+        steamWebApiKey: process.env.STEAM_WEB_API_KEY ? 'healthy' : 'warning',
       },
     })
   } catch (error: any) {

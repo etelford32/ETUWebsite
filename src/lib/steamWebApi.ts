@@ -42,14 +42,27 @@ export class SteamApiError extends Error {
   }
 }
 
-async function partnerGet(path: string, params: Record<string, string>): Promise<any> {
-  const url = `${PARTNER_API}${path}?${new URLSearchParams(params).toString()}`
+/**
+ * Call the partner Web API. GET sends params in the query string; POST
+ * (required by write endpoints such as SetLeaderboardScore) sends them as a
+ * form body. Throws SteamApiError('unavailable') on transport/HTTP errors.
+ */
+export async function partnerRequest(
+  method: 'GET' | 'POST',
+  path: string,
+  params: Record<string, string>
+): Promise<any> {
+  const query = new URLSearchParams(params).toString()
+  const url = method === 'GET' ? `${PARTNER_API}${path}?${query}` : `${PARTNER_API}${path}`
   let response: Response
   try {
     response = await fetch(url, {
-      method: 'GET',
+      method,
       cache: 'no-store',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      ...(method === 'POST'
+        ? { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: query }
+        : {}),
     })
   } catch {
     throw new SteamApiError('unavailable', `Steam request to ${path} failed`)
@@ -64,6 +77,10 @@ async function partnerGet(path: string, params: Record<string, string>): Promise
   } catch {
     throw new SteamApiError('unavailable', `Steam ${path} returned non-JSON`)
   }
+}
+
+async function partnerGet(path: string, params: Record<string, string>): Promise<any> {
+  return partnerRequest('GET', path, params)
 }
 
 /**

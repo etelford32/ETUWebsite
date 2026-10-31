@@ -15,6 +15,11 @@ interface DashboardStats {
     pendingInvites: number
     signups30d: number
     logins30d: number
+    steamLinked: number
+    steamVerifiedOwners: number
+    steamSignins30d: number
+    steamSignups30d: number
+    wishlistClicks30d: number
   }
   recentActivity: ActivityItem[]
   securityAlerts: SecurityAlert[]
@@ -43,6 +48,8 @@ interface SystemHealth {
   database: 'healthy' | 'warning' | 'error'
   authentication: 'healthy' | 'warning' | 'error'
   api: 'healthy' | 'warning' | 'error'
+  steamPublisherKey?: 'healthy' | 'warning' | 'error'
+  steamWebApiKey?: 'healthy' | 'warning' | 'error'
 }
 
 interface RecentFeedback {
@@ -303,7 +310,7 @@ export default function AdminDashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
           <StatsCard
             title="Total Users"
             value={stats?.stats.totalUsers || 0}
@@ -333,6 +340,24 @@ export default function AdminDashboard() {
             hint={stats ? `${stats.stats.signups30d} new signups` : undefined}
             icon="🔑"
             color="from-orange-500 to-red-500"
+          />
+          <StatsCard
+            title="Steam Accounts"
+            value={stats?.stats.steamLinked || 0}
+            hint={
+              stats
+                ? `${stats.stats.steamVerifiedOwners} verified owners · ${stats.stats.steamSignins30d} Steam sign-ins (30d)`
+                : undefined
+            }
+            icon="🎮"
+            color="from-sky-500 to-indigo-500"
+          />
+          <StatsCard
+            title="Wishlist Clicks (30d)"
+            value={stats?.stats.wishlistClicks30d || 0}
+            hint={stats ? `${stats.stats.steamSignups30d} signed up via Steam` : undefined}
+            icon="🎯"
+            color="from-cyan-500 to-teal-500"
           />
         </div>
 
@@ -436,6 +461,16 @@ export default function AdminDashboard() {
               <HealthItem
                 label="API Endpoints"
                 status={stats?.systemHealth.api || 'healthy'}
+              />
+              <HealthItem
+                label="Steam publisher key (ownership checks, game sign-in)"
+                status={stats?.systemHealth.steamPublisherKey || 'warning'}
+                statusLabel={{ healthy: 'configured', warning: 'missing', error: 'error' }}
+              />
+              <HealthItem
+                label="Steam Web API key (persona & avatar)"
+                status={stats?.systemHealth.steamWebApiKey || 'warning'}
+                statusLabel={{ healthy: 'configured', warning: 'missing', error: 'error' }}
               />
             </div>
           </motion.div>
@@ -635,16 +670,19 @@ function StatsCard({
 function HealthItem({
   label,
   status,
+  statusLabel,
 }: {
   label: string
   status: 'healthy' | 'warning' | 'error'
+  /** Optional wording per status (e.g. configured / missing). */
+  statusLabel?: Partial<Record<'healthy' | 'warning' | 'error', string>>
 }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+    <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/50 rounded-lg">
       <span className="text-slate-300">{label}</span>
-      <span className={`flex items-center gap-2 font-semibold ${HEALTH_COLORS[status]}`}>
+      <span className={`flex items-center gap-2 font-semibold whitespace-nowrap ${HEALTH_COLORS[status]}`}>
         <span>{HEALTH_ICONS[status]}</span>
-        <span className="capitalize">{status}</span>
+        <span className="capitalize">{statusLabel?.[status] ?? status}</span>
       </span>
     </div>
   )
