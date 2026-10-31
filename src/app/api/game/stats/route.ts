@@ -66,12 +66,24 @@ export async function POST(request: NextRequest) {
     return fail(400, 'bad_request')
   }
 
-  const auth = await resolveGameCaller(request, body)
-  if (!auth.ok) return fail(auth.status, auth.error)
+  // The per-account limit runs inside, before any ticket is sent to Steam.
+  let limitedAs = null as string | null
+  const statsLimit = (subject: string) => checkRateLimit(`game-stats:${subject}`, 120, 60 * 60 * 1000)
+  const auth = await resolveGameCaller(request, body, {
+    rateLimit: subject => {
+      limitedAs = subject
+      return statsLimit(subject)
+    },
+  })
+  if (!auth.ok) {
+    return fail(auth.status, auth.error, auth.retryAfter != null ? { retry_after: auth.retryAfter } : {})
+  }
   const { caller } = auth
 
-  const limit = checkRateLimit(`game-stats:${caller.userId}`, 120, 60 * 60 * 1000)
-  if (!limit.allowed) return fail(429, 'rate_limited', { retry_after: limit.retryAfter })
+  if (limitedAs !== `user:${caller.userId}`) {
+    const limit = statsLimit(`user:${caller.userId}`)
+    if (!limit.allowed) return fail(429, 'rate_limited', { retry_after: limit.retryAfter })
+  }
 
   const incoming = body?.stats
   if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
-import { checkRateLimit } from '@/lib/ratelimit'
+import { RateLimiters, checkRateLimit, getIdentifier } from '@/lib/ratelimit'
 import { resolveGameCaller } from '@/lib/gameAuth'
 import {
   GameRun,
@@ -21,9 +21,15 @@ import { syncRowToSteam } from '@/lib/leaderboardSync'
  * Steam ID linked to this account (else 403 account_mismatch), and the run
  * is stored with metadata.steam_verified = true. See src/lib/gameAuth.ts.
  *
- * The run is stored in player_scores (idempotent on run_id), and a verified
- * run is written to its Steam leaderboards. Steam's boards are trusted-write
- * only, so this route is the only way a score reaches them.
+ * The run is stored in player_scores (idempotent on run_id). A run that is
+ * verified AND carried a Steam ticket Steam accepted for this account is
+ * also written to its Steam leaderboards; without a valid ticket it can
+ * still rank on the website, but never reaches Steam. Steam's boards are
+ * trusted-write only, so this route is the only way a score reaches them.
+ *
+ * Rate limits run before the ticket is sent to Steam (per client IP, then
+ * per account), so this route can't be used to make the server call Steam
+ * on demand.
  *
  * Success: { ok, run_id, duplicate, verified, reason, personal_best,
  *            steam_verified,
@@ -52,7 +58,13 @@ async function rankOn(supabase: any, board: string, userId: string) {
   return row ? { board, rank: Number(row.rank), total: Number(row.total) } : null
 }
 
+const runLimit = (subject: string) => checkRateLimit(`submit-run:${subject}`, RUNS_PER_HOUR, 60 * 60 * 1000)
+
 export async function POST(request: NextRequest) {
+  // Coarse per-client limit before any auth work (Supabase or Steam).
+  const ipLimit = RateLimiters.api(`submit-run-ip:${getIdentifier(request)}`)
+  if (!ipLimit.allowed) return fail(429, 'rate_limited', { retry_after: ipLimit.retryAfter })
+
   let body: any = null
   try {
     body = await request.json()
@@ -60,17 +72,32 @@ export async function POST(request: NextRequest) {
     body = null
   }
 
-  // Bearer token (required in practice) plus an optional Steam ticket.
-  const auth = await resolveGameCaller(request, body)
-  if (!auth.ok) return fail(auth.status, auth.error === 'unauthorized' ? 'not_authenticated' : auth.error)
+  // Reject a malformed run before its ticket is sent to Steam.
+  const run: GameRun | null = parseRun(body)
+  if (!run) return fail(400, 'bad_request')
+
+  // Bearer token (required in practice) plus an optional Steam ticket. The
+  // per-account run limit is applied inside, before the ticket goes to Steam.
+  let limitedAs = null as string | null
+  const auth = await resolveGameCaller(request, body, {
+    rateLimit: subject => {
+      limitedAs = subject
+      return runLimit(subject)
+    },
+  })
+  if (!auth.ok) {
+    const extra = auth.retryAfter != null ? { retry_after: auth.retryAfter } : {}
+    return fail(auth.status, auth.error === 'unauthorized' ? 'not_authenticated' : auth.error, extra)
+  }
   const { caller } = auth
   const userId = caller.userId
 
-  const limit = checkRateLimit(`submit-run:${userId}`, RUNS_PER_HOUR, 60 * 60 * 1000)
-  if (!limit.allowed) return fail(429, 'rate_limited', { retry_after: limit.retryAfter })
-
-  const run: GameRun | null = parseRun(body)
-  if (!run) return fail(400, 'bad_request')
+  // A ticket-only request was limited by IP above; count it against the
+  // account too now that Steam has said which account it is.
+  if (limitedAs !== `user:${userId}`) {
+    const limit = runLimit(`user:${userId}`)
+    if (!limit.allowed) return fail(429, 'rate_limited', { retry_after: limit.retryAfter })
+  }
 
   const supabase = createServerClient()
 
@@ -86,7 +113,8 @@ export async function POST(request: NextRequest) {
 
     const reason = unverifiedReason(run)
     const verified = reason === null
-    const boards = verified ? boardsForRun(run) : []
+    // Steam's boards take only runs a live Steam client vouched for.
+    const boards = verified && caller.steamVerified ? boardsForRun(run) : []
 
     const { data: previous } = await (supabase.from('player_scores') as any)
       .select('score')
@@ -146,7 +174,7 @@ export async function POST(request: NextRequest) {
     if (!row) return fail(500, 'server_error')
 
     let steam = { synced: Boolean(row.steam_synced_at), error: row.steam_sync_error as string | null }
-    if (row.is_verified && !row.steam_synced_at && row.steam_leaderboards?.length) {
+    if (row.is_verified && !row.steam_synced_at && row.steam_leaderboards?.length && row.metadata?.steam_verified === true) {
       steam = await syncRowToSteam(row, profile.steam_id)
     }
 

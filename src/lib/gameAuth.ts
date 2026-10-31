@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createServerClient } from './supabaseServer'
 import { SteamApiError, authenticateUserTicket, getSteamConfig } from './steamWebApi'
 import { isValidSteamId } from './steamIdentity'
+import { RateLimitResult, getIdentifier } from './ratelimit'
 
 /**
  * Who is calling a /api/game/* endpoint.
@@ -42,7 +43,18 @@ export interface GameCaller {
 
 export type GameAuthResult =
   | { ok: true; caller: GameCaller }
-  | { ok: false; status: number; error: string }
+  | { ok: false; status: number; error: string; retryAfter?: number }
+
+export interface ResolveGameCallerOptions {
+  /**
+   * Rate limit applied before the Steam ticket is sent to Steam, so a
+   * caller can't use this endpoint to make the server hit Steam on demand.
+   * Called with `user:<id>` when the bearer token named an account, else
+   * `ip:<client>` (a ticket-only request, whose account is only known after
+   * Steam answers), and returns whether the request may proceed.
+   */
+  rateLimit?: (subject: string) => RateLimitResult
+}
 
 function bearerToken(request: NextRequest): string | null {
   const header = request.headers.get('authorization') || ''
@@ -50,7 +62,11 @@ function bearerToken(request: NextRequest): string | null {
   return match ? match[1].trim() : null
 }
 
-export async function resolveGameCaller(request: NextRequest, body: any): Promise<GameAuthResult> {
+export async function resolveGameCaller(
+  request: NextRequest,
+  body: any,
+  options: ResolveGameCallerOptions = {}
+): Promise<GameAuthResult> {
   const token = bearerToken(request)
   const ticket = typeof body?.ticket === 'string' ? body.ticket : null
 
@@ -73,7 +89,16 @@ export async function resolveGameCaller(request: NextRequest, body: any): Promis
     bearerUserId = data.user.id
   }
 
-  // 2. Steam identity from the ticket, when present.
+  // 2. Rate limit before anything reaches Steam.
+  if (options.rateLimit) {
+    const subject = bearerUserId ? `user:${bearerUserId}` : `ip:${getIdentifier(request)}`
+    const limit = options.rateLimit(subject)
+    if (!limit.allowed) {
+      return { ok: false, status: 429, error: 'rate_limited', retryAfter: limit.retryAfter }
+    }
+  }
+
+  // 3. Steam identity from the ticket, when present.
   let ticketSteamId: string | null = null
   let unverifiedReason: string | null = ticket ? null : 'no steam ticket'
   if (ticket) {
@@ -98,7 +123,7 @@ export async function resolveGameCaller(request: NextRequest, body: any): Promis
     }
   }
 
-  // 3. Resolve the profile: by account id, else by the ticket's Steam ID.
+  // 4. Resolve the profile: by account id, else by the ticket's Steam ID.
   const columns = 'id, username, status, steam_id, is_verified_owner, highest_score'
   let profile: any = null
   if (bearerUserId) {
@@ -114,7 +139,7 @@ export async function resolveGameCaller(request: NextRequest, body: any): Promis
     return { ok: false, status: 403, error: profile.status === 'deleted' ? 'account_deleted' : 'account_suspended' }
   }
 
-  // 4. A ticket for a different Steam account than the one linked is a
+  // 5. A ticket for a different Steam account than the one linked is a
   //    hard failure: someone is mixing credentials.
   let steamVerified = false
   if (ticketSteamId) {
