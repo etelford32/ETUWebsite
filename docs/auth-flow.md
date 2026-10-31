@@ -446,7 +446,8 @@ Redirect to /dashboard
 ### Current State
 - Steam OpenID sign-in on the website works ✅ — `/api/steam/auth?redirect=…` → Steam → `/api/steam/callback` issues the normal `etu_session` cookie. First-time Steam players get an account via `findOrCreateSteamAccount` (same one the game's `/api/game/steam-session` uses, so web and game resolve to one user per Steam ID) and land on `/profile?message=steam_welcome` to pick a callsign.
 - Steam profile fetch (avatar, persona) works ✅ — best effort with `STEAM_WEB_API_KEY`; sign-in works without it.
-- Steam link from profile settings and dashboard works ✅ — `/api/steam/auth?link=1&redirect=…` requires a session and attaches the Steam ID to that account (`profiles.steam_id` + `app_metadata.steam_id`). A Steam ID already on another account is refused (`?error=steam_already_linked`); replacing a linked Steam account requires unlinking first.
+- Steam link from profile settings and dashboard works ✅ — `/api/steam/auth?link=1&redirect=…` requires a session and attaches the Steam ID to that account (`profiles.steam_id` + `app_metadata.steam_id`). Replacing a linked Steam account requires unlinking first.
+- Account merge works ✅ — when the Steam ID being linked already has a Steam-only account (the player signed in from the game first, so it has a synthetic email), the callback sets a signed 10-minute `etu_steam_merge` offer cookie and returns `?message=steam_merge_available`. The Steam card then shows what that account holds and offers "Merge accounts" → `POST /api/steam/merge` (session + CSRF + offer). `merge_steam_account()` (migration `20261031_steam_account_merge.sql`, service role only) moves scores, ship designs, feedback, votes and telemetry in one transaction, keeps the email account's identity (fills a missing callsign/avatar/faction from the Steam account), takes the higher of each lifetime game total, moves the Steam ID and ownership verification across, and marks the Steam account `deleted`; the route then deletes its auth user. A Steam ID on an account with its own email sign-in is still refused (`?error=steam_already_linked`) with instructions to unlink it there first.
 - Unlink works ✅ — `POST /api/steam/unlink` (session + CSRF). Refused for Steam-created accounts with a synthetic email, since Steam is their only way to sign in.
 - Login/link CSRF: the intent (sign-in vs link, destination, user) and a one-time nonce live in the `etu_steam_intent` cookie; the nonce is also inside the Steam-signed `openid.return_to`, so a callback is only honoured by the browser that started it.
 - Purchase verification works ✅ — after every Steam auth (website sign-in, link, game sign-in) the server calls `ISteamUser/CheckAppOwnership` with `STEAM_PUBLISHER_KEY` and stores the answer on `profiles.is_verified_owner`, `steam_purchase_verified_at` (first confirmation) and `steam_ownership_checked_at` (migration `20261026_steam_ownership_verification.sql`). `POST /api/steam/verify-ownership` (session + CSRF, 5 per 10 min) is the "Verify game ownership" button for players who buy later. Unlinking clears all three. Without the publisher key, checks report `not_configured` and nothing is written. Family-shared copies count as owned (Steam's own answer) and are flagged in the response.
@@ -489,7 +490,8 @@ When `/api/steam/auth?link=true` is hit:
 - Callback: instead of creating new account, attach Steam ID to existing profile
 
 ### Edge Cases
-- Steam ID already linked to another account → show error, offer support link
+- Steam ID already on a Steam-only account → offer to merge it into this account
+- Steam ID already linked to an account with its own email sign-in → show error: sign in there with Steam and unlink first
 - Unlink Steam: clear `steam_id`, `is_verified_owner`, `steam_purchase_verified_at`
 - Game not owned: show message "Ownership verification failed — ensure you're signed in to the correct Steam account"
 
@@ -891,7 +893,7 @@ Nice-to-have for community building.
 - Passkey / WebAuthn support
 - Ban system with ban appeals
 - Session management (view/revoke active sessions)
-- Account merge (Steam + email accounts → one account)
+- Merging two accounts that both have email sign-in
 - Parental controls / age verification
 - Regional compliance (GDPR data export/deletion, COPPA)
 

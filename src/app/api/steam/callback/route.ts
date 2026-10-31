@@ -5,6 +5,7 @@ import { recordAuthEvent } from '@/lib/authEvents'
 import { checkRateLimit, getIdentifier } from '@/lib/ratelimit'
 import { findOrCreateSteamAccount } from '@/lib/steamAccount'
 import { verifyOwnership } from '@/lib/steamOwnership'
+import { STEAM_MERGE_COOKIE, STEAM_MERGE_COOKIE_OPTIONS, findSteamHolder, signMergeOffer } from '@/lib/steamMerge'
 import {
   STEAM_INTENT_COOKIE,
   STEAM_INTENT_COOKIE_OPTIONS,
@@ -24,7 +25,10 @@ export const dynamic = 'force-dynamic'
  * (signature, return_to, nonce from the intent cookie) we either:
  *   - sign-in: find or create the Supabase user for this Steam ID and issue
  *     the usual etu_session cookie, like every other sign-in method; or
- *   - link:    attach the Steam ID to the account that started the flow.
+ *   - link:    attach the Steam ID to the account that started the flow, or,
+ *              when that Steam ID already has its own Steam-only account
+ *              (the player signed in from the game first), hand back a
+ *              signed merge offer for POST /api/steam/merge to redeem.
  *
  * Every exit clears the intent cookie and lands on a page that can show the
  * outcome (?message=... / ?error=...).
@@ -115,12 +119,6 @@ async function linkSteam(
 
   const supabase = createServerClient()
 
-  const { data: holder } = await (supabase.from('profiles') as any)
-    .select('id')
-    .eq('steam_id', steamId)
-    .maybeSingle()
-  if (holder && holder.id !== session.userId) return fail('steam_already_linked')
-
   const { data: me, error: meError } = await (supabase.from('profiles') as any)
     .select('steam_id, avatar_url')
     .eq('id', session.userId)
@@ -128,6 +126,25 @@ async function linkSteam(
   if (meError || !me) return fail('steam_server_error')
 
   if (me.steam_id && me.steam_id !== steamId) return fail('steam_replace_requires_unlink')
+
+  const holder = await findSteamHolder(steamId)
+  if (holder && holder.id !== session.userId) {
+    // The usual case: the player signed in from the game first, so this
+    // Steam ID already has its own Steam-only account. Steam just proved
+    // this browser controls it, so offer to fold it into this one.
+    if (holder.steamOnly && holder.status === 'active') {
+      const response = redirectTo(withParam(intent.next || LINK_FALLBACK, 'message', 'steam_merge_available'))
+      response.cookies.set(
+        STEAM_MERGE_COOKIE,
+        signMergeOffer({ targetUserId: session.userId, sourceUserId: holder.id, steamId }),
+        STEAM_MERGE_COOKIE_OPTIONS
+      )
+      return response
+    }
+    // An account with its own email sign-in (or one that's suspended) is
+    // never deleted from here: the player unlinks Steam there first.
+    return fail('steam_already_linked')
+  }
 
   if (me.steam_id !== steamId) {
     const updates: Record<string, unknown> = { steam_id: steamId }

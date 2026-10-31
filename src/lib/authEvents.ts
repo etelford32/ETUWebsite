@@ -22,6 +22,7 @@ export type AuthEventType =
   | 'invite_accepted'
   | 'email_verified'
   | 'session_refresh'
+  | 'account_merged'
 
 export type AuthMethod = 'password' | 'magic_link' | 'invite' | 'steam' | 'oauth'
 
