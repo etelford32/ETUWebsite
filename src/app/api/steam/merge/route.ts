@@ -25,8 +25,10 @@ export const dynamic = 'force-dynamic'
  *
  *   GET     what the Steam account holds, for the confirmation prompt
  *   POST    merge it (session + CSRF + offer); the Steam ID, scores, ship
- *           designs, feedback and game totals move here, and the Steam-only
- *           account is deleted
+ *           designs, feedback and game totals move here, the higher of the
+ *           two accounts' access is kept, the merge is recorded in
+ *           admin_audit_log (shown in the superuser console and
+ *           /admin/users), and the Steam-only account is deleted
  *   DELETE  decline the offer
  */
 

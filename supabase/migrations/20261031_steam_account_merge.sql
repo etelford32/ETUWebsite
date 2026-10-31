@@ -8,13 +8,20 @@
 --
 --   * every row that points at the Steam account moves to the email account
 --     (scores, ship designs, feedback, votes, telemetry, invites);
---   * the email account keeps its own identity (email, role, callsign,
---     privacy) and only fills blanks from the Steam account;
+--   * the email account keeps its own identity (email, callsign, privacy)
+--     and only fills blanks from the Steam account;
+--   * access keeps the higher of the two: the higher role (user < moderator
+--     < staff < dev < admin, the order of ROLES in lib/accountTiers.ts),
+--     superuser and alpha access if either account had them (a superuser
+--     is always an admin);
 --   * game totals take the larger of the two (the game reports lifetime
 --     totals that only move up, so summing would double count);
 --   * the Steam ID and its ownership verification move across;
 --   * the Steam account is left as status 'deleted' with no Steam ID or
---     callsign. The API route then deletes its auth user.
+--     callsign. The API route then deletes its auth user;
+--   * one 'account_merge' row goes into admin_audit_log in the same
+--     transaction, with both accounts' access before and after, so the
+--     superuser console and /admin/users keep a history of every merge.
 --
 -- The caller (POST /api/steam/merge) has already proved the player controls
 -- both accounts: a session on the email account, and a Steam OpenID
@@ -39,6 +46,12 @@ declare
   v_designs      integer := 0;
   v_feedback     integer := 0;
   v_votes        integer := 0;
+  v_roles        constant text[] := array['user', 'moderator', 'staff', 'dev', 'admin'];
+  v_role         text;
+  v_superuser    boolean;
+  v_src_email    text;
+  v_dst_email    text;
+  v_after        public.profiles%rowtype;
 begin
   if p_source is null or p_target is null or p_source = p_target then
     raise exception 'merge_same_account' using errcode = '22023';
@@ -63,13 +76,22 @@ begin
   end if;
   -- Only Steam-only accounts are folded away: one with a real email has its
   -- own way in, and deleting it would surprise its owner.
-  if not exists (
-    select 1 from auth.users u
-     where u.id = p_source
-       and lower(u.email) like '%@steam.players.exploretheuniverse2175.com'
-  ) then
+  select u.email into v_src_email from auth.users u where u.id = p_source;
+  if v_src_email is null
+     or lower(v_src_email) not like '%@steam.players.exploretheuniverse2175.com' then
     raise exception 'merge_source_not_steam_only' using errcode = '22023';
   end if;
+  select u.email into v_dst_email from auth.users u where u.id = p_target;
+  v_dst_email := coalesce(v_dst_email, dst.email);
+
+  -- Access: whichever account had more keeps it.
+  v_superuser := coalesce(dst.is_superuser, false) or coalesce(src.is_superuser, false);
+  v_role := case
+    when coalesce(array_position(v_roles, src.role), 1) > coalesce(array_position(v_roles, dst.role), 1)
+      then src.role
+    else coalesce(dst.role, 'user')
+  end;
+  if v_superuser then v_role := 'admin'; end if;
 
   -- 1 ── rows owned by the Steam account ─────────────────────────────────
 
@@ -137,6 +159,8 @@ begin
          avatar_url                 = coalesce(dst.avatar_url, src.avatar_url),
          faction_choice             = coalesce(dst.faction_choice, src.faction_choice),
          ship_class                 = coalesce(dst.ship_class, src.ship_class),
+         role                       = v_role,
+         is_superuser               = v_superuser,
          is_alpha_tester            = coalesce(dst.is_alpha_tester, false) or coalesce(src.is_alpha_tester, false),
          level                      = greatest(dst.level, src.level),
          xp                         = greatest(dst.xp, src.xp),
@@ -153,7 +177,36 @@ begin
          last_login_at              = greatest(dst.last_login_at, src.last_login_at),
          last_seen_at               = greatest(dst.last_seen_at, src.last_seen_at),
          login_count                = coalesce(dst.login_count, 0) + coalesce(src.login_count, 0)
-   where d.id = p_target;
+   where d.id = p_target
+  returning d.* into v_after;
+
+  -- 3 ── history ─────────────────────────────────────────────────────────
+
+  insert into public.admin_audit_log (actor_id, actor_email, target_id, target_email, action, details)
+  values (
+    p_target, v_dst_email, p_target, v_dst_email, 'account_merge',
+    jsonb_build_object(
+      'source', 'steam_merge',
+      'steam_id', p_steam_id,
+      'merged_user_id', p_source,
+      'merged_email', v_src_email,
+      'merged_username', src.username,
+      'access_changed', v_after.role is distinct from dst.role
+                        or v_after.is_superuser is distinct from dst.is_superuser
+                        or v_after.is_alpha_tester is distinct from dst.is_alpha_tester,
+      'before', jsonb_build_object(
+        'account', jsonb_build_object('role', dst.role, 'tier', dst.tier, 'is_superuser', dst.is_superuser,
+                                      'is_alpha_tester', dst.is_alpha_tester, 'username', dst.username),
+        'merged_account', jsonb_build_object('role', src.role, 'tier', src.tier, 'is_superuser', src.is_superuser,
+                                             'is_alpha_tester', src.is_alpha_tester, 'username', src.username,
+                                             'is_verified_owner', src.is_verified_owner)
+      ),
+      'after', jsonb_build_object('role', v_after.role, 'tier', v_after.tier, 'is_superuser', v_after.is_superuser,
+                                  'is_alpha_tester', v_after.is_alpha_tester, 'username', v_after.username),
+      'moved', jsonb_build_object('scores', v_scores, 'duplicate_scores_dropped', v_dup_scores,
+                                  'ship_designs', v_designs, 'feedback', v_feedback, 'votes', v_votes)
+    )
+  );
 
   return jsonb_build_object(
     'scores_moved', v_scores,
@@ -162,7 +215,10 @@ begin
     'feedback_moved', v_feedback,
     'votes_moved', v_votes,
     'username', coalesce(dst.username, src.username),
-    'adopted_username', dst.username is null and src.username is not null
+    'adopted_username', dst.username is null and src.username is not null,
+    'role', v_after.role,
+    'role_before', dst.role,
+    'is_superuser', v_after.is_superuser
   );
 end;
 $$;

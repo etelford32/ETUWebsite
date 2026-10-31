@@ -16,13 +16,18 @@ async function requireStaff(request: NextRequest) {
   return { session }
 }
 
-// GET /api/admin/users — list all profiles (staff+)
+// GET /api/admin/users — list all profiles and the account merge history (staff+)
 export async function GET(request: NextRequest) {
   const gate = await requireStaff(request)
   if ('error' in gate) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
   try {
     const supabase = createServerClient()
+    const mergesQuery = (supabase.from('admin_audit_log') as any)
+      .select('id, created_at, target_id, target_email, details')
+      .eq('action', 'account_merge')
+      .order('created_at', { ascending: false })
+      .limit(100)
     const { data, error } = await supabase
       .from('profiles')
       .select(
@@ -34,7 +39,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ users: data || [] })
+    // Account merge history (Steam game account folded into an email
+    // account). Staff see merges only; the full audit log stays in the
+    // superuser console.
+    const merges = await mergesQuery
+    if (merges.error) console.error('Admin merge history read failed:', merges.error)
+
+    return NextResponse.json({ users: data || [], merges: merges.error ? [] : merges.data || [] })
   } catch (error: any) {
     console.error('Admin users list error:', error)
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
