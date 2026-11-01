@@ -1,4 +1,6 @@
 -- LEADERBOARD-00 follow-up: deleting a run takes it off Steam too.
+-- Applied to the live project on 2026-11-01 as migration
+-- 20261101165743_leaderboard_steam_removals.
 --
 -- Steam's boards are KeepBest copies of player_scores. Deleting a row (from
 -- the Supabase dashboard, SQL, or by deleting the account) left its Steam
