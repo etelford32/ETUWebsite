@@ -1,4 +1,5 @@
--- Steam account merge (auth-flow.md §9, "Account merge").
+-- Steam account merge (auth-flow.md §9, "Account merge"). Applied to the
+-- live project on 2026-11-01 as migration 20261101124824_steam_account_merge.
 --
 -- A player who signs in from the game first gets a Steam-only account
 -- (synthetic email, ACCOUNT-01). If they later try to link that Steam ID to
