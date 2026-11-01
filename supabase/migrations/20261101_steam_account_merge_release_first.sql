@@ -1,5 +1,7 @@
 -- Steam account merge, follow-up: release the Steam account before moving
 -- its rows.
+-- Applied to the live project on 2026-11-01 as migration
+-- 20261101165926_steam_account_merge_release_first.
 --
 -- merge_steam_account (20261031_steam_account_merge) dropped a run the
 -- Steam account shared with the email account (same run_id) while the
@@ -142,7 +144,6 @@ begin
   -- admin_audit_log is left as written.
 
   -- 2 ── hand the Steam ID, callsign and access over ──────────────────
-
 
   update public.profiles d
      set steam_id                   = p_steam_id,
