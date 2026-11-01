@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { getSteamConfig } from '@/lib/steamWebApi'
-import { MAX_SYNC_ATTEMPTS, syncRowToSteam } from '@/lib/leaderboardSync'
+import { MAX_SYNC_ATTEMPTS, processSteamRemovals, syncRowToSteam } from '@/lib/leaderboardSync'
 
 /**
  * GET /api/cron/steam-leaderboard-sync — retry Steam leaderboard writes
  * (LEADERBOARD-00). /api/game/submit-run writes each verified run to Steam
- * inline; this picks up the ones Steam was down or slow for.
+ * inline; this picks up the ones Steam was down or slow for. It also
+ * drains steam_leaderboard_removals: runs deleted or un-verified on the
+ * website (dashboard, SQL, account delete) lose their Steam entry, and the
+ * player's best remaining run is re-posted in its place.
  *
  * Auth: Vercel Cron's `Authorization: Bearer ${CRON_SECRET}`.
  */
@@ -25,10 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: 'not_configured' })
   }
 
+  // Removals first, so a deleted run's score is gone before anything else.
+  const removals = await processSteamRemovals(BATCH)
+
   const supabase = createServerClient()
   const { data: rows, error } = await (supabase.from('player_scores') as any)
     .select('id, user_id, score, time_seconds, steam_leaderboards, steam_sync_attempts, metadata, profile:profiles(steam_id)')
     .eq('is_verified', true)
+    .eq('metadata->>steam_verified', 'true')
     .is('steam_synced_at', null)
     .neq('steam_leaderboards', '{}')
     .lt('steam_sync_attempts', MAX_SYNC_ATTEMPTS)
@@ -36,7 +43,7 @@ export async function GET(request: NextRequest) {
     .limit(BATCH)
   if (error) {
     console.error('steam-leaderboard-sync:', error.message)
-    return NextResponse.json({ error: 'query_failed' }, { status: 500 })
+    return NextResponse.json({ error: 'query_failed', removals }, { status: 500 })
   }
 
   let synced = 0
@@ -47,5 +54,5 @@ export async function GET(request: NextRequest) {
     else failed++
   }
 
-  return NextResponse.json({ ok: true, attempted: (rows || []).length, synced, failed, ranAt: new Date().toISOString() })
+  return NextResponse.json({ ok: true, attempted: (rows || []).length, synced, failed, removals, ranAt: new Date().toISOString() })
 }
