@@ -15,6 +15,15 @@ import {
   type Role,
   type Tier,
 } from '@/lib/accountTiers'
+import { describeMerge, mergeAccessChanges, type MergeDetails } from '@/lib/mergeHistory'
+
+interface MergeEntry {
+  id: number
+  created_at: string
+  target_id: string | null
+  target_email: string | null
+  details: MergeDetails
+}
 
 const ROLE_BUTTON_COLORS: Record<Role, string> = {
   admin: 'bg-red-600 hover:bg-red-700',
@@ -56,6 +65,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [users, setUsers] = useState<User[]>([])
+  const [merges, setMerges] = useState<MergeEntry[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -107,7 +117,8 @@ export default function UserManagement() {
     try {
       const res = await fetch('/api/admin/users')
       if (!res.ok) throw new Error(`Failed to load users (${res.status})`)
-      const { users: rows } = await res.json()
+      const { users: rows, merges: mergeRows } = await res.json()
+      setMerges(mergeRows || [])
 
       const usersData: User[] = (rows || []).map((profile: any) => ({
         id: profile.id,
@@ -494,6 +505,30 @@ export default function UserManagement() {
             </div>
           )}
         </motion.div>
+
+        {/* Account merge history */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"
+        >
+          <div className="px-6 py-4 border-b border-slate-800">
+            <h2 className="text-xl font-semibold text-white">Account merge history</h2>
+            <p className="text-sm text-slate-400">
+              Players who folded a Steam game account into their email account while linking Steam. When the two
+              accounts had different access, the higher role, superuser and alpha access are kept.
+            </p>
+          </div>
+          {merges.length === 0 ? (
+            <div className="px-6 py-6 text-sm text-slate-500">No account merges yet.</div>
+          ) : (
+            <ul className="divide-y divide-slate-800">
+              {merges.map((m) => (
+                <MergeRow key={m.id} entry={m} />
+              ))}
+            </ul>
+          )}
+        </motion.div>
       </div>
 
       {/* User Management Modal */}
@@ -540,6 +575,18 @@ export default function UserManagement() {
                 {TIER_LABELS[selectedUser.tier].hint}. The tier follows the role and the alpha flag;
                 it decides which build the account receives and never unlocks anything inside one.
               </div>
+              {merges.some((m) => m.target_id === selectedUser.id) && (
+                <div>
+                  <div className="text-sm text-slate-400 mb-1">Merge history</div>
+                  <ul className="rounded-lg border border-slate-800 divide-y divide-slate-800">
+                    {merges
+                      .filter((m) => m.target_id === selectedUser.id)
+                      .map((m) => (
+                        <MergeRow key={m.id} entry={m} compact />
+                      ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {isAdmin && (
@@ -582,5 +629,36 @@ export default function UserManagement() {
         </div>
       )}
     </div>
+  )
+}
+
+function MergeRow({ entry, compact = false }: { entry: MergeEntry; compact?: boolean }) {
+  const d = entry.details || {}
+  const changes = mergeAccessChanges(d)
+  const merged = d.before?.merged_account
+  return (
+    <li className={`${compact ? 'px-3 py-2' : 'px-6 py-3'} text-sm`}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="text-slate-500">
+          {new Date(entry.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+        </span>
+        {!compact && <span className="text-cyan-300">{entry.target_email || 'unknown'}</span>}
+        <span className="text-slate-300">{describeMerge(d)}</span>
+        {changes.length > 0 && (
+          <span className="px-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs">
+            access changed
+          </span>
+        )}
+      </div>
+      {merged && (
+        <div className="text-xs text-slate-500 mt-1">
+          Merged account was {merged.role || 'user'}
+          {merged.is_superuser ? ' (superuser)' : ''}
+          {merged.is_alpha_tester ? ', alpha tester' : ''}
+          {merged.is_verified_owner ? ', Steam verified owner' : ''}
+          {d.merged_user_id ? <> · id <span className="font-mono">{d.merged_user_id}</span></> : null}
+        </div>
+      )}
+    </li>
   )
 }

@@ -13,7 +13,11 @@ type Flash = { type: 'success' | 'error'; text: string }
 /** Outcome codes /api/steam/callback appends to the return URL. */
 const STEAM_MESSAGES: Record<string, Flash> = {
   steam_linked: { type: 'success', text: 'Steam account linked. Your avatar and game progress now sync to this profile.' },
-  steam_already_linked: { type: 'error', text: 'That Steam account is already linked to a different ETU account.' },
+  steam_merged: { type: 'success', text: 'Accounts merged. Your Steam sign-in, game progress and scores now live on this account.' },
+  steam_already_linked: {
+    type: 'error',
+    text: 'That Steam account is linked to a different ETU account that has its own email sign-in. Sign in to that account with Steam, unlink Steam under Settings, then link it here.',
+  },
   steam_replace_requires_unlink: { type: 'error', text: 'Unlink your current Steam account before linking a different one.' },
   steam_cancelled: { type: 'error', text: 'Steam sign-in was cancelled.' },
   steam_expired: { type: 'error', text: 'The Steam request expired. Please try again.' },
@@ -24,26 +28,37 @@ const STEAM_MESSAGES: Record<string, Flash> = {
 }
 
 /**
+ * The callback's code for "this Steam ID already has a Steam-only account
+ * (the player signed in from the game first); offer to merge it".
+ */
+const MERGE_OFFER_CODE = 'steam_merge_available'
+
+/**
  * Read a ?message= / ?error= Steam outcome from the current URL (once), and
  * strip it so a refresh doesn't replay it. Done via window.location rather
  * than useSearchParams so pages don't need a Suspense boundary.
  */
-export function useSteamFlash(): [Flash | null, (flash: Flash | null) => void] {
+export function useSteamFlash(): [Flash | null, (flash: Flash | null) => void, boolean, (offered: boolean) => void] {
   const [flash, setFlash] = useState<Flash | null>(null)
+  const [mergeOffered, setMergeOffered] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const url = new URL(window.location.href)
     const code = url.searchParams.get('message') || url.searchParams.get('error')
-    if (!code || !STEAM_MESSAGES[code]) return
-    setFlash(STEAM_MESSAGES[code])
-    if (code === 'steam_linked') void trackSteamEvent('steam_linked')
+    if (code === MERGE_OFFER_CODE) {
+      setMergeOffered(true)
+    } else {
+      if (!code || !STEAM_MESSAGES[code]) return
+      setFlash(STEAM_MESSAGES[code])
+      if (code === 'steam_linked') void trackSteamEvent('steam_linked')
+    }
     url.searchParams.delete('message')
     url.searchParams.delete('error')
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
   }, [])
 
-  return [flash, setFlash]
+  return [flash, setFlash, mergeOffered, setMergeOffered]
 }
 
 /** Mutating Steam routes need the session's CSRF token in a header. */
@@ -86,7 +101,7 @@ export function SteamProfileLink({
   const [confirmingUnlink, setConfirmingUnlink] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [flash, setFlash] = useSteamFlash()
+  const [flash, setFlash, mergeOffered, setMergeOffered] = useSteamFlash()
 
   const handleLinkSteam = () => {
     setLinking(true)
@@ -288,6 +303,20 @@ export function SteamProfileLink({
     )
   }
 
+  if (mergeOffered) {
+    return (
+      <div className="space-y-3">
+        {flashBanner}
+        <SteamMergePrompt
+          onCancelled={() => {
+            setMergeOffered(false)
+            setFlash({ type: 'error', text: 'Steam was not linked. Your game account is unchanged.' })
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
       {flashBanner}
@@ -309,6 +338,172 @@ export function SteamProfileLink({
             {linking ? 'Redirecting…' : 'Link Steam'}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+interface MergePreview {
+  username: string | null
+  displayName: string | null
+  avatarUrl: string | null
+  level: number | null
+  highestScore: number | null
+  scores: number
+  shipDesigns: number
+  isVerifiedOwner: boolean
+  createdAt: string | null
+}
+
+/**
+ * Shown when "Link Steam" found the Steam ID already on a Steam-only account
+ * (made when the player signed in from the game). Confirming folds that
+ * account into this one via POST /api/steam/merge.
+ */
+function SteamMergePrompt({ onCancelled }: { onCancelled: () => void }) {
+  const [preview, setPreview] = useState<MergePreview | null>(null)
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/steam/merge', { cache: 'no-store' })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}))
+        if (!active) return
+        if (!res.ok || !data.steam_account) {
+          setLoadError('The merge request expired. Click "Link Steam" again to restart it.')
+          return
+        }
+        setPreview(data.steam_account)
+        setCurrentUsername(data.current_username ?? null)
+      })
+      .catch(() => active && setLoadError('Network error. Please reload the page and try again.'))
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const handleMerge = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/steam/merge', { method: 'POST', headers: await csrfHeaders() })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.message || 'Merging failed. Please try again.')
+        setBusy(false)
+        return
+      }
+      void trackSteamEvent('steam_linked', { merged: true })
+      // Reload (staying busy) so every part of the page picks up the merged profile.
+      const url = new URL(window.location.href)
+      url.searchParams.set('message', 'steam_merged')
+      window.location.assign(url.toString())
+    } catch {
+      setError('Network error. Please try again.')
+      setBusy(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    setBusy(true)
+    await fetch('/api/steam/merge', { method: 'DELETE', headers: await csrfHeaders() }).catch(() => undefined)
+    setBusy(false)
+    onCancelled()
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700 space-y-3">
+        <p className="text-sm text-rose-300">{loadError}</p>
+        <button onClick={onCancelled} className="text-sm text-slate-400 hover:text-slate-200 transition">
+          Dismiss
+        </button>
+      </div>
+    )
+  }
+
+  if (!preview) {
+    return (
+      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700 text-sm text-slate-400">
+        Checking your Steam account…
+      </div>
+    )
+  }
+
+  const name = preview.username || preview.displayName || 'your Steam account'
+  const keepsName = !!currentUsername && !!preview.username && currentUsername.toLowerCase() !== preview.username.toLowerCase()
+
+  return (
+    <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 space-y-4">
+      <div className="flex items-start gap-3">
+        <SteamIcon className="w-8 h-8 text-indigo-300 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-indigo-100">This Steam account already has game progress</div>
+          <p className="text-sm text-slate-300 mt-1">
+            You signed in from the game as <span className="font-semibold text-white">{name}</span>. Merge it into
+            this account to keep one profile: your Steam sign-in, scores and progress move here, and the separate
+            game account is closed.
+          </p>
+        </div>
+      </div>
+
+      <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+        <li className="rounded-lg bg-slate-900/60 border border-slate-700 px-2 py-2">
+          <div className="text-lg font-semibold text-white">{preview.level ?? 1}</div>
+          <div className="text-slate-400">Level</div>
+        </li>
+        <li className="rounded-lg bg-slate-900/60 border border-slate-700 px-2 py-2">
+          <div className="text-lg font-semibold text-white">{preview.scores}</div>
+          <div className="text-slate-400">{preview.scores === 1 ? 'Run' : 'Runs'}</div>
+        </li>
+        <li className="rounded-lg bg-slate-900/60 border border-slate-700 px-2 py-2">
+          <div className="text-lg font-semibold text-white">{(preview.highestScore ?? 0).toLocaleString()}</div>
+          <div className="text-slate-400">Best score</div>
+        </li>
+        <li className="rounded-lg bg-slate-900/60 border border-slate-700 px-2 py-2">
+          <div className="text-lg font-semibold text-white">{preview.shipDesigns}</div>
+          <div className="text-slate-400">{preview.shipDesigns === 1 ? 'Ship design' : 'Ship designs'}</div>
+        </li>
+      </ul>
+
+      <ul className="text-xs text-slate-400 space-y-1 list-disc pl-5">
+        <li>You&apos;ll keep signing in here with your email, and can also sign in with Steam.</li>
+        <li>Lifetime game totals keep the higher of the two accounts.</li>
+        {keepsName ? (
+          <li>
+            Your callsign stays <span className="text-slate-200">{currentUsername}</span>;{' '}
+            <span className="text-slate-200">{preview.username}</span> is released.
+          </li>
+        ) : !currentUsername && preview.username ? (
+          <li>
+            This account takes the callsign <span className="text-slate-200">{preview.username}</span>.
+          </li>
+        ) : null}
+        {preview.isVerifiedOwner && <li>Your Steam Verified Owner badge comes with it.</li>}
+        <li>This can&apos;t be undone.</li>
+      </ul>
+
+      {error && <p className="text-sm text-rose-300">{error}</p>}
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <button
+          onClick={handleMerge}
+          disabled={busy}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition disabled:opacity-50"
+        >
+          {busy ? 'Merging…' : 'Merge accounts'}
+        </button>
+        <button
+          onClick={handleCancel}
+          disabled={busy}
+          className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition disabled:opacity-50"
+        >
+          Not now
+        </button>
       </div>
     </div>
   )

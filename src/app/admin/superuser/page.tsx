@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AnalyticsPanel from './AnalyticsPanel'
 import { ROLES, ROLE_COLORS, TIER_LABELS, type Role, type Tier } from '@/lib/accountTiers'
+import { describeMerge } from '@/lib/mergeHistory'
 
 type Status = 'active' | 'suspended' | 'banned' | 'deleted'
 
@@ -60,6 +61,7 @@ function describeAudit(entry: AuditEntry) {
     case 'set_superuser': return v ? 'granted superuser' : 'removed superuser'
     case 'set_alpha': return v ? 'granted alpha access' : 'removed alpha access'
     case 'delete_user': return 'deleted account'
+    case 'account_merge': return describeMerge(entry.details)
     default: return entry.action
   }
 }
@@ -391,13 +393,20 @@ export default function SuperuserConsole() {
 
         <h2 className="text-xl font-semibold mb-3">Audit log</h2>
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl divide-y divide-slate-800">
-          {audit.length === 0 && <div className="px-4 py-6 text-sm text-slate-500">No superuser actions yet.</div>}
+          {audit.length === 0 && <div className="px-4 py-6 text-sm text-slate-500">No superuser actions or account merges yet.</div>}
           {audit.map((entry) => (
             <div key={entry.id} className="px-4 py-3 text-sm flex flex-wrap gap-x-3">
               <span className="text-slate-500">{formatDate(entry.created_at)}</span>
               <span className="text-amber-300">{entry.actor_email || 'unknown'}</span>
               <span className="text-slate-300">{describeAudit(entry)}</span>
-              <span className="text-slate-400">for {entry.target_email || 'unknown'}</span>
+              {entry.action === 'account_merge' ? (
+                <span className="text-indigo-300">(self-service, Steam link)</span>
+              ) : (
+                <span className="text-slate-400">for {entry.target_email || 'unknown'}</span>
+              )}
+              {entry.action === 'account_merge' && entry.details?.access_changed && (
+                <span className="px-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs">access changed</span>
+              )}
             </div>
           ))}
         </div>
