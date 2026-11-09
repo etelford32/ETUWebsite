@@ -3,6 +3,7 @@ import { createOAuthClient, createServerClient, OAUTH_VERIFIER_KEY } from '@/lib
 import { setSessionOnResponse } from '@/lib/session'
 import { recordAuthEvent } from '@/lib/authEvents'
 import { enqueueLifecycleJob } from '@/lib/lifecycle'
+import { markSignUpForAnalytics } from '@/lib/signupAnalytics'
 import {
   OAUTH_COOKIE_OPTIONS,
   OAUTH_NEXT_COOKIE,
@@ -99,6 +100,7 @@ export async function GET(request: NextRequest) {
 
     const response = finish(NextResponse.redirect(`${origin}${next}`))
     await setSessionOnResponse(response, user.id, user.email, role)
+    if (isNewUser) markSignUpForAnalytics(response, 'google')
     return response
   } catch (error) {
     console.error('OAuth callback exception:', error)

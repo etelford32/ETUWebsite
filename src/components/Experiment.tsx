@@ -8,13 +8,7 @@ import {
   isValidVariant,
   type ExperimentId,
 } from '@/lib/experiments'
-
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void
-    dataLayer?: unknown[]
-  }
-}
+import { sendGtagEvent } from '@/lib/gtag'
 
 function readCookie(name: string): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -34,12 +28,10 @@ export function useExperiment(id: ExperimentId): string {
     setVariant(resolved)
 
     // Fire one exposure event per page load.
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', 'experiment_exposure', {
-        experiment_id: id,
-        variant_id: resolved,
-      })
-    }
+    sendGtagEvent('experiment_exposure', {
+      experiment_id: id,
+      variant_id: resolved,
+    })
   }, [id, exp])
 
   return variant

@@ -4,6 +4,7 @@ import { getSessionFromRequest, setSessionOnResponse } from '@/lib/session'
 import { recordAuthEvent } from '@/lib/authEvents'
 import { checkRateLimit, getIdentifier } from '@/lib/ratelimit'
 import { findOrCreateSteamAccount } from '@/lib/steamAccount'
+import { markSignUpForAnalytics } from '@/lib/signupAnalytics'
 import { verifyOwnership } from '@/lib/steamOwnership'
 import { STEAM_MERGE_COOKIE, STEAM_MERGE_COOKIE_OPTIONS, findSteamHolder, signMergeOffer } from '@/lib/steamMerge'
 import {
@@ -241,5 +242,6 @@ async function signInWithSteam(
 
   const response = redirectTo(destination)
   await setSessionOnResponse(response, account.userId, account.email, role)
+  if (account.created) markSignUpForAnalytics(response, 'steam')
   return response
 }
