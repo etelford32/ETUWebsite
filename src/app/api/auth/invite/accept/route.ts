@@ -4,6 +4,7 @@ import { setSessionOnResponse } from '@/lib/session'
 import { validatePassword } from '@/lib/passwordValidation'
 import { recordAuthEvent } from '@/lib/authEvents'
 import { enqueueLifecycleJob } from '@/lib/lifecycle'
+import { markSignUpForAnalytics } from '@/lib/signupAnalytics'
 
 // POST /api/auth/invite/accept — consume an invite and create the account
 export async function POST(request: NextRequest) {
@@ -148,5 +149,6 @@ export async function POST(request: NextRequest) {
   })
 
   await setSessionOnResponse(response, authData.user.id, authData.user.email!, invite.role)
+  markSignUpForAnalytics(response, 'invite')
   return response
 }

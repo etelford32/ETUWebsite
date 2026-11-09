@@ -17,6 +17,8 @@
  * TODO: Implement the API routes above and update these functions
  */
 
+import { GA4_MIRRORED_EVENTS, sendGtagEvent } from '@/lib/gtag'
+
 // Generate a unique session ID
 function getSessionId(): string {
   if (typeof window === 'undefined') return ''
@@ -175,6 +177,12 @@ export async function trackEvent(
   metadata?: Record<string, any>
 ) {
   if (typeof window === 'undefined') return
+
+  // Mirror conversions / funnel steps to GA4 (allowlisted, PII-scrubbed,
+  // no-op when gtag is missing). The Supabase POST below is unchanged.
+  if (GA4_MIRRORED_EVENTS.has(eventName)) {
+    sendGtagEvent(eventName, { ...metadata, event_category: eventType })
+  }
 
   const sessionId = getSessionId()
   const { browser, os } = getBrowserInfo()

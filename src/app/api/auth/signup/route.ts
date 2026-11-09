@@ -5,6 +5,7 @@ import { RateLimiters, getEmailIdentifier } from '@/lib/ratelimit'
 import { validatePassword } from '@/lib/passwordValidation'
 import { recordAuthEvent } from '@/lib/authEvents'
 import { enqueueLifecycleJob } from '@/lib/lifecycle'
+import { markSignUpForAnalytics } from '@/lib/signupAnalytics'
 
 export async function POST(request: NextRequest) {
   try {
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
     })
 
     await setSessionOnResponse(response, authData.user.id, authData.user.email!, role)
+    markSignUpForAnalytics(response, 'email')
 
     return response
   } catch (error: any) {
