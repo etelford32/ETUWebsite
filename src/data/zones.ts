@@ -35,7 +35,7 @@ export const zones: Record<string, Zone> = {
       "The Mycelari heartlands. Zone 1's planets pulse with mycelial light and rebuild themselves between visits — every Commander who lands feeds the network on the way back out.",
     color: { primary: "#a78bfa", secondary: "#8b5cf6", accent: "#c4b5fd" },
     aliases: ["fungal", "zone 1", "mycelari"],
-    heroImage: "/Mycelari_Hero2.jpg",
+    heroImage: "/art/mycelari-swarm-scene.jpg",
   },
   wild: {
     id: "wild",
@@ -71,7 +71,7 @@ export const zones: Record<string, Zone> = {
       "Home of MEGABOT and the rest of the evil-robot roster. Zone 4 is one giant production line — every kill makes the next one harder.",
     color: { primary: "#22d3ee", secondary: "#4f46e5", accent: "#67e8f9" },
     aliases: ["evil", "zone 4", "evil_robot", "megabot_arena"],
-    heroImage: "/eveil_robot_hero1.jpg",
+    heroImage: "/art/megabot-crimson-eye.jpg",
   },
   insect: {
     id: "insect",
@@ -143,7 +143,7 @@ export const zones: Record<string, Zone> = {
       "Home of the Space Dwarves and their great guild, the Crystal Consortium, under the Starhammer crown. Zone 10 sings — and answers.",
     color: { primary: "#60a5fa", secondary: "#3b82f6", accent: "#93c5fd" },
     aliases: ["crystal", "zone 10"],
-    heroImage: "/Crystal_Race.jpg",
+    heroImage: "/art/space-dwarves-crystal-mine-scene.jpg",
   },
   nebula: {
     id: "nebula",

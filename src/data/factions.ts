@@ -1,3 +1,5 @@
+import type { ArtPiece } from "@/components/ArtGallery";
+
 /**
  * A unit as the website presents it: lore and character only. Stats,
  * loadouts, spawn rules and other game internals deliberately stay out of
@@ -16,6 +18,19 @@ export interface FactionUnit {
   quote?: string;
 }
 
+/** Someone a faction answers to, as the game voices them. */
+export interface FactionLeader {
+  name: string;
+  /** Their title or standing, e.g. "Bear Mecha King". */
+  title: string;
+  description: string;
+  /** A line they speak in-game. */
+  quote?: string;
+  /** Their own page: a boss profile or a long-form feature. */
+  href?: string;
+  hrefLabel?: string;
+}
+
 export interface Faction {
   id: string;
   /** Game-side faction token (matches the boss registry, e.g. "evil_robots"). */
@@ -24,9 +39,19 @@ export interface Faction {
   tagline: string;
   /** "live" = full profile shipped. "in-development" = stub, hidden details. */
   status?: "live" | "in-development";
+  /** Pill on the profile hero. Defaults to "Faction". */
+  kind?: string;
   description?: string;
+  /** Wide painting behind the profile hero. */
   heroImage: string;
-  gallery?: string[];
+  /** CSS object-position for the hero painting, when the subject is off-centre. */
+  heroPosition?: string;
+  /** Text-free painting for cards and share images. Falls back to heroImage. */
+  cardImage?: string;
+  /** The faction's emblem, shown beside its name. */
+  emblem?: { src: string; alt: string };
+  /** Key art, shown at its own proportions with a full-size viewer. */
+  gallery?: ArtPiece[];
   /** Lore home — surfaced on the detail page when present. */
   homePlanet?: string;
   homeZone?: string;
@@ -37,124 +62,153 @@ export interface Faction {
     secondary: string;
     accent: string;
   };
+  leaders?: FactionLeader[];
   abilities?: string[];
   playstyle?: string;
+  /** Heading over `playstyle`. Defaults to "How they fight". */
+  playstyleLabel?: string;
+  /** Heading over `abilities`. Defaults to "What they bring". */
+  abilitiesLabel?: string;
   lore?: string;
   units?: FactionUnit[];
   strengths?: string[];
   weaknesses?: string[];
+  /** Heading of the closing call to action. */
+  ctaTitle?: string;
 }
 
+/*
+ * Where this copy comes from: the game repository. Descriptions follow the
+ * faction registry, unit lines follow Cyl's bestiary, and every quote is a
+ * line the character speaks in-game. Concept art is labelled as concept art.
+ */
 export const factions: Record<string, Faction> = {
-  "crystal-intelligences": {
-    id: "crystal-intelligences",
-    token: "crystal_intelligences",
-    status: "live",
-    name: "CYL • Crystal Intelligences",
-    tagline: "Light-bending defenses and precision strikes",
-    homeZone: "Zone 10: Crystal",
-    homePlanet: "Yllar",
-    description:
-      "The Crystal Intelligences are sentient crystalline beings that harness light and electromagnetic energy. Their civilization is built on principles of perfect geometry and harmonic resonance.",
-    heroImage: "/Crystal_Race.jpg",
-    gallery: ["/Crystal_Race.jpg", "/FutureCyl.jpg"],
-    color: {
-      primary: "#60a5fa",
-      secondary: "#3b82f6",
-      accent: "#93c5fd",
-    },
-    abilities: [
-      "Light Refraction Shields",
-      "Precision Laser Arrays",
-      "Crystalline Resonance",
-      "Phase Shifting",
-    ],
-    playstyle:
-      "Tactical and defensive, the Crystals excel at area denial and precise elimination of high-value targets. Their structures create defensive zones that bend incoming fire.",
-    lore: "Born in the heart of a collapsing star, the Crystal Intelligences emerged when extreme pressure and energy fused silicon into sentient lattices. They communicate through light pulses and see the universe as a grand equation to be solved.",
-    strengths: [
-      "Superior defensive capabilities",
-      "Long-range precision weapons",
-      "Energy efficiency",
-      "Terrain advantage in asteroid fields",
-    ],
-    weaknesses: [
-      "Vulnerable to sustained bombardment",
-      "Slower unit production",
-      "Weak in close-quarters combat",
-      "Limited adaptability to rapid changes",
-    ],
-    units: [
-      {
-        name: "Prism Frigate",
-        description:
-          "Fast reconnaissance vessel with light-bending stealth capabilities",
-      },
-      {
-        name: "Lattice Cruiser",
-        description:
-          "Main battle unit with focused beam weapons and shield projection",
-      },
-      {
-        name: "Resonance Dreadnought",
-        description:
-          "Capital ship that creates harmonic disruption fields",
-      },
-    ],
-  },
   mycelari: {
     id: "mycelari",
     token: "mycelari",
     status: "live",
+    kind: "Playable Faction",
     name: "Mycelari • Fungal Swarm",
-    tagline: "Spore-based expansion and biomass economy",
+    tagline: "One mind in a million bodies.",
     homeZone: "Zone 1: Fungal",
-    homePlanet: "Bloomhaven",
+    homePlanet: "Mycelar Prime",
     description:
-      "The Mycelari are a collective consciousness of fungal organisms that spread through space via spore clouds. They consume asteroids and derelict stations to fuel rapid expansion.",
-    heroImage: "/Mycelari_Hero2.jpg",
-    gallery: ["/Mycelari_Hero2.jpg", "/Mycelari_Hero1.jpg"],
+      "A race of sentient fungi thriving in the Fungal Zone. The Mycelari did not build their ships. They grew them. Every world they touch becomes a node, and every node remembers.",
+    heroImage: "/art/mycelari-swarm-scene.jpg",
+    heroPosition: "50% 30%",
+    cardImage: "/art/mycelari-swarm-scene.jpg",
+    gallery: [
+      {
+        src: "/art/mycelari-swarm.jpg",
+        alt: "Poster: a colossal fungal queen with a glowing orange mushroom crown rises over a spore-lit world as a white fighter burns past on cyan engines. Explore the Universe 2175. The hive is awake. Wishlist on Steam.",
+        width: 1122,
+        height: 1402,
+        title: "The Hive Is Awake",
+        caption: "The Bloom Queen over the Fungal Zone. Official key art, November 2026.",
+      },
+      {
+        src: "/Mycelari_Hero1.jpg",
+        alt: "A Mycelari war band: mushroom-capped warriors with spears and spore orbs standing in ranks under two towering elders",
+        width: 1536,
+        height: 1024,
+        title: "The Chorus",
+        caption: "Warriors, healers and elders. The others listen to the old ones.",
+      },
+      {
+        src: "/Mycelari_Hero2.jpg",
+        alt: "A Mycelari elder with a glowing orange cap towers over smaller fungal warriors and drifting spores",
+        width: 1024,
+        height: 1536,
+        title: "Hyphae Elder",
+        caption: "Old, slow and very hard to kill.",
+      },
+    ],
     color: {
       primary: "#a78bfa",
       secondary: "#8b5cf6",
       accent: "#c4b5fd",
     },
+    leaders: [
+      {
+        name: "Bloom Queen",
+        title: "Harbinger of Convergence",
+        description:
+          "She carries the song outward. She seeds the field with her own children and reaps what grows, and she will turn your allies into hers while you watch.",
+        quote: "Convergence is not conquest. It is invitation.",
+        href: "/bosses/bloom-queen",
+        hrefLabel: "Bloom Queen boss profile",
+      },
+      {
+        name: "Fungal Lord",
+        title: "The network's waking will",
+        description:
+          "Everything that grows answers to him. He roots downward where she flowers outward, and he sleeps until something comes close enough to threaten the network.",
+        quote:
+          "I AM THE NETWORK AWAKE. Every thread of the Mycelari runs through me, and I have been dreaming a very long time.",
+        href: "/bosses/fungal-lord",
+        hrefLabel: "Fungal Lord boss profile",
+      },
+    ],
     abilities: [
-      "Spore Cloud Deployment",
-      "Biomass Conversion",
-      "Rapid Regeneration",
-      "Swarm Tactics",
+      "Armour that grows back",
+      "Healers that knit the line together",
+      "Spore bombing runs",
+      "Cordyceps takeover",
+      "Battle formations: Spear, Shield Wall, Encirclement",
+      "Convergence: two leaders, one life",
     ],
     playstyle:
-      "Aggressive expansion and overwhelming numbers. The Mycelari sacrifice individual units to achieve strategic objectives, growing stronger with every resource consumed.",
-    lore: "Once a simple decomposer species on a forgotten world, the Mycelari evolved collective intelligence when their spores reached a moon rich in exotic minerals. Now they seek to consume and transform the entire galaxy into their sprawling network.",
+      "The front line regrows its armour while healers knit it back together behind. Bombers seed the field with spores, Cordyceps Invaders take your allies rather than kill them, and the Bloom Queen switches the whole band between spear, shield wall and encirclement. Bring her within reach of the Fungal Lord and the two share one life between them.",
+    lore: "\u201cWe have no king, only the chorus.\u201d The Bloom Queen sings convergence, the Fungal Lord is the network\u2019s waking will, and the Hyphae Council dreams the long plans. Bloomhaven, Lordspore, Hyphos: all one root. Out in the dark a Mycelari caravan carries something older than they are, and Cyl can hear it. Its trust climbs a ladder, from Indifferent through Curious, Courting and Trading to Sworn and Bonded, and it remembers you from one run to the next. Strike it and the network remembers that too. Every spore you kill costs you standing. \u201cBring us something alive, and we will listen.\u201d",
     strengths: [
-      "Fastest expansion rate",
-      "Self-repairing structures",
-      "Numbers advantage",
-      "Can colonize hostile environments",
+      "A front line whose armour grows back",
+      "Numbers, and a Queen who makes more out of her enemies",
+      "Two leaders who share one life when they stand together",
+      "Allied with the Wild Clans from the first minute of a run",
     ],
     weaknesses: [
-      "Individual units are fragile",
-      "Vulnerable to area-of-effect weapons",
-      "Requires constant resource intake",
-      "Limited long-range capabilities",
+      "The healers hold the line together. Shoot them first",
+      "The elders are slow",
+      "The Fungal Lord sleeps until you come close",
+      "The network has a long memory for a betrayal",
     ],
+    // Cyl's bestiary, in her words.
     units: [
       {
-        name: "Spore Drone",
-        description:
-          "Expendable scout unit that spreads growth nodes",
+        name: "Fungal Warrior",
+        weightClass: "Line",
+        role: "The front line",
+        description: "The Mycelari front line: armour that grows back.",
       },
       {
-        name: "Mycelium Carrier",
-        description:
-          "Transport vessel that rapidly produces smaller units",
+        name: "Fungal Grunt",
+        weightClass: "Heavy",
+        role: "Walking bunker",
+        description: "A walking bunker under a crimson cap.",
       },
       {
-        name: "Bloom Titan",
-        description:
-          "Massive organic battleship that releases toxic spore clouds",
+        name: "Hyphae Healer",
+        weightClass: "Support",
+        role: "Mender",
+        description: "It knits its allies back together. Shoot it first.",
+      },
+      {
+        name: "Hyphae Elder",
+        weightClass: "Command",
+        role: "The one the others listen to",
+        description: "Old, slow and very hard to kill. The others listen to it.",
+      },
+      {
+        name: "Cordyceps Invader",
+        weightClass: "Hunter",
+        role: "Body-taker",
+        description: "It does not kill its prey. It takes it over.",
+      },
+      {
+        name: "Sporespine Bomber",
+        weightClass: "Heavy",
+        role: "Living bomber",
+        description: "A living bomber that seeds the field with spores.",
       },
     ],
   },
@@ -166,16 +220,75 @@ export const factions: Record<string, Faction> = {
     tagline: "Modular forms, overwhelming firepower, station-scale bosses",
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
+    kind: "Playable Faction",
     featurePage: { href: "/evil-robots", label: "Read the Evil Robots dossier" },
     description:
       "The Megabot Empire consists of massive modular machines that can reconfigure themselves for any combat situation. Each unit is a marvel of engineering with devastating firepower.",
-    heroImage: "/eveil_robot_hero1.jpg",
-    gallery: ["/eveil_robot_hero1.jpg", "/Megabot1.png"],
+    heroImage: "/art/megabot-crimson-eye.jpg",
+    heroPosition: "50% 35%",
+    cardImage: "/art/megabot-crimson-eye.jpg",
+    emblem: {
+      src: "/evil-robots/machine-empire-emblem.webp",
+      alt: "The Machine Empire crest: a cracked red-lit M of armour plate ringed by a swarm of drones",
+    },
+    gallery: [
+      {
+        src: "/art/megabot-crimson-eye.jpg",
+        alt: "MEGABOT's Crimson Eye: a bladed iris the size of a station burning red in a wall of dark armour plate and gun towers, with a tiny fighter fleeing across the lower corner",
+        width: 1536,
+        height: 1024,
+        title: "MEGABOT\u2019s Crimson Eye",
+        caption: "An eight-bladed iris in a wall of plate. When it opens, move.",
+      },
+      {
+        src: "/art/fleeing-the-colossal-megabot.jpg",
+        alt: "Poster: a lone white fighter trailing cyan exhaust banks away from MEGABOT, a station-sized machine with one red eye, in front of a burning star. ETU, Explore the Universe 2175. Wishlist on Steam.",
+        width: 1122,
+        height: 1402,
+        title: "Fleeing the Colossal MEGABOT",
+        caption: "Twenty-five ships tall, and it has already read your file.",
+      },
+      {
+        src: "/art/xj9-second-in-command.jpg",
+        alt: "Poster: XJ9, a towering humanoid war machine in dark chrome with molten orange seams and a crown of blade-like horns, standing in orbit above a blue planet with a glowing sword. XJ9, Megabot's Second in Command.",
+        width: 1122,
+        height: 1402,
+        title: "XJ9",
+        caption: "MEGABOT\u2019s second in command. In the forge, not yet in the playtest.",
+      },
+      {
+        src: "/art/solar-shade.jpg",
+        alt: "A vast dark triangular sail of hexagonal plate stretched between three stations in front of a blazing star, a small fighter flying beneath it. Solar Shade, Explore the Universe 2175.",
+        width: 1536,
+        height: 1024,
+        title: "The Solar Shade",
+        caption: "The sail the machines hang across a star. Break its three nodes to let the light back in.",
+      },
+    ],
     color: {
       primary: "#ef4444",
       secondary: "#dc2626",
       accent: "#fca5a5",
     },
+    leaders: [
+      {
+        name: "MEGABOT",
+        title: "The Eye of the Dominion Core",
+        description:
+          "The prototype every other machine descends from. It keeps score of what you do to its empire, sends its soldiers first, and then comes in person.",
+        quote: "EVERY UNIT YOU HAVE DESTROYED WAS A FINGER. I AM THE HAND.",
+        href: "/megabot",
+        hrefLabel: "Meet MEGABOT",
+      },
+      {
+        name: "XJ9",
+        title: "Second in command \u00b7 in the forge",
+        description:
+          "A planetary defender in dark mirror chrome, with a two-handed laser sword that drinks the lasers you fire at it. He holds the line over a world while the Empire works. He is being built now and is not in the playtest yet.",
+        href: "/evil-robots#xj9",
+        hrefLabel: "Read about XJ9",
+      },
+    ],
     abilities: [
       "Modular Reconstruction",
       "Heavy Artillery Barrages",
@@ -298,55 +411,134 @@ export const factions: Record<string, Faction> = {
     id: "wild",
     token: "wild_clans",
     status: "live",
-    name: "Wild • Ent-born Guardians",
-    tagline: "Pollen-based growth and terrain control",
+    kind: "Playable Faction",
+    name: "Wild Clans • The Woak",
+    tagline: "Half metal, half fur. They run the stars by scent, by pack, by claw.",
     homeZone: "Zone 2: Wild",
     homePlanet: "Urthan Prime",
     description:
-      "The Wild are ancient tree-like beings that have evolved to survive in the vacuum of space. They terraform asteroids into living gardens and use biological warfare to control territory.",
+      "Tribal animal clans that roam the Wild Zone: mecha-bears, bee swarms, hummingbird scouts and fireflies, with the walking trees of the Ent Council on their siege line. The Wild Clans remember when the stars were forests, and they still run them that way.",
     heroImage: "/Wild_Race.jpg",
-    gallery: ["/Wild_Race.jpg"],
+    heroPosition: "50% 30%",
+    cardImage: "/Wild_Race.jpg",
+    emblem: {
+      src: "/emblems/wild.webp",
+      alt: "The Wild Clans emblem: a W carved from bark and moss, with bears and a stag worked into its pillars and a green gem at its heart",
+    },
+    gallery: [
+      {
+        src: "/Wild_Race.jpg",
+        alt: "A great bear with glowing blue eyes among foxes, owls and birds of the Wild, with an ancient tree-being and a whale-like ship above",
+        width: 1024,
+        height: 1536,
+        title: "The Clans",
+        caption: "Bear, bee, hummingbird, firefly and Ent. They don\u2019t trust metal. Metal takes.",
+      },
+      {
+        src: "/emblems/wild.webp",
+        alt: "The Wild Clans emblem: a W carved from bark and moss with a green gem at its heart",
+        width: 800,
+        height: 800,
+        title: "Clan Mark",
+        caption: "Bark, moss and a green stone. Nothing forged.",
+      },
+    ],
     color: {
       primary: "#10b981",
       secondary: "#059669",
       accent: "#6ee7b7",
     },
+    leaders: [
+      {
+        name: "Ursos",
+        title: "Bear Mecha King \u00b7 Wild Clan High Chieftain",
+        description:
+          "Half metal, half fur, fully king. He wears the machine so the machine can\u2019t wear him. He meets you neutral and offers a truce before he offers anything else: \u201cI will hold my claws if you hold your fire.\u201d Refuse, and Ursos remembers refusals.",
+        quote:
+          "I was a cub when the machines burned the first forest. I carried the clans out of it, and I took their metal to do it.",
+        href: "/bosses/ursos",
+        hrefLabel: "Ursos boss profile",
+      },
+      {
+        name: "EntLord",
+        title: "Lord of Enthara",
+        description:
+          "The whole Ent Council in one body. Ten Elders sit the Council, from Oakhallow the Speaker to Rotheart, and when they merge they walk as one. He holds Enthara, the world beside Urthan Prime, and he has a trial waiting for you there.",
+      },
+    ],
     abilities: [
-      "Terraforming Pulse",
-      "Pollen Storm",
-      "Root Network Control",
-      "Symbiotic Bonding",
+      "Rampage charges",
+      "Bee swarms",
+      "Ent siege lines",
+      "Truce before teeth",
+      "Trade caravans and station envoys",
+      "Woak contracts",
     ],
     playstyle:
-      "Patient and strategic, the Wild excel at terrain control and guerrilla tactics. They create zones of influence that empower allies and hinder enemies.",
-    lore: "Guardians of a long-dead forest world, the Wild adapted to space when their planet's atmosphere was stripped away. They now drift between systems, seeking to create new gardens among the stars and protect all living things from the machines.",
+      "Bears ram first and ask nothing. Hummer Scouts report back to the Den, bee drones arrive as a swarm, and fireflies blink out of the dark to sting. Behind them the Ents walk a siege line. But the Wild talk before they bite: Ursos opens with a truce, the Wild Caravan runs the markets, and every station keeps an envoy. Earn the Woak\u2019s favour and their contracts keep coming.",
+    lore: "The machines burned the first forest when Ursos was a cub. He carried the clans out of it, and he took the machines\u2019 metal to do it. A dwarf smith forged the arm; the rage is his own, and the dwarf king has been sending him the bill for nine winters. The clans will not open to a stranger. Follow the whispers of the Bear King, bring the Woak what they ask for, and the Wild Caravan\u2019s trade houses open one by one: otters, foxes, shellbacks, and Jerrik, an orangutan so nervous the traders named him for it.",
     strengths: [
-      "Superior terrain control",
-      "Excellent defensive positions",
-      "Strong area denial",
-      "Synergy between units",
+      "Fast, cheap clans that come in swarms",
+      "Ents that hold a siege line",
+      "A truce on offer before the first shot",
+      "Traders and envoys at every station",
     ],
     weaknesses: [
-      "Vulnerable outside controlled zones",
-      "Slower offensive pushes",
-      "Weak against heavy armor",
-      "Dependent on strategic positioning",
+      "They do not trust metal, or strangers",
+      "A refused pact is never forgotten",
+      "Swarms are the point: thin them and the charge loses its weight",
+      "The Elders are strongest together and weaker apart",
     ],
+    // Cyl's bestiary, in her words.
     units: [
       {
-        name: "Seedling Scout",
-        description:
-          "Fast moving unit that spreads growth zones across the map",
+        name: "Brown Bear",
+        weightClass: "Heavy",
+        role: "Rammer",
+        description: "It will ram you for looking at it.",
       },
       {
-        name: "Guardian Treant",
-        description:
-          "Tanky defender that roots enemies in place",
+        name: "Black Bear",
+        weightClass: "Line",
+        role: "The faster one",
+        description: "Smaller than the brown, faster, and just as rude.",
       },
       {
-        name: "Ancient Worldtree",
+        name: "Hummer Scout",
+        weightClass: "Light",
+        role: "Eyes of the Den",
+        description: "It reports back to the Den.",
+      },
+      {
+        name: "Bee Drone",
+        weightClass: "Swarm",
+        role: "The swarm",
+        description: "The swarm is the point.",
+      },
+      {
+        name: "Firefly",
+        weightClass: "Light",
+        role: "Night stinger",
+        description: "A spark that blinks out of the dark and stings.",
+      },
+      {
+        name: "Ent Warden",
+        weightClass: "Heavy",
+        role: "Siege line",
+        description: "A walking tree on the Wild\u2019s siege line.",
+      },
+      {
+        name: "EntLord",
+        weightClass: "Boss-class",
+        role: "The Council, merged",
+        description: "The whole Ent Council in one body, the lord of Enthara.",
+      },
+      {
+        name: "Wild Caravan",
+        weightClass: "Support",
+        role: "Traders and envoys",
         description:
-          "Colossal support vessel that buffs all nearby Wild units",
+          "Free Traders and Wild Loyalists run the markets between them, nine animal trade houses in all, with an envoy posted at every station.",
       },
     ],
   },
@@ -360,11 +552,19 @@ export const factions: Record<string, Faction> = {
     token: "terran_federation",
     status: "in-development",
     name: "Terran Federation • Humanity's Last Banner",
+    kind: "Playable Faction",
     tagline: "Survivors of the Wreckage hold the line for old Earth.",
     heroImage: "/etu_epic.png",
+    emblem: {
+      src: "/emblems/terran-federation.webp",
+      alt: "The Terran Federation emblem: a winged steel T edged in gold with a blue star at its crown",
+    },
     homeZone: "Zone 15: Wreckage",
     homePlanet: "Elysium 2175",
     color: { primary: "#60a5fa", secondary: "#2563eb", accent: "#93c5fd" },
+    description:
+      "A human spacefaring civilization focused on exploration and diplomacy. Their explorers, miners, transports, defenders and colony ships are already flying, with the Prophet healing whoever is still standing.",
+    lore: "\u201cElysium. We lost one world already.\u201d The Federation holds what is left from Elysium 2175, in the Wreckage, and it has not forgotten how it got this far: \u201cAlliances are how humanity survived.\u201d",
   },
   "celestial-order": {
     id: "celestial-order",
@@ -417,6 +617,10 @@ export const factions: Record<string, Faction> = {
     name: "Rogue AI Network • Coremind",
     tagline: "Untethered intelligences scheming across the dark net.",
     heroImage: "/ai_systems.jpg",
+    emblem: {
+      src: "/emblems/rogue-ai-network.webp",
+      alt: "The Rogue AI Network emblem: a steel R wired with violet circuitry against falling green code",
+    },
     homeZone: "Zone 8: Rogue AI",
     homePlanet: "Nullgrid",
     color: { primary: "#a855f7", secondary: "#9333ea", accent: "#d8b4fe" },
@@ -435,14 +639,75 @@ export const factions: Record<string, Faction> = {
   "lumari": {
     id: "lumari",
     token: "lumari",
-    status: "in-development",
-    name: "Lumari • Star-Speakers",
-    tagline: "Photic envoys who navigate by song and signal.",
-    heroImage: "/etu_epic7.png",
-    homeZone: "Lumari",
-    homePlanet: "Lumenreach",
-    featurePage: { href: "/cyl", label: "Meet Cyl, the Lumari companion AI" },
+    status: "live",
+    kind: "Lost Civilization",
+    name: "Lumari • Crystal Intelligences",
+    tagline: "Erased by MEGABOT. One of them is still awake, and she rides with you.",
+    heroImage: "/cyl/cyl-key-art.webp",
+    heroPosition: "20% 50%",
+    cardImage: "/cyl/cyl-key-art.webp",
+    emblem: {
+      src: "/cyl/lumari-sigil.webp",
+      alt: "The Lumari sigil: a crystalline violet L inside a ring of light, a spiral galaxy turning behind it",
+    },
+    homeZone: "Zone 15: Wreckage",
+    homePlanet: "Lumaris",
+    featurePage: { href: "/cyl", label: "Meet Cyl, the last of the Lumari" },
     color: { primary: "#e879f9", secondary: "#c026d3", accent: "#f5d0fe" },
+    description:
+      "Ancient crystal intelligences erased by MEGABOT. The Lumari did not mine crystal or cut it. They were crystal: minds that lived inside it and navigated by song and signal. Their last remnant endures through Cyl and the network of stations they left behind.",
+    playstyleLabel: "What is left of them",
+    abilitiesLabel: "What they left behind",
+    playstyle:
+      "There is no Lumari fleet to fight or to join. What survives is scattered: a companion who chose you, stations that wake when she sings to them, a caravan carrying a crystal heart through the spores, and a signal on a carrier band the machines have been jamming.",
+    abilities: [
+      "Cyl, awake and flying beside you",
+      "Stations that wake and link into a network",
+      "The Khepri Signal",
+      "The Lumari Trade Caravan and its Heart",
+      "Lumaris, the shattered homeworld",
+      "The drive in your own ship",
+    ],
+    leaders: [
+      {
+        name: "Cyl",
+        title: "The last light of the Lumari",
+        description:
+          "A crystal consciousness in a drone harness built to carry her through space. She fights beside you, heals you, calls the space weather, asks who you are and remembers the answers.",
+        quote:
+          "I\u2019m a Lumari! We inhabit crystals, but I am in this robot body harness to be able to travel in space.",
+        href: "/cyl",
+        hrefLabel: "Meet Cyl",
+      },
+    ],
+    gallery: [
+      {
+        src: "/cyl/cyl-key-art.webp",
+        alt: "Cyl, a white and gold spherical drone with a glass dome holding a galaxy and a violet eye, hovering among violet crystals in a Lumari hall beside a holographic galaxy map",
+        width: 1450,
+        height: 941,
+        title: "Cyl, a Mind Beyond Worlds",
+        caption: "Lost past. Living now. Guiding what\u2019s next.",
+      },
+      {
+        src: "/art/cyl-corrupted-goddess.jpg",
+        alt: "Key art: a vast Cyl-like sphere wrapped in red lattice hangs over a dark world, a galaxy turning under its cracked dome and one green eye open. Cyl, The Corrupted Goddess. Knows all, feels nothing, still guides. Same intelligence, different purpose.",
+        width: 1672,
+        height: 941,
+        title: "Cyl, the Corrupted Goddess",
+        caption:
+          "Same intelligence, different purpose. A vision of what MEGABOT would make of her. Concept art for a story still being written.",
+      },
+      {
+        src: "/cyl/lumari-sigil.webp",
+        alt: "The Lumari sigil: a crystalline violet L inside a ring of light, a spiral galaxy turning behind it",
+        width: 800,
+        height: 800,
+        title: "The Lumari Sigil",
+      },
+    ],
+    lore: "The machines say it plainly: \u201cThe Lumari were scheduled first.\u201d Scan the wrecks and the scars match MEGABOT\u2019s eye-lance. Lumaris itself is shattered, though its crystal core still holds a little light, and when Cyl calls to it, it answers. Follow the Khepri Signal and you find what the Mega Mecha Scout was jamming: not a ship but a station, Lumari, grown into a shardmoon. \u201cAt the very end the War Council said it: hide the children, scatter the memories.\u201d The archive\u2019s last record is one word: \u201creleased\u201d. Even King Arkanvil has noticed. \u201cSomething out here is unmaking crystal minds, and I will have its head before it has one of mine.\u201d",
+    ctaTitle: "Follow the Khepri Signal",
   },
   "amphibia": {
     id: "amphibia",
@@ -502,13 +767,58 @@ export const factions: Record<string, Faction> = {
   "space-dwarves": {
     id: "space-dwarves",
     token: "crystal_consortium",
-    status: "in-development",
+    status: "live",
+    kind: "Playable Faction",
     name: "Space Dwarves • Crystal Masons",
     tagline: "Asteroid clans that forge starships the way smiths forge swords.",
-    heroImage: "/FutureCyl.jpg",
+    heroImage: "/art/space-dwarves-crystal-mine-scene.jpg",
+    heroPosition: "50% 25%",
+    cardImage: "/art/space-dwarves-crystal-mine-scene.jpg",
+    emblem: {
+      src: "/emblems/space-dwarves.webp",
+      alt: "The Crystal Masons emblem: a gold-banded rune ring around a hammer-and-chisel mark set with violet crystals, a dwarf's face at its foot",
+    },
     homeZone: "Zone 10: Crystal",
     homePlanet: "Yllar",
     color: { primary: "#f59e0b", secondary: "#d97706", accent: "#fcd34d" },
+    leaders: [
+      {
+        name: "King Arkanvil Starhammer",
+        title: "King of the Masons",
+        description:
+          "The greedy lord of the Crystal Masons. He forged his crown in vacuum and fire, holds Yllar\u2019s vaults, and has never once paid full price. He wants what thinks in crystal, which makes your companion very interesting to him. \u201cYou want guild trust? Earn it in crystal fire.\u201d",
+        quote:
+          "Lead? I rule. The guilds of Yllar kneel to me, and I kneel to nothing but a well-cut gem.",
+        href: "/bosses/arkanvil-king",
+        hrefLabel: "King Arkanvil boss profile",
+      },
+      {
+        name: "Billybob",
+        title: "Mentor of the guild",
+        description:
+          "Forty years on the drills, and the King\u2019s best cutter and worst tax payer. He meets new pilots after they first dock, keeps a cave full of curios on Jiayar, and knew what Cyl was the moment he saw her.",
+        quote: "Guild rule: never leave a shard behind, and never leave a friend in the dark.",
+      },
+    ],
+    gallery: [
+      {
+        src: "/art/space-dwarves-crystal-mine.jpg",
+        alt: "Poster: a braided, armoured Space Dwarf looks out over a glowing blue crystal mine as a mining barge hauls a load overhead and a fighter flies past. Explore the Universe 2175. Every alliance has a price. Wishlist on Steam.",
+        width: 1122,
+        height: 1402,
+        title: "Every Alliance Has a Price",
+        caption: "A mason crew at the seam. Seal an alliance and their enemies take note.",
+      },
+      {
+        src: "/art/king-arkanvil-lore-sheet.jpg",
+        alt: "Concept sheet: King Arkanvil, a crowned dwarf king in dark crystal-set armour, enthroned before a crystal megastructure around a star, surrounded by panels on his guard, his marines, the houses of Yllar and the Heart Crystal.",
+        width: 1402,
+        height: 1122,
+        title: "Arkanvil, Star King of Yllar",
+        caption:
+          "Concept sheet for the court of Yllar: the crown, the houses and the forge. Lore in development, and it may change before it reaches the game.",
+      },
+    ],
     description:
       "The Crystal Masons are the asteroid clans of Yllar: short, stubborn, and the finest shipwrights in the Crystal zone. Their great guild, the Crystal Consortium, runs the mines, the markets and the shipyards. Their hulls are stout, pontooned and trimmed in copper and cream, with a crystal set in every one. A mason crew does everything together. It cuts the rock, carries it home, mends its own and fights as one.",
     abilities: [
@@ -578,6 +888,12 @@ export const factions: Record<string, Faction> = {
         role: "Vaultwarden bastion",
         description:
           "The widest hull in the clan. It presses into the fight, throws a projected bastion over every ally near it and soaks the damage meant for them. Its guns are big because the tank is big.",
+      },
+      {
+        name: "Berserker",
+        weightClass: "Hunter",
+        role: "The roar",
+        description: "Its roar makes every dwarf near it hit harder.",
       },
       {
         name: "Priest",

@@ -22,6 +22,13 @@ const nextConfig = {
         destination: '/evil-robots',
         permanent: false,
       },
+      {
+        // "Crystal Intelligences" is what the Lumari were, not a faction of
+        // its own; the profile now lives under their name.
+        source: '/factions/crystal-intelligences',
+        destination: '/factions/lumari',
+        permanent: false,
+      },
     ]
   },
   async headers() {

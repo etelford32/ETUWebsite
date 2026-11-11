@@ -24,7 +24,7 @@ export const metadata: Metadata = {
       "Twenty-five ships tall, fifteen plates of armour, and a long memory for what you did to his empire. Bow to your God-AI.",
     url: `${SITE_URL}/megabot`,
     siteName: "Explore the Universe 2175",
-    images: [{ url: `${SITE_URL}/megabot/megabot-og.jpg`, width: 1200, height: 630 }],
+    images: [{ url: `${SITE_URL}/og/megabot.jpg`, width: 1200, height: 630 }],
     type: "article",
   },
   twitter: {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     title: "MEGABOT — Enemy of the Universe | Explore the Universe 2175",
     description:
       "Twenty-five ships tall, fifteen plates of armour, and a long memory for what you did to his empire.",
-    images: [`${SITE_URL}/megabot/megabot-og.jpg`],
+    images: [`${SITE_URL}/og/megabot.jpg`],
   },
 };
 
@@ -91,6 +91,13 @@ const STAGES = [
     body: "The core fails. The signal does not.",
     line: "THIS UNIT... WAS MERELY... A SCOUT...",
   },
+];
+
+// What it says when you open a channel and when you shout at it mid-fight.
+const SPOKEN = [
+  "I AM MEGABOT. THE EYE OF THE DOMINION CORE. EVERY UNIT YOU HAVE DESTROYED WAS A FINGER. I AM THE HAND.",
+  "THE EVIL EYE SEES YOUR HULL, YOUR REACTOR AND THE PATH YOU WILL DODGE ALONG. IT IS USUALLY CORRECT.",
+  "MEGABOT HEARS YOU. MEGABOT IS STILL GOING TO STEP ON YOU.",
 ];
 
 // The same machine, two masters.
@@ -343,19 +350,20 @@ export default function MegabotPage() {
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             <figure>
               <div
-                className="relative aspect-[4/3] rounded-xl overflow-hidden border border-red-500/20 bg-black/60"
+                className="relative aspect-[3/2] rounded-xl overflow-hidden border border-red-500/20 bg-black/60"
                 style={{ boxShadow: "0 0 40px rgba(239,68,68,0.10)" }}
               >
                 <Image
-                  src="/eveil_robot_hero1.jpg"
-                  alt="Two armoured machines of the Empire, red-eyed, one grinning, the larger looming behind"
+                  src="/art/megabot-crimson-eye.jpg"
+                  alt="MEGABOT's Crimson Eye: a bladed iris the size of a station burning red in a wall of dark armour plate and gun towers, with a tiny fighter fleeing across the lower corner"
                   fill
-                  className="object-cover object-top"
+                  className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 560px"
                 />
               </div>
               <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">
-                Every machine in the Empire wears its eyes. Only the prototype wears the Eye.
+                MEGABOT&rsquo;s Crimson Eye. Every machine in the Empire wears its eyes. Only the
+                prototype wears the Eye.
               </figcaption>
             </figure>
 
@@ -365,6 +373,14 @@ export default function MegabotPage() {
                 <p>
                   Everything else it does, you can see coming. The Eye is different. When it
                   opens, the field goes red along a line, and the line moves.
+                </p>
+                <p>
+                  It is a working iris, eight blades around a core. It watches, tracks and narrows
+                  before it fires, it blinks, and as you break the helm around it the blades crack
+                  and fall away one at a time.
+                </p>
+                <p className="font-mono text-sm text-red-200/90 tracking-wide">
+                  &ldquo;WATCH THE EYE. WHEN IT OPENS, MOVE.&rdquo;
                 </p>
                 <p>
                   Cyl, the Lumari crystal consciousness who flies beside you, has history with
@@ -378,6 +394,69 @@ export default function MegabotPage() {
                 </Link>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* -------------------------------------------------------- hunted --- */}
+        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
+            <div>
+              <SectionHeading eyebrow="Survival">He sends the others first</SectionHeading>
+              <div className="-mt-2 space-y-4 text-slate-300 leading-relaxed">
+                <p>
+                  A Survival run is a countdown you cannot see. Every few minutes the Empire sends
+                  something bigger: the Mega Mecha Scout, then the Alpha Robot, his favourite
+                  soldier, then the Null Architect, his builder, who imagines a room and puts you
+                  in it.
+                </p>
+                <p>
+                  They come through the gate of a{" "}
+                  <Link
+                    href="/evil-robots#solar-shade"
+                    className="text-cyan-300 hover:text-cyan-200 underline decoration-cyan-500/40 underline-offset-2"
+                  >
+                    Solar Shade
+                  </Link>
+                  , the sail the machines hang across a star. MEGABOT watches each soldier he
+                  sends, and sends him again. Then the retaliation order goes out, and he comes
+                  in person.
+                </p>
+              </div>
+              <ul className="mt-6 space-y-3">
+                {SPOKEN.map((line) => (
+                  <li key={line} className="font-mono text-sm text-red-200/90 tracking-wide">
+                    &ldquo;{line}&rdquo;
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/bosses" className="btn-ghost">
+                  See the bosses
+                </Link>
+                <Link href="/evil-robots#xj9" className="btn-ghost">
+                  Meet XJ9, his second
+                </Link>
+              </div>
+            </div>
+
+            <figure>
+              <div
+                className="rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
+                style={{ boxShadow: "0 0 60px rgba(239,68,68,0.16)" }}
+              >
+                <Image
+                  src="/art/fleeing-the-colossal-megabot.jpg"
+                  alt="A lone white fighter trailing cyan exhaust banks away from MEGABOT, a station-sized machine with one red eye, in front of a burning star. Title: ETU, Explore the Universe 2175."
+                  width={1122}
+                  height={1402}
+                  className="w-full h-auto"
+                  sizes="(max-width: 1024px) 100vw, 480px"
+                />
+              </div>
+              <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">
+                Fleeing the colossal MEGABOT.
+              </figcaption>
+            </figure>
           </div>
         </section>
 

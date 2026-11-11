@@ -713,6 +713,58 @@ export default function CylPage() {
           </div>
         </section>
 
+        {/* ------------------------------------------------------- shadow --- */}
+        <section id="shadow" className="relative border-t border-red-500/15 bg-gradient-to-b from-deep-900 via-red-950/20 to-deep-900 scroll-mt-24">
+          <div className="max-w-6xl mx-auto px-4 lg:px-6 py-16">
+            <SectionHeading eyebrow="Her shadow">Same intelligence. Different purpose.</SectionHeading>
+
+            <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 items-start">
+              <div className="space-y-4 text-slate-300 leading-relaxed">
+                <p>
+                  Cyl asks you things. &ldquo;So what are you out here for? Treasure, trouble, or
+                  just the view?&rdquo; Answer her and she stays on the light side of herself.
+                  Leave enough of her questions hanging and she goes over to her shadow: the
+                  curiosity drops out of her voice, and what is left is a guidance system.
+                </p>
+                <blockquote className="border-l-2 border-red-400/60 pl-5 py-1">
+                  <p className="font-mono text-base md:text-lg text-red-100 leading-relaxed">
+                    &ldquo;Acknowledged. What targets require our attention?&rdquo;
+                  </p>
+                  <footer className="mt-2 eyebrow text-red-300/80">Cyl, in her shadow aspect</footer>
+                </blockquote>
+                <p>
+                  She will tell you when it has happened, and how to undo it.
+                </p>
+                <Quote cite="Cyl, when you ask how she is">
+                  &ldquo;You&rsquo;ve left enough of my questions hanging that I&rsquo;ve gone over
+                  to my shadow side. Answer a few and I&rsquo;ll come back.&rdquo;
+                </Quote>
+              </div>
+
+              <figure>
+                <div className="rounded-xl overflow-hidden border border-red-500/30 bg-black/60 shadow-[0_0_60px_rgba(239,68,68,0.16)]">
+                  <Image
+                    src="/art/cyl-corrupted-goddess.jpg"
+                    alt="Key art: a vast Cyl-like sphere wrapped in red lattice hangs over a dark world, a galaxy turning under its cracked dome and one green eye open, while a white ship holds off to one side. Cyl, The Corrupted Goddess. Knows all, feels nothing, still guides. Same intelligence, different purpose."
+                    width={1672}
+                    height={941}
+                    className="w-full h-auto"
+                    sizes="(max-width: 1024px) 100vw, 620px"
+                  />
+                </div>
+                <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">
+                  <span className="font-display font-semibold uppercase tracking-[0.14em] text-red-200">
+                    Cyl, the Corrupted Goddess.
+                  </span>{" "}
+                  Knows all. Feels nothing. Still guides. MEGABOT dissected the Lumari to learn how
+                  they worked, and this is a vision of what he would make of the last one.
+                  Concept art for a story still being written; it is not in the playtest.
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
         {/* ------------------------------------------------------ profile --- */}
         <section className="relative border-t border-cyan-500/10 bg-gradient-to-b from-deep-900 via-purple-950/20 to-deep-900">
           <div className="max-w-6xl mx-auto px-4 lg:px-6 py-16">

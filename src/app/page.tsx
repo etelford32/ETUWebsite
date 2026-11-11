@@ -47,36 +47,166 @@ const PILLARS = [
     lead: "Strip MEGABOT's armour plate by plate.",
     body: "Escape the Null Architect's prison rooms. MEGABOT remembers what you did to his empire.",
   },
+  {
+    title: "Bring a Squad",
+    color: "text-emerald-300",
+    bar: "bg-emerald-400",
+    lead: "Co-op Survival for up to four pilots.",
+    body: "Fill the empty seats with AI wingmates: Vega flies escort, Orion hunts and Lyra patches you up.",
+  },
+  {
+    title: "Build Your Ship",
+    color: "text-sky-300",
+    bar: "bg-sky-400",
+    lead: "Twenty-nine abilities and three doctrines.",
+    body: "Quantum Lattice, Plasma Furnace or Event Horizon reshape your lasers, missiles, mines, shields and thrusters together.",
+  },
+];
+
+// The galaxy in four numbers.
+const NUMBERS = [
+  { value: "16", label: "themed regions" },
+  { value: "3,600+", label: "planets and moons" },
+  { value: "29", label: "ship abilities" },
+  { value: "1\u20134", label: "pilots, solo or co-op" },
+];
+
+// What is in the playtest build today, each told through a piece of key art.
+const SHOWCASE = [
+  {
+    eyebrow: "Megastructure boss",
+    title: "Tear Down the Solar Shade",
+    image: "/art/solar-shade-scene.jpg",
+    alt: "A vast dark triangular sail of hexagonal plate stretched between three stations in front of a blazing star, a small fighter flying beneath it",
+    position: "center",
+    href: "/evil-robots#solar-shade",
+    cta: "See the Solar Shade",
+    accent: "text-orange-300",
+    body: [
+      "The machines hang a sail across a star, wide enough to put it out. Their waves and their bosses come through the gate at its heart.",
+      "Break the three Control Nodes, tear the sail and let the light back in.",
+    ],
+  },
+  {
+    eyebrow: "The final boss",
+    title: "Run From the Crimson Eye",
+    image: "/art/megabot-crimson-eye.jpg",
+    alt: "MEGABOT's Crimson Eye: a bladed iris the size of a station burning red in a wall of dark armour plate, a tiny fighter fleeing across the lower corner",
+    position: "50% 40%",
+    href: "/megabot",
+    cta: "Meet MEGABOT",
+    accent: "text-rose-300",
+    body: [
+      "Every few minutes the Empire sends something bigger. Then MEGABOT comes in person: twenty-five ships tall, fifteen plates of armour, one eye.",
+      "Missiles shatter the plates. Lasers burn what is underneath. When the Eye opens, move.",
+    ],
+  },
+  {
+    eyebrow: "Factions and trade",
+    title: "Every Alliance Has a Price",
+    image: "/art/space-dwarves-crystal-mine-scene.jpg",
+    alt: "A braided, armoured Space Dwarf looks out over a glowing blue crystal mine as a mining barge hauls a load overhead",
+    position: "50% 30%",
+    href: "/factions/space-dwarves",
+    cta: "Meet the Space Dwarves",
+    accent: "text-amber-300",
+    body: [
+      "Dwarven clans mine the crystal seams of Yllar and answer to King Arkanvil Starhammer. Earn the guild's trust and they trade, mend and fight beside you.",
+      "Threaten the guild and the whole roster comes for your hull at once.",
+    ],
+  },
+  {
+    eyebrow: "The fungal swarm",
+    title: "The Hive Is Awake",
+    image: "/art/mycelari-swarm-scene.jpg",
+    alt: "A colossal fungal queen with a glowing orange mushroom crown rises over a spore-lit world as a white fighter burns past on cyan engines",
+    position: "50% 35%",
+    href: "/factions/mycelari",
+    cta: "Meet the Mycelari",
+    accent: "text-purple-300",
+    body: [
+      "The Bloom Queen seeds the field with her own children and reaps what grows. The Fungal Lord sleeps until you come too close.",
+      "Fight them together and they share one life between them.",
+    ],
+  },
+];
+
+// The poster wall: full key art with its own lettering, each linking deeper.
+const POSTERS = [
+  {
+    src: "/art/fleeing-the-colossal-megabot.jpg",
+    alt: "Poster: a lone white fighter banks away from the colossal MEGABOT in front of a burning star. ETU, Explore the Universe 2175. Wishlist on Steam.",
+    href: "/megabot",
+    label: "MEGABOT",
+  },
+  {
+    src: "/art/mycelari-swarm.jpg",
+    alt: "Poster: a fungal queen rises over a spore-lit world as a fighter burns past. Explore the Universe 2175. The hive is awake. Wishlist on Steam.",
+    href: "/factions/mycelari",
+    label: "Mycelari",
+  },
+  {
+    src: "/art/space-dwarves-crystal-mine.jpg",
+    alt: "Poster: an armoured Space Dwarf overlooks a glowing crystal mine. Explore the Universe 2175. Every alliance has a price. Wishlist on Steam.",
+    href: "/factions/space-dwarves",
+    label: "Space Dwarves",
+  },
+  {
+    src: "/art/xj9-second-in-command.jpg",
+    alt: "Poster: XJ9, a horned chrome war machine with a glowing sword, stands in orbit over a blue planet. XJ9, Megabot's Second in Command. Explore the Universe 2175.",
+    href: "/evil-robots#xj9",
+    label: "XJ9",
+  },
 ];
 
 const FACTIONS = [
   {
-    href: "/factions/crystal-intelligences",
-    image: "/Crystal_Race.jpg",
-    name: "CYL",
-    kind: "Crystal Intelligences",
-    blurb: "Crystal minds that bend light to defend and strike.",
+    href: "/factions/megabot",
+    image: "/art/megabot-crimson-eye.jpg",
+    position: "50% 35%",
+    name: "Machine Empire",
+    kind: "Evil Robots",
+    blurb: "MEGABOT, his legion and a sail big enough to shade a star.",
   },
   {
     href: "/factions/mycelari",
-    image: "/Mycelari_Hero2.jpg",
+    image: "/art/mycelari-swarm-scene.jpg",
+    position: "50% 30%",
     name: "Mycelari",
     kind: "Fungal Swarm",
-    blurb: "A fungal swarm that spreads by spores.",
+    blurb: "One mind in a million bodies. Their armour grows back.",
   },
   {
-    href: "/factions/megabot",
-    image: "/eveil_robot_hero1.jpg",
-    name: "Megabot",
-    kind: "Machine Empire",
-    blurb: "Shape-shifting robots and station-sized bosses.",
+    href: "/factions/space-dwarves",
+    image: "/art/space-dwarves-crystal-mine-scene.jpg",
+    position: "40% 30%",
+    name: "Space Dwarves",
+    kind: "Crystal Masons",
+    blurb: "Miners, masons and a king who has never paid full price.",
   },
   {
     href: "/factions/wild",
     image: "/Wild_Race.jpg",
-    name: "Wild",
-    kind: "Ent-born Guardians",
-    blurb: "Tree-born guardians who control the land.",
+    position: "50% 28%",
+    name: "Wild Clans",
+    kind: "The Woak",
+    blurb: "Mecha-bears, bee swarms and walking trees. Truce before teeth.",
+  },
+  {
+    href: "/factions/lumari",
+    image: "/cyl/cyl-key-art.webp",
+    position: "18% 50%",
+    name: "Lumari",
+    kind: "Crystal Intelligences",
+    blurb: "Erased by MEGABOT. Cyl is what is left, and she flies with you.",
+  },
+  {
+    href: "/factions/terran-federation",
+    image: "/emblems/terran-federation.webp",
+    position: "center",
+    name: "Terran Federation",
+    kind: "Humanity",
+    blurb: "\u201cAlliances are how humanity survived.\u201d",
   },
 ];
 
@@ -230,7 +360,19 @@ export default function HomePage() {
             </h2>
           </header>
 
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+          <dl className="reveal grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-14">
+            {NUMBERS.map((n) => (
+              <div
+                key={n.label}
+                className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-6 text-center"
+              >
+                <dd className="font-display text-4xl md:text-5xl font-bold text-white">{n.value}</dd>
+                <dt className="mt-2 text-base md:text-lg text-slate-200">{n.label}</dt>
+              </div>
+            ))}
+          </dl>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {PILLARS.map((p) => (
               <article
                 key={p.title}
@@ -244,6 +386,64 @@ export default function HomePage() {
                   <span className="font-semibold text-white">{p.lead}</span>{" "}
                   {p.body}
                 </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* In the playtest now — the current build, told through key art */}
+      <section id="now-playing" className="py-16 md:py-24 bg-deep-900">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-16">
+            <p className="uppercase font-semibold tracking-[0.18em] text-sm md:text-base text-emerald-300">
+              In the free playtest now
+            </p>
+            <h2 className="mt-3 font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              The War So Far
+            </h2>
+          </header>
+
+          <div className="space-y-12 md:space-y-20">
+            {SHOWCASE.map((item, i) => (
+              <article
+                key={item.title}
+                className="reveal grid lg:grid-cols-2 gap-6 lg:gap-12 items-center"
+              >
+                <Link
+                  href={item.href}
+                  className={`group relative block aspect-[16/10] rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-cyan-400/40 transition ${
+                    i % 2 === 1 ? "lg:order-2" : ""
+                  }`}
+                >
+                  <Image
+                    src={item.image}
+                    alt={item.alt}
+                    fill
+                    className="object-cover group-hover:scale-[1.03] transition-transform duration-700"
+                    style={{ objectPosition: item.position }}
+                    sizes="(max-width: 1024px) 100vw, 640px"
+                  />
+                </Link>
+                <div>
+                  <p className={`uppercase font-semibold tracking-wider text-sm md:text-base ${item.accent}`}>
+                    {item.eyebrow}
+                  </p>
+                  <h3 className="mt-2 font-display text-3xl md:text-5xl font-bold text-white leading-tight text-balance">
+                    {item.title}
+                  </h3>
+                  {item.body.map((para) => (
+                    <p key={para} className="mt-4 text-lg md:text-xl text-slate-100 leading-relaxed">
+                      {para}
+                    </p>
+                  ))}
+                  <Link
+                    href={item.href}
+                    className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
+                  >
+                    {item.cta} <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
@@ -265,7 +465,7 @@ export default function HomePage() {
           <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
             <video
               controls
-              poster="/Explore_Epic5.png"
+              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
               className="w-full h-full object-cover bg-black"
               preload="metadata"
             >
@@ -283,6 +483,43 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Poster wall — the key art with its own lettering */}
+      <section
+        id="key-art"
+        className="py-16 md:py-24 bg-gradient-to-b from-deep-900 via-indigo-950/20 to-deep-900"
+      >
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              Dispatches From 2175
+            </h2>
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              New key art from the front. Pick one to read the dossier.
+            </p>
+          </header>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {POSTERS.map((p) => (
+              <Link
+                key={p.src}
+                href={p.href}
+                aria-label={`${p.label}: read the dossier`}
+                className="reveal group block rounded-xl md:rounded-2xl overflow-hidden ring-1 ring-white/10 hover:ring-cyan-400/50 hover:-translate-y-1 transition duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+              >
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  width={1122}
+                  height={1402}
+                  className="w-full h-auto"
+                  sizes="(max-width: 1024px) 50vw, 300px"
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Factions */}
       <section
         id="factions"
@@ -294,11 +531,12 @@ export default function HomePage() {
               The Factions
             </h2>
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              Four are playable now, with more in development. Each plays by its own rules.
+              Befriend them, trade with them or fight them. Sealing an alliance with one
+              angers its enemies.
             </p>
           </header>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {FACTIONS.map((f) => (
               <Link
                 key={f.href}
@@ -309,9 +547,10 @@ export default function HomePage() {
                   <Image
                     src={f.image}
                     alt={`${f.name}, ${f.kind}`}
-                    width={480}
-                    height={300}
+                    width={640}
+                    height={400}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    style={{ objectPosition: f.position }}
                   />
                 </div>
                 <div className="p-6">
@@ -327,6 +566,12 @@ export default function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+
+          <div className="reveal mt-10 flex justify-center">
+            <Link href="/factions" className="btn-ghost btn-ghost--lg">
+              See every faction <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
       </section>
