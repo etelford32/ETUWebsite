@@ -62,9 +62,6 @@ export default function Footer() {
             <Link className="block hover:text-cyan-400 transition-colors" href="/forum">
               Forum
             </Link>
-            <Link className="block hover:text-cyan-400 transition-colors" href="/discord">
-              Discord
-            </Link>
             <Link className="block hover:text-cyan-400 transition-colors" href="/login">
               Sign in
             </Link>
