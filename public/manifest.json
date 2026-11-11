@@ -1,7 +1,7 @@
 {
   "name": "Explore the Universe 2175",
   "short_name": "ETU 2175",
-  "description": "Immersive space exploration sci-fi game - The most immersive Galaxy simulation of all time",
+  "description": "Explore a new galaxy every run: quests, bosses, black holes and solar storms, with a crystal AI companion who learns who you are. Free Steam playtest.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#040614",
@@ -29,7 +29,7 @@
   "screenshots": [
     {
       "src": "/ETU_XMAS.png",
-      "sizes": "2741x1833",
+      "sizes": "1536x1024",
       "type": "image/png"
     }
   ],
@@ -50,7 +50,7 @@
       "name": "Rise of Machines",
       "short_name": "Megabot",
       "description": "View the campaign",
-      "url": "/pages/rise-of-machines.html",
+      "url": "/evil-robots",
       "icons": [
         {
           "src": "/icon-192.png",
