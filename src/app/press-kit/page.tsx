@@ -57,6 +57,27 @@ export default function PressKitPage() {
     { title: 'ETU Logo (JPEG)', filename: '/ETU_LOGO.jpg', size: '155 KB' }
   ];
 
+  // New key art, November 2026. Full resolution; posters carry their own title.
+  const keyArt = [
+    { title: 'Fleeing the Colossal MEGABOT', filename: '/art/fleeing-the-colossal-megabot.jpg', size: '502 KB', width: 1122, height: 1402, description: 'Title poster: a lone fighter banks away from MEGABOT in front of a burning star' },
+    { title: 'MEGABOT\u2019s Crimson Eye', filename: '/art/megabot-crimson-eye.jpg', size: '461 KB', width: 1536, height: 1024, description: 'Text-free painting of the Eye, ready for your own headline' },
+    { title: 'XJ9, MEGABOT\u2019s Second in Command', filename: '/art/xj9-second-in-command.jpg', size: '504 KB', width: 1122, height: 1402, description: 'Character poster. XJ9 is in development and not yet in the playtest' },
+    { title: 'The Solar Shade', filename: '/art/solar-shade.jpg', size: '480 KB', width: 1536, height: 1024, description: 'The Machine Empire\u2019s star-shading megastructure, a boss in the playtest' },
+    { title: 'Mycelari: The Hive Is Awake', filename: '/art/mycelari-swarm.jpg', size: '681 KB', width: 1122, height: 1402, description: 'Faction poster with the Bloom Queen over the Fungal Zone' },
+    { title: 'Space Dwarves: Every Alliance Has a Price', filename: '/art/space-dwarves-crystal-mine.jpg', size: '674 KB', width: 1122, height: 1402, description: 'Faction poster with a Crystal Mason crew at the seam' },
+    { title: 'Arkanvil, Star King of Yllar', filename: '/art/king-arkanvil-lore-sheet.jpg', size: '504 KB', width: 1402, height: 1122, description: 'Concept sheet for the court of Yllar. Lore in development' },
+    { title: 'Cyl, the Corrupted Goddess', filename: '/art/cyl-corrupted-goddess.jpg', size: '557 KB', width: 1672, height: 941, description: 'Concept key art: what MEGABOT would make of the last Lumari' }
+  ];
+
+  const factionEmblems = [
+    { title: 'Machine Empire', filename: '/evil-robots/machine-empire-emblem.webp', size: '290 KB' },
+    { title: 'Lumari', filename: '/cyl/lumari-sigil.webp', size: '102 KB' },
+    { title: 'Space Dwarves', filename: '/emblems/space-dwarves.webp', size: '170 KB' },
+    { title: 'Wild Clans', filename: '/emblems/wild.webp', size: '151 KB' },
+    { title: 'Terran Federation', filename: '/emblems/terran-federation.webp', size: '78 KB' },
+    { title: 'Rogue AI Network', filename: '/emblems/rogue-ai-network.webp', size: '150 KB' }
+  ];
+
   const promotionalImages = [
     { title: 'ETU Christmas Special', filename: '/ETU_XMAS.png', size: '2.7 MB', description: 'Holiday promotional banner' },
     { title: 'ETU Epic Cover 7', filename: '/etu_epic7.png', size: '1.7 MB', description: 'Epic Games Store promotional' },
@@ -67,12 +88,12 @@ export default function PressKitPage() {
   ];
 
   const factionImages = [
-    { title: 'Crystal Intelligences', filename: '/Crystal_Race.jpg', size: '386 KB', faction: 'CYL' },
+    { title: 'Crystal Race', filename: '/Crystal_Race.jpg', size: '386 KB', faction: 'Lumari' },
     { title: 'Mycelari Hero 1', filename: '/Mycelari_Hero1.jpg', size: '490 KB', faction: 'Mycelari' },
     { title: 'Mycelari Hero 2', filename: '/Mycelari_Hero2.jpg', size: '570 KB', faction: 'Mycelari' },
-    { title: 'Wild Faction', filename: '/Wild_Race.jpg', size: '498 KB', faction: 'Wild' },
-    { title: 'Evil Robot Hero', filename: '/eveil_robot_hero1.jpg', size: '322 KB', faction: 'Megabot' },
-    { title: 'Future Cylinder', filename: '/FutureCyl.jpg', size: '464 KB', faction: 'CYL' }
+    { title: 'Wild Clans', filename: '/Wild_Race.jpg', size: '498 KB', faction: 'Wild Clans' },
+    { title: 'Evil Robot Hero', filename: '/eveil_robot_hero1.jpg', size: '322 KB', faction: 'Machine Empire' },
+    { title: 'Future Cyl', filename: '/FutureCyl.jpg', size: '464 KB', faction: 'Lumari' }
   ];
 
   const systemImages = [
@@ -163,8 +184,8 @@ export default function PressKitPage() {
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
                 <h3 className="text-xl font-semibold text-cyan-300 mb-2">Release Date</h3>
-                <p className="text-slate-200">Demo: December 25, 2025</p>
-                <p className="text-slate-200">Early Access: February 2, 2026</p>
+                <p className="text-slate-200">Free Steam Playtest: open now</p>
+                <p className="text-slate-200">Early Access: 2027</p>
               </div>
 
               <div className="p-6 rounded-xl bg-white/5 ring-1 ring-white/10">
@@ -194,6 +215,8 @@ export default function PressKitPage() {
                   <li>Cyl, a companion who learns who you are and remembers it</li>
                   <li>Quests, factions and a mystery about an erased civilization</li>
                   <li>Huge bosses with breakable armour, weak points and puzzle arenas</li>
+                  <li>The Solar Shade, a megastructure the machines hang across a star, and you tear down</li>
+                  <li>Faction diplomacy: envoys, tribute, alliances and war</li>
                   <li>Co-op for 2–4 pilots</li>
                 </ul>
               </div>
@@ -286,11 +309,86 @@ export default function PressKitPage() {
         </div>
       </section>
 
+      {/* Latest key art */}
+      <section id="key-art" className="py-16 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            Latest Key Art
+          </h2>
+          <p className="text-lg text-slate-300 mb-8 max-w-3xl">
+            November 2026. Full-resolution JPEGs. The posters carry their own title lettering; the
+            Crimson Eye is text-free.
+          </p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {keyArt.map((img) => (
+              <div key={img.filename} className="p-4 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-all flex flex-col">
+                <div className="aspect-[4/5] bg-black rounded-lg mb-4 overflow-hidden flex items-center justify-center">
+                  <Image
+                    src={img.filename}
+                    alt={img.title}
+                    width={img.width}
+                    height={img.height}
+                    className="max-w-full max-h-full w-auto h-auto object-contain"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-cyan-300 mb-1">{img.title}</h3>
+                <p className="text-sm text-slate-300 mb-2 flex-1">{img.description}</p>
+                <p className="text-xs text-slate-400 mb-4">
+                  {img.width} × {img.height} · {img.size}
+                </p>
+                <div className="flex gap-2">
+                  <a
+                    href={img.filename}
+                    download
+                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-center font-semibold text-sm transition-all"
+                  >
+                    Download
+                  </a>
+                  <button
+                    onClick={() => copyToClipboard(img.filename, img.title)}
+                    className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/5 font-semibold text-sm transition-all"
+                  >
+                    {copiedLink === img.title ? '✓' : 'URL'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-2xl font-bold mt-14 mb-6 text-slate-100">Faction Emblems</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {factionEmblems.map((img) => (
+              <a
+                key={img.filename}
+                href={img.filename}
+                download
+                className="group p-3 rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-cyan-400/40 transition-all text-center"
+              >
+                <div className="aspect-square bg-black rounded-lg mb-3 overflow-hidden">
+                  <Image
+                    src={img.filename}
+                    alt={`${img.title} emblem`}
+                    width={400}
+                    height={400}
+                    className="w-full h-full object-cover"
+                    sizes="(max-width: 640px) 50vw, 200px"
+                  />
+                </div>
+                <div className="text-sm font-semibold text-slate-100 group-hover:text-cyan-300">{img.title}</div>
+                <div className="text-xs text-slate-400">{img.size} · Download</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Promotional Images */}
       <section className="py-16 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <h2 className="text-4xl font-bold mb-8 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            Promotional Images & Key Art
+            Earlier Promotional Images
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">

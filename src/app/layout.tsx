@@ -37,9 +37,10 @@ export const metadata: Metadata = {
     siteName: 'Explore the Universe 2175',
     images: [
       {
-        url: `${SITE_URL}/etu_epic7.png`,
-        width: 1024,
-        height: 1024,
+        url: `${SITE_URL}/og/site.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'A lone fighter flees the colossal MEGABOT in front of a burning star. Explore the Universe 2175.',
       },
     ],
     locale: 'en_US',
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Explore the Universe 2175 — Open-Galaxy Space Adventure | Free Steam Playtest',
     description: 'Explore a new galaxy every run: quests, bosses, black holes and solar storms, with a crystal AI companion who learns who you are. Free Steam playtest.',
-    images: [`${SITE_URL}/etu_epic7.png`],
+    images: [`${SITE_URL}/og/site.jpg`],
   },
 }
 

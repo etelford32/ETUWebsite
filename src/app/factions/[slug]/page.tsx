@@ -1,55 +1,37 @@
-"use client"
-
-import { useEffect } from 'react'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { getFaction } from '@/data/factions'
+import ArtGallery from '@/components/ArtGallery'
+import RevealObserver from '@/components/RevealObserver'
+import WishlistButton from '@/components/WishlistButton'
+import { getAllFactionSlugs, getFaction } from '@/data/factions'
 import { getBossesForFaction } from '@/data/bosses'
 import { getAllZones } from '@/data/zones'
 
-export default function FactionPage() {
-  const params = useParams()
-  const slug = params?.slug as string
-  const faction = getFaction(slug)
+export function generateStaticParams() {
+  return getAllFactionSlugs().map(slug => ({ slug }))
+}
 
-  useEffect(() => {
-    const io = new IntersectionObserver(
-      entries => {
-        entries.forEach(e => {
-          if (e.isIntersecting) e.target.classList.add('show')
-        })
-      },
-      { threshold: 0.12 }
-    )
-    document.querySelectorAll('.reveal').forEach(el => io.observe(el))
-    return () => io.disconnect()
-  }, [])
-
-  if (!faction) {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen flex items-center justify-center bg-deep-900">
-          <div className="text-center max-w-md px-4">
-            <div className="eyebrow mb-3">404 · Off Map</div>
-            <h1 className="font-display text-4xl font-bold etu-headline-grad mb-4">
-              Faction Not Found
-            </h1>
-            <p className="text-slate-300 mb-8">
-              The faction you&apos;re looking for doesn&apos;t exist in this sector.
-            </p>
-            <Link href="/factions" className="btn-ghost">
-              Back to Factions
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </>
-    )
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  const faction = getFaction(params.slug)
+  if (!faction) return {}
+  const title = `${faction.name.replace(' • ', ', ')} | Explore the Universe 2175`
+  const description = faction.description ?? faction.tagline
+  const image = faction.cardImage ?? faction.heroImage
+  return {
+    title,
+    description,
+    openGraph: { title, description, images: [{ url: image }] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
   }
+}
+
+export default function FactionPage({ params }: { params: { slug: string } }) {
+  const faction = getFaction(params.slug)
+  if (!faction) notFound()
 
   const shortName = faction.name.split('•')[0].trim()
   const isStub = faction.status === 'in-development'
@@ -59,77 +41,117 @@ export default function FactionPage() {
     const haystack = faction.homeZone.toLowerCase()
     return getAllZones().find(z => z.aliases.some(a => haystack.includes(a)))
   })()
+  const { primary, secondary, accent } = faction.color
+  const leaders = faction.leaders ?? []
+  const gallery = faction.gallery ?? []
+  const units = faction.units ?? []
+  const hasUnitArt = units.some(u => u.image)
 
   return (
     <>
       <Header />
+      <RevealObserver />
 
       <main className="min-h-screen bg-deep-900 text-slate-100">
         {/* Hero */}
         <section
-          className="relative h-[60vh] min-h-[500px] flex items-end overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${faction.color.primary}22 0%, ${faction.color.secondary}11 100%)`,
-          }}
+          className="relative min-h-[560px] md:min-h-[640px] flex items-end overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${primary}22 0%, ${secondary}11 100%)` }}
         >
-          <div className="absolute inset-0 opacity-35">
+          <div className="absolute inset-0">
             <Image
               src={faction.heroImage}
-              alt={faction.name}
+              alt=""
               fill
-              className="object-cover"
+              // Placeholder art on unfinished profiles sits further back.
+              className={`object-cover ${faction.cardImage ? '' : 'opacity-45'}`}
+              style={{ objectPosition: faction.heroPosition ?? 'center' }}
               priority
               sizes="100vw"
             />
+            {/* Keeps the type legible without burying the painting. */}
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  'linear-gradient(to top, rgba(2,6,23,1) 0%, rgba(2,6,23,0.7) 50%, rgba(2,6,23,0.3) 100%)',
+                  'linear-gradient(to top, rgba(4,6,20,1) 0%, rgba(4,6,20,0.82) 26%, rgba(4,6,20,0.3) 62%, rgba(4,6,20,0.25) 100%), linear-gradient(to right, rgba(4,6,20,0.7) 0%, rgba(4,6,20,0.15) 60%, rgba(4,6,20,0) 100%)',
               }}
             />
           </div>
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 pb-12">
-            <div className="reveal">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span
-                  className="etu-pill"
-                  style={{
-                    borderColor: faction.color.primary + '66',
-                    background: faction.color.primary + '14',
-                    color: faction.color.accent,
-                  }}
-                >
-                  Playable Faction
-                </span>
-                {isStub && (
-                  <span className="etu-pill etu-pill--amber">
-                    <span className="ping" /> Profile In Development
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 lg:px-6 pt-28 pb-12">
+            <div className="reveal flex items-end justify-between gap-8">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span
+                    className="etu-pill"
+                    style={{
+                      borderColor: primary + '80',
+                      background: 'rgba(4,6,20,0.65)',
+                      color: accent,
+                    }}
+                  >
+                    {faction.kind ?? 'Faction'}
                   </span>
-                )}
-                <Link
-                  href="/factions"
-                  className="eyebrow text-slate-400 hover:text-slate-200 transition-colors"
-                  style={{ textShadow: '0 1px 6px rgba(0,0,0,.9)' }}
-                >
-                  ← All Factions
-                </Link>
-              </div>
-              <h1
-                className="font-display text-5xl md:text-7xl font-bold tracking-tight"
-                style={{ textShadow: '0 4px 24px rgba(0,0,0,.6)' }}
-              >
-                <span className="etu-headline-grad">{faction.name}</span>
-              </h1>
-              <p className="mt-4 text-xl md:text-2xl text-slate-200 max-w-2xl">
-                {faction.tagline}
-              </p>
-              {faction.featurePage && (
-                <div className="mt-6">
-                  <Link href={faction.featurePage.href} className="btn-ghost">
-                    {faction.featurePage.label} <span aria-hidden>→</span>
+                  {isStub ? (
+                    <span className="etu-pill etu-pill--amber" style={{ background: 'rgba(4,6,20,0.65)' }}>
+                      <span className="ping" /> Profile In Development
+                    </span>
+                  ) : (
+                    <span className="etu-pill etu-pill--green" style={{ background: 'rgba(4,6,20,0.65)' }}>
+                      In the playtest
+                    </span>
+                  )}
+                  <Link
+                    href="/factions"
+                    className="eyebrow text-slate-300 hover:text-white transition-colors"
+                    style={{ textShadow: '0 1px 6px rgba(0,0,0,.9)' }}
+                  >
+                    ← All Factions
                   </Link>
+                </div>
+                <h1
+                  className="font-display text-5xl md:text-7xl font-bold tracking-tight text-white text-balance"
+                  style={{ textShadow: '0 4px 24px rgba(0,0,0,.85)' }}
+                >
+                  {shortName}
+                </h1>
+                {faction.name.includes('•') && (
+                  <p
+                    className="mt-2 font-display text-lg md:text-2xl font-semibold uppercase tracking-[0.16em]"
+                    style={{ color: accent, textShadow: '0 2px 10px rgba(0,0,0,.9)' }}
+                  >
+                    {faction.name.split('•').slice(1).join('•').trim()}
+                  </p>
+                )}
+                <p
+                  className="mt-4 text-xl md:text-2xl text-slate-100 max-w-2xl text-balance"
+                  style={{ textShadow: '0 2px 10px rgba(0,0,0,.9)' }}
+                >
+                  {faction.tagline}
+                </p>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <WishlistButton placement={`faction-hero-${faction.id}`} className="btn-3d btn-3d-steam" />
+                  {faction.featurePage && (
+                    <Link href={faction.featurePage.href} className="btn-ghost" style={{ background: 'rgba(4,6,20,0.6)' }}>
+                      {faction.featurePage.label} <span aria-hidden>→</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {faction.emblem && (
+                <div
+                  className="hidden lg:block relative w-52 h-52 xl:w-60 xl:h-60 shrink-0 rounded-2xl overflow-hidden border bg-black"
+                  style={{ borderColor: primary + '66', boxShadow: `0 0 60px ${primary}40` }}
+                >
+                  <Image
+                    src={faction.emblem.src}
+                    alt={faction.emblem.alt}
+                    fill
+                    className="object-cover"
+                    sizes="240px"
+                  />
                 </div>
               )}
             </div>
@@ -139,7 +161,7 @@ export default function FactionPage() {
         {/* Home zone / planet strip */}
         {(faction.homeZone || faction.homePlanet) && (
           <section className="border-y border-white/10 bg-white/[0.02]">
-            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-6">
               {faction.homeZone && (
                 <div>
                   <div className="eyebrow mb-1">Home Zone</div>
@@ -165,6 +187,14 @@ export default function FactionPage() {
                   </div>
                 </div>
               )}
+              {leaders.length > 0 && (
+                <div>
+                  <div className="eyebrow mb-1">{leaders.length === 1 ? 'Leader' : 'Leaders'}</div>
+                  <div className="font-mono text-lg text-cyan-300">
+                    {leaders.map(l => l.name).join(' · ')}
+                  </div>
+                </div>
+              )}
               <div>
                 <div className="eyebrow mb-1">Status</div>
                 <div
@@ -183,7 +213,11 @@ export default function FactionPage() {
         {(faction.description || faction.playstyle || faction.abilities) && (
           <section className="py-16">
             <div className="max-w-7xl mx-auto px-4 lg:px-6">
-              <div className="grid lg:grid-cols-2 gap-8 items-start">
+              <div
+                className={`grid gap-8 items-start ${
+                  faction.abilities && faction.abilities.length > 0 ? 'lg:grid-cols-2' : 'max-w-3xl'
+                }`}
+              >
                 {(faction.description || faction.playstyle) && (
                   <div className="reveal">
                     <div className="eyebrow mb-3">Overview</div>
@@ -191,20 +225,17 @@ export default function FactionPage() {
                       Who they are
                     </h2>
                     {faction.description && (
-                      <p className="text-lg text-slate-300 leading-relaxed mb-6">
+                      <p className="text-lg text-slate-200 leading-relaxed mb-6">
                         {faction.description}
                       </p>
                     )}
                     {faction.playstyle && (
                       <div
                         className="etu-glass p-6"
-                        style={{
-                          borderColor: faction.color.primary + '40',
-                          background: faction.color.primary + '0E',
-                        }}
+                        style={{ borderColor: primary + '40', background: primary + '0E' }}
                       >
-                        <div className="eyebrow mb-2" style={{ color: faction.color.accent }}>
-                          Playstyle
+                        <div className="eyebrow mb-2" style={{ color: accent }}>
+                          {faction.playstyleLabel ?? 'How they fight'}
                         </div>
                         <p className="text-slate-200 leading-relaxed">{faction.playstyle}</p>
                       </div>
@@ -216,20 +247,17 @@ export default function FactionPage() {
                   <div className="reveal">
                     <div className="eyebrow mb-3">Doctrine</div>
                     <h2 className="font-display text-3xl font-bold mb-5 etu-headline-grad">
-                      Key Abilities
+                      {faction.abilitiesLabel ?? 'What they bring'}
                     </h2>
                     <div className="space-y-3">
                       {faction.abilities.map((ability, idx) => (
-                        <div
-                          key={idx}
-                          className="etu-glass flex items-start gap-3 p-4"
-                        >
+                        <div key={idx} className="etu-glass flex items-center gap-3 p-4">
                           <div
                             className="font-mono tabular-nums w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
                             style={{
-                              background: faction.color.primary + '24',
-                              color: faction.color.accent,
-                              border: `1px solid ${faction.color.primary}55`,
+                              background: primary + '24',
+                              color: accent,
+                              border: `1px solid ${primary}55`,
                             }}
                           >
                             {String(idx + 1).padStart(2, '0')}
@@ -265,6 +293,64 @@ export default function FactionPage() {
           </section>
         )}
 
+        {/* Leaders */}
+        {leaders.length > 0 && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="reveal mb-8">
+                <div className="eyebrow mb-3">Command</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
+                  Who speaks for them
+                </h2>
+              </div>
+              <div className={`grid gap-5 ${leaders.length > 1 ? 'md:grid-cols-2' : ''}`}>
+                {leaders.map(leader => (
+                  <article
+                    key={leader.name}
+                    className="reveal etu-glass p-7"
+                    style={{ borderColor: primary + '40', background: primary + '0A' }}
+                  >
+                    <div className="eyebrow mb-2" style={{ color: accent }}>
+                      {leader.title}
+                    </div>
+                    <h3 className="font-display text-2xl font-bold text-white">{leader.name}</h3>
+                    <p className="mt-3 text-slate-200 leading-relaxed">{leader.description}</p>
+                    {leader.quote && (
+                      <p className="mt-4 text-lg italic leading-relaxed" style={{ color: accent }}>
+                        &ldquo;{leader.quote}&rdquo;
+                      </p>
+                    )}
+                    {leader.href && (
+                      <Link
+                        href={leader.href}
+                        className="mt-5 inline-flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300 hover:text-cyan-200"
+                      >
+                        {leader.hrefLabel ?? 'Read the dossier'} <span aria-hidden>→</span>
+                      </Link>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Key art */}
+        {gallery.length > 0 && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="reveal mb-10">
+                <div className="eyebrow mb-3">Key Art</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
+                  {shortName} in the frame
+                </h2>
+                <p className="text-slate-300 mt-2">Select any piece to see it full size.</p>
+              </div>
+              <ArtGallery pieces={gallery} accent={primary} />
+            </div>
+          </section>
+        )}
+
         {/* Strengths & Weaknesses */}
         {((faction.strengths && faction.strengths.length > 0) ||
           (faction.weaknesses && faction.weaknesses.length > 0)) && (
@@ -276,16 +362,10 @@ export default function FactionPage() {
                     <div className="flex items-center gap-3 mb-5">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ background: faction.color.primary + '24' }}
+                        style={{ background: primary + '24' }}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M5 13l4 4L19 7"
-                            style={{ color: faction.color.accent }}
-                          />
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: accent }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                       <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
@@ -295,10 +375,7 @@ export default function FactionPage() {
                     <ul className="space-y-3">
                       {faction.strengths.map((s, i) => (
                         <li key={i} className="flex items-start gap-3 text-slate-200">
-                          <span
-                            className="text-lg mt-0.5"
-                            style={{ color: faction.color.primary }}
-                          >
+                          <span className="text-lg mt-0.5" style={{ color: primary }}>
                             ✦
                           </span>
                           <span>{s}</span>
@@ -312,18 +389,8 @@ export default function FactionPage() {
                   <div className="reveal etu-glass p-7">
                     <div className="flex items-center gap-3 mb-5">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center bg-rose-500/20">
-                        <svg
-                          className="w-5 h-5 text-rose-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
+                        <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </div>
                       <h2 className="font-display text-xl font-bold uppercase tracking-[0.14em]">
@@ -354,43 +421,53 @@ export default function FactionPage() {
                 <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
                   {shortName} Bosses
                 </h2>
-                <p className="text-slate-400 mt-2">
+                <p className="text-slate-300 mt-2">
                   <span className="font-mono text-cyan-300">{bosses.length}</span>{' '}
-                  boss{bosses.length === 1 ? '' : 'es'} flying this faction&apos;s flag.
+                  boss{bosses.length === 1 ? '' : 'es'} flying this faction&apos;s flag. In-game
+                  screenshots.
                 </p>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {bosses.map(boss => (
                   <Link
                     key={boss.id}
                     href={`/bosses/${boss.id}`}
-                    className="etu-glass p-5 group transition-transform hover:-translate-y-0.5"
+                    className="etu-glass overflow-hidden group transition-transform hover:-translate-y-0.5"
                     style={{ borderColor: boss.color.primary + '40' }}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div
-                        className="font-display text-sm font-bold uppercase tracking-[0.14em]"
-                        style={{ color: boss.color.accent }}
-                      >
-                        {boss.name}
-                      </div>
-                      <span
-                        className="etu-pill text-[9px]"
-                        style={{
-                          borderColor: boss.color.primary + '66',
-                          background: boss.color.primary + '14',
-                          color: boss.color.accent,
-                        }}
-                      >
-                        {boss.tier ?? 'Boss'}
-                      </span>
+                    <div className="relative aspect-[16/10] bg-black">
+                      <Image
+                        src={boss.heroImage}
+                        alt={boss.screenshots[0]?.alt ?? boss.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                      />
                     </div>
-                    <p className="text-xs text-slate-400 line-clamp-2">{boss.tagline}</p>
-                    {boss.status === 'in-development' && (
-                      <div className="mt-3 text-[10px] font-display uppercase tracking-[0.18em] text-amber-300">
-                        In Development
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div
+                          className="font-display text-sm font-bold uppercase tracking-[0.14em]"
+                          style={{ color: boss.color.accent }}
+                        >
+                          {boss.name}
+                        </div>
+                        <span
+                          className="etu-pill text-[9px] shrink-0"
+                          style={{
+                            borderColor: boss.color.primary + '66',
+                            background: boss.color.primary + '14',
+                            color: boss.color.accent,
+                          }}
+                        >
+                          {boss.tier ?? 'Boss'}
+                        </span>
                       </div>
-                    )}
+                      <p className="text-sm text-slate-300 leading-snug">{boss.tagline}</p>
+                      {boss.quote && (
+                        <p className="mt-3 text-sm italic text-slate-400">&ldquo;{boss.quote}&rdquo;</p>
+                      )}
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -399,55 +476,81 @@ export default function FactionPage() {
         )}
 
         {/* Units */}
-        {faction.units && faction.units.length > 0 && (
+        {units.length > 0 && (
           <section className="py-16 border-t border-white/10">
             <div className="max-w-7xl mx-auto px-4 lg:px-6">
               <div className="reveal mb-10">
                 <div className="eyebrow mb-3">Roster</div>
                 <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
-                  Faction Units
+                  Who you will meet
                 </h2>
-                <p className="text-slate-400 mt-2">
-                  Key vessels available to {shortName} commanders.
+                <p className="text-slate-300 mt-2">
+                  <span className="font-mono text-cyan-300">{units.length}</span> you will run
+                  into out there.
                 </p>
               </div>
-              <div className="grid md:grid-cols-3 gap-5">
-                {faction.units.map((unit, idx) => (
-                  <div key={idx} className="reveal etu-glass p-6">
-                    <div
-                      className="w-11 h-11 rounded-md flex items-center justify-center mb-4 font-mono tabular-nums font-bold"
-                      style={{
-                        background: faction.color.primary + '1A',
-                        border: `1px solid ${faction.color.primary}55`,
-                        color: faction.color.primary,
-                      }}
-                    >
-                      {String(idx + 1).padStart(2, '0')}
-                    </div>
-                    <h3 className="font-display font-semibold text-lg mb-1">{unit.name}</h3>
-                    {(unit.role || unit.weightClass) && (
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {unit.weightClass && (
-                          <span
-                            className="etu-pill"
-                            style={{
-                              borderColor: faction.color.primary + '66',
-                              background: faction.color.primary + '14',
-                              color: faction.color.accent,
-                            }}
-                          >
-                            {unit.weightClass}
-                          </span>
-                        )}
-                        {unit.role && <span className="text-xs text-slate-400">{unit.role}</span>}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {units.map((unit, idx) => (
+                  <div key={idx} className="reveal etu-glass overflow-hidden flex flex-col">
+                    {unit.image ? (
+                      <div className="relative aspect-[16/9] bg-black/60 border-b border-white/5">
+                        <Image
+                          src={unit.image}
+                          alt={`${unit.name}, as the game draws it`}
+                          fill
+                          className="object-contain p-3"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                        />
                       </div>
+                    ) : (
+                      hasUnitArt && (
+                        <div
+                          className="aspect-[16/9] border-b border-white/5 flex items-center justify-center font-mono text-3xl font-bold"
+                          style={{ background: primary + '0D', color: primary + '66' }}
+                          aria-hidden
+                        >
+                          {String(idx + 1).padStart(2, '0')}
+                        </div>
+                      )
                     )}
-                    <p className="text-sm text-slate-300 leading-relaxed">{unit.description}</p>
-                    {unit.quote && (
-                      <p className="mt-3 text-sm italic" style={{ color: faction.color.accent }}>
-                        &ldquo;{unit.quote}&rdquo;
-                      </p>
-                    )}
+                    <div className="p-6 flex-1 flex flex-col">
+                      {!hasUnitArt && (
+                        <div
+                          className="w-11 h-11 rounded-md flex items-center justify-center mb-4 font-mono tabular-nums font-bold"
+                          style={{
+                            background: primary + '1A',
+                            border: `1px solid ${primary}55`,
+                            color: primary,
+                          }}
+                        >
+                          {String(idx + 1).padStart(2, '0')}
+                        </div>
+                      )}
+                      <h3 className="font-display font-semibold text-lg mb-1">{unit.name}</h3>
+                      {(unit.role || unit.weightClass) && (
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          {unit.weightClass && (
+                            <span
+                              className="etu-pill"
+                              style={{
+                                borderColor: primary + '66',
+                                background: primary + '14',
+                                color: accent,
+                              }}
+                            >
+                              {unit.weightClass}
+                            </span>
+                          )}
+                          {unit.role && <span className="text-sm text-slate-400">{unit.role}</span>}
+                        </div>
+                      )}
+                      <p className="text-sm text-slate-300 leading-relaxed">{unit.description}</p>
+                      {unit.quote && (
+                        <p className="mt-auto pt-4 text-sm italic" style={{ color: accent }}>
+                          &ldquo;{unit.quote}&rdquo;
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -466,14 +569,9 @@ export default function FactionPage() {
                 </h2>
                 <div
                   className="etu-glass p-8 border-l-2"
-                  style={{
-                    borderLeftColor: faction.color.primary,
-                    background: faction.color.primary + '0A',
-                  }}
+                  style={{ borderLeftColor: primary, background: primary + '0A' }}
                 >
-                  <p className="text-lg text-slate-200 leading-relaxed italic">
-                    {faction.lore}
-                  </p>
+                  <p className="text-lg text-slate-200 leading-relaxed">{faction.lore}</p>
                 </div>
               </div>
             </div>
@@ -484,21 +582,14 @@ export default function FactionPage() {
         <section className="py-20 border-t border-white/10">
           <div className="max-w-4xl mx-auto px-4 lg:px-6 text-center">
             <div className="reveal">
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 etu-headline-grad">
-                Ready to Command {shortName}?
+              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4 etu-headline-grad text-balance">
+                {faction.ctaTitle ?? `Meet the ${shortName} in the playtest`}
               </h2>
               <p className="text-lg text-slate-300 mb-8">
-                Wishlist on Steam, or join the alpha now and help shape the galaxy.
+                Wishlist on Steam and request access to the free playtest from the store page.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a
-                  href="https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost"
-                >
-                  Wishlist on Steam
-                </a>
+                <WishlistButton placement={`faction-cta-${faction.id}`} className="btn-3d btn-3d-steam" />
                 {faction.featurePage && (
                   <Link href={faction.featurePage.href} className="btn-ghost">
                     {faction.featurePage.label}

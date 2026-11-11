@@ -111,6 +111,31 @@ const DIRECTIVE = [
   },
 ];
 
+// The Solar Shade, as the player meets it in a Survival run.
+const SOLAR_SHADE = [
+  {
+    glyph: "01",
+    rgb: "251,146,60",
+    title: "A sail across a sun",
+    body:
+      "Autoforged hex plate wide enough to shadow a star, strung between three Control Nodes with a sealed gate at its heart. One hangs over the Empire's own sun, Occlusion Matrix Prime. Another hangs over the star you start beside.",
+  },
+  {
+    glyph: "02",
+    rgb: "248,113,113",
+    title: "The gate is a door",
+    body:
+      "The legion's waves pour out of it, and so do its bosses. Leave the machines alone long enough and three Mecha Scouts fly out to raise another. Kill all three before they reach the corners and it never opens.",
+  },
+  {
+    glyph: "03",
+    rgb: "103,232,249",
+    title: "Let the light back in",
+    body:
+      "Break a node and the sail tears, and a wedge of sunlight comes back through. Break all three and the gate collapses. What is left is Occlusion Lattice, and it is yours to salvage.",
+  },
+];
+
 // Cyl's history with the machines, as lore.
 const CYL_EDGE: Glyphed[] = [
   {
@@ -142,7 +167,7 @@ const CAMPAIGN_PATHS = [
     title: "Resist the Empire",
     rgb: "103,232,249",
     body:
-      "Unite the factions. Form alliances with the Crystal Intelligences, the Mycelari and the Wild Guardians, lead the resistance and push back the mechanical tide.",
+      "Unite the factions. Form alliances with the Crystal Masons, the Mycelari and the Wild Clans, lead the resistance and push back the mechanical tide.",
     impact: "Defensive strategies, faction cooperation, shared technology",
   },
   {
@@ -337,15 +362,16 @@ export default function EvilRobotsPage() {
       <main className="min-h-screen bg-deep-900 text-slate-100">
         {/* ------------------------------------------------------- hero --- */}
         <section className="relative overflow-hidden border-b border-red-500/10">
-          <div className="absolute inset-0 bg-gradient-to-b from-red-950/40 via-slate-950 to-deep-900" />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{
-              background:
-                "radial-gradient(900px 420px at 80% 10%, rgba(239,68,68,0.18), transparent 60%)",
-            }}
+          <Image
+            src="/art/megabot-crimson-eye.jpg"
+            alt=""
+            fill
+            priority
+            className="object-cover object-[60%_30%] opacity-45"
+            sizes="100vw"
           />
-          <div className="absolute inset-0 opacity-30 etu-starfield" />
+          <div className="absolute inset-0 bg-gradient-to-b from-deep-900/70 via-deep-900/75 to-deep-900" />
+          <div className="absolute inset-0 bg-gradient-to-r from-deep-900/85 via-deep-900/40 to-transparent" />
 
           <div className="relative z-10 max-w-6xl mx-auto px-4 lg:px-6 pt-10 pb-12">
             <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -551,17 +577,22 @@ export default function EvilRobotsPage() {
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
             <figure>
               <div
-                className="relative aspect-[2/3] max-h-[560px] rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
+                className="rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
                 style={{ boxShadow: "0 0 60px rgba(239,68,68,0.16)" }}
               >
                 <Image
-                  src="/Megabot1.png"
-                  alt="MEGABOT, Enemy of the Universe: a station-sized war machine lit red, towering over a burning city"
-                  fill
-                  className="object-cover"
+                  src="/art/fleeing-the-colossal-megabot.jpg"
+                  alt="A lone white fighter trailing cyan exhaust banks away from MEGABOT, a station-sized machine with one red eye, in front of a burning star. Title: ETU, Explore the Universe 2175."
+                  width={1122}
+                  height={1402}
+                  className="w-full h-auto"
                   sizes="(max-width: 1024px) 100vw, 440px"
                 />
               </div>
+              <figcaption className="mt-3 text-sm text-slate-400 leading-relaxed">
+                Fleeing the colossal MEGABOT. Twenty-five ships tall, and it has already read
+                your file.
+              </figcaption>
             </figure>
 
             <div>
@@ -603,9 +634,9 @@ export default function EvilRobotsPage() {
               eyebrow="Command Roster"
               intro={
                 <>
-                  <span className="font-mono text-red-300">{generals.length}</span> machines are
-                  being forged at Mechatropolis to stand beside the prototype. Their profiles
-                  ship as the alpha grows.
+                  <span className="font-mono text-red-300">{generals.length}</span> of the
+                  machines that stand beside the prototype have full boss profiles so far. More
+                  are in the playtest already, and their profiles follow.
                 </>
               }
             >
@@ -652,6 +683,107 @@ export default function EvilRobotsPage() {
             </div>
           </section>
         )}
+
+        {/* ----------------------------------------------------------- xj9 --- */}
+        <section id="xj9" className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60 scroll-mt-24">
+          <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="etu-pill etu-pill--amber">
+                  <span className="ping" /> In the forge
+                </span>
+                <span className="eyebrow">The Overlord Suit</span>
+              </div>
+              <h2 className="font-display text-6xl md:text-7xl font-bold leading-none bg-gradient-to-r from-slate-100 via-amber-200 to-orange-500 bg-clip-text text-transparent">
+                XJ9
+              </h2>
+              <p className="mt-3 text-xl text-slate-200">MEGABOT&rsquo;s second in command.</p>
+              <div className="mt-5 space-y-4 text-slate-300 leading-relaxed">
+                <p>
+                  Every empire needs someone to hold the line. XJ9 is the knight the machines park
+                  in orbit over a world they have decided to keep: dark mirror chrome edged in
+                  gold, veins of molten orange, one burning eye, and two shoulder railguns that
+                  stand like horns when they are stowed.
+                </p>
+                <p>
+                  He does not hunt you. He stands between you and his planet with a two-handed
+                  laser sword two thirds his own height, and the blade drinks the lasers you fire
+                  at it. What it absorbs, he sends back.
+                </p>
+                <p>
+                  His eye gives him away: red before a strike, amber before he moves, white at the
+                  instant it lands. And behind his breastplate there is a throne built to carry
+                  the Eye, for the day MEGABOT decides a world is worth defending in person.
+                </p>
+              </div>
+              <p className="mt-6 text-sm text-slate-400 leading-relaxed max-w-xl">
+                XJ9 is being built now. His armour, his sword and his eyes exist in the game&rsquo;s
+                workshop; he is not in the playtest yet.
+              </p>
+            </div>
+
+            <figure>
+              <div
+                className="rounded-xl overflow-hidden border border-amber-400/25 bg-black/70"
+                style={{ boxShadow: "0 0 60px rgba(251,146,60,0.16)" }}
+              >
+                <Image
+                  src="/art/xj9-second-in-command.jpg"
+                  alt="XJ9, a towering humanoid war machine in dark chrome with molten orange seams and a crown of blade-like horns, standing in orbit above a blue planet with a glowing sword in one hand. Title: XJ9, Megabot's Second in Command."
+                  width={1122}
+                  height={1402}
+                  className="w-full h-auto"
+                  sizes="(max-width: 1024px) 100vw, 480px"
+                />
+              </div>
+            </figure>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------- solar shade --- */}
+        <section id="solar-shade" className="relative border-t border-slate-800/60 scroll-mt-24">
+          <div className="max-w-6xl mx-auto px-4 lg:px-6 py-14">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="etu-pill etu-pill--green">In the playtest</span>
+              <span className="eyebrow">Megastructure</span>
+            </div>
+            <h2 className="font-display text-4xl md:text-5xl font-bold etu-headline-grad">
+              The Solar Shade
+            </h2>
+            <p className="mt-3 text-xl text-slate-200">The machines are putting out the stars.</p>
+
+            <figure className="mt-8">
+              <div
+                className="rounded-xl overflow-hidden border border-orange-400/25 bg-black/70"
+                style={{ boxShadow: "0 0 60px rgba(251,146,60,0.14)" }}
+              >
+                <Image
+                  src="/art/solar-shade.jpg"
+                  alt="A vast dark triangular sail of hexagonal plate stretched between three stations in front of a blazing star, with a small fighter flying beneath it. Title: Solar Shade, Explore the Universe 2175."
+                  width={1536}
+                  height={1024}
+                  className="w-full h-auto"
+                  sizes="(max-width: 1152px) 100vw, 1104px"
+                />
+              </div>
+            </figure>
+
+            <div className="mt-8 grid md:grid-cols-3 gap-5">
+              {SOLAR_SHADE.map((d) => (
+                <div
+                  key={d.title}
+                  className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-6 hover:border-orange-400/40 transition-colors"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <Glyph glyph={d.glyph} rgb={d.rgb} size="sm" />
+                    <h3 className="font-display text-lg font-bold text-slate-100">{d.title}</h3>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">{d.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* --------------------------------------------------------- units --- */}
         {units.length > 0 && (

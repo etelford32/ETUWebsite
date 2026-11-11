@@ -229,6 +229,41 @@ For a 30-second cut, keep beats 2, 3, 5 and 7.
 
 ---
 
+## Key art (November 2026)
+
+Originals live in the repository root. `python3 scripts/build-art.py` writes
+the web copies: full posters to `public/art/<name>.jpg`, a text-free crop to
+`public/art/<name>-scene.jpg`, faction emblems to `public/emblems/`, and
+1200x630 share cards to `public/og/`. All eight pieces are downloadable from
+`/press-kit#key-art`.
+
+| Piece | File | Used on | What the game backs |
+|---|---|---|---|
+| Fleeing the Colossal MEGABOT | `art/fleeing-the-colossal-megabot.jpg` | Home poster wall, `/megabot`, `/evil-robots`, site share card | Shipped: MEGABOT is the final Survival boss |
+| MEGABOT's Crimson Eye | `art/megabot-crimson-eye.jpg` | Home, `/megabot` Evil Eye section, Machine Empire hero, MEGABOT share card | Shipped: eight-bladed iris, ten eye modes |
+| XJ9, Megabot's Second in Command | `art/xj9-second-in-command.jpg` | Home poster wall, `/evil-robots#xj9` | **Not reachable yet.** Model, sword, eyes and move set are built; there is no spawn. Always label "in the forge" |
+| Solar Shade | `art/solar-shade.jpg` | Home, `/evil-robots#solar-shade` | Shipped in Survival: three Control Nodes, a gate, two shades at the start of every run |
+| Mycelari: The Hive Is Awake | `art/mycelari-swarm.jpg` | Home, `/factions/mycelari` | Shipped: Bloom Queen and Fungal Lord. The tagline is ours, not a line from the game |
+| Space Dwarves: Every Alliance Has a Price | `art/space-dwarves-crystal-mine.jpg` | Home, `/factions/space-dwarves` | Shipped: sealing an alliance costs standing with that faction's enemies |
+| Arkanvil, Star King of Yllar | `art/king-arkanvil-lore-sheet.jpg` | `/factions/space-dwarves` gallery | **Concept sheet.** The Five Great Houses, the Dyson Crystal Forge and crystal addiction are not in the game. Label it as concept art |
+| Cyl, the Corrupted Goddess | `art/cyl-corrupted-goddess.jpg` | `/cyl#shadow`, `/factions/lumari` gallery | **Concept art.** Cyl's light and shadow aspects are shipped; MEGABOT corrupting her is planned and parked |
+
+### Facts added in November 2026 (sources in `etelford32/ETU`)
+
+| Claim | Source |
+|---|---|
+| The Solar Shade: a sail between three Control Nodes with a gate; waves and bosses come through it; killing the three raising scouts cancels a new one | `docs/architecture/SOLARSHADE_0*`, `src/etu/galaxy/solar_shades.py` |
+| Survival boss order: Mega Mecha Scout, Alpha Robot, Null Architect, then MEGABOT | `src/etu/app/build_profile.py`, `simulation/pressure_director.py` |
+| Diplomacy: envoy, tribute, alliance, ceasefire, war; an alliance angers that faction's enemies | `src/etu/simulation/faction_diplomacy.py` |
+| Mycelari, Wild Clans and Crystal Mason units and their one-line descriptions | Cyl's bestiary, `src/etu/memory/bestiary.py` |
+| Leader quotes (Arkanvil, Billybob, Ursos, Bloom Queen, Fungal Lord, MEGABOT) | `src/etu/npc/voices.py`, `billybob_personality.py`, `robot_allegiance.py` |
+| The Wild Clans are animal clans ("Woak") led by Ursos, with the Ents as their siege line | faction registry; `docs/architecture/ENT_0*` |
+| The Lumari are the "crystal intelligences"; there is no separate Crystal Intelligences faction | faction registry; `docs/architecture/MINER_00*` |
+| Co-op Survival, up to four pilots, AI wingmates Vega, Orion and Lyra | `docs/guides/ALPHA_2026_11_11_READINESS.md` |
+| 29 slottable ship abilities | `docs/ACTION_BAR_ABILITY_REVIEW.md` |
+
+---
+
 ## Claims to avoid (not in the game yet)
 
 - **"An enemy AI that learns your tactics."** MEGABOT escalates from what you
@@ -244,4 +279,15 @@ For a 30-second cut, keep beats 2, 3, 5 and 7.
 - **Campaign mode, PvP, a full faction alliance arc, defense trees beyond
   Shields, permanent laser mastery.** Planned.
 - **"Roguelike space RTS" / "17 factions at war."** The game is an action-RPG
-  adventure; 18 factions exist in the lore, four are live on the site.
+  adventure; 17 factions are listed on the site and five have full profiles
+  (Machine Empire, Mycelari, Space Dwarves, Wild Clans, Lumari).
+- **Fighting XJ9.** He is built but cannot be met yet.
+- **A corrupted or evil Cyl, or Cyl as a boss.** Planned and parked. Her
+  shadow aspect (cold, mission-only lines when you ignore her questions) is
+  real and can be shown.
+- **Dyson spheres or swarms, the Dyson Crystal Forge, the Five Great Houses of
+  Yllar.** Concept art only. The Solar Shade is the one megastructure in the
+  game, and it belongs to the machines; the player cannot build one.
+- **Playing as a faction in the playtest.** Strategy mode, where you pick
+  Mycelari, Evil Robots, Crystal Masons, Wild Clans or Terran Federation, is
+  locked in the demo build.

@@ -104,6 +104,6 @@ export function initPerformanceOptimizations() {
   // Prefetch important pages
   setTimeout(() => {
     prefetchNextPage("/leaderboard");
-    prefetchNextPage("/factions/crystal-intelligences");
+    prefetchNextPage("/factions");
   }, 2000);
 }
