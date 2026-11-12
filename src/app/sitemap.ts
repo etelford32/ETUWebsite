@@ -16,6 +16,7 @@ const STATIC_ROUTES = [
   '/bosses',
   '/careers',
   '/cyl',
+  '/demo',
   '/devlog',
   '/evil-robots',
   '/factions',

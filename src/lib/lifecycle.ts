@@ -5,7 +5,11 @@ import {
   sendDormantEmail,
   sendNewDeviceAlertEmail,
   sendAdminDigestEmail,
+  sendDemoReminderEmail,
+  sendDemoLiveEmail,
 } from './lifecycleEmails'
+import { DEMO_CAMPAIGN_ID, DEMO_RELEASE_AT, isDemoLive } from './campaign'
+import { isSyntheticSteamEmail } from './steamIdentity'
 
 /**
  * Lifecycle automations.
@@ -19,6 +23,11 @@ import {
  * states (verify_nudge, dormant_*) that can't be detected at request time.
  *
  * Idempotency is enforced by lifecycle_jobs.dedupe_key (UNIQUE).
+ *
+ * The demo campaign adds two emails (demo_reminder, demo_live) for accounts
+ * with `profiles.newsletter` on. They are off until DEMO_EMAILS_ENABLED=true
+ * is set, so nothing goes out before the launch time in campaign.ts has been
+ * confirmed.
  */
 
 export type LifecycleJobType =
@@ -28,6 +37,8 @@ export type LifecycleJobType =
   | 'dormant_30'
   | 'new_device_alert'
   | 'admin_digest'
+  | 'demo_reminder'
+  | 'demo_live'
 
 export interface EnqueueJobOptions {
   userId: string | null
@@ -66,6 +77,72 @@ interface GenerateResult {
   dormant14: number
   dormant30: number
   adminDigest: number
+  demoReminder: number
+  demoLive: number
+}
+
+const HOUR_MS = 60 * 60 * 1000
+
+/** Campaign emails stay off until the launch time has been confirmed. */
+function demoEmailsEnabled(): boolean {
+  return process.env.DEMO_EMAILS_ENABLED === 'true'
+}
+
+/**
+ * Which demo email is due right now: the reminder during the 24 hours before
+ * launch, the launch email for the 48 hours after it, otherwise none.
+ */
+export function demoEmailDue(now: number = Date.now()): 'demo_reminder' | 'demo_live' | null {
+  const release = Date.parse(DEMO_RELEASE_AT)
+  if (now >= release - 24 * HOUR_MS && now < release) return 'demo_reminder'
+  if (now >= release && now < release + 48 * HOUR_MS) return 'demo_live'
+  return null
+}
+
+/** Enqueue the due demo email for every account that asked for it. */
+async function generateDemoJobs(): Promise<{ demoReminder: number; demoLive: number }> {
+  const counts = { demoReminder: 0, demoLive: 0 }
+  const jobType = demoEmailsEnabled() ? demoEmailDue() : null
+  if (!jobType) return counts
+
+  const supabase = createServerClient()
+  const PAGE = 1000
+  for (let from = 0; ; from += PAGE) {
+    const { data: rows, error } = await (supabase.from('profiles') as any)
+      .select('id, email, display_name, status')
+      .eq('newsletter', true)
+      .not('email', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error || !rows?.length) break
+
+    for (const u of rows) {
+      // Steam-created accounts carry a synthetic address that is never mailed.
+      if (isSyntheticSteamEmail(u.email)) continue
+      if (['banned', 'suspended', 'deleted'].includes(u.status)) continue
+      await enqueueLifecycleJob({
+        userId: u.id,
+        jobType,
+        dedupeKey: `${jobType}:${DEMO_CAMPAIGN_ID}:${u.id}`,
+        payload: { email: u.email, displayName: u.display_name },
+      })
+      if (jobType === 'demo_live') counts.demoLive++
+      else counts.demoReminder++
+    }
+    if (rows.length < PAGE) break
+  }
+  return counts
+}
+
+/** Still opted in at send time? Guards against a toggle flipped after enqueue. */
+async function wantsDemoEmails(userId: string | null): Promise<boolean> {
+  if (!userId) return false
+  const supabase = createServerClient()
+  const { data } = await (supabase.from('profiles') as any)
+    .select('newsletter')
+    .eq('id', userId)
+    .maybeSingle()
+  return data?.newsletter === true
 }
 
 /**
@@ -74,7 +151,14 @@ interface GenerateResult {
  */
 export async function generateLifecycleJobs(): Promise<GenerateResult> {
   const supabase = createServerClient()
-  const result: GenerateResult = { verifyNudge: 0, dormant14: 0, dormant30: 0, adminDigest: 0 }
+  const result: GenerateResult = {
+    verifyNudge: 0,
+    dormant14: 0,
+    dormant30: 0,
+    adminDigest: 0,
+    demoReminder: 0,
+    demoLive: 0,
+  }
 
   // --- verify_nudge: signed up > 24h ago, still unverified -------------------
   const { data: unverified } = await (supabase.from('user_states') as any)
@@ -126,6 +210,9 @@ export async function generateLifecycleJobs(): Promise<GenerateResult> {
     payload: { day },
   })
   result.adminDigest++
+
+  // --- demo campaign: reminder the day before, launch email on the day -------
+  Object.assign(result, await generateDemoJobs())
 
   return result
 }
@@ -210,6 +297,15 @@ async function dispatchJob(job: any): Promise<'sent' | 'skipped'> {
         : 'skipped'
     case 'admin_digest':
       return (await sendAdminDigest()) ? 'sent' : 'skipped'
+    case 'demo_reminder':
+      // A reminder that would arrive after launch is no longer true.
+      if (!email || !demoEmailsEnabled() || isDemoLive()) return 'skipped'
+      if (!(await wantsDemoEmails(job.user_id))) return 'skipped'
+      return (await sendDemoReminderEmail(email, displayName)) ? 'sent' : 'skipped'
+    case 'demo_live':
+      if (!email || !demoEmailsEnabled() || !isDemoLive()) return 'skipped'
+      if (!(await wantsDemoEmails(job.user_id))) return 'skipped'
+      return (await sendDemoLiveEmail(email, displayName)) ? 'sent' : 'skipped'
     default:
       return 'skipped'
   }

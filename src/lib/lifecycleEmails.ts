@@ -1,4 +1,5 @@
 import { emailLogoImg } from '@/lib/emailBrand'
+import { DEMO_DATE_LABEL, DEMO_PATH, isDemoLive, steamStoreUrl } from '@/lib/campaign'
 
 /**
  * Outbound lifecycle emails, sent via Resend (same provider/sender used for
@@ -76,14 +77,49 @@ function greeting(displayName?: string): string {
 }
 
 export async function sendWelcomeEmail(email: string, displayName?: string): Promise<boolean> {
+  // Step 1 of the demo-day funnel is done; the email hands over to step 2.
+  const demoLine = isDemoLive()
+    ? `<p>The <strong>free demo is live on Steam</strong>. Your checklist has the link.</p>`
+    : `<p>The <strong>free demo lands on Steam on ${DEMO_DATE_LABEL}</strong>. One step left before then: wishlist the game on Steam.</p>`
   const html = shell(
     '🚀 Welcome aboard, Commander',
     `<p>${greeting(displayName)}, your account is live. The galaxy of <strong>Explore the Universe 2175</strong> awaits.</p>
-     <p>Jump into your dashboard to set up your commander profile and track your standing on the global leaderboard.</p>
-     <a href="${siteUrl()}/dashboard" class="button">Open My Dashboard</a>`,
+     ${demoLine}
+     <a href="${siteUrl()}${DEMO_PATH}" class="button">Open My Demo-Day Checklist</a>
+     <p style="font-size:14px;">Your commander profile and leaderboard standing live on <a href="${siteUrl()}/dashboard">your dashboard</a>.</p>`,
     `This email was sent to ${escapeHtml(email)}.`
   )
   return send(email, '🚀 Welcome to Explore the Universe 2175', html)
+}
+
+/** Footer for campaign emails: why it arrived and where to switch it off. */
+function demoOptOutNote(email: string): string {
+  return `This email was sent to ${escapeHtml(email)} because demo-day emails are switched on for your account. Switch them off any time on your <a href="${siteUrl()}${DEMO_PATH}">demo-day checklist</a>.`
+}
+
+/** The day before launch: finish the checklist. */
+export async function sendDemoReminderEmail(email: string, displayName?: string): Promise<boolean> {
+  const html = shell(
+    'One day to go',
+    `<p>${greeting(displayName)}, the free demo of <strong>Explore the Universe 2175</strong> lands on Steam on <strong>${DEMO_DATE_LABEL}</strong>.</p>
+     <p>If you have not wishlisted the game yet, now is the moment. It is the best way to support the launch.</p>
+     <a href="${steamStoreUrl('email-demo-reminder')}" class="button">Wishlist on Steam</a>
+     <p style="font-size:14px;">Your <a href="${siteUrl()}${DEMO_PATH}">demo-day checklist</a> keeps the countdown.</p>`,
+    demoOptOutNote(email)
+  )
+  return send(email, 'One day to go: the free ETU 2175 demo', html)
+}
+
+/** Launch: the demo is out. */
+export async function sendDemoLiveEmail(email: string, displayName?: string): Promise<boolean> {
+  const html = shell(
+    'The free demo is live',
+    `<p>${greeting(displayName)}, the free demo of <strong>Explore the Universe 2175</strong> is out now on Steam.</p>
+     <a href="${steamStoreUrl('email-demo-live')}" class="button">Play the Free Demo</a>
+     <p style="font-size:14px;">Fly safe out there.</p>`,
+    demoOptOutNote(email)
+  )
+  return send(email, 'The free ETU 2175 demo is live on Steam', html)
 }
 
 export async function sendVerifyNudgeEmail(email: string, displayName?: string): Promise<boolean> {

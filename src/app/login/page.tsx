@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import Link from 'next/link'
+import { DEMO_DATE_LABEL, DEMO_PATH } from '@/lib/campaign'
+import { useDemoLive } from '@/lib/useDemoLive'
 
 // ─── Forgot Username Modal ────────────────────────────────────────────────────
 
@@ -104,8 +106,10 @@ function ForgotUsernameModal({ onClose }: { onClose: () => void }) {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const demoLive = useDemoLive()
   const [redirectTo, setRedirectTo] = useState('/dashboard')
   const [isAlphaRedirect, setIsAlphaRedirect] = useState(false)
+  const [isDemoRedirect, setIsDemoRedirect] = useState(false)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [identifier, setIdentifier] = useState('') // email or username
   const [password, setPassword] = useState('')
@@ -120,6 +124,7 @@ function LoginForm() {
     const isAlpha = redirect === '/alpha-testing'
     setRedirectTo(redirect)
     setIsAlphaRedirect(isAlpha)
+    setIsDemoRedirect(redirect === DEMO_PATH)
     if (isAlpha || searchParams?.get('mode') === 'signup') setMode('signup')
 
     const msg = searchParams?.get('message')
@@ -196,7 +201,9 @@ function LoginForm() {
           type: 'success',
           text: isAlphaRedirect
             ? 'Account created! Redirecting to your alpha application…'
-            : 'Account created! Redirecting…',
+            : isDemoRedirect
+              ? 'Account created! Next step: wishlist on Steam…'
+              : 'Account created! Redirecting…',
         })
         setTimeout(() => router.push(redirectTo), 1000)
       } else {
@@ -294,6 +301,24 @@ function LoginForm() {
                   </p>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Demo-day banner: arrived from a "Sign up for demo day" button */}
+          {isDemoRedirect && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-400/50 backdrop-blur-sm"
+            >
+              <h3 className="font-bold text-amber-300">
+                {demoLive ? 'The free demo is live on Steam' : `Free demo on Steam · ${DEMO_DATE_LABEL}`}
+              </h3>
+              <p className="text-sm text-amber-100/90 mt-1">
+                {mode === 'signup'
+                  ? 'Step 1 of 3: create your commander account. Next you wishlist on Steam.'
+                  : 'Sign in to pick up your demo-day checklist.'}
+              </p>
             </motion.div>
           )}
 

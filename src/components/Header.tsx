@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import WishlistButton from "@/components/WishlistButton";
+import DemoSignupButton from "@/components/DemoSignupButton";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllFactions, type Faction } from "@/data/factions";
@@ -74,11 +75,14 @@ const PRIMARY_LINKS = [
   { href: "/faq", label: "FAQ" },
 ] as const;
 
-type StaffAccess = { isAdmin: boolean; isSuperuser: boolean };
+type StaffAccess = { signedIn: boolean; isAdmin: boolean; isSuperuser: boolean };
 
-/** Admin/superuser shortcuts for the signed-in account (role read server-side). */
+/**
+ * Whether anyone is signed in, plus admin/superuser shortcuts for that
+ * account (role read server-side).
+ */
 function useStaffAccess(): StaffAccess {
-  const [access, setAccess] = useState<StaffAccess>({ isAdmin: false, isSuperuser: false });
+  const [access, setAccess] = useState<StaffAccess>({ signedIn: false, isAdmin: false, isSuperuser: false });
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/session")
@@ -87,6 +91,7 @@ function useStaffAccess(): StaffAccess {
         if (cancelled || !data?.authenticated) return;
         const role = data.user?.role;
         setAccess({
+          signedIn: true,
           isAdmin: role === "admin" || role === "staff",
           isSuperuser: data.user?.isSuperuser === true,
         });
@@ -186,9 +191,17 @@ export default function Header() {
             {staff.isSuperuser && <NavLink href="/admin/superuser">👑 Superuser</NavLink>}
             {staff.isAdmin && <NavLink href="/admin">Admin</NavLink>}
             <NavLink href="/profile">Profile</NavLink>
-            <WishlistButton placement="header" className="btn-3d btn-3d-steam !py-2 !px-4 !text-sm" icon={false}>
-              Wishlist on Steam
-            </WishlistButton>
+            {/* Demo-day funnel: sign up first, then wishlist. */}
+            {staff.signedIn ? (
+              <WishlistButton placement="header" className="btn-3d btn-3d-steam !py-2 !px-4 !text-sm" icon={false}>
+                Wishlist on Steam
+              </WishlistButton>
+            ) : (
+              <DemoSignupButton
+                placement="header"
+                className="btn-3d btn-3d-demo !py-2 !px-4 !text-sm whitespace-nowrap"
+              />
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -217,9 +230,14 @@ export default function Header() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-5 space-y-6">
-          <WishlistButton placement="header-mobile" className="btn-3d btn-3d-steam w-full" icon={false}>
-            Wishlist on Steam
-          </WishlistButton>
+          <div className="space-y-3">
+            {!staff.signedIn && (
+              <DemoSignupButton placement="header-mobile" className="btn-3d btn-3d-demo w-full" />
+            )}
+            <WishlistButton placement="header-mobile" className="btn-3d btn-3d-steam w-full" icon={false}>
+              Wishlist on Steam
+            </WishlistButton>
+          </div>
 
           <MobileSection title="Game">
             {GAME_LINKS.map((l) => (
