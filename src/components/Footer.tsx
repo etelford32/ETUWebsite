@@ -63,7 +63,7 @@ export default function Footer() {
               Forum
             </Link>
             <span className="block text-slate-400/70">
-              Discord <span className="text-xs">(coming soon)</span>
+              Discord <span className="text-xs">(Thanksgiving Day demo release)</span>
             </span>
             <Link className="block hover:text-cyan-400 transition-colors" href="/login">
               Sign in
