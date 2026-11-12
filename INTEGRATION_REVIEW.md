@@ -481,7 +481,7 @@ await supabase.from('scores').insert({ user_id: user.id, score })
 
 5. **⏳ TODO**: Add Discord webhook to Vercel env vars
    - Key: `DISCORD_WEBHOOK_URL`
-   - Value: `https://discord.com/api/webhooks/1458859257553227901/...`
+   - Value: `https://discord.com/api/webhooks/<id>/<token>` (from Discord Server Settings > Integrations > Webhooks; never commit the real URL)
    - Redeploy after adding
 
 ### Short-term (High Priority)
