@@ -29,19 +29,26 @@
     }
   },
   "litSprite": {
-    "width": 384,
-    "height": 602,
+    "width": 306,
+    "height": 482,
+    "frames": 16,
+    "columns": 8,
+    "stepDegrees": 22.5,
+    "pivot": {
+      "x": 153,
+      "y": 280
+    },
     "thrusters": [
       {
-        "x": 104,
-        "y": 549
+        "x": 83,
+        "y": 439
       },
       {
-        "x": 280,
-        "y": 549
+        "x": 223,
+        "y": 439
       }
     ],
-    "thrusterWidth": 72,
+    "thrusterWidth": 57,
     "keyLight": [
       -0.46,
       -0.58,

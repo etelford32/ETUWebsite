@@ -20,8 +20,9 @@ It writes:
   public/ship-designer/hulls/<skin>.png   Ship.create_ship_surface for each
                                           skin (what the game's designer draws)
   public/ship-designer/lit/<skin>.webp    the lit 3D hull the ship wears in
-                                          flight (etu.render.ship_hull_3d),
-                                          nose up under the game's key light
+                                          flight (etu.render.ship_hull_3d): a
+                                          sheet of one frame per heading, each
+                                          lit by the game's key light
   public/ship-designer/tiers/tier-<n>.png the classic hull at each SHIPVIS-01
                                           progression tier (0..5)
   public/ship-designer/doctrines/<id>.png the top-tier hull in each laser
@@ -67,7 +68,10 @@ SPRITE_SIZE = 256
 # at the ship's own size and supersampled; the game stops at 6 bake pixels per
 # base pixel when zoomed in, and the bake takes any factor.
 LIT_BASE_SIZE = 40
-LIT_SUPERSAMPLE = 10
+LIT_SUPERSAMPLE = 8
+# Headings in a full turn, and how they are laid out in the sheet.
+LIT_FRAMES = 16
+LIT_COLUMNS = 8
 
 
 def parse_args():
@@ -139,7 +143,7 @@ def save_png(pygame, surface, path: Path):
     raw = pygame.image.tobytes(surface, 'RGBA')
     picture = Image.frombytes('RGBA', surface.get_size(), raw)
     if path.suffix == '.webp':
-        picture.save(path, quality=92, method=6)
+        picture.save(path, quality=88, method=6)
     else:
         picture.save(path, optimize=True)
 
@@ -215,15 +219,28 @@ def main():
     for entry in skins:
         stub = type('WebsiteShipPreview', (), {'skin_id': entry['id'], 'hull_tint': None, 'glow_color': None})()
         material = s3.bake_hull_material(LIT_BASE_SIZE, k, s3.resolve_palette(stub, m.SHIP_SKIN_PALETTES))
-        # Nose up on screen, under the game's screen-fixed key light.
-        surface = s3.surface_from_rgba(pygame, s3.shade_hull(material, s3.body_light(0)))
+        # One frame per heading: the hull is always drawn nose up, and the
+        # light is the game's screen-fixed key seen from a ship turned that far
+        # (body_light). The page turns the frame back by the same angle, so the
+        # highlight stays where the key is while the ship turns under it, as
+        # in flight. The game buckets the light every LIGHT_STEP_DEG; the page
+        # blends between these coarser frames.
+        frames = [
+            s3.surface_from_rgba(pygame, s3.shade_hull(material, s3.body_light(index * 360.0 / LIT_FRAMES)))
+            for index in range(LIT_FRAMES)
+        ]
         if lit_crop is None:
-            _, lit_crop = crop_to_content(pygame, surface, pad=k)
+            _, lit_crop = crop_to_content(pygame, frames[0], pad=k)
             lcx = geo['cx'] * k - lit_crop.x
             lcy = geo['cy'] * k - lit_crop.y
             lit = {
                 'width': lit_crop.width,
                 'height': lit_crop.height,
+                'frames': LIT_FRAMES,
+                'columns': LIT_COLUMNS,
+                'stepDegrees': 360.0 / LIT_FRAMES,
+                # The centre the game rotates the sprite about.
+                'pivot': {'x': lcx, 'y': lcy},
                 'thrusters': [
                     {
                         'x': lcx + sign * int(geo['width'] * 0.22 * k),
@@ -234,7 +251,14 @@ def main():
                 'thrusterWidth': int(geo['width'] * 0.18 * k),
                 'keyLight': list(s3.KEY_LIGHT),
             }
-        save_png(pygame, surface.subsurface(lit_crop).copy(), LIT_DIR / f"{entry['id']}.webp")
+        rows = (LIT_FRAMES + LIT_COLUMNS - 1) // LIT_COLUMNS
+        atlas = pygame.Surface((lit_crop.width * LIT_COLUMNS, lit_crop.height * rows), pygame.SRCALPHA)
+        for index, frame in enumerate(frames):
+            atlas.blit(
+                frame.subsurface(lit_crop),
+                ((index % LIT_COLUMNS) * lit_crop.width, (index // LIT_COLUMNS) * lit_crop.height),
+            )
+        save_png(pygame, atlas, LIT_DIR / f"{entry['id']}.webp")
         entry['lit'] = f"/ship-designer/lit/{entry['id']}.webp"
 
     tiers = []

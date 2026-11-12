@@ -209,13 +209,13 @@ export default function ShipDesignerPage() {
             {tab === 'overview' && (
               <>
                 <Panel title="Appearance">
-                  <ShipHangar skin={skin} className="mx-auto block h-72 w-full sm:h-80" />
+                  <ShipHangar skin={skin} className="mx-auto block h-80 w-full sm:h-96" />
                   <p className="mt-1 text-center text-xl font-bold" style={{ color: UI.title }}>
                     {skin.name}
                   </p>
                   <SkinStrip selected={skin.id} onSelect={id => change({ appearance: { skin_id: id } })} onStep={stepSkin} />
                   <Hint>
-                    Click a hull or use the arrows. These are the game&apos;s {SKINS.length} hulls, and the choice
+                    Drag the ship to turn it. Click a hull or use the arrows. These are the game&apos;s {SKINS.length} hulls, and the choice
                     is the ship you fly in every mode.
                   </Hint>
                 </Panel>
