@@ -292,6 +292,14 @@ export default function AdminDashboard() {
             </Link>
             {user?.role === 'admin' && (
               <Link
+                href="/admin/audio"
+                className="px-4 py-2 bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/30 text-cyan-300 rounded-lg transition-colors whitespace-nowrap"
+              >
+                🎧 Audio Library
+              </Link>
+            )}
+            {user?.role === 'admin' && (
+              <Link
                 href="/admin/google-analytics"
                 className="px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/30 text-emerald-300 rounded-lg transition-colors whitespace-nowrap"
               >
