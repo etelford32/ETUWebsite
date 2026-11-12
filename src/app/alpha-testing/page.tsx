@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { DISCORD_URL } from '@/lib/discord'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Rocket,
@@ -411,7 +412,16 @@ export default function AlphaTestingPage() {
                         placeholder="username#1234"
                       />
                       <p className="mt-2 text-xs text-slate-400">
-                        The Explore the Universe 2175 Discord link will be shared with accepted alpha testers.
+                        Join the{' '}
+                        <a
+                          href={DISCORD_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 underline font-semibold"
+                        >
+                          Explore the Universe 2175 Discord
+                        </a>
+                        {' '}to connect with the community and get alpha testing updates.
                       </p>
                     </div>
                   </motion.div>

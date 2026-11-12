@@ -316,7 +316,7 @@ Visit our **[Backlog Page](/backlog)** to:
 
 ### 📢 Join the Conversation
 - **Steam Discussions** - Daily community interaction
-- **Discord** (Coming Soon) - Direct dev access
+- **[Discord](/discord)** - Direct dev access
 - **Weekly Dev Blogs** - Behind-the-scenes progress
 
 ---

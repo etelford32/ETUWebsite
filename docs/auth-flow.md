@@ -500,14 +500,18 @@ When `/api/steam/auth?link=true` is hit:
 ## 10. Discord Integration
 
 ### Current State
-- Discord webhook URL configured in env ✅
+- Webhook notification on alpha application submitted ✅ (`DISCORD_WEBHOOK_URL`)
+- Public "Join Discord" links and `/discord` redirect ✅ (`src/lib/discord.ts`)
 - No bot integration ❌
 - No OAuth ❌
+
+How the current pieces work, and how to set up or rotate the webhook:
+[`docs/discord.md`](./discord.md).
 
 ### Phase 1 — Webhook Notifications (Quick Win)
 Fire Discord webhook notifications on:
 - New user signup (username, email prefix, signup method)
-- Alpha application submitted (username, application summary)
+- Alpha application submitted (username, application summary) — **done**
 - Alpha application approved (username)
 - New verified Steam owner (username, steam profile link)
 

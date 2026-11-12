@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { DISCORD_URL } from "@/lib/discord";
 
 interface FAQItem {
   id: string;
@@ -119,7 +120,7 @@ const faqData: FAQItem[] = [
   {
     id: "discord",
     question: "Is there a Discord community?",
-    answer: "Yes! Join our Discord for dev updates, community events, multiplayer coordination, and direct access to the development team. We host weekly Q&A sessions and share behind-the-scenes content. Link coming soon!",
+    answer: "Yes! Join our Discord for dev updates, community events, multiplayer coordination, and direct access to the development team. We host weekly Q&A sessions and share behind-the-scenes content. Use the Join Discord button at the bottom of this page.",
     category: "community"
   },
   {
@@ -197,7 +198,16 @@ export default function FAQPage() {
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
             Everything you need to know about Explore the Universe 2175. Can't find your answer?
-            Reach out to us on Discord!
+            Reach out to us on{" "}
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-300 hover:text-purple-200 underline"
+            >
+              Discord
+            </a>
+            !
           </p>
         </div>
       </section>
@@ -295,9 +305,17 @@ export default function FAQPage() {
             Still Have Questions?
           </h2>
           <p className="text-purple-100 text-lg mb-6">
-            Our Discord community is coming soon. In the meantime, follow development on the roadmap.
+            Join our Discord community and chat with the dev team directly!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition-all inline-flex items-center justify-center gap-2"
+            >
+              <span>💬</span> Join Discord
+            </a>
             <Link
               href="/roadmap"
               className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-bold hover:bg-white/10 transition-all"
