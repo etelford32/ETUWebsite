@@ -22,9 +22,22 @@ export function createServerClient(): SupabaseClient<Database> {
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    }
+    },
+    global: { fetch: uncachedFetch },
   })
 }
+
+/**
+ * Database reads must never come from Next's fetch cache. Next 14 caches a
+ * GET made inside a route handler indefinitely unless the route also
+ * exports a non-GET method or reads cookies/headers first — and
+ * `dynamic = 'force-dynamic'` switches that second escape off. A GET-only
+ * `force-dynamic` route would otherwise keep answering with the rows it saw
+ * on its first request, including the role and status that session checks
+ * re-read. Saying `no-store` on every request makes it not depend on any
+ * of that.
+ */
+const uncachedFetch: typeof fetch = (input, init) => fetch(input, { ...init, cache: 'no-store' })
 
 /**
  * Auth-only Supabase client for the server-side OAuth PKCE flow.

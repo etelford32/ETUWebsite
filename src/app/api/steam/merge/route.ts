@@ -138,12 +138,28 @@ export async function POST(request: NextRequest) {
     })
     if (metaError) console.error('Steam merge app_metadata update failed:', metaError)
 
+    // AUDIO-01: the player's stations, uploads and favourites come across
+    // too. Deleting the auth user below cascades whatever is still on it, so
+    // if the move fails the shell is kept and nothing is lost.
+    const { error: audioError } = await (supabase as any).rpc('audio_move_user_data', {
+      p_source: offer.sourceUserId,
+      p_target: session.userId,
+    })
+    // No such function (PostgREST PGRST202, Postgres 42883) means the
+    // AUDIO-01 migration isn't applied: there is no audio data to move or
+    // lose, and the merge finishes exactly as it did before AUDIO-01.
+    const audioNotInstalled = audioError?.code === 'PGRST202' || audioError?.code === '42883'
+    const keepShell = !!audioError && !audioNotInstalled
+    if (keepShell) console.error('Steam merge: audio library move failed; keeping the merged account:', audioError)
+
     // The Steam-only account is now an empty shell (status 'deleted', no
     // Steam ID). Removing its auth user also ends any game session on it;
     // the game's next Steam sign-in resolves to this account.
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(offer.sourceUserId)
-    if (deleteError) {
-      console.error(`Steam merge: could not delete merged account ${offer.sourceUserId}:`, deleteError)
+    if (!keepShell) {
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(offer.sourceUserId)
+      if (deleteError) {
+        console.error(`Steam merge: could not delete merged account ${offer.sourceUserId}:`, deleteError)
+      }
     }
 
     await verifyOwnership(session.userId, offer.steamId).catch((err) =>
