@@ -802,6 +802,17 @@ body { font-family: var(--font-body); }
   box-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
 }
 
+/* Campaign primary — demo-day amber, outranks the Steam blue beside it */
+.btn-3d-demo {
+  background: #f59e0b;
+  border-color: #fcd34d;
+  color: #1c1203;
+}
+.btn-3d-demo:hover {
+  background: #fbbf24;
+  box-shadow: 0 0 28px rgba(251, 191, 36, 0.4);
+}
+
 /* Danger / alt accent */
 .btn-3d-red {
   background: #b91c1c;

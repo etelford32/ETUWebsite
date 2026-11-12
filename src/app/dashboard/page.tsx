@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Profile, LeaderboardEntry } from '@/lib/types'
 import { SteamProfileLink } from '@/components/SteamProfileLink'
 import { isSyntheticSteamEmail } from '@/lib/steamIdentity'
 import WishlistButton from '@/components/WishlistButton'
 import { SteamIcon } from '@/components/SteamIcon'
 import Header from '@/components/Header'
+import { DEMO_DATE_LABEL, DEMO_PATH } from '@/lib/campaign'
+import { useDemoLive } from '@/lib/useDemoLive'
 
 interface SessionUser {
   id: string
@@ -24,6 +27,7 @@ interface SessionUser {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const demoLive = useDemoLive()
   const [loading, setLoading] = useState(true)
   const [account, setAccount] = useState<SessionUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -246,6 +250,26 @@ export default function DashboardPage() {
               }
             />
           </div>
+        </div>
+
+        {/* Demo-day CTA */}
+        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-amber-900/30 to-orange-900/20 border border-amber-400/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-white">
+              {demoLive ? 'The free demo is live on Steam' : `Free demo on Steam · ${DEMO_DATE_LABEL}`}
+            </h3>
+            <p className="text-slate-300 text-sm mt-1">
+              {demoLive
+                ? 'Download it from the store page and fly.'
+                : 'Your account is step 1. Wishlist on Steam and set your launch-day reminder.'}
+            </p>
+          </div>
+          <Link
+            href={DEMO_PATH}
+            className="whitespace-nowrap px-6 py-3 rounded-lg font-semibold bg-amber-400 hover:bg-amber-300 text-amber-950 transition text-center"
+          >
+            {demoLive ? 'Play the demo' : 'Open my checklist'}
+          </Link>
         </div>
 
         {/* Playtest CTA */}

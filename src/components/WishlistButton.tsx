@@ -1,7 +1,8 @@
 "use client"
 
 import type { ReactNode } from 'react'
-import { STEAM_STORE_URL, trackWishlistClick } from '@/lib/analytics'
+import { trackWishlistClick } from '@/lib/analytics'
+import { steamStoreUrl } from '@/lib/campaign'
 import { SteamIcon } from '@/components/SteamIcon'
 
 interface WishlistButtonProps {
@@ -12,9 +13,12 @@ interface WishlistButtonProps {
   children?: ReactNode
   /** Omit the default icon when supplying custom children. */
   icon?: boolean
+  /** Defaults to the store page, tagged with this placement for Steam's UTM analytics. */
   href?: string
-  /** What the click is for; both land on the store page. */
-  intent?: 'wishlist' | 'playtest'
+  /** What the click is for; all land on the store page. */
+  intent?: 'wishlist' | 'playtest' | 'demo'
+  /** Runs after the click is recorded (the Steam tab opens regardless). */
+  onOpen?: () => void
 }
 
 /**
@@ -27,18 +31,20 @@ export default function WishlistButton({
   className = 'btn-3d btn-3d-steam',
   children,
   icon = true,
-  href = STEAM_STORE_URL,
+  href,
   intent = 'wishlist',
+  onOpen,
 }: WishlistButtonProps) {
   return (
     <a
-      href={href}
+      href={href ?? steamStoreUrl(placement)}
       target="_blank"
       rel="noopener noreferrer"
       className={className}
       onClick={() => {
         // Fire-and-forget; the tab opens regardless.
         void trackWishlistClick(placement, { intent })
+        onOpen?.()
       }}
     >
       {children ?? (

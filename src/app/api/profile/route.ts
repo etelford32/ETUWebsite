@@ -70,7 +70,7 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
     // is_alpha_tester, role and stats are server-granted, never self-set.
-    const { username, avatar_url, faction_choice, is_public } = body
+    const { username, avatar_url, faction_choice, is_public, newsletter } = body
 
     const supabase = createServerClient()
 
@@ -100,6 +100,8 @@ export async function PATCH(request: NextRequest) {
     if (avatar_url !== undefined) updates.avatar_url = avatar_url
     if (faction_choice !== undefined) updates.faction_choice = faction_choice
     if (is_public !== undefined) updates.is_public = Boolean(is_public)
+    // Demo-day and launch emails; only `true` or `false` changes it.
+    if (typeof newsletter === 'boolean') updates.newsletter = newsletter
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
