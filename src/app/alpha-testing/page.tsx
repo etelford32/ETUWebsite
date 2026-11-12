@@ -411,16 +411,7 @@ export default function AlphaTestingPage() {
                         placeholder="username#1234"
                       />
                       <p className="mt-2 text-xs text-slate-400">
-                        Join our official{' '}
-                        <a
-                          href="https://discord.com/api/webhooks/1458859257553227901/Y2l5AfqWwkVSkQXblX2_z-b481UDPc62g-Tv4JjrvYsvHZ_MijZY_2uHPc5vgdbSOffL"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 hover:text-cyan-300 underline font-semibold"
-                        >
-                          Explore the Universe 2175 Discord
-                        </a>
-                        {' '}to connect with the community and get alpha testing updates!
+                        The Explore the Universe 2175 Discord link will be shared with accepted alpha testers.
                       </p>
                     </div>
                   </motion.div>

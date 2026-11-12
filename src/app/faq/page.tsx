@@ -295,15 +295,9 @@ export default function FAQPage() {
             Still Have Questions?
           </h2>
           <p className="text-purple-100 text-lg mb-6">
-            Join our Discord community and chat with the dev team directly!
+            Our Discord community is coming soon. In the meantime, follow development on the roadmap.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="#"
-              className="px-8 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition-all inline-flex items-center justify-center gap-2"
-            >
-              <span>💬</span> Join Discord
-            </a>
             <Link
               href="/roadmap"
               className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-bold hover:bg-white/10 transition-all"
