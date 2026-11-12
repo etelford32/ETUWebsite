@@ -1,0 +1,694 @@
+{
+  "_generated": "Written by scripts/export-ship-designer.py from the game. Do not edit by hand; change the game and export again.",
+  "source": {
+    "repository": "etelford32/ETU",
+    "commit": "3582b417",
+    "runtimeImageSha256": "ef7053a74dec0e35d8881113e43b3d2d6348e43300f291515e3c0479376ac442"
+  },
+  "sprite": {
+    "width": 236,
+    "height": 373,
+    "thrusters": [
+      {
+        "x": 62,
+        "y": 341
+      },
+      {
+        "x": 174,
+        "y": 341
+      }
+    ],
+    "thrusterWidth": 46,
+    "core": {
+      "x": 118,
+      "y": 317
+    },
+    "nose": {
+      "x": 118,
+      "y": 7
+    }
+  },
+  "litSprite": {
+    "width": 306,
+    "height": 482,
+    "frames": 16,
+    "columns": 8,
+    "stepDegrees": 22.5,
+    "pivot": {
+      "x": 153,
+      "y": 280
+    },
+    "thrusters": [
+      {
+        "x": 83,
+        "y": 439
+      },
+      {
+        "x": 223,
+        "y": 439
+      }
+    ],
+    "thrusterWidth": 57,
+    "keyLight": [
+      -0.46,
+      -0.58,
+      0.67
+    ]
+  },
+  "skins": [
+    {
+      "id": "classic",
+      "name": "Classic",
+      "sprite": "/ship-designer/hulls/classic.png",
+      "palette": {
+        "hull": "#28b4ff",
+        "glow": "#5ad2ff",
+        "trim": "#1e3c5a",
+        "trail": "#64d2ff",
+        "thruster": "#5ac8ff"
+      },
+      "lit": "/ship-designer/lit/classic.webp"
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "sprite": "/ship-designer/hulls/ember.png",
+      "palette": {
+        "hull": "#c85046",
+        "glow": "#ffaa5a",
+        "trim": "#783c3c",
+        "trail": "#ff965a",
+        "thruster": "#ff8c50"
+      },
+      "lit": "/ship-designer/lit/ember.webp"
+    },
+    {
+      "id": "cinder",
+      "name": "Cinder",
+      "sprite": "/ship-designer/hulls/cinder.png",
+      "palette": {
+        "hull": "#963c28",
+        "glow": "#ff783c",
+        "trim": "#5a2823",
+        "trail": "#ff6e46",
+        "thruster": "#ff6446"
+      },
+      "lit": "/ship-designer/lit/cinder.webp"
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "sprite": "/ship-designer/hulls/aurora.png",
+      "palette": {
+        "hull": "#50c8aa",
+        "glow": "#a0ffdc",
+        "trim": "#28786e",
+        "trail": "#78ffc8",
+        "thruster": "#78ffd2"
+      },
+      "lit": "/ship-designer/lit/aurora.webp"
+    },
+    {
+      "id": "void",
+      "name": "Void",
+      "sprite": "/ship-designer/hulls/void.png",
+      "palette": {
+        "hull": "#4b5f82",
+        "glow": "#82beff",
+        "trim": "#323c50",
+        "trail": "#5aa0e6",
+        "thruster": "#6eb4ff"
+      },
+      "lit": "/ship-designer/lit/void.webp"
+    },
+    {
+      "id": "storm",
+      "name": "Storm",
+      "sprite": "/ship-designer/hulls/storm.png",
+      "palette": {
+        "hull": "#468cc8",
+        "glow": "#78dcff",
+        "trim": "#284664",
+        "trail": "#50b4f0",
+        "thruster": "#5ac8ff"
+      },
+      "lit": "/ship-designer/lit/storm.webp"
+    },
+    {
+      "id": "ion",
+      "name": "Ion",
+      "sprite": "/ship-designer/hulls/ion.png",
+      "palette": {
+        "hull": "#78a0dc",
+        "glow": "#b4dcff",
+        "trim": "#3c5078",
+        "trail": "#8cd2ff",
+        "thruster": "#96dcff"
+      },
+      "lit": "/ship-designer/lit/ion.webp"
+    },
+    {
+      "id": "monarch",
+      "name": "Monarch",
+      "sprite": "/ship-designer/hulls/monarch.png",
+      "palette": {
+        "hull": "#a06ed2",
+        "glow": "#d2aaff",
+        "trim": "#5a3c82",
+        "trail": "#b48cff",
+        "thruster": "#c896ff"
+      },
+      "lit": "/ship-designer/lit/monarch.webp"
+    },
+    {
+      "id": "toxin",
+      "name": "Toxin",
+      "sprite": "/ship-designer/hulls/toxin.png",
+      "palette": {
+        "hull": "#5ab46e",
+        "glow": "#96ffa0",
+        "trim": "#326446",
+        "trail": "#78f096",
+        "thruster": "#78ff96"
+      },
+      "lit": "/ship-designer/lit/toxin.webp"
+    },
+    {
+      "id": "desert",
+      "name": "Desert",
+      "sprite": "/ship-designer/hulls/desert.png",
+      "palette": {
+        "hull": "#be965a",
+        "glow": "#ffd28c",
+        "trim": "#785a3c",
+        "trail": "#f0b478",
+        "thruster": "#ffbe82"
+      },
+      "lit": "/ship-designer/lit/desert.webp"
+    },
+    {
+      "id": "neon",
+      "name": "Neon",
+      "sprite": "/ship-designer/hulls/neon.png",
+      "palette": {
+        "hull": "#50dcff",
+        "glow": "#aaffff",
+        "trim": "#287896",
+        "trail": "#78ffff",
+        "thruster": "#8cffff"
+      },
+      "lit": "/ship-designer/lit/neon.webp"
+    },
+    {
+      "id": "reactor",
+      "name": "Reactor",
+      "sprite": "/ship-designer/hulls/reactor.png",
+      "palette": {
+        "hull": "#dc783c",
+        "glow": "#ffdc78",
+        "trim": "#8c5028",
+        "trail": "#ffb46e",
+        "thruster": "#ffc878"
+      },
+      "lit": "/ship-designer/lit/reactor.webp"
+    },
+    {
+      "id": "hologram",
+      "name": "Hologram",
+      "sprite": "/ship-designer/hulls/hologram.png",
+      "palette": {
+        "hull": "#4682a0",
+        "glow": "#8ce6ff",
+        "trim": "#1e506e",
+        "trail": "#78ffff",
+        "thruster": "#96ffff"
+      },
+      "lit": "/ship-designer/lit/hologram.webp"
+    },
+    {
+      "id": "quantum",
+      "name": "Quantum",
+      "sprite": "/ship-designer/hulls/quantum.png",
+      "palette": {
+        "hull": "#6e5abe",
+        "glow": "#c8aaff",
+        "trim": "#3c3278",
+        "trail": "#aa96ff",
+        "thruster": "#beaaff"
+      },
+      "lit": "/ship-designer/lit/quantum.webp"
+    },
+    {
+      "id": "arcwave",
+      "name": "Arcwave",
+      "sprite": "/ship-designer/hulls/arcwave.png",
+      "palette": {
+        "hull": "#3caad2",
+        "glow": "#78ffe6",
+        "trim": "#145a78",
+        "trail": "#5affdc",
+        "thruster": "#78ffe6"
+      },
+      "lit": "/ship-designer/lit/arcwave.webp"
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "sprite": "/ship-designer/hulls/prism.png",
+      "palette": {
+        "hull": "#96a0be",
+        "glow": "#c8ffe6",
+        "trim": "#505a78",
+        "trail": "#aaf0ff",
+        "thruster": "#befaff"
+      },
+      "lit": "/ship-designer/lit/prism.webp"
+    },
+    {
+      "id": "synthwave",
+      "name": "Synthwave",
+      "sprite": "/ship-designer/hulls/synthwave.png",
+      "palette": {
+        "hull": "#b446b4",
+        "glow": "#ff96e6",
+        "trim": "#5a2878",
+        "trail": "#ff82dc",
+        "thruster": "#ffaaf0"
+      },
+      "lit": "/ship-designer/lit/synthwave.webp"
+    },
+    {
+      "id": "chromatic",
+      "name": "Chromatic",
+      "sprite": "/ship-designer/hulls/chromatic.png",
+      "palette": {
+        "hull": "#78b4be",
+        "glow": "#befaff",
+        "trim": "#465a6e",
+        "trail": "#a0f0ff",
+        "thruster": "#c8ffff"
+      },
+      "lit": "/ship-designer/lit/chromatic.webp"
+    }
+  ],
+  "thrusterColors": [
+    {
+      "id": "cyan",
+      "name": "Cyan",
+      "color": "#5ad2ff"
+    },
+    {
+      "id": "neon_teal",
+      "name": "Neon Teal",
+      "color": "#78ffd2"
+    },
+    {
+      "id": "ion_blue",
+      "name": "Ion Blue",
+      "color": "#8cd2ff"
+    },
+    {
+      "id": "plasma_pink",
+      "name": "Plasma Pink",
+      "color": "#ff8cdc"
+    },
+    {
+      "id": "solar_amber",
+      "name": "Solar Amber",
+      "color": "#ffbe78"
+    },
+    {
+      "id": "aurora_green",
+      "name": "Aurora Green",
+      "color": "#8cffa0"
+    },
+    {
+      "id": "ultraviolet",
+      "name": "Ultraviolet",
+      "color": "#b978ff"
+    },
+    {
+      "id": "ember_orange",
+      "name": "Ember Orange",
+      "color": "#ff8c5a"
+    }
+  ],
+  "progressionTiers": [
+    {
+      "tier": 0,
+      "sprite": "/ship-designer/tiers/tier-0.png",
+      "level": 1
+    },
+    {
+      "tier": 1,
+      "sprite": "/ship-designer/tiers/tier-1.png",
+      "level": 4
+    },
+    {
+      "tier": 2,
+      "sprite": "/ship-designer/tiers/tier-2.png",
+      "level": 10
+    },
+    {
+      "tier": 3,
+      "sprite": "/ship-designer/tiers/tier-3.png",
+      "level": 18
+    },
+    {
+      "tier": 4,
+      "sprite": "/ship-designer/tiers/tier-4.png",
+      "level": 30
+    },
+    {
+      "tier": 5,
+      "sprite": "/ship-designer/tiers/tier-5.png",
+      "level": 45
+    }
+  ],
+  "doctrines": [
+    {
+      "id": "quantum",
+      "name": "Quantum",
+      "accent": "#48f5ff",
+      "sprite": "/ship-designer/doctrines/quantum.png"
+    },
+    {
+      "id": "plasma",
+      "name": "Plasma",
+      "accent": "#ff8c3c",
+      "sprite": "/ship-designer/doctrines/plasma.png"
+    },
+    {
+      "id": "reality",
+      "name": "Reality",
+      "accent": "#c878ff",
+      "sprite": "/ship-designer/doctrines/reality.png"
+    }
+  ],
+  "tabs": [
+    {
+      "id": "overview",
+      "label": "Overview"
+    },
+    {
+      "id": "loadout",
+      "label": "Loadout"
+    },
+    {
+      "id": "upgrades",
+      "label": "Upgrades"
+    },
+    {
+      "id": "abilities",
+      "label": "Abilities"
+    }
+  ],
+  "laserModes": [
+    {
+      "id": "single",
+      "label": "Single"
+    },
+    {
+      "id": "dual",
+      "label": "Dual"
+    },
+    {
+      "id": "spread",
+      "label": "Spread"
+    },
+    {
+      "id": "multishot",
+      "label": "Multi"
+    },
+    {
+      "id": "burst",
+      "label": "Burst"
+    },
+    {
+      "id": "charge",
+      "label": "Charge"
+    },
+    {
+      "id": "beam",
+      "label": "Beam"
+    }
+  ],
+  "missileModes": [
+    {
+      "id": "standard",
+      "label": "Standard"
+    },
+    {
+      "id": "homing",
+      "label": "Homing"
+    },
+    {
+      "id": "cluster",
+      "label": "Cluster"
+    },
+    {
+      "id": "splitter",
+      "label": "Splitter"
+    }
+  ],
+  "actionBar": {
+    "slotCount": 27,
+    "hotkeySlots": 9,
+    "defaults": [
+      {
+        "id": "blink",
+        "label": "BLINK",
+        "category": "utility",
+        "description": "Short-range teleport with reduced carry-over momentum on exit.",
+        "accent": "#82d2ff"
+      },
+      {
+        "id": "laser",
+        "label": "LASER",
+        "category": "weapon",
+        "description": "Primary laser fire.",
+        "accent": "#6effd2"
+      },
+      {
+        "id": "missile",
+        "label": "MISSILE",
+        "category": "weapon",
+        "description": "Secondary guided ordnance.",
+        "accent": "#b4ff8c"
+      },
+      {
+        "id": "rapid_fire",
+        "label": "RAPID FIRE",
+        "category": "weapon",
+        "description": "Spend energy to boost laser fire up to five times faster, tapering near the end.",
+        "accent": "#ffd65e"
+      },
+      {
+        "id": "sideswipe",
+        "label": "SWIPE",
+        "category": "weapon",
+        "description": "Launch an 8-missile S-turn barrage while preserving your current flight line.",
+        "accent": "#82f5b9"
+      },
+      {
+        "id": "mine",
+        "label": "MINE",
+        "category": "weapon",
+        "description": "Deploy a proximity mine.",
+        "accent": "#96ebc8"
+      },
+      {
+        "id": "boost",
+        "label": "BOOST",
+        "category": "mobility",
+        "description": "Short afterburner burst that raises thrust and cruise speed for an attack run.",
+        "accent": "#5affaa"
+      },
+      {
+        "id": "superboost",
+        "label": "SUPERBOOST",
+        "category": "mobility",
+        "description": "Sustained chase burn with higher forward speed, energy drain, and a short re-entry lockout.",
+        "accent": "#69facd"
+      },
+      {
+        "id": "dart",
+        "label": "DART",
+        "category": "mobility",
+        "description": "Primary reactive burst. Dash in a chosen direction, then bleed speed through a short decel tail.",
+        "accent": "#6eebff"
+      },
+      {
+        "id": "tractor",
+        "label": "TRACTOR",
+        "category": "utility",
+        "description": "Tractor beam pull.",
+        "accent": "#78dcff"
+      },
+      {
+        "id": "cyl_lock",
+        "label": "CYL",
+        "category": "cyl",
+        "description": "Attach or detach Cyl.",
+        "accent": "#8cebb4"
+      },
+      {
+        "id": "stealth",
+        "label": "STEALTH",
+        "category": "mobility",
+        "description": "Temporary cloaking field.",
+        "accent": "#50ff8c"
+      },
+      {
+        "id": "target_lock",
+        "label": "LOCK",
+        "category": "targeting",
+        "description": "Begin a ship target lock using combat focus priorities.",
+        "accent": "#ffba7e"
+      },
+      {
+        "id": "cyl_attack",
+        "label": "CYL ATK",
+        "category": "cyl",
+        "description": "Command Cyl to charge the selected target and fire a five-shot laser burst.",
+        "accent": "#ff80bc"
+      },
+      {
+        "id": "cyl_taunt",
+        "label": "TAUNT",
+        "category": "cyl",
+        "description": "Command Cyl to pull the selected target onto herself for a short threat burst.",
+        "accent": "#ffb868"
+      },
+      {
+        "id": "cyl_distract",
+        "label": "DISTRACT",
+        "category": "cyl",
+        "description": "Command Cyl to decoy behind the selected target and keep its focus off the player.",
+        "accent": "#96d2ff"
+      },
+      {
+        "id": "cyl_scan",
+        "label": "ACTIVE SCAN",
+        "category": "cyl",
+        "description": "Command Cyl to perform an explicit orbital scan on the selected target.",
+        "accent": "#78f5c8"
+      },
+      {
+        "id": "healing_field",
+        "label": "HEALING FIELD",
+        "category": "cyl",
+        "description": "Project a green energy grid over the ship that restores every defensive layer over four seconds.",
+        "accent": "#3cf082"
+      },
+      {
+        "id": "cyl_target_lock",
+        "label": "CYL LOCK",
+        "category": "targeting",
+        "description": "Begin a Cyl target lock using combat focus priorities.",
+        "accent": "#76e8d2"
+      }
+    ]
+  },
+  "freshProfile": {
+    "level": 1,
+    "xp": 0.0,
+    "xpNext": 100.0,
+    "skillPoints": 0,
+    "skinId": "classic",
+    "activeLaserMode": "single",
+    "activeMissileMode": "standard",
+    "unlockedLaserModes": [
+      "charge",
+      "single"
+    ],
+    "unlockedMissileModes": [
+      "standard"
+    ],
+    "skills": [
+      {
+        "id": "velocity",
+        "label": "Velocity",
+        "rank": 1
+      },
+      {
+        "id": "turn_speed",
+        "label": "Turn Speed",
+        "rank": 1
+      },
+      {
+        "id": "player_health",
+        "label": "Player Health",
+        "rank": 1
+      },
+      {
+        "id": "shield_regen",
+        "label": "Shield Regen",
+        "rank": 1
+      },
+      {
+        "id": "shield_health",
+        "label": "Shield Health",
+        "rank": 1
+      },
+      {
+        "id": "laser_damage",
+        "label": "Laser Damage",
+        "rank": 1
+      },
+      {
+        "id": "laser_speed",
+        "label": "Laser Speed",
+        "rank": 1
+      },
+      {
+        "id": "missile_damage",
+        "label": "Missile Damage",
+        "rank": 1
+      },
+      {
+        "id": "missile_speed",
+        "label": "Missile Speed",
+        "rank": 1
+      },
+      {
+        "id": "missile_aoe",
+        "label": "Missile AOE",
+        "rank": 1
+      },
+      {
+        "id": "missile_cooldown",
+        "label": "Missile Cooldown",
+        "rank": 1
+      },
+      {
+        "id": "phantom_echo",
+        "label": "Phantom Echo",
+        "rank": 1
+      }
+    ]
+  },
+  "ui": {
+    "panelFill": "rgba(8, 16, 28, 0.73)",
+    "panelBorder": "#4696d2",
+    "title": "#ebf6ff",
+    "rowLabel": "#a8c2de",
+    "rowValue": "#deeeff",
+    "hint": "#9ab8d6",
+    "locked": "#7c90a4",
+    "buttonFill": "#122030",
+    "buttonFillActive": "#203a48",
+    "buttonFillDisabled": "#12161e",
+    "buttonBorderDisabled": "#485868",
+    "buttonInnerActive": "#82e6ff",
+    "tabAccent": "#78dcff",
+    "laserAccent": "#6ef5dc",
+    "missileAccent": "#b4f596",
+    "syncAccent": "#78dcaa",
+    "backAccent": "#5abeff",
+    "level": "#ffde84",
+    "xp": "#96e1ff",
+    "xpBarFill": "#5ccdff",
+    "xpBarTrack": "#243048"
+  }
+}
