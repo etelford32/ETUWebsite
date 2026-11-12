@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { DISCORD_URL } from "@/lib/discord";
 import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 
 export default function Footer() {
@@ -66,9 +67,14 @@ export default function Footer() {
             <Link className="block hover:text-cyan-400 transition-colors" href="/forum">
               Forum
             </Link>
-            <span className="block text-slate-400/70">
-              Discord <span className="text-xs">(Thanksgiving Day demo release)</span>
-            </span>
+            <a
+              className="block hover:text-cyan-400 transition-colors"
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
             <Link className="block hover:text-cyan-400 transition-colors" href="/login">
               Sign in
             </Link>

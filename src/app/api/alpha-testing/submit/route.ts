@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabaseServer'
 import { emailLogoImg } from '@/lib/emailBrand'
 import { getSessionFromRequest } from '@/lib/session'
+import { SITE_URL } from '@/lib/siteUrl'
+
+// Where staff review applications — linked from the notification email and
+// from the Discord embed title.
+const ADMIN_APPLICATIONS_URL = `${SITE_URL}/admin/applications`
 
 export async function POST(request: NextRequest) {
   try {
@@ -169,7 +174,7 @@ export async function POST(request: NextRequest) {
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
         <p style="color: #64748b; font-size: 14px; margin: 0;">
-          View all applications in your <a href="https://yoursite.com/admin" style="color: #06b6d4;">admin dashboard</a>
+          View all applications in your <a href="${ADMIN_APPLICATIONS_URL}" style="color: #06b6d4;">admin dashboard</a>
         </p>
       </div>
     </div>
@@ -189,6 +194,7 @@ export async function POST(request: NextRequest) {
         const discordEmbed = {
         embeds: [{
           title: '🚀 New Alpha Testing Application!',
+          url: ADMIN_APPLICATIONS_URL,
           description: `**${username}** has applied for alpha testing`,
           color: 0x06b6d4, // Cyan color
           fields: [
