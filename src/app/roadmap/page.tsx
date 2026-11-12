@@ -138,7 +138,7 @@ const roadmapData: RoadmapItem[] = [
       { text: "Crystal Memories: the first named memories are in", status: "in-progress" },
       { text: "Energy survival tactics at stations", status: "in-progress" },
       { text: "Targeting evolution mechanics", status: "planned" },
-      { text: "Ship Designer website integration", status: "planned" }
+      { text: "Ship Designer website integration", status: "in-progress" }
     ]
   },
   {

@@ -1,622 +1,709 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import ShipCanvas from '@/components/ShipCanvas';
-import Header from '@/components/Header';
+// The game's Ship Designer, on the website.
+//
+// The layout follows GameModeSelectScreen._draw_ship_design_page in the game:
+// the same four tabs, the same three panels on each, the same labels and
+// colours. Everything about the ship comes from src/lib/shipDesigner, which is
+// exported from the game by scripts/export-ship-designer.py.
 
-/* MIGRATION STUB - needs API route migration */
-const supabase: any = {
-  from: () => ({
-    select: () => ({
-      eq: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      order: () => ({ limit: () => Promise.resolve({ data: [] }) })
-    }),
-    insert: () => Promise.resolve({ error: { message: 'Not migrated' } }),
-    update: () => ({ eq: () => Promise.resolve({ error: { message: 'Not migrated' } }) })
-  }),
-  auth: {
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
-  },
-  removeChannel: () => {},
-  channel: () => ({ on: () => ({ subscribe: () => {} }) })
-};
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import Link from 'next/link'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import EtuTitle from '@/components/EtuTitle'
+import ShipHangar from '@/components/ShipHangar'
+import {
+  ACTION_BAR,
+  FRESH_PROFILE,
+  LASER_MODES,
+  MISSILE_MODES,
+  SHIP,
+  SKINS,
+  UI,
+  freshDesign,
+  isLaserModeUnlocked,
+  isMissileModeUnlocked,
+  normalizeDesign,
+  skinById,
+  titleCase,
+  type DesignerTab,
+  type ShipDesign,
+  type ShipMode,
+} from '@/lib/shipDesigner'
 
+const STORAGE_KEY = 'etu.shipDesigner.design'
 
-export default function ShipDesigner() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+type SaveState =
+  | { kind: 'idle' }
+  | { kind: 'saving' }
+  | { kind: 'saved' }
+  | { kind: 'signin' }
+  | { kind: 'error'; message: string }
 
-  const [shipData, setShipData] = useState({
-    name: 'Custom Ship',
-    scale: 1.0,
-    rotation: 0,
-    color: {
-      primary: '#e0f2fe',
-      secondary: '#bae6fd',
-      accent: '#7dd3fc',
-      glow: '#0ea5e9'
-    },
-    weaponColors: {
-      laser: '#ef4444',
-      missile: '#f97316',
-      mine: '#a855f7'
-    },
-    defense: {
-      hull: 100,
-      armor: 50,
-      shield: 75
-    },
-    weapons: {
-      lasers: 2,
-      missiles: 4,
-      mines: 3
-    },
-    components: {
-      hull: {
-        type: 'triangle',
-        size: 40,
-        points: [
-          { x: 0, y: -40 },
-          { x: -25, y: 30 },
-          { x: 25, y: 30 }
-        ]
-      },
-      engine: {
-        enabled: true,
-        thrust: 1.0,
-        glowIntensity: 0.8,
-        style: 'dual' as 'dual' | 'single' | 'quad' | 'ring' | 'plasma'
-      },
-      cockpit: {
-        enabled: true,
-        style: 'bubble' as 'bubble' | 'angular' | 'sleek' | 'armored' | 'windowed' | 'minimal'
-      }
+export default function ShipDesignerPage() {
+  const [design, setDesign] = useState<ShipDesign>(freshDesign)
+  const [tab, setTab] = useState<DesignerTab>('overview')
+  const [signedIn, setSignedIn] = useState(false)
+  const [save, setSave] = useState<SaveState>({ kind: 'idle' })
+  const loaded = useRef(false)
+
+  // A design in progress survives a reload; a signed-in pilot's saved design
+  // wins over it.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY)
+      if (stored) setDesign(normalizeDesign(JSON.parse(stored)))
+    } catch {
+      // Storage is a convenience; the page works without it.
     }
-  });
+    loaded.current = true
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const session = await fetch('/api/auth/session').then(res => res.json())
+        if (cancelled || !session.authenticated) return
+        setSignedIn(true)
+        const saved = await fetch('/api/save-ship').then(res => (res.ok ? res.json() : null))
+        if (!cancelled && saved?.design) setDesign(normalizeDesign(saved.design))
+      } catch {
+        // Signed out, or offline: the page is still a designer.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
-    // Check auth state
-    checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      setUser(session?.user || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function checkAuth() {
-    const sessionRes = await fetch("/api/auth/session"); const sessionData = await sessionRes.json(); const session = sessionData.authenticated ? { user: sessionData.user } : null;
-    setUser(session?.user || null);
-  }
-
-  async function handleSaveShip() {
-    if (!user) {
-      setShowAuthPrompt(true);
-      return;
-    }
-
-    setSaving(true);
-    setSaveMessage(null);
-
+    if (!loaded.current) return
     try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(design))
+    } catch {
+      // See above.
+    }
+  }, [design])
+
+  const change = useCallback((next: Partial<ShipDesign>) => {
+    setDesign(current => ({ ...current, ...next }))
+    setSave({ kind: 'idle' })
+  }, [])
+
+  const skin = skinById(design.appearance.skin_id)
+  const skinIndex = SKINS.findIndex(entry => entry.id === skin.id)
+  const stepSkin = useCallback(
+    (delta: number) => {
+      const next = SKINS[(skinIndex + delta + SKINS.length) % SKINS.length]
+      change({ appearance: { skin_id: next.id } })
+    },
+    [skinIndex, change]
+  )
+
+  // 1-4 switch tabs, as in the game.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const index = ['1', '2', '3', '4'].indexOf(event.key)
+      if (index >= 0) setTab(SHIP.tabs[index].id as DesignerTab)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  async function handleSave() {
+    if (!signedIn) {
+      setSave({ kind: 'signin' })
+      return
+    }
+    setSave({ kind: 'saving' })
+    try {
+      const csrf = await fetch('/api/csrf-token').then(res => res.json())
       const response = await fetch('/api/save-ship', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: user.id,
-          ship_data: shipData,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save ship');
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf.csrfToken ?? '' },
+        body: JSON.stringify({ ship_data: design }),
+      })
+      if (response.status === 401) {
+        setSignedIn(false)
+        setSave({ kind: 'signin' })
+        return
       }
-
-      setSaveMessage({
-        type: 'success',
-        text: `"${shipData.name}" saved successfully!`,
-      });
-
-      // Clear message after 3 seconds
-      setTimeout(() => setSaveMessage(null), 3000);
+      if (!response.ok) throw new Error('The ship could not be saved. Try again in a moment.')
+      setSave({ kind: 'saved' })
     } catch (error: any) {
-      setSaveMessage({
-        type: 'error',
-        text: error.message || 'Failed to save ship',
-      });
-    } finally {
-      setSaving(false);
+      setSave({ kind: 'error', message: error?.message || 'The ship could not be saved.' })
     }
   }
 
-  const handleExport = () => {
-    const jsonString = JSON.stringify(shipData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${shipData.name.replace(/\s+/g, '_')}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCopyJSON = () => {
-    const jsonString = JSON.stringify(shipData, null, 2);
-    navigator.clipboard.writeText(jsonString);
-  };
+  const laserLabel = titleCase(design.active_laser_mode)
+  const missileLabel = titleCase(design.active_missile_mode)
+  const laserUnlocked = LASER_MODES.filter(mode => isLaserModeUnlocked(mode.id)).length
+  const missileUnlocked = MISSILE_MODES.filter(mode => isMissileModeUnlocked(mode.id)).length
 
   return (
-    <div className="min-h-screen bg-deep-900 text-white flex flex-col">
+    <>
       <Header />
-
-      {/* Page Header with Actions */}
-      <div className="border-b border-white/10 bg-deep-900/95 backdrop-blur-md sticky top-16 z-30">
-        <div className="container mx-auto px-2 sm:px-4 py-2">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              Ship Designer
-            </h1>
-            <div className="flex gap-1 sm:gap-2">
-              <button
-                onClick={handleSaveShip}
-                disabled={saving}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={handleCopyJSON}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-white/5 hover:bg-white/10 border border-white/10 rounded font-semibold transition-all"
-              >
-                Copy
-              </button>
-              <button
-                onClick={handleExport}
-                className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded font-semibold transition-all"
-              >
-                Download
-              </button>
+      <main
+        className="min-h-screen bg-deep-900 text-slate-100"
+        style={
+          {
+            '--sd-border': UI.panelBorder,
+            '--sd-label': UI.rowLabel,
+            '--sd-value': UI.rowValue,
+            '--sd-hint': UI.hint,
+            '--sd-locked': UI.locked,
+          } as CSSProperties
+        }
+      >
+        <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:pt-12">
+          {/* Header: title centred, the action on the right, as in the game. */}
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="hidden w-40 sm:block" />
+            <div className="text-center">
+              <EtuTitle as="h1" text="Ship Designer" className="text-4xl sm:text-5xl md:text-6xl" />
+              <p className="mt-3 text-sm sm:text-base" style={{ color: UI.hint }}>
+                Profile ship <span aria-hidden>·</span> Level {FRESH_PROFILE.level}{' '}
+                <span aria-hidden>·</span> {skin.name}
+              </p>
+            </div>
+            <div className="flex w-40 flex-col items-center gap-2 sm:items-end">
+              <GameButton accent={UI.syncAccent} onClick={handleSave} disabled={save.kind === 'saving'} wide>
+                {save.kind === 'saving' ? 'Saving…' : save.kind === 'saved' ? 'Saved' : 'Save'}
+              </GameButton>
+              <p className="min-h-[1.25rem] text-center text-xs sm:text-right" role="status" style={{ color: UI.hint }}>
+                {save.kind === 'saved' && 'Saved to your ETU profile.'}
+                {save.kind === 'error' && <span className="text-red-300">{save.message}</span>}
+                {save.kind === 'signin' && (
+                  <>
+                    <Link href="/login" className="underline" style={{ color: UI.tabAccent }}>
+                      Sign in
+                    </Link>{' '}
+                    to save. Your design is kept on this device.
+                  </>
+                )}
+              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Auth Prompt Modal */}
-      {showAuthPrompt && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-deep-800 border border-white/10 rounded-lg p-6 max-w-md w-full shadow-2xl">
-            <h2 className="text-xl font-bold text-blue-300 mb-3">Sign In Required</h2>
-            <p className="text-gray-300 mb-4">
-              Create a free account to save your ship designs and sync them across all platforms!
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => router.push('/login')}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg font-semibold transition-all shadow-lg"
+          {/* Tab bar */}
+          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Ship designer">
+            {SHIP.tabs.map(entry => (
+              <GameButton
+                key={entry.id}
+                role="tab"
+                aria-selected={tab === entry.id}
+                active={tab === entry.id}
+                accent={tab === entry.id ? UI.tabAccent : UI.panelBorder}
+                onClick={() => setTab(entry.id as DesignerTab)}
+                wide
               >
-                Sign In / Create Account
-              </button>
-              <button
-                onClick={() => setShowAuthPrompt(false)}
-                className="w-full px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg font-semibold transition-all"
-              >
-                Maybe Later
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-4 text-center">
-              Your designs will be available in-game on PC, Mac, Linux, and Steam Deck
-            </p>
+                {entry.label}
+              </GameButton>
+            ))}
           </div>
-        </div>
-      )}
 
-      {/* Save Message */}
-      {saveMessage && (
-        <div className="fixed top-20 right-4 z-40 animate-in slide-in-from-right">
-          <div className={`px-4 py-3 rounded-lg shadow-lg border ${
-            saveMessage.type === 'success'
-              ? 'bg-green-900/90 border-green-500/30 text-green-100'
-              : 'bg-red-900/90 border-red-500/30 text-red-100'
-          }`}>
-            {saveMessage.text}
-          </div>
-        </div>
-      )}
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1.05fr_1.1fr_1fr]" role="tabpanel">
+            {tab === 'overview' && (
+              <>
+                <Panel title="Appearance">
+                  <ShipHangar skin={skin} className="mx-auto block h-72 w-full sm:h-80" />
+                  <p className="mt-1 text-center text-xl font-bold" style={{ color: UI.title }}>
+                    {skin.name}
+                  </p>
+                  <SkinStrip selected={skin.id} onSelect={id => change({ appearance: { skin_id: id } })} onStep={stepSkin} />
+                  <Hint>
+                    Click a hull or use the arrows. These are the game&apos;s {SKINS.length} hulls, and the choice
+                    is the ship you fly in every mode.
+                  </Hint>
+                </Panel>
 
-      {/* Ship Canvas - Front and Center */}
-      <div className="flex-1 flex flex-col">
-        <div className="bg-deep-800/30 border-b border-white/5">
-          <ShipCanvas shipData={shipData} />
-        </div>
+                <Panel title="Pilot">
+                  <Row label="Level" value={FRESH_PROFILE.level} color={UI.level} />
+                  <Row label="XP" value={`${FRESH_PROFILE.xp} / ${FRESH_PROFILE.xpNext}`} color={UI.xp} />
+                  <div
+                    className="mb-3 h-3 overflow-hidden rounded-md border"
+                    style={{ background: UI.xpBarTrack, borderColor: '#82aad2' }}
+                  >
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${Math.min(100, (FRESH_PROFILE.xp / FRESH_PROFILE.xpNext) * 100)}%`,
+                        background: UI.xpBarFill,
+                      }}
+                    />
+                  </div>
+                  <Row label="Skill Points" value={FRESH_PROFILE.skillPoints} color="#ffda7e" />
+                  <Row label="Skills" value={`${FRESH_PROFILE.skills.length} at base rank`} />
+                  <Hint>
+                    Every pilot starts here. Level, XP and what you buy with skill points are earned in the
+                    game and stay with the ship.
+                  </Hint>
+                  <SubHeading>The hull shows its progress</SubHeading>
+                  <TierStrip />
+                </Panel>
 
-        {/* Compact Controls at Bottom */}
-        <div className="bg-deep-800/50 border-t border-white/10 backdrop-blur-sm">
-          <div className="container mx-auto px-2 py-2 max-w-6xl">
-            {/* Ship Name */}
-            <div className="mb-2">
-              <input
-                type="text"
-                value={shipData.name}
-                onChange={(e) => setShipData({ ...shipData, name: e.target.value })}
-                className="w-full px-2 py-1 text-sm bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
-                placeholder="Ship Name"
-              />
-            </div>
+                <Panel title="Loadout">
+                  <Row label="Laser" value={laserLabel} color="#82f0dc" />
+                  <Row label="Missile" value={missileLabel} color="#b4f596" />
+                  <Row label="Laser Modes" value={`${laserUnlocked} / ${LASER_MODES.length}`} />
+                  <Row label="Missile Modes" value={`${missileUnlocked} / ${MISSILE_MODES.length}`} />
+                  <SubHeading>Action Bar</SubHeading>
+                  <ActionBarChips />
+                  <Hint>Defaults change on the Loadout tab.</Hint>
+                </Panel>
+              </>
+            )}
 
-            {/* Grid Layout for All Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {tab === 'loadout' && (
+              <>
+                <Panel title="Profile Defaults">
+                  <Row label="Laser" value={laserLabel} color="#82f0dc" />
+                  <Row label="Missile" value={missileLabel} color="#b4f596" />
+                  <Row label="Skin" value={skin.name} />
+                  <SubHeading>Action Bar Defaults</SubHeading>
+                  <ActionBarChips />
+                  <Hint>The bar is rearranged in the game, where every ability can be tried.</Hint>
+                </Panel>
 
-              {/* Column 1: Ship Config */}
-              <div className="space-y-1">
-                <div className="text-xs font-bold text-blue-300 mb-1">Configuration</div>
-
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-400 w-16">Scale</label>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.1"
-                    value={shipData.scale}
-                    onChange={(e) => setShipData({ ...shipData, scale: parseFloat(e.target.value) })}
-                    className="flex-1 h-1"
+                <Panel title="Laser Mode">
+                  <ModeButtons
+                    modes={LASER_MODES}
+                    active={design.active_laser_mode}
+                    unlocked={isLaserModeUnlocked}
+                    accent={UI.laserAccent}
+                    onSelect={id => change({ active_laser_mode: id })}
                   />
-                  <span className="text-xs text-gray-300 w-8">{shipData.scale.toFixed(1)}</span>
-                </div>
+                  <Hint>Locked modes unlock from Character Screen upgrades, in the game.</Hint>
+                </Panel>
 
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-400 w-16">Rotation</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    step="15"
-                    value={shipData.rotation}
-                    onChange={(e) => setShipData({ ...shipData, rotation: parseInt(e.target.value) })}
-                    className="flex-1 h-1"
+                <Panel title="Missile Mode">
+                  <ModeButtons
+                    modes={MISSILE_MODES}
+                    active={design.active_missile_mode}
+                    unlocked={isMissileModeUnlocked}
+                    accent={UI.missileAccent}
+                    onSelect={id => change({ active_missile_mode: id })}
                   />
-                  <span className="text-xs text-gray-300 w-8">{shipData.rotation}°</span>
-                </div>
+                  <Hint>Defaults hydrate Survival and Construct ships.</Hint>
+                </Panel>
+              </>
+            )}
 
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-400 w-16">Size</label>
-                  <input
-                    type="range"
-                    min="20"
-                    max="80"
-                    step="5"
-                    value={shipData.components.hull.size}
-                    onChange={(e) => {
-                      const size = parseInt(e.target.value);
-                      setShipData({
-                        ...shipData,
-                        components: {
-                          ...shipData.components,
-                          hull: {
-                            ...shipData.components.hull,
-                            size,
-                            points: [
-                              { x: 0, y: -size },
-                              { x: -size * 0.625, y: size * 0.75 },
-                              { x: size * 0.625, y: size * 0.75 }
-                            ]
-                          }
-                        }
-                      });
-                    }}
-                    className="flex-1 h-1"
-                  />
-                  <span className="text-xs text-gray-300 w-8">{shipData.components.hull.size}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-400 w-16">Glow</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={shipData.components.engine.glowIntensity}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      components: {
-                        ...shipData.components,
-                        engine: { ...shipData.components.engine, glowIntensity: parseFloat(e.target.value) }
-                      }
-                    })}
-                    className="flex-1 h-1"
-                  />
-                  <span className="text-xs text-gray-300 w-8">{shipData.components.engine.glowIntensity.toFixed(1)}</span>
-                </div>
-
-                {/* Hull Colors */}
-                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Hull Colors</div>
-                <div className="grid grid-cols-4 gap-1">
-                  {Object.entries(shipData.color).map(([key, value]) => (
-                    <div key={key}>
-                      <label className="text-[10px] text-gray-400 capitalize block">{key}</label>
-                      <input
-                        type="color"
-                        value={value}
-                        onChange={(e) => setShipData({
-                          ...shipData,
-                          color: { ...shipData.color, [key]: e.target.value }
-                        })}
-                        className="w-full h-6 rounded border border-white/10 cursor-pointer"
-                      />
-                    </div>
+            {tab === 'upgrades' && (
+              <>
+                <Panel title="Skills">
+                  <Row label="Skill Points" value={FRESH_PROFILE.skillPoints} color="#ffda7e" />
+                  {FRESH_PROFILE.skills.map(skill => (
+                    <Row key={skill.id} label={skill.label} value={`Rank ${skill.rank}`} dim />
                   ))}
-                </div>
+                  <Hint>All {FRESH_PROFILE.skills.length} start at base rank. Ranks are bought with skill points as the ship levels.</Hint>
+                </Panel>
 
-                {/* Weapon Colors */}
-                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Weapon Colors</div>
-                <div className="grid grid-cols-3 gap-1">
-                  {Object.entries(shipData.weaponColors).map(([key, value]) => (
-                    <div key={key}>
-                      <label className="text-[10px] text-gray-400 capitalize block">{key}</label>
-                      <input
-                        type="color"
-                        value={value}
-                        onChange={(e) => setShipData({
-                          ...shipData,
-                          weaponColors: { ...shipData.weaponColors, [key]: e.target.value }
-                        })}
-                        className="w-full h-6 rounded border border-white/10 cursor-pointer"
-                      />
-                    </div>
+                <Panel title="Hull Progression">
+                  <p className="mb-3 text-sm" style={{ color: UI.rowLabel }}>
+                    As a run invests, the hull earns a progression tier: running lights along the wings, a rim
+                    glow, wing chevrons, a lit core.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SHIP.progressionTiers.map(entry => (
+                      <figure key={entry.tier} className="rounded-md border border-white/10 bg-black/20 p-2 text-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={entry.sprite}
+                          alt={`Classic hull at progression tier ${entry.tier}`}
+                          width={SHIP.sprite.width}
+                          height={SHIP.sprite.height}
+                          loading="lazy"
+                          className="mx-auto h-28 w-auto"
+                        />
+                        <figcaption className="mt-1 text-xs" style={{ color: UI.rowLabel }}>
+                          {entry.tier === 0 ? 'Fresh hull' : `Tier ${entry.tier}`}
+                          <span className="block" style={{ color: UI.level }}>
+                            Level {entry.level}
+                          </span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                  <Hint>Levels shown are by levelling alone; spending on defence earns each tier sooner.</Hint>
+                </Panel>
+
+                <Panel title="Laser Doctrine">
+                  <p className="mb-3 text-sm" style={{ color: UI.rowLabel }}>
+                    The accents take the colour of the laser doctrine a run commits to, so the ship wears its
+                    build.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SHIP.doctrines.map(entry => (
+                      <figure key={entry.id} className="rounded-md border border-white/10 bg-black/20 p-2 text-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={entry.sprite}
+                          alt={`Classic hull at the top tier in the ${entry.name} doctrine's colour`}
+                          width={SHIP.sprite.width}
+                          height={SHIP.sprite.height}
+                          loading="lazy"
+                          className="mx-auto h-28 w-auto"
+                        />
+                        <figcaption className="mt-1 text-sm font-semibold" style={{ color: entry.accent }}>
+                          {entry.name}
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                  <Hint>An uncommitted run wears a neutral blue-white.</Hint>
+                </Panel>
+              </>
+            )}
+
+            {tab === 'abilities' && (
+              <>
+                <Panel title="Laser Abilities">
+                  {LASER_MODES.map(mode => (
+                    <StatusRow
+                      key={mode.id}
+                      label={titleCase(mode.id)}
+                      active={mode.id === design.active_laser_mode}
+                      unlocked={isLaserModeUnlocked(mode.id)}
+                      activeColor="#82f0dc"
+                    />
                   ))}
-                </div>
+                </Panel>
 
-                {/* Thruster Style */}
-                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Thruster Style</div>
-                <select
-                  value={shipData.components.engine.style}
-                  onChange={(e) => setShipData({
-                    ...shipData,
-                    components: {
-                      ...shipData.components,
-                      engine: { ...shipData.components.engine, style: e.target.value as 'dual' | 'single' | 'quad' | 'ring' | 'plasma' }
-                    }
-                  })}
-                  className="w-full px-2 py-1 text-xs bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="dual">Dual Thrusters</option>
-                  <option value="single">Single Center</option>
-                  <option value="quad">Quad Array</option>
-                  <option value="ring">Ring Thruster</option>
-                  <option value="plasma">Plasma Drive</option>
-                </select>
+                <Panel title="Missile Abilities">
+                  {MISSILE_MODES.map(mode => (
+                    <StatusRow
+                      key={mode.id}
+                      label={titleCase(mode.id)}
+                      active={mode.id === design.active_missile_mode}
+                      unlocked={isMissileModeUnlocked(mode.id)}
+                      activeColor="#b4f596"
+                    />
+                  ))}
+                  <Hint>The missile and mine trees rank up in the game.</Hint>
+                </Panel>
 
-                {/* Cockpit Style */}
-                <div className="text-xs font-bold text-blue-300 mt-2 mb-1">Cockpit Style</div>
-                <select
-                  value={shipData.components.cockpit.style}
-                  onChange={(e) => setShipData({
-                    ...shipData,
-                    components: {
-                      ...shipData.components,
-                      cockpit: { ...shipData.components.cockpit, style: e.target.value as 'bubble' | 'angular' | 'sleek' | 'armored' | 'windowed' | 'minimal' }
-                    }
-                  })}
-                  className="w-full px-2 py-1 text-xs bg-black/30 border border-white/10 rounded text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="bubble">Bubble Canopy</option>
-                  <option value="angular">Angular Cockpit</option>
-                  <option value="sleek">Sleek Design</option>
-                  <option value="armored">Armored</option>
-                  <option value="windowed">Windowed</option>
-                  <option value="minimal">Minimal</option>
-                </select>
-              </div>
-
-              {/* Column 2: Defense Systems */}
-              <div className="space-y-1">
-                <div className="text-xs font-bold text-blue-300 mb-1">Defense Systems</div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Hull</label>
-                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all"
-                        style={{ width: `${(shipData.defense.hull / 200) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-green-400 font-bold w-8">{shipData.defense.hull}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="5"
-                    value={shipData.defense.hull}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      defense: { ...shipData.defense, hull: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Armor</label>
-                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all"
-                        style={{ width: `${(shipData.defense.armor / 150) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-yellow-400 font-bold w-8">{shipData.defense.armor}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="150"
-                    step="5"
-                    value={shipData.defense.armor}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      defense: { ...shipData.defense, armor: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Shield</label>
-                    <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all"
-                        style={{ width: `${shipData.defense.shield}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-blue-400 font-bold w-8">{shipData.defense.shield}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={shipData.defense.shield}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      defense: { ...shipData.defense, shield: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-
-                {/* Stats Summary */}
-                <div className="bg-black/20 rounded p-2 mt-2">
-                  <div className="text-xs font-bold text-blue-300 mb-1">Combat Rating</div>
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Defense:</span>
-                      <span className="text-green-400 font-bold">{shipData.defense.hull + shipData.defense.armor + shipData.defense.shield}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Weapons:</span>
-                      <span className="text-red-400 font-bold">{shipData.weapons.lasers + shipData.weapons.missiles + shipData.weapons.mines}</span>
-                    </div>
-                    <div className="flex justify-between col-span-2">
-                      <span className="text-gray-400">Power:</span>
-                      <span className="text-indigo-400 font-bold">
-                        {Math.round((shipData.defense.hull + shipData.defense.armor + shipData.defense.shield) * 0.4 +
-                         (shipData.weapons.lasers * 15 + shipData.weapons.missiles * 10 + shipData.weapons.mines * 8))}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Column 3: Weapon Systems */}
-              <div className="space-y-1">
-                <div className="text-xs font-bold text-blue-300 mb-1">Weapon Systems</div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Lasers</label>
-                    <div className="flex-1 flex gap-0.5">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-1.5 rounded-full transition-all ${
-                            i < shipData.weapons.lasers ? 'bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]' : 'bg-white/10'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-red-400 font-bold w-8">{shipData.weapons.lasers}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="8"
-                    step="1"
-                    value={shipData.weapons.lasers}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      weapons: { ...shipData.weapons, lasers: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Missiles</label>
-                    <div className="flex-1 flex gap-0.5">
-                      {Array.from({ length: 12 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-1.5 rounded-full transition-all ${
-                            i < shipData.weapons.missiles ? 'bg-orange-500 shadow-[0_0_4px_rgba(249,115,22,0.8)]' : 'bg-white/10'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-orange-400 font-bold w-8">{shipData.weapons.missiles}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="12"
-                    step="1"
-                    value={shipData.weapons.missiles}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      weapons: { ...shipData.weapons, missiles: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <label className="text-xs text-gray-400 w-16">Mines</label>
-                    <div className="flex-1 flex gap-0.5">
-                      {Array.from({ length: 10 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 h-1.5 rounded-full transition-all ${
-                            i < shipData.weapons.mines ? 'bg-purple-500 shadow-[0_0_4px_rgba(168,85,247,0.8)]' : 'bg-white/10'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-purple-400 font-bold w-8">{shipData.weapons.mines}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="1"
-                    value={shipData.weapons.mines}
-                    onChange={(e) => setShipData({
-                      ...shipData,
-                      weapons: { ...shipData.weapons, mines: parseInt(e.target.value) }
-                    })}
-                    className="w-full h-1"
-                  />
-                </div>
-              </div>
-            </div>
+                <Panel title="Action Bar">
+                  <ul className="space-y-2">
+                    {ACTION_BAR.map((slot, index) =>
+                      slot ? (
+                        <li key={slot.id} className="flex gap-2 text-sm">
+                          <span
+                            className="mt-0.5 h-fit shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide"
+                            style={{ borderColor: slot.accent ?? UI.panelBorder, color: UI.title, background: UI.buttonFill }}
+                          >
+                            {index < SHIP.actionBar.hotkeySlots && (
+                              <span style={{ color: UI.level }}>{index + 1} </span>
+                            )}
+                            {slot.label}
+                          </span>
+                          <span style={{ color: UI.rowLabel }}>{slot.description}</span>
+                        </li>
+                      ) : null
+                    )}
+                  </ul>
+                </Panel>
+              </>
+            )}
           </div>
+
+          <p className="mt-4 text-center text-xs sm:text-sm" style={{ color: UI.hint }}>
+            1-4 switch tabs <span aria-hidden>·</span> Save writes the design to your ETU profile{' '}
+            <span aria-hidden>·</span> Hulls and data are exported from the game build
+          </p>
         </div>
-      </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+// ── the game's own drawing helpers, as components ──────────────────────────
+
+/** _ship_design_draw_panel */
+function Panel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section
+      className="min-w-0 rounded-lg border-2 p-4"
+      style={{ background: UI.panelFill, borderColor: UI.panelBorder }}
+    >
+      <h2 className="mb-3 text-2xl font-bold" style={{ color: UI.title }}>
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
+
+/** _ship_design_draw_row */
+function Row({ label, value, color, dim }: { label: string; value: ReactNode; color?: string; dim?: boolean }) {
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-3 text-base">
+      <span className="truncate" style={{ color: dim ? UI.locked : UI.rowLabel }}>
+        {label}
+      </span>
+      <span className="shrink-0 tabular-nums" style={{ color: dim ? UI.locked : color ?? UI.rowValue }}>
+        {value}
+      </span>
     </div>
-  );
+  )
+}
+
+function StatusRow({
+  label,
+  active,
+  unlocked,
+  activeColor,
+}: {
+  label: string
+  active: boolean
+  unlocked: boolean
+  activeColor: string
+}) {
+  const status = active ? 'Active' : unlocked ? 'Unlocked' : 'Locked'
+  const color = active ? activeColor : unlocked ? UI.rowValue : UI.locked
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-3 text-base">
+      <span style={{ color: UI.rowLabel }}>{label}</span>
+      <span style={{ color }}>{status}</span>
+    </div>
+  )
+}
+
+function SubHeading({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="mb-2 mt-4 text-base" style={{ color: UI.rowLabel }}>
+      {children}
+    </h3>
+  )
+}
+
+function Hint({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-3 text-sm leading-snug" style={{ color: UI.hint }}>
+      {children}
+    </p>
+  )
+}
+
+/** _ship_design_draw_button */
+function GameButton({
+  children,
+  active = false,
+  disabled = false,
+  accent,
+  wide = false,
+  onClick,
+  ...rest
+}: {
+  children: ReactNode
+  active?: boolean
+  disabled?: boolean
+  accent: string
+  wide?: boolean
+  onClick?: () => void
+  role?: string
+  'aria-selected'?: boolean
+  'aria-pressed'?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative rounded-[7px] px-3 py-2 text-xs font-medium uppercase tracking-wide transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 enabled:hover:brightness-125 disabled:cursor-not-allowed ${
+        wide ? 'w-full' : ''
+      }`}
+      style={{
+        background: disabled ? UI.buttonFillDisabled : active ? UI.buttonFillActive : UI.buttonFill,
+        border: `${active ? 2 : 1}px solid ${disabled ? UI.buttonBorderDisabled : accent}`,
+        color: disabled ? '#76889a' : '#ecf8ff',
+      }}
+      {...rest}
+    >
+      {active && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-[3px] rounded-[5px] border"
+          style={{ borderColor: UI.buttonInnerActive }}
+        />
+      )}
+      {children}
+    </button>
+  )
+}
+
+/** _draw_ship_design_mode_buttons */
+function ModeButtons({
+  modes,
+  active,
+  unlocked,
+  accent,
+  onSelect,
+}: {
+  modes: ShipMode[]
+  active: string
+  unlocked: (id: string) => boolean
+  accent: string
+  onSelect: (id: string) => void
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {modes.map(mode => {
+        const enabled = unlocked(mode.id)
+        return (
+          <GameButton
+            key={mode.id}
+            accent={accent}
+            active={mode.id === active}
+            disabled={!enabled}
+            aria-pressed={mode.id === active}
+            title={enabled ? undefined : 'Unlocks in the game'}
+            onClick={() => onSelect(mode.id)}
+            wide
+          >
+            {mode.label}
+          </GameButton>
+        )
+      })}
+    </div>
+  )
+}
+
+/** _draw_ship_design_action_bar_summary */
+function ActionBarChips() {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ACTION_BAR.map((slot, index) => (
+        <span
+          key={slot?.id ?? `empty-${index}`}
+          title={slot?.description}
+          className="rounded border px-1.5 py-0.5 text-xs tracking-wide"
+          style={{ borderColor: UI.panelBorder, background: UI.buttonFill, color: '#ecf8ff' }}
+        >
+          {index < SHIP.actionBar.hotkeySlots && <span style={{ color: UI.level }}>{index + 1} </span>}
+          {slot?.label ?? '-'}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** _draw_ship_design_skin_strip: every hull, as the game's designer draws it. */
+function SkinStrip({
+  selected,
+  onSelect,
+  onStep,
+}: {
+  selected: string
+  onSelect: (id: string) => void
+  onStep: (delta: number) => void
+}) {
+  const stripRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const strip = stripRef.current
+    const card = strip?.querySelector<HTMLElement>(`[data-skin="${selected}"]`)
+    if (!strip || !card) return
+    strip.scrollTo({
+      left: card.offsetLeft - (strip.clientWidth - card.clientWidth) / 2,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
+  }, [selected])
+
+  return (
+    <div
+      className="mt-3 flex items-center gap-1 rounded-lg border p-1.5"
+      style={{ borderColor: UI.panelBorder, background: 'rgba(8,16,28,.6)' }}
+    >
+      <StripArrow label="Previous hull" onClick={() => onStep(-1)}>
+        ◀
+      </StripArrow>
+      <div
+        ref={stripRef}
+        className="relative flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="radiogroup"
+        aria-label="Hull"
+        onKeyDown={event => {
+          if (event.key === 'ArrowLeft') onStep(-1)
+          if (event.key === 'ArrowRight') onStep(1)
+        }}
+      >
+        {SKINS.map(entry => {
+          const active = entry.id === selected
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              aria-label={entry.name}
+              title={entry.name}
+              data-skin={entry.id}
+              tabIndex={active ? 0 : -1}
+              onClick={() => onSelect(entry.id)}
+              className="shrink-0 rounded-md border px-2 py-1.5 transition-[filter] hover:brightness-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+              style={{
+                borderColor: active ? UI.tabAccent : 'transparent',
+                background: active ? UI.buttonFillActive : 'transparent',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={entry.sprite}
+                alt=""
+                width={SHIP.sprite.width}
+                height={SHIP.sprite.height}
+                className="h-14 w-auto"
+              />
+            </button>
+          )
+        })}
+      </div>
+      <StripArrow label="Next hull" onClick={() => onStep(1)}>
+        ▶
+      </StripArrow>
+    </div>
+  )
+}
+
+function StripArrow({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="grid h-8 w-8 shrink-0 place-items-center rounded border text-xs hover:brightness-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+      style={{ borderColor: UI.panelBorder, background: UI.buttonFill, color: '#ecf8ff' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function TierStrip() {
+  return (
+    <div className="flex items-end justify-between gap-1">
+      {SHIP.progressionTiers.map(entry => (
+        <figure key={entry.tier} className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={entry.sprite}
+            alt={`Hull at progression tier ${entry.tier}`}
+            width={SHIP.sprite.width}
+            height={SHIP.sprite.height}
+            loading="lazy"
+            className="mx-auto h-16 w-auto"
+          />
+          <figcaption className="mt-1 text-[11px]" style={{ color: UI.rowLabel }}>
+            Lv {entry.level}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  )
 }
