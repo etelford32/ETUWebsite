@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 
 export default function Footer() {
   const [year, setYear] = useState(2025);
@@ -41,6 +42,9 @@ export default function Footer() {
           </div>
           <nav className="space-y-2">
             <h4 className="font-semibold text-slate-200">Game</h4>
+            <Link className="block text-amber-300 hover:text-amber-200 transition-colors" href={DEMO_PATH}>
+              Demo Day · {DEMO_DATE_SHORT}
+            </Link>
             <Link className="block hover:text-cyan-400 transition-colors" href="/#features">
               Features
             </Link>

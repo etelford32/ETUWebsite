@@ -7,11 +7,16 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EtuTitle from "@/components/EtuTitle";
 import WishlistButton from "@/components/WishlistButton";
+import DemoSignupButton from "@/components/DemoSignupButton";
+import CountdownTimer from "@/components/CountdownTimer";
 import { initPerformanceOptimizations } from "@/lib/performance";
-
-const STEAM_URL =
-  "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175/";
-const SIGNUP_URL = "/login?mode=signup";
+import {
+  DEMO_DATE_LABEL,
+  DEMO_DATE_SHORT,
+  DEMO_PATH,
+  DEMO_RELEASE_AT,
+} from "@/lib/campaign";
+import { useDemoLive } from "@/lib/useDemoLive";
 
 // Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
 const TITLE_SCALE = { Explore: 1.12, the: 0.62, Universe: 1.55, "2175": 0.72 };
@@ -211,6 +216,8 @@ const FACTIONS = [
 ];
 
 export default function HomePage() {
+  const demoLive = useDemoLive();
+
   useEffect(() => {
     initPerformanceOptimizations();
 
@@ -232,7 +239,7 @@ export default function HomePage() {
     <>
       <Header />
 
-      {/* HERO — brand, pitch, then Wishlist › Playtest › Sign up */}
+      {/* HERO — brand, pitch, then the demo-day funnel: Sign up › Wishlist */}
       <section
         id="home"
         className="relative min-h-[92svh] flex items-center overflow-hidden"
@@ -299,7 +306,43 @@ export default function HomePage() {
             <span className="hero-key">save the galaxy</span>.
           </p>
 
-          <div className="hero-rule reveal mt-5 md:mt-6" aria-hidden="true" />
+          {/* Demo day, ahead of the long pitch so the buttons sit high: the
+              date and countdown, then Sign up › Wishlist */}
+          <div className="reveal mt-7 md:mt-9 flex justify-center">
+            <CountdownTimer
+              targetDate={DEMO_RELEASE_AT}
+              label={`Free demo on Steam · ${DEMO_DATE_LABEL}`}
+            />
+          </div>
+
+          <div className="reveal mt-5 md:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+            <DemoSignupButton
+              placement="home-hero"
+              className="btn-3d btn-3d-demo w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
+            />
+
+            <WishlistButton
+              placement="home-hero"
+              className="btn-3d btn-3d-steam group w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
+            >
+              <SteamIcon className="w-7 h-7 transition-transform group-hover:scale-110" />
+              <span>Wishlist on Steam</span>
+            </WishlistButton>
+          </div>
+
+          <p className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance">
+            {demoLive
+              ? "The demo is live. Create your commander account to claim your callsign."
+              : "Create your commander account, wishlist on Steam, and be ready when the demo lands."}{" "}
+            <Link
+              href={DEMO_PATH}
+              className="font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors whitespace-nowrap"
+            >
+              How demo day works →
+            </Link>
+          </p>
+
+          <div className="hero-rule reveal mt-8 md:mt-10" aria-hidden="true" />
 
           <p
             className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
@@ -312,34 +355,6 @@ export default function HomePage() {
             <span className="hero-key hero-key--rose">Megabot</span>, a
             self-replicating, self-augmenting machine overlord that adapts to how
             you play.
-          </p>
-
-          <div className="reveal mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
-            <WishlistButton
-              placement="home-hero"
-              className="btn-3d btn-3d-steam group w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
-            >
-              <SteamIcon className="w-7 h-7 transition-transform group-hover:scale-110" />
-              <span>Wishlist on Steam</span>
-            </WishlistButton>
-
-            <WishlistButton
-              placement="home-hero"
-              intent="playtest"
-              className="btn-ghost btn-ghost--lg w-full sm:w-auto whitespace-nowrap text-lg md:text-xl md:px-9 md:py-4"
-            >
-              Join the Free Playtest
-            </WishlistButton>
-          </div>
-
-          <p className="reveal mt-5 text-lg md:text-xl text-slate-100">
-            Want launch news?{" "}
-            <Link
-              href={SIGNUP_URL}
-              className="font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors"
-            >
-              Sign up for updates →
-            </Link>
           </p>
 
           <p className="reveal mt-8 text-base md:text-lg font-medium text-slate-300">
@@ -576,7 +591,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA — same order as the hero: Wishlist › Playtest › Sign up */}
+      {/* Final CTA — same order as the hero: Sign up › Wishlist › Play */}
       <section
         id="download"
         className="relative py-16 md:py-24 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-cyan-500/20 overflow-hidden"
@@ -587,37 +602,65 @@ export default function HomePage() {
               Join the Mission
             </h2>
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              Three ways to get involved.
+              {demoLive
+                ? "The free demo is live on Steam."
+                : `Three steps to demo day, ${DEMO_DATE_LABEL}.`}
             </p>
           </header>
 
           <ol className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <CtaCard
               step="Step 1"
-              title="Wishlist on Steam"
-              body="The best way to support the game. Steam tells you when Early Access launches."
-              href={STEAM_URL}
-              cta="Wishlist Now"
-              placement="home-cta-wishlist"
-              featured
-            />
+              title="Create Your Account"
+              body="Free, and it takes a minute. Claim your callsign, your commander profile and your place on the leaderboard."
+              featured={!demoLive}
+            >
+              <DemoSignupButton
+                placement="home-cta-signup"
+                signupOnly
+                className={
+                  demoLive
+                    ? CTA_GHOST_CLASS
+                    : "btn-3d btn-3d-demo w-full whitespace-nowrap !px-5 text-base md:text-lg"
+                }
+              >
+                {demoLive ? "Create Account" : "Sign up for demo day"}
+              </DemoSignupButton>
+            </CtaCard>
             <CtaCard
               step="Step 2"
-              title="Join the Playtest"
-              body="Free on Steam. Play the latest build and tell us what to fix."
-              href={STEAM_URL}
-              cta="Request Access"
-              placement="home-cta-playtest"
-              intent="playtest"
-            />
+              title="Wishlist on Steam"
+              body="The best way to support the game. Steam tells you when Early Access launches."
+            >
+              <WishlistButton placement="home-cta-wishlist" className={CTA_GHOST_CLASS}>
+                <SteamIcon className="w-6 h-6" />
+                Wishlist Now
+              </WishlistButton>
+            </CtaCard>
             <CtaCard
               step="Step 3"
-              title="Sign Up for Updates"
-              body="Get devlogs, playtest news and a spot on the leaderboard."
-              href={SIGNUP_URL}
-              cta="Create Account"
-              internal
-            />
+              title={demoLive ? "Play the Free Demo" : `Play on ${DEMO_DATE_SHORT}`}
+              body={
+                demoLive
+                  ? "The demo is out now on Steam. Download it and fly."
+                  : "The free demo lands on Steam on Thanksgiving Day. Your checklist keeps the countdown."
+              }
+              featured={demoLive}
+            >
+              {demoLive ? (
+                <WishlistButton
+                  placement="home-cta-demo"
+                  intent="demo"
+                  className="btn-3d btn-3d-demo w-full whitespace-nowrap !px-5 text-base md:text-lg"
+                >
+                  Play the free demo
+                </WishlistButton>
+              ) : (
+                <Link href={DEMO_PATH} className={CTA_GHOST_CLASS}>
+                  See the Checklist
+                </Link>
+              )}
+            </CtaCard>
           </ol>
         </div>
       </section>
@@ -627,51 +670,33 @@ export default function HomePage() {
   );
 }
 
+const CTA_GHOST_CLASS =
+  "btn-ghost btn-ghost--lg w-full justify-center whitespace-nowrap !px-5 !text-base";
+
 function CtaCard({
   step,
   title,
   body,
-  href,
-  cta,
   featured = false,
-  internal = false,
-  placement,
-  intent,
+  children,
 }: {
   step: string;
   title: string;
   body: string;
-  href: string;
-  cta: string;
+  /** The step to take right now: highlighted in demo-day amber. */
   featured?: boolean;
-  internal?: boolean;
-  /** Analytics placement for external (Steam) links. */
-  placement?: string;
-  intent?: "wishlist" | "playtest";
+  /** The card's button. */
+  children: React.ReactNode;
 }) {
-  const buttonClass = featured
-    ? "btn-3d btn-3d-steam w-full whitespace-nowrap !px-5 text-base md:text-lg"
-    : "btn-ghost btn-ghost--lg w-full justify-center whitespace-nowrap !px-5 !text-base";
-  const button = internal ? (
-    <Link href={href} className={buttonClass}>
-      {cta}
-    </Link>
-  ) : (
-    <WishlistButton href={href} placement={placement ?? "home-cta"} intent={intent} className={buttonClass}>
-      {featured && <SteamIcon className="w-6 h-6" />}
-      {cta}
-    </WishlistButton>
-  );
-
   return (
     <li
       className={`reveal flex flex-col p-7 md:p-9 rounded-2xl ${
         featured
-          ? "bg-gradient-to-b from-sky-500/15 to-sky-500/5 ring-2 ring-sky-400/50 shadow-[0_0_50px_rgba(56,189,248,0.15)]"
+          ? "bg-gradient-to-b from-amber-500/15 to-amber-500/5 ring-2 ring-amber-400/50 shadow-[0_0_50px_rgba(251,191,36,0.15)]"
           : "bg-white/[0.04] ring-1 ring-white/10"
       }`}
     >
-      <span className="text-base md:text-lg font-bold text-cyan-300">
+      <span className={`text-base md:text-lg font-bold ${featured ? "text-amber-300" : "text-cyan-300"}`}>
         {step}
       </span>
       <h3 className="mt-1 text-2xl md:text-3xl font-bold text-white leading-tight">
@@ -680,7 +705,7 @@ function CtaCard({
       <p className="mt-3 mb-7 flex-1 text-lg text-slate-100 leading-relaxed">
         {body}
       </p>
-      {button}
+      {children}
     </li>
   );
 }

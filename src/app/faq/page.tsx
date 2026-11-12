@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { DEMO_DATE_LABEL } from "@/lib/campaign";
 
 interface FAQItem {
   id: string;
@@ -23,7 +24,7 @@ const faqData: FAQItem[] = [
   {
     id: "release-date",
     question: "When is the game releasing?",
-    answer: "We're releasing a public demo on December 31st, 2024 (New Year's Eve). The full game is planned for Q2 2025. Quality is our top priority - we'd rather deliver an amazing experience than rush to market!",
+    answer: `The free demo arrives on Steam on ${DEMO_DATE_LABEL}, 2026. Early Access is planned for 2027. Quality is our top priority - we'd rather deliver an amazing experience than rush to market!`,
     category: "general"
   },
   {

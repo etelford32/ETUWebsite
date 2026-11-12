@@ -82,6 +82,8 @@ export function sendGtagEvent(eventName: string, params?: GtagParams): boolean {
 export const GA4_MIRRORED_EVENTS: ReadonlySet<string> = new Set([
   // Key event: Steam wishlist / store click, with `placement`.
   'wishlist_steam',
+  // Demo campaign: "Sign up for demo day" click, with `placement`.
+  'demo_signup_click',
   // Steam account funnel.
   'steam_link_start',
   'steam_linked',
