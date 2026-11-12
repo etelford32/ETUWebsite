@@ -13,8 +13,10 @@ What `/audio` is, how to turn it on, and what has and has not been verified.
   tracks, retitle them, and upload tracks the repository doesn't carry.
 - **Game** (`GET /api/game/radio`): the player's favourites and stations, and the
   published soundtrack by built-in station, with download URLs. The contract is
-  `docs/GAME_API.md` section 8. **The game client that calls it is not written
-  yet**, so nothing reaches the in-game radio today; the page says so.
+  `docs/GAME_API.md` section 8. A game client for it exists on a branch of the
+  game repository but is not in a released build, so nothing reaches the in-game
+  radio today; the page says so. That client shows at most 3 of a player's
+  stations (Favorites included), while the website lets them mark up to 12.
 
 ## Turning it on
 

@@ -209,9 +209,16 @@ use (trusted writes only); their ids are cached in `public.steam_leaderboards`.
 
 ## 8. Intergalactic Radio — `GET /api/game/radio`
 
-**Status: implemented on the website (AUDIO-01) but not yet deployed, and the game
-client for it has not been written yet.** This section is the contract that client
-codes against.
+**Status: implemented on the website (AUDIO-01) but not yet deployed.** A game
+client written to this section exists on the game repository's branch
+`claude/gracious-darwin-s5181v` (commit `0743ec49`, RADIONET-01,
+`src/etu/audio/radio_feed.py`); it has not been run against this endpoint on a
+real deployment. This section is the contract that client codes against.
+
+As of that commit the game lists at most the first 3 entries of `stations`
+(`MAX_PILOT_STATIONS`), and `Favorites` counts as one of them; it accepts files
+up to 64 MB, and only downloads from HTTPS URLs on the site's or the Supabase
+project's origin.
 
 On the website (`/audio`) a signed-in player stars tracks, builds stations from
 the game's soundtrack and their own uploaded music, and chooses which stations
