@@ -305,6 +305,29 @@ export default function HomePage() {
             </WishlistButton>
           </div>
 
+          {/* Two dates, said plainly: the playtest takes sign-ups today, the
+              demo arrives on demo day. Once the demo is out this line goes. */}
+          {!demoLive && (
+            <div className="reveal mt-5 md:mt-6 flex justify-center">
+              <WishlistButton
+                placement="home-hero-playtest"
+                intent="playtest"
+                className="group inline-flex items-center gap-3 px-5 py-3 rounded-2xl sm:rounded-full bg-emerald-950/85 ring-1 ring-emerald-400/60 backdrop-blur-sm text-left text-base md:text-lg text-emerald-50 leading-snug hover:bg-emerald-900/90 hover:ring-emerald-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+              >
+                <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
+                </span>
+                <span>
+                  <span className="font-bold text-white">Can&apos;t wait? Playtest sign-ups are open now.</span>{" "}
+                  <span className="font-semibold text-emerald-300 underline decoration-emerald-400/50 underline-offset-4 whitespace-nowrap group-hover:text-emerald-200">
+                    Request access on Steam →
+                  </span>
+                </span>
+              </WishlistButton>
+            </div>
+          )}
+
           <p
             className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
@@ -442,6 +465,23 @@ export default function HomePage() {
             <h2 className="mt-3 font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               The War So Far
             </h2>
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed text-balance">
+              {demoLive
+                ? "What the playtest pilots have been fighting."
+                : `All of this is in the Steam playtest today, and sign\u2011ups are open. The free demo follows on ${DEMO_DATE_SHORT}.`}
+            </p>
+            {!demoLive && (
+              <div className="mt-6 flex justify-center">
+                <WishlistButton
+                  placement="home-now-playing"
+                  intent="playtest"
+                  className="btn-ghost btn-ghost--lg"
+                >
+                  <SteamIcon className="w-5 h-5" />
+                  Request playtest access
+                </WishlistButton>
+              </div>
+            )}
           </header>
 
           <div className="space-y-12 md:space-y-20">
@@ -645,7 +685,11 @@ export default function HomePage() {
             <CtaCard
               step="Step 2"
               title="Wishlist on Steam"
-              body="The best way to support the game. Steam tells you when Early Access launches."
+              body={
+                demoLive
+                  ? "The best way to support the game. Steam tells you when Early Access launches."
+                  : "The best way to support the game. While you are on the store page, request playtest access: sign-ups are open now."
+              }
             >
               <WishlistButton placement="home-cta-wishlist" className={CTA_GHOST_CLASS}>
                 <SteamIcon className="w-6 h-6" />

@@ -266,6 +266,8 @@ export default function DemoDayClient() {
             >
               <p className="text-lg text-slate-100 leading-relaxed">
                 The best way to support the game. Steam tells you when Early Access launches.
+                {!live &&
+                  " While you are on the store page, request playtest access: sign-ups are open now."}
               </p>
               {wishlistOpened && (
                 <p className="text-base text-emerald-200 leading-relaxed">
