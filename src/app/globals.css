@@ -802,7 +802,7 @@ body { font-family: var(--font-body); }
 @media (min-width: 1024px) {
   /* Desktop: the art at its natural width — Eye left of centre over the
      title, black hole upper right, the fleeing ship lower right. */
-  .eye-stage__plate { --w: 100cqw; --eye-x: 41cqw; --eye-y: calc(8.2cqw + 30px); }
+  .eye-stage__plate { --w: 100cqw; --eye-x: 41cqw; --eye-y: calc(6.6cqw + 44px); }
 }
 .eye-stage__plate img {
   position: absolute;
@@ -976,9 +976,9 @@ body { font-family: var(--font-body); }
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #fde68a;
 }
@@ -1014,9 +1014,9 @@ body { font-family: var(--font-body); }
   filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.6)) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
 }
 .demo-sign__date {
-  font-size: 0.86rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #fff;
 }
@@ -1066,9 +1066,9 @@ body { font-family: var(--font-body); }
 .demo-sign__unit {
   display: block;
   margin-top: 0.4rem;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #fcd34d;
 }
@@ -1087,17 +1087,17 @@ body { font-family: var(--font-body); }
   .demo-sign {
     flex-direction: row;
     gap: 1.9rem;
-    padding: 1.3rem 1.6rem 1.3rem 1.9rem;
+    padding: 1rem 1.4rem 1rem 1.8rem;
     text-align: left;
   }
   .demo-sign__head { align-items: flex-start; }
   .demo-sign__title { font-size: 2.9rem; }
-  .demo-sign__date { font-size: 0.95rem; }
+  .demo-sign__date { font-size: 1.05rem; letter-spacing: 0.1em; }
   .demo-sign__clock { gap: 0.45rem; }
-  .demo-sign__cell { min-width: 4.9rem; padding: 0.75rem 0.4rem 0.6rem; }
+  .demo-sign__cell { min-width: 4.9rem; padding: 0.65rem 0.4rem 0.55rem; }
   .demo-sign__num { font-size: 2.9rem; }
-  .demo-sign__unit { font-size: 0.72rem; }
-  .demo-sign__sep { padding-top: 0.75rem; font-size: 2.1rem; }
+  .demo-sign__unit { font-size: 0.8rem; }
+  .demo-sign__sep { padding-top: 0.65rem; font-size: 2.1rem; }
 }
 
 /* Launched: the board turns green and drops the clock */
@@ -1295,14 +1295,16 @@ body { font-family: var(--font-body); }
 }
 
 /* Primary — Steam blue */
+/* Both blues keep white text above 4.5:1 */
 .btn-3d-steam {
-  background: #0284c7;
+  background: #0272ad;
   border-color: #38bdf8;
   color: #fff;
 }
 .btn-3d-steam:hover {
-  background: #0ea5e9;
-  box-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
+  background: #0278b8;
+  border-color: #7dd3fc;
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.45);
 }
 
 /* Campaign primary — demo-day gold. The one button on the site that is

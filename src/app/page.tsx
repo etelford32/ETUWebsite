@@ -245,13 +245,13 @@ export default function HomePage() {
 
         <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-8 pb-12 md:pt-14 md:pb-16 text-center">
           {/* The gap under this line is left open for the Eye to look out
-              over the title */}
-          <p
-            className="reveal mb-[21vw] sm:mb-[15vw] lg:mb-[7.5vw] uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
-            style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
-          >
-            Elliot Telford of Telford Projects Presents
-          </p>
+              over the title. The line crosses the brightest part of the art,
+              so it carries its own dark backing. */}
+          <div className="reveal mb-[19vw] sm:mb-[14vw] lg:mb-[5.8vw]">
+            <p className="inline-block px-4 py-1.5 rounded-2xl sm:rounded-full bg-slate-950/60 backdrop-blur-sm uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-white">
+              Elliot Telford of Telford Projects Presents
+            </p>
+          </div>
 
           {/* Phones get a stacked title so each line can run much larger */}
           <h1>
@@ -273,10 +273,20 @@ export default function HomePage() {
             />
           </h1>
 
-          {/* Demo day comes straight after the title, so the launch board and
-              its buttons share the first screen with the Eye: board, then
+          {/* What the game is, in one line, before anything asks for a click */}
+          <p
+            className="reveal mt-3 md:mt-4 text-xl md:text-2xl font-bold text-white leading-snug text-balance"
+            style={{ textShadow: "0 2px 4px rgba(0,0,0,.95), 0 0 18px rgba(0,0,0,.9)" }}
+          >
+            An open-galaxy space adventure.{" "}
+            <br className="lg:hidden" />
+            Fly solo or in four-pilot co-op.
+          </p>
+
+          {/* Demo day comes straight after, so the launch board and its
+              buttons share the first screen with the Eye: board, then
               Sign up › Wishlist */}
-          <div className="reveal mt-6 md:mt-8 flex justify-center">
+          <div className="reveal mt-5 md:mt-6 flex justify-center">
             <DemoSign />
           </div>
 
@@ -304,7 +314,7 @@ export default function HomePage() {
               : "Create your commander account, wishlist on Steam, and be ready when the demo lands."}{" "}
             <Link
               href={DEMO_PATH}
-              className="font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors whitespace-nowrap"
+              className="block sm:inline py-2.5 sm:py-0 font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors whitespace-nowrap"
             >
               How demo day works →
             </Link>
@@ -312,15 +322,15 @@ export default function HomePage() {
 
           <div className="hero-rule reveal mt-9 md:mt-12" aria-hidden="true" />
 
-          {/* The pitch */}
+          {/* The pitch: short sentences, one idea each */}
           <p
             className="reveal mt-7 md:mt-9 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
-            Explore a new galaxy full of quests, alien boss encounters and
-            dynamic alliances in a galactic war around{" "}
-            <span className="hero-key hero-key--amber">Black Holes</span> for
-            Stars, Planets for the resources to conquer, or{" "}
+            Explore a new galaxy full of quests, alien bosses and shifting
+            alliances. A war rages around its{" "}
+            <span className="hero-key hero-key--amber">Black Holes</span>, over
+            stars and planets and the resources they hold. Conquer it, or{" "}
             <span className="hero-key">save the galaxy</span>.
           </p>
 
@@ -328,13 +338,14 @@ export default function HomePage() {
             className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            Chart <span className="hero-key hero-key--amber">SuperMassive Black Holes</span>{" "}
-            down to tiny moons, Superboost around Stars, and uncover lost
-            civilizations with <span className="hero-key">Cyl</span>, a crystal
-            that learns who you are. Together, with allies, you&apos;ll fight{" "}
-            <span className="hero-key hero-key--rose">Megabot</span>, a
-            self-replicating, self-augmenting machine overlord that adapts to how
-            you play.
+            Chart everything from{" "}
+            <span className="hero-key hero-key--amber">SuperMassive Black Holes</span>{" "}
+            to tiny moons. Superboost around stars. Uncover lost civilizations
+            with <span className="hero-key">Cyl</span>, a crystal companion who
+            learns who you are. Together, with allies, you&apos;ll fight{" "}
+            <span className="hero-key hero-key--rose">Megabot</span>, a machine
+            overlord that copies itself, upgrades itself and adapts to how you
+            play.
           </p>
 
           <p className="reveal mt-8 text-base md:text-lg font-medium text-slate-300">
@@ -387,6 +398,40 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Official trailer — second on the page: the fastest way to see what
+          the game is */}
+      <section id="trailer" className="reveal py-16 md:py-24 bg-deep-900">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+          <header className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              Watch the Trailer
+            </h2>
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              Black holes, solar storms, boss fights and the galaxy in motion.
+            </p>
+          </header>
+
+          <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
+            <video
+              controls
+              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
+              className="w-full h-full object-cover bg-black"
+              preload="metadata"
+            >
+              <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
+              <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
+              <span>Wishlist on Steam</span>
+            </WishlistButton>
+          </div>
+        </div>
+      </section>
+
       {/* In the playtest now — the current build, told through key art */}
       <section id="now-playing" className="py-16 md:py-24 bg-deep-900">
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
@@ -434,46 +479,13 @@ export default function HomePage() {
                   ))}
                   <Link
                     href={item.href}
-                    className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
+                    className="mt-4 inline-flex items-center gap-2 py-2.5 text-lg font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
                   >
                     {item.cta} <span aria-hidden="true">→</span>
                   </Link>
                 </div>
               </article>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Official trailer */}
-      <section id="trailer" className="reveal py-16 md:py-24 bg-deep-900">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <header className="text-center max-w-3xl mx-auto mb-10">
-            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
-              Watch the Trailer
-            </h2>
-            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              Black holes, solar storms, boss fights and the galaxy in motion.
-            </p>
-          </header>
-
-          <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
-            <video
-              controls
-              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
-              className="w-full h-full object-cover bg-black"
-              preload="metadata"
-            >
-              <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-
-          <div className="mt-10 flex justify-center">
-            <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
-              <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
-              <span>Wishlist on Steam</span>
-            </WishlistButton>
           </div>
         </div>
       </section>
