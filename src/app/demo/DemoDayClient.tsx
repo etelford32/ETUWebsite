@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CountdownTimer from "@/components/CountdownTimer";
+import DemoSign from "@/components/DemoSign";
 import DemoSignupButton from "@/components/DemoSignupButton";
 import WishlistButton from "@/components/WishlistButton";
 import { SteamIcon } from "@/components/SteamIcon";
@@ -15,7 +15,6 @@ import {
   DEMO_DATE_LABEL,
   DEMO_DATE_SHORT,
   DEMO_PATH,
-  DEMO_RELEASE_AT,
   DEMO_STEAM_SIGNIN_URL,
 } from "@/lib/campaign";
 
@@ -147,19 +146,20 @@ export default function DemoDayClient() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(2,6,23,.72), rgba(2,6,23,.82) 60%, #020617)",
+              "radial-gradient(ellipse 75% 60% at 50% 45%, rgba(4,6,20,.6), rgba(4,6,20,.25) 80%), linear-gradient(180deg, rgba(4,6,20,.45), rgba(4,6,20,.6) 55%, #040614)",
           }}
         />
         <div className="relative max-w-5xl mx-auto px-4 lg:px-6 pt-14 pb-12 md:pt-20 md:pb-16 text-center">
           <p
-            className="uppercase font-bold tracking-[0.18em] text-sm md:text-lg text-amber-300"
+            className="uppercase font-bold tracking-[0.22em] text-sm md:text-lg text-amber-300"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.9)" }}
           >
-            Free demo on Steam
+            Explore the Universe 2175
           </p>
           <h1
-            className="mt-3 font-display text-5xl md:text-7xl font-bold text-white leading-tight text-balance"
-            style={{ textShadow: "0 2px 16px rgba(0,0,0,.9)" }}
+            className={`mt-3 font-display text-6xl md:text-8xl font-black uppercase tracking-wide leading-none text-balance demo-gold ${
+              live ? "demo-gold--live" : ""
+            }`}
           >
             {live ? "The Demo Is Live" : "Demo Day"}
           </h1>
@@ -171,8 +171,8 @@ export default function DemoDayClient() {
               ? "The free demo of Explore the Universe 2175 is out now on Steam."
               : `The free demo of Explore the Universe 2175 lands on Steam on ${DEMO_DATE_LABEL}.`}
           </p>
-          <div className="mt-8 flex justify-center">
-            <CountdownTimer targetDate={DEMO_RELEASE_AT} label="Demo launches in" />
+          <div className="mt-8 md:mt-10 flex justify-center">
+            <DemoSign />
           </div>
           {live && (
             <div className="mt-8 flex justify-center">

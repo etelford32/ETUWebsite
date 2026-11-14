@@ -765,6 +765,509 @@ body { font-family: var(--font-body); }
 }
 
 /* ============================================
+   HOME HERO — MEGABOT's Evil Eye
+   The key art (public/art/megabot-evil-eye-hero.jpg) on a plate that is
+   sized and placed by where the pupil should land, so the glow layers
+   below stay registered to the painting at every screen size.
+   ============================================ */
+.eye-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  background: #03040c;
+}
+.eye-stage__plate {
+  --ar: 0.8003;        /* art is 1122 x 1402 */
+  --fx: 0.41;          /* the pupil, as a fraction of the art */
+  --fy: 0.435;
+  /* Phones: the art runs wider than the screen with the Eye centred above
+     the title; the hero below it is plain space for the copy. */
+  --w: 150cqw;
+  --eye-x: 50cqw;
+  --eye-y: calc(13cqw + 78px);
+  position: absolute;
+  width: var(--w);
+  height: calc(var(--w) / var(--ar));
+  left: calc(var(--eye-x) - var(--w) * var(--fx));
+  top: calc(var(--eye-y) - var(--w) / var(--ar) * var(--fy));
+  transform-origin: 41% 43.5%;
+  animation: eye-stage-drift 38s ease-in-out infinite alternate;
+  -webkit-mask-image: linear-gradient(180deg, #000 64%, transparent 97%);
+          mask-image: linear-gradient(180deg, #000 64%, transparent 97%);
+}
+@media (min-width: 640px) {
+  .eye-stage__plate { --w: 124cqw; --eye-y: calc(11cqw + 62px); }
+}
+@media (min-width: 1024px) {
+  /* Desktop: the art at its natural width — Eye left of centre over the
+     title, black hole upper right, the fleeing ship lower right. */
+  .eye-stage__plate { --w: 100cqw; --eye-x: 41cqw; --eye-y: calc(8.2cqw + 30px); }
+}
+.eye-stage__plate img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The Eye breathes: a red bloom, a white-hot core and a lens streak */
+.eye-stage__bloom,
+.eye-stage__core,
+.eye-stage__streak,
+.eye-stage__engines {
+  position: absolute;
+  translate: -50% -50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.eye-stage__bloom {
+  left: 41%;
+  top: 43.5%;
+  width: 52%;
+  aspect-ratio: 1;
+  background: radial-gradient(
+    circle,
+    rgba(255, 96, 64, 0.6) 0,
+    rgba(255, 36, 36, 0.3) 16%,
+    rgba(255, 0, 20, 0.12) 36%,
+    transparent 62%
+  );
+  animation: eye-bloom 5.6s ease-in-out infinite;
+}
+.eye-stage__core {
+  left: 41%;
+  top: 43.5%;
+  width: 7%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, #fff 0, rgba(255, 214, 196, 0.85) 22%, rgba(255, 70, 50, 0.4) 48%, transparent 70%);
+  animation: eye-core 5.6s ease-in-out infinite;
+}
+.eye-stage__streak {
+  left: 41%;
+  top: 43.5%;
+  width: 96%;
+  height: 0.55%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 226, 214, 0.95) 0, rgba(255, 70, 50, 0.55) 22%, transparent 68%);
+  animation: eye-streak 5.6s ease-in-out infinite;
+}
+/* The fleeing fighter's engines flicker */
+.eye-stage__engines {
+  left: 71.3%;
+  top: 69%;
+  width: 26%;
+  aspect-ratio: 1.7;
+  background: radial-gradient(ellipse, rgba(165, 243, 252, 0.55) 0, rgba(34, 211, 238, 0.24) 30%, transparent 66%);
+  animation: eye-engines 2.7s ease-in-out infinite;
+}
+
+/* Legibility: a soft well behind the copy, shadow under the header, and a
+   fade into the page at the foot. The art stays bright at the edges. */
+.eye-stage__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 36%, rgba(3, 4, 12, 0.34), transparent 75%),
+    linear-gradient(
+      180deg,
+      rgba(3, 4, 12, 0.5) 0,
+      rgba(3, 4, 12, 0.08) 12%,
+      rgba(3, 4, 12, 0.22) 42%,
+      rgba(4, 6, 20, 0.74) 72%,
+      #040614 100%
+    );
+}
+
+@keyframes eye-stage-drift {
+  from { transform: scale(1); }
+  to   { transform: scale(1.07) translate(-0.6%, 0.5%); }
+}
+@keyframes eye-bloom {
+  0%, 100% { opacity: 0.35; scale: 0.92; }
+  46%      { opacity: 0.95; scale: 1.06; }
+  54%      { opacity: 0.8;  scale: 1.02; }
+}
+@keyframes eye-core {
+  0%, 100% { opacity: 0.45; scale: 0.8; }
+  46%      { opacity: 1;    scale: 1.25; }
+}
+@keyframes eye-streak {
+  0%, 100% { opacity: 0.25; scale: 0.7 1; }
+  46%      { opacity: 0.95; scale: 1 1.6; }
+}
+@keyframes eye-engines {
+  0%, 100% { opacity: 0.55; }
+  18%      { opacity: 0.95; }
+  34%      { opacity: 0.6; }
+  62%      { opacity: 1; }
+  80%      { opacity: 0.7; }
+}
+
+/* ============================================
+   DEMO SIGNAGE — the launch board, the site ribbon
+   ============================================ */
+@property --demo-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.demo-sign {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.95rem;
+  max-width: 100%;
+  padding: 1.15rem 1.1rem 1.2rem;
+  border-radius: 20px;
+  text-align: center;
+  background:
+    radial-gradient(130% 120% at 50% 0%, rgba(245, 158, 11, 0.26), transparent 62%),
+    linear-gradient(180deg, rgba(26, 15, 4, 0.9), rgba(7, 6, 14, 0.92));
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.6),
+    0 0 70px rgba(245, 158, 11, 0.22);
+  animation: demo-sign-glow 3.2s ease-in-out infinite;
+}
+/* A beam of light that runs round the frame */
+.demo-sign::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--demo-angle),
+    rgba(251, 191, 36, 0.3) 0deg,
+    #fff7d6 28deg,
+    #fbbf24 52deg,
+    #f97316 80deg,
+    rgba(251, 191, 36, 0.3) 130deg,
+    rgba(251, 191, 36, 0.3) 180deg,
+    #fff7d6 208deg,
+    #fbbf24 232deg,
+    #f97316 260deg,
+    rgba(251, 191, 36, 0.3) 310deg,
+    rgba(251, 191, 36, 0.3) 360deg
+  );
+  /* show only the 2px padding ring */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  animation: demo-beam 7s linear infinite;
+  pointer-events: none;
+}
+
+.demo-sign__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+.demo-sign__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+.demo-sign__ping {
+  position: relative;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 10px #f59e0b;
+}
+.demo-sign__ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: demo-ping 1.8s ease-out infinite;
+}
+.demo-sign__title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.35rem;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fbbf24;
+  background: linear-gradient(180deg, #ffffff 8%, #fde68a 42%, #f59e0b 92%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.6)) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
+}
+.demo-sign__date {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.demo-sign__date b { color: #fcd34d; font-weight: 800; }
+
+.demo-sign__clock {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+.demo-sign__cell {
+  min-width: 3.9rem;
+  padding: 0.6rem 0.3rem 0.5rem;
+  border-radius: 12px;
+  /* a split-flap tile: lit top half, shadowed bottom half */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.13) 0,
+    rgba(255, 255, 255, 0.03) 48.5%,
+    rgba(0, 0, 0, 0.55) 49%,
+    rgba(0, 0, 0, 0.25) 51%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(253, 230, 138, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.demo-sign__num {
+  display: flex;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.1rem;
+  line-height: 1;
+  color: #fff8e1;
+  text-shadow: 0 0 18px rgba(251, 191, 36, 0.85), 0 0 3px rgba(255, 255, 255, 0.55);
+}
+/* Orbitron's 1 is narrow; fixed-width digits keep the clock from jittering */
+.demo-sign__digit {
+  display: inline-block;
+  width: 0.78em;
+  text-align: center;
+}
+.demo-sign__num--tick { animation: demo-tick 0.42s ease-out; }
+.demo-sign__unit {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+.demo-sign__sep {
+  padding-top: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #f59e0b;
+  animation: demo-blink 1s steps(2, jump-none) infinite;
+}
+
+/* Side by side once there is room for the name and the clock on one line */
+@media (min-width: 900px) {
+  .demo-sign {
+    flex-direction: row;
+    gap: 1.9rem;
+    padding: 1.3rem 1.6rem 1.3rem 1.9rem;
+    text-align: left;
+  }
+  .demo-sign__head { align-items: flex-start; }
+  .demo-sign__title { font-size: 2.9rem; }
+  .demo-sign__date { font-size: 0.95rem; }
+  .demo-sign__clock { gap: 0.45rem; }
+  .demo-sign__cell { min-width: 4.9rem; padding: 0.75rem 0.4rem 0.6rem; }
+  .demo-sign__num { font-size: 2.9rem; }
+  .demo-sign__unit { font-size: 0.72rem; }
+  .demo-sign__sep { padding-top: 0.75rem; font-size: 2.1rem; }
+}
+
+/* Launched: the board turns green and drops the clock */
+.demo-sign--live {
+  background:
+    radial-gradient(130% 120% at 50% 0%, rgba(16, 185, 129, 0.3), transparent 62%),
+    linear-gradient(180deg, rgba(3, 22, 16, 0.9), rgba(7, 6, 14, 0.92));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 70px rgba(16, 185, 129, 0.25);
+  animation: none;
+}
+.demo-sign--live::before {
+  background: conic-gradient(
+    from var(--demo-angle),
+    rgba(52, 211, 153, 0.3) 0deg,
+    #ecfdf5 28deg,
+    #34d399 60deg,
+    rgba(52, 211, 153, 0.3) 130deg,
+    rgba(52, 211, 153, 0.3) 180deg,
+    #ecfdf5 208deg,
+    #34d399 240deg,
+    rgba(52, 211, 153, 0.3) 310deg,
+    rgba(52, 211, 153, 0.3) 360deg
+  );
+}
+.demo-sign--live .demo-sign__kicker { color: #a7f3d0; }
+.demo-sign--live .demo-sign__ping,
+.demo-sign--live .demo-sign__ping::after { background: #34d399; }
+.demo-sign--live .demo-sign__ping { box-shadow: 0 0 10px #10b981; }
+.demo-sign--live .demo-sign__title {
+  color: #34d399;
+  background-image: linear-gradient(180deg, #ffffff 8%, #a7f3d0 42%, #10b981 92%);
+  filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.6)) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6));
+}
+.demo-sign--live .demo-sign__date b { color: #6ee7b7; }
+
+@keyframes demo-beam { to { --demo-angle: 360deg; } }
+@keyframes demo-sign-glow {
+  0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 60px rgba(245, 158, 11, 0.18); }
+  50%      { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 90px rgba(245, 158, 11, 0.4); }
+}
+@keyframes demo-ping {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes demo-tick {
+  0%   { transform: translateY(-14%); filter: brightness(1.7); }
+  100% { transform: translateY(0); filter: brightness(1); }
+}
+@keyframes demo-blink {
+  0%   { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+
+/* Gold display lettering for demo-day headings, matching the board */
+.demo-gold {
+  color: #fbbf24;
+  background: linear-gradient(180deg, #ffffff 6%, #fde68a 40%, #f59e0b 88%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(245, 158, 11, 0.5)) drop-shadow(0 3px 0 rgba(0, 0, 0, 0.65));
+}
+.demo-gold--live {
+  color: #34d399;
+  background-image: linear-gradient(180deg, #ffffff 6%, #a7f3d0 40%, #10b981 88%);
+  filter: drop-shadow(0 0 22px rgba(16, 185, 129, 0.5)) drop-shadow(0 3px 0 rgba(0, 0, 0, 0.65));
+}
+
+/* Site ribbon — one gold line above the header on every page */
+.demo-ribbon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 2.6rem;
+  padding: 0.4rem 0.9rem;
+  overflow: hidden;
+  color: #1c1203;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: linear-gradient(90deg, #d97706, #f59e0b 20%, #fcd34d 50%, #f59e0b 80%, #d97706);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 4px 24px rgba(245, 158, 11, 0.35);
+}
+.demo-ribbon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 22%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6) 50%, transparent);
+  transform: translateX(-140%) skewX(-18deg);
+  animation: demo-ribbon-sheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.demo-ribbon:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
+.demo-ribbon__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  background: #1c1203;
+  color: #fcd34d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.demo-ribbon__chip i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: etu-pulse 1.6s infinite;
+}
+.demo-ribbon__clock {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.demo-ribbon__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 800;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.demo-ribbon__go span { transition: transform 150ms ease; }
+.demo-ribbon:hover .demo-ribbon__go span { transform: translateX(3px); }
+.demo-ribbon--live {
+  color: #022c22;
+  background: linear-gradient(90deg, #059669, #10b981 20%, #6ee7b7 50%, #10b981 80%, #059669);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 4px 24px rgba(16, 185, 129, 0.35);
+}
+.demo-ribbon--live .demo-ribbon__chip { background: #022c22; color: #6ee7b7; }
+.demo-ribbon--live .demo-ribbon__chip i { background: #34d399; }
+
+@keyframes demo-ribbon-sheen {
+  0%, 60% { transform: translateX(-140%) skewX(-18deg); }
+  90%, 100% { transform: translateX(600%) skewX(-18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eye-stage__plate,
+  .eye-stage__bloom,
+  .eye-stage__core,
+  .eye-stage__streak,
+  .eye-stage__engines,
+  .demo-sign,
+  .demo-sign::before,
+  .demo-sign__ping::after,
+  .demo-sign__num--tick,
+  .demo-sign__sep,
+  .demo-ribbon::after,
+  .demo-ribbon__chip i,
+  .btn-3d-demo,
+  .btn-3d-demo::after { animation: none; }
+  .btn-3d-demo::after,
+  .demo-ribbon::after { display: none; }
+}
+
+/* ============================================
    BUTTONS — flat, one primary and one secondary style.
    .btn-3d* kept as class names so existing pages pick this up.
    ============================================ */
@@ -802,15 +1305,70 @@ body { font-family: var(--font-body); }
   box-shadow: 0 0 28px rgba(56, 189, 248, 0.35);
 }
 
-/* Campaign primary — demo-day amber, outranks the Steam blue beside it */
+/* Campaign primary — demo-day gold. The one button on the site that is
+   allowed to shine: a lit gradient, a warm halo and a sheen that crosses it
+   every few seconds, so it outranks the Steam blue beside it. */
 .btn-3d-demo {
-  background: #f59e0b;
-  border-color: #fcd34d;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 38%, #f59e0b 72%, #ea8a04 100%);
+  border-color: #fef3c7;
   color: #1c1203;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 0 rgba(146, 64, 14, 0.35),
+    0 6px 22px rgba(245, 158, 11, 0.38),
+    0 0 0 1px rgba(245, 158, 11, 0.35);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  animation: demo-btn-halo 3.2s ease-in-out infinite;
+}
+.btn-3d-demo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.75) 50%, transparent);
+  transform: translateX(-160%) skewX(-18deg);
+  animation: demo-sheen 4.2s ease-in-out infinite;
+  pointer-events: none;
 }
 .btn-3d-demo:hover {
-  background: #fbbf24;
-  box-shadow: 0 0 28px rgba(251, 191, 36, 0.4);
+  transform: translateY(-1px);
+  filter: brightness(1.06) saturate(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 0 rgba(146, 64, 14, 0.35),
+    0 10px 34px rgba(245, 158, 11, 0.55),
+    0 0 0 1px rgba(253, 230, 138, 0.7),
+    0 0 44px rgba(251, 191, 36, 0.45);
+}
+.btn-3d-demo:active { transform: translateY(0); filter: brightness(0.98); }
+
+@keyframes demo-sheen {
+  0%, 55% { transform: translateX(-160%) skewX(-18deg); }
+  85%, 100% { transform: translateX(380%) skewX(-18deg); }
+}
+@keyframes demo-btn-halo {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      inset 0 -2px 0 rgba(146, 64, 14, 0.35),
+      0 6px 22px rgba(245, 158, 11, 0.38),
+      0 0 0 1px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      inset 0 -2px 0 rgba(146, 64, 14, 0.35),
+      0 6px 30px rgba(245, 158, 11, 0.6),
+      0 0 0 1px rgba(253, 230, 138, 0.6),
+      0 0 34px rgba(251, 191, 36, 0.35);
+  }
 }
 
 /* Danger / alt accent */

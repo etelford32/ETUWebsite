@@ -8,14 +8,10 @@ import Footer from "@/components/Footer";
 import EtuTitle from "@/components/EtuTitle";
 import WishlistButton from "@/components/WishlistButton";
 import DemoSignupButton from "@/components/DemoSignupButton";
-import CountdownTimer from "@/components/CountdownTimer";
+import DemoSign from "@/components/DemoSign";
+import EyeBackdrop from "@/components/EyeBackdrop";
 import { initPerformanceOptimizations } from "@/lib/performance";
-import {
-  DEMO_DATE_LABEL,
-  DEMO_DATE_SHORT,
-  DEMO_PATH,
-  DEMO_RELEASE_AT,
-} from "@/lib/campaign";
+import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 import { useDemoLive } from "@/lib/useDemoLive";
 
 // Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
@@ -239,37 +235,19 @@ export default function HomePage() {
     <>
       <Header />
 
-      {/* HERO — brand, pitch, then the demo-day funnel: Sign up › Wishlist */}
+      {/* HERO — brand, then the demo-day funnel (Sign up › Wishlist), then the pitch */}
       <section
         id="home"
         className="relative min-h-[92svh] flex items-center overflow-hidden"
       >
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/etu_epic.png"
-            className="w-full h-full"
-            style={{ objectFit: "cover", objectPosition: "center" }}
-          >
-            <source src="/ETU_Vid1.mp4" type="video/mp4" />
-          </video>
-        </div>
-
-        {/* Darker overlay so the type reads cleanly over the video */}
-        <div
-          className="absolute inset-0 z-[1]"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(2,6,23,.45), rgba(2,6,23,.85) 70%), linear-gradient(180deg, rgba(2,6,23,.3), rgba(2,6,23,.6) 60%, #020617)",
-          }}
-        />
+        {/* MEGABOT's Evil Eye: the key art, alive behind the title */}
+        <EyeBackdrop />
 
         <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-8 pb-12 md:pt-14 md:pb-16 text-center">
+          {/* The gap under this line is left open for the Eye to look out
+              over the title */}
           <p
-            className="reveal mb-4 md:mb-6 uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
+            className="reveal mb-[21vw] sm:mb-[15vw] lg:mb-[7.5vw] uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
           >
             Elliot Telford of Telford Projects Presents
@@ -295,24 +273,11 @@ export default function HomePage() {
             />
           </h1>
 
-          <p
-            className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
-            style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
-          >
-            Explore a new galaxy full of quests, alien boss encounters and
-            dynamic alliances in a galactic war around{" "}
-            <span className="hero-key hero-key--amber">Black Holes</span> for
-            Stars, Planets for the resources to conquer, or{" "}
-            <span className="hero-key">save the galaxy</span>.
-          </p>
-
-          {/* Demo day, ahead of the long pitch so the buttons sit high: the
-              date and countdown, then Sign up › Wishlist */}
-          <div className="reveal mt-7 md:mt-9 flex justify-center">
-            <CountdownTimer
-              targetDate={DEMO_RELEASE_AT}
-              label={`Free demo on Steam · ${DEMO_DATE_LABEL}`}
-            />
+          {/* Demo day comes straight after the title, so the launch board and
+              its buttons share the first screen with the Eye: board, then
+              Sign up › Wishlist */}
+          <div className="reveal mt-6 md:mt-8 flex justify-center">
+            <DemoSign />
           </div>
 
           <div className="reveal mt-5 md:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
@@ -330,7 +295,10 @@ export default function HomePage() {
             </WishlistButton>
           </div>
 
-          <p className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance">
+          <p
+            className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+          >
             {demoLive
               ? "The demo is live. Create your commander account to claim your callsign."
               : "Create your commander account, wishlist on Steam, and be ready when the demo lands."}{" "}
@@ -342,7 +310,19 @@ export default function HomePage() {
             </Link>
           </p>
 
-          <div className="hero-rule reveal mt-8 md:mt-10" aria-hidden="true" />
+          <div className="hero-rule reveal mt-9 md:mt-12" aria-hidden="true" />
+
+          {/* The pitch */}
+          <p
+            className="reveal mt-7 md:mt-9 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
+            style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
+          >
+            Explore a new galaxy full of quests, alien boss encounters and
+            dynamic alliances in a galactic war around{" "}
+            <span className="hero-key hero-key--amber">Black Holes</span> for
+            Stars, Planets for the resources to conquer, or{" "}
+            <span className="hero-key">save the galaxy</span>.
+          </p>
 
           <p
             className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
@@ -591,12 +571,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA — same order as the hero: Sign up › Wishlist › Play */}
+      {/* Final CTA — same order as the hero: Sign up › Wishlist › Play.
+          The lower half of the hero art closes the page: the fighter still
+          running, the launch board over it. */}
       <section
         id="download"
-        className="relative py-16 md:py-24 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-cyan-500/20 overflow-hidden"
+        className="relative py-16 md:py-24 bg-deep-900 border-t border-amber-400/25 overflow-hidden"
       >
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+        <Image
+          src="/art/megabot-evil-eye.jpg"
+          alt=""
+          fill
+          className="object-cover"
+          style={{ objectPosition: "50% 74%" }}
+          sizes="100vw"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, #070b1f 0, rgba(4,6,20,.62) 24%, rgba(4,6,20,.66) 62%, #040614 100%)",
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative max-w-6xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
             <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               Join the Mission
@@ -604,9 +603,13 @@ export default function HomePage() {
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
               {demoLive
                 ? "The free demo is live on Steam."
-                : `Three steps to demo day, ${DEMO_DATE_LABEL}.`}
+                : "Three steps and you are ready for demo day."}
             </p>
           </header>
+
+          <div className="reveal -mt-2 md:-mt-4 mb-10 md:mb-14 flex justify-center">
+            <DemoSign />
+          </div>
 
           <ol className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <CtaCard
@@ -690,10 +693,10 @@ function CtaCard({
 }) {
   return (
     <li
-      className={`reveal flex flex-col p-7 md:p-9 rounded-2xl ${
+      className={`reveal flex flex-col p-7 md:p-9 rounded-2xl bg-slate-950/75 backdrop-blur-md ${
         featured
-          ? "bg-gradient-to-b from-amber-500/15 to-amber-500/5 ring-2 ring-amber-400/50 shadow-[0_0_50px_rgba(251,191,36,0.15)]"
-          : "bg-white/[0.04] ring-1 ring-white/10"
+          ? "bg-gradient-to-b from-amber-500/20 to-amber-500/5 ring-2 ring-amber-400/60 shadow-[0_0_60px_rgba(251,191,36,0.22)]"
+          : "ring-1 ring-white/10"
       }`}
     >
       <span className={`text-base md:text-lg font-bold ${featured ? "text-amber-300" : "text-cyan-300"}`}>
