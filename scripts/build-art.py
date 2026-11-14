@@ -9,6 +9,7 @@ uploaded. This writes what the site serves into public/:
                                  baked-in titles; also the press-kit download)
   public/art/<name>-scene.jpg    the same art cropped to the painting only, for
                                  cards and banners that set their own type
+  public/art/<name>-hero.jpg     enlarged copy for full-bleed hero backdrops
   public/emblems/<name>.webp     faction emblems
   public/og/<name>.jpg           1200x630 social share cards: a painting with
                                  a title set in the ETU sprite font
@@ -23,7 +24,7 @@ Needs: pillow
 import importlib.util
 import os
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ART_DIR = os.path.join(ROOT, 'public', 'art')
@@ -41,6 +42,15 @@ ART = [
     ('king_arkanvil_crystal1.png', 'king-arkanvil-lore-sheet', (365, 0, 1130, 640)),
     ('Cyl_ The Corrupted Goddess.png', 'cyl-corrupted-goddess', (440, 0, 1500, 941)),
     ('Stellar_Solar_shade.png', 'solar-shade', (0, 0, 1536, 650)),
+    ("Megabot's Evil Eye.webp", 'megabot-evil-eye', None),
+]
+
+# Full-bleed hero backdrops: output name -> upscale factor. The portrait key
+# art is narrower than a desktop viewport, so the hero gets a Lanczos-enlarged
+# copy with a light sharpen instead of leaving the stretch to the browser.
+# next/image serves it down to each screen size from there.
+HERO = [
+    ('megabot-evil-eye', 2),
 ]
 
 EMBLEMS = [
@@ -118,6 +128,14 @@ def main():
             out = os.path.join(ART_DIR, name + '-scene.jpg')
             save_jpeg(crop, out)
             print(f'{name}-scene.jpg  {crop.width}x{crop.height}  {os.path.getsize(out) // 1024} KB')
+
+    for name, factor in HERO:
+        im = Image.open(os.path.join(ART_DIR, name + '.jpg')).convert('RGB')
+        im = im.resize((im.width * factor, im.height * factor), Image.LANCZOS)
+        im = im.filter(ImageFilter.UnsharpMask(radius=1.6, percent=60, threshold=2))
+        out = os.path.join(ART_DIR, name + '-hero.jpg')
+        im.save(out, 'JPEG', quality=84, optimize=True, progressive=True)
+        print(f'{name}-hero.jpg  {im.width}x{im.height}  {os.path.getsize(out) // 1024} KB')
 
     for source, name in EMBLEMS:
         im = Image.open(os.path.join(ROOT, source)).convert('RGB')

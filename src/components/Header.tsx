@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import WishlistButton from "@/components/WishlistButton";
 import DemoSignupButton from "@/components/DemoSignupButton";
+import DemoRibbon from "@/components/DemoRibbon";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllFactions, type Faction } from "@/data/factions";
@@ -135,6 +136,9 @@ export default function Header() {
   }, []);
 
   return (
+    <>
+    {/* Demo-day ribbon: in normal flow above the sticky header, so it scrolls away */}
+    <DemoRibbon />
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/85 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center justify-between gap-6 h-16">
@@ -301,6 +305,7 @@ export default function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }
 

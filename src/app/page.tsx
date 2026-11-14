@@ -8,14 +8,10 @@ import Footer from "@/components/Footer";
 import EtuTitle from "@/components/EtuTitle";
 import WishlistButton from "@/components/WishlistButton";
 import DemoSignupButton from "@/components/DemoSignupButton";
-import CountdownTimer from "@/components/CountdownTimer";
+import DemoSign from "@/components/DemoSign";
+import EyeBackdrop from "@/components/EyeBackdrop";
 import { initPerformanceOptimizations } from "@/lib/performance";
-import {
-  DEMO_DATE_LABEL,
-  DEMO_DATE_SHORT,
-  DEMO_PATH,
-  DEMO_RELEASE_AT,
-} from "@/lib/campaign";
+import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 import { useDemoLive } from "@/lib/useDemoLive";
 
 // Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
@@ -239,41 +235,23 @@ export default function HomePage() {
     <>
       <Header />
 
-      {/* HERO — brand, pitch, then the demo-day funnel: Sign up › Wishlist */}
+      {/* HERO — brand, then the demo-day funnel (Sign up › Wishlist), then the pitch */}
       <section
         id="home"
         className="relative min-h-[92svh] flex items-center overflow-hidden"
       >
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/etu_epic.png"
-            className="w-full h-full"
-            style={{ objectFit: "cover", objectPosition: "center" }}
-          >
-            <source src="/ETU_Vid1.mp4" type="video/mp4" />
-          </video>
-        </div>
-
-        {/* Darker overlay so the type reads cleanly over the video */}
-        <div
-          className="absolute inset-0 z-[1]"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(2,6,23,.45), rgba(2,6,23,.85) 70%), linear-gradient(180deg, rgba(2,6,23,.3), rgba(2,6,23,.6) 60%, #020617)",
-          }}
-        />
+        {/* MEGABOT's Evil Eye: the key art, alive behind the title */}
+        <EyeBackdrop />
 
         <div className="relative z-10 w-full max-w-6xl mx-auto px-4 lg:px-6 pt-8 pb-12 md:pt-14 md:pb-16 text-center">
-          <p
-            className="reveal mb-4 md:mb-6 uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-slate-200"
-            style={{ textShadow: "0 1px 6px rgba(0,0,0,.9)" }}
-          >
-            Elliot Telford of Telford Projects Presents
-          </p>
+          {/* The gap under this line is left open for the Eye to look out
+              over the title. The line crosses the brightest part of the art,
+              so it carries its own dark backing. */}
+          <div className="reveal mb-[19vw] sm:mb-[14vw] lg:mb-[5.8vw]">
+            <p className="inline-block px-4 py-1.5 rounded-2xl sm:rounded-full bg-slate-950/60 backdrop-blur-sm uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-white">
+              Elliot Telford of Telford Projects Presents
+            </p>
+          </div>
 
           {/* Phones get a stacked title so each line can run much larger */}
           <h1>
@@ -295,24 +273,21 @@ export default function HomePage() {
             />
           </h1>
 
+          {/* What the game is, in one line, before anything asks for a click */}
           <p
-            className="reveal mt-6 md:mt-10 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
-            style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
+            className="reveal mt-3 md:mt-4 text-xl md:text-2xl font-bold text-white leading-snug text-balance"
+            style={{ textShadow: "0 2px 4px rgba(0,0,0,.95), 0 0 18px rgba(0,0,0,.9)" }}
           >
-            Explore a new galaxy full of quests, alien boss encounters and
-            dynamic alliances in a galactic war around{" "}
-            <span className="hero-key hero-key--amber">Black Holes</span> for
-            Stars, Planets for the resources to conquer, or{" "}
-            <span className="hero-key">save the galaxy</span>.
+            An open-galaxy space adventure.{" "}
+            <br className="lg:hidden" />
+            Fly solo or in four-pilot co-op.
           </p>
 
-          {/* Demo day, ahead of the long pitch so the buttons sit high: the
-              date and countdown, then Sign up › Wishlist */}
-          <div className="reveal mt-7 md:mt-9 flex justify-center">
-            <CountdownTimer
-              targetDate={DEMO_RELEASE_AT}
-              label={`Free demo on Steam · ${DEMO_DATE_LABEL}`}
-            />
+          {/* Demo day comes straight after, so the launch board and its
+              buttons share the first screen with the Eye: board, then
+              Sign up › Wishlist */}
+          <div className="reveal mt-5 md:mt-6 flex justify-center">
+            <DemoSign />
           </div>
 
           <div className="reveal mt-5 md:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
@@ -330,31 +305,70 @@ export default function HomePage() {
             </WishlistButton>
           </div>
 
-          <p className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance">
+          {/* Two dates, said plainly: the playtest takes sign-ups today, the
+              demo arrives on demo day. Once the demo is out this line goes. */}
+          {!demoLive && (
+            <div className="reveal mt-5 md:mt-6 flex justify-center">
+              <WishlistButton
+                placement="home-hero-playtest"
+                intent="playtest"
+                className="group inline-flex items-center gap-3 px-5 py-3 rounded-2xl sm:rounded-full bg-emerald-950/85 ring-1 ring-emerald-400/60 backdrop-blur-sm text-left text-base md:text-lg text-emerald-50 leading-snug hover:bg-emerald-900/90 hover:ring-emerald-300 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+              >
+                <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
+                </span>
+                <span>
+                  <span className="font-bold text-white">Can&apos;t wait? Playtest sign-ups are open now.</span>{" "}
+                  <span className="font-semibold text-emerald-300 underline decoration-emerald-400/50 underline-offset-4 whitespace-nowrap group-hover:text-emerald-200">
+                    Request access on Steam →
+                  </span>
+                </span>
+              </WishlistButton>
+            </div>
+          )}
+
+          <p
+            className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
+          >
             {demoLive
               ? "The demo is live. Create your commander account to claim your callsign."
               : "Create your commander account, wishlist on Steam, and be ready when the demo lands."}{" "}
             <Link
               href={DEMO_PATH}
-              className="font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors whitespace-nowrap"
+              className="block sm:inline py-2.5 sm:py-0 font-semibold text-cyan-300 underline decoration-cyan-400/50 underline-offset-4 hover:text-cyan-200 hover:decoration-cyan-200 transition-colors whitespace-nowrap"
             >
               How demo day works →
             </Link>
           </p>
 
-          <div className="hero-rule reveal mt-8 md:mt-10" aria-hidden="true" />
+          <div className="hero-rule reveal mt-9 md:mt-12" aria-hidden="true" />
+
+          {/* The pitch: short sentences, one idea each */}
+          <p
+            className="reveal mt-7 md:mt-9 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
+            style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
+          >
+            Explore a new galaxy full of quests, alien bosses and shifting
+            alliances. A war rages around its{" "}
+            <span className="hero-key hero-key--amber">Black Holes</span>, over
+            stars and planets and the resources they hold. Conquer it, or{" "}
+            <span className="hero-key">save the galaxy</span>.
+          </p>
 
           <p
             className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
-            Chart <span className="hero-key hero-key--amber">SuperMassive Black Holes</span>{" "}
-            down to tiny moons, Superboost around Stars, and uncover lost
-            civilizations with <span className="hero-key">Cyl</span>, a crystal
-            that learns who you are. Together, with allies, you&apos;ll fight{" "}
-            <span className="hero-key hero-key--rose">Megabot</span>, a
-            self-replicating, self-augmenting machine overlord that adapts to how
-            you play.
+            Chart everything from{" "}
+            <span className="hero-key hero-key--amber">SuperMassive Black Holes</span>{" "}
+            to tiny moons. Superboost around stars. Uncover lost civilizations
+            with <span className="hero-key">Cyl</span>, a crystal companion who
+            learns who you are. Together, with allies, you&apos;ll fight{" "}
+            <span className="hero-key hero-key--rose">Megabot</span>, a machine
+            overlord that copies itself, upgrades itself and adapts to how you
+            play.
           </p>
 
           <p className="reveal mt-8 text-base md:text-lg font-medium text-slate-300">
@@ -407,6 +421,40 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Official trailer — second on the page: the fastest way to see what
+          the game is */}
+      <section id="trailer" className="reveal py-16 md:py-24 bg-deep-900">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+          <header className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
+              Watch the Trailer
+            </h2>
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
+              Black holes, solar storms, boss fights and the galaxy in motion.
+            </p>
+          </header>
+
+          <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
+            <video
+              controls
+              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
+              className="w-full h-full object-cover bg-black"
+              preload="metadata"
+            >
+              <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
+              <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
+              <span>Wishlist on Steam</span>
+            </WishlistButton>
+          </div>
+        </div>
+      </section>
+
       {/* In the playtest now — the current build, told through key art */}
       <section id="now-playing" className="py-16 md:py-24 bg-deep-900">
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
@@ -417,6 +465,23 @@ export default function HomePage() {
             <h2 className="mt-3 font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               The War So Far
             </h2>
+            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed text-balance">
+              {demoLive
+                ? "What the playtest pilots have been fighting."
+                : `All of this is in the Steam playtest today, and sign\u2011ups are open. The free demo follows on ${DEMO_DATE_SHORT}.`}
+            </p>
+            {!demoLive && (
+              <div className="mt-6 flex justify-center">
+                <WishlistButton
+                  placement="home-now-playing"
+                  intent="playtest"
+                  className="btn-ghost btn-ghost--lg"
+                >
+                  <SteamIcon className="w-5 h-5" />
+                  Request playtest access
+                </WishlistButton>
+              </div>
+            )}
           </header>
 
           <div className="space-y-12 md:space-y-20">
@@ -454,46 +519,13 @@ export default function HomePage() {
                   ))}
                   <Link
                     href={item.href}
-                    className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
+                    className="mt-4 inline-flex items-center gap-2 py-2.5 text-lg font-semibold text-cyan-300 hover:text-cyan-200 transition-colors"
                   >
                     {item.cta} <span aria-hidden="true">→</span>
                   </Link>
                 </div>
               </article>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Official trailer */}
-      <section id="trailer" className="reveal py-16 md:py-24 bg-deep-900">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <header className="text-center max-w-3xl mx-auto mb-10">
-            <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
-              Watch the Trailer
-            </h2>
-            <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
-              Black holes, solar storms, boss fights and the galaxy in motion.
-            </p>
-          </header>
-
-          <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
-            <video
-              controls
-              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
-              className="w-full h-full object-cover bg-black"
-              preload="metadata"
-            >
-              <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-
-          <div className="mt-10 flex justify-center">
-            <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
-              <SteamIcon className="w-6 h-6 transition-transform group-hover:scale-110" />
-              <span>Wishlist on Steam</span>
-            </WishlistButton>
           </div>
         </div>
       </section>
@@ -591,12 +623,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA — same order as the hero: Sign up › Wishlist › Play */}
+      {/* Final CTA — same order as the hero: Sign up › Wishlist › Play.
+          The lower half of the hero art closes the page: the fighter still
+          running, the launch board over it. */}
       <section
         id="download"
-        className="relative py-16 md:py-24 bg-gradient-to-b from-deep-800 to-deep-900 border-t border-cyan-500/20 overflow-hidden"
+        className="relative py-16 md:py-24 bg-deep-900 border-t border-amber-400/25 overflow-hidden"
       >
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+        <Image
+          src="/art/megabot-evil-eye.jpg"
+          alt=""
+          fill
+          className="object-cover"
+          style={{ objectPosition: "50% 74%" }}
+          sizes="100vw"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, #070b1f 0, rgba(4,6,20,.62) 24%, rgba(4,6,20,.66) 62%, #040614 100%)",
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative max-w-6xl mx-auto px-4 lg:px-6">
           <header className="reveal text-center max-w-3xl mx-auto mb-10 md:mb-14">
             <h2 className="font-display text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
               Join the Mission
@@ -604,9 +655,13 @@ export default function HomePage() {
             <p className="mt-4 text-lg md:text-2xl text-slate-100 leading-relaxed">
               {demoLive
                 ? "The free demo is live on Steam."
-                : `Three steps to demo day, ${DEMO_DATE_LABEL}.`}
+                : "Three steps and you are ready for demo day."}
             </p>
           </header>
+
+          <div className="reveal -mt-2 md:-mt-4 mb-10 md:mb-14 flex justify-center">
+            <DemoSign />
+          </div>
 
           <ol className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <CtaCard
@@ -630,7 +685,11 @@ export default function HomePage() {
             <CtaCard
               step="Step 2"
               title="Wishlist on Steam"
-              body="The best way to support the game. Steam tells you when Early Access launches."
+              body={
+                demoLive
+                  ? "The best way to support the game. Steam tells you when Early Access launches."
+                  : "The best way to support the game. While you are on the store page, request playtest access: sign-ups are open now."
+              }
             >
               <WishlistButton placement="home-cta-wishlist" className={CTA_GHOST_CLASS}>
                 <SteamIcon className="w-6 h-6" />
@@ -690,10 +749,10 @@ function CtaCard({
 }) {
   return (
     <li
-      className={`reveal flex flex-col p-7 md:p-9 rounded-2xl ${
+      className={`reveal flex flex-col p-7 md:p-9 rounded-2xl bg-slate-950/75 backdrop-blur-md ${
         featured
-          ? "bg-gradient-to-b from-amber-500/15 to-amber-500/5 ring-2 ring-amber-400/50 shadow-[0_0_50px_rgba(251,191,36,0.15)]"
-          : "bg-white/[0.04] ring-1 ring-white/10"
+          ? "bg-gradient-to-b from-amber-500/20 to-amber-500/5 ring-2 ring-amber-400/60 shadow-[0_0_60px_rgba(251,191,36,0.22)]"
+          : "ring-1 ring-white/10"
       }`}
     >
       <span className={`text-base md:text-lg font-bold ${featured ? "text-amber-300" : "text-cyan-300"}`}>
