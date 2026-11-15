@@ -569,6 +569,11 @@ body { font-family: var(--font-body); }
   pointer-events: none;
 }
 .etu-glyph__art { background-image: var(--etu-art); }
+/* The AVIF atlas where the browser can choose a format by type; it falls
+   through to the WebP inside the set if it cannot decode AVIF. */
+@supports (background-image: image-set(url("a.avif") type("image/avif"))) {
+  .etu-glyph__art { background-image: var(--etu-art-set, var(--etu-art)); }
+}
 
 /* The crystal's own light, re-applied in screen mode to make it pulse. */
 .etu-glyph__energy,

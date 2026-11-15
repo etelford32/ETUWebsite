@@ -4,13 +4,32 @@ import { Orbitron, Exo_2, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import '../input.css'
 import AnalyticsTracker from '@/components/AnalyticsTracker'
+import { FactionNavProvider, type FactionNavItem } from '@/components/FactionNavProvider'
+import { getAllFactions } from '@/data/factions'
 import { SITE_URL } from '@/lib/siteUrl'
 
 // Self-hosted at build time: the CSP (next.config.js) only allows fonts and
 // stylesheets from 'self', so a Google Fonts <link>/@import is blocked.
 const orbitron = Orbitron({ subsets: ['latin'], display: 'swap', variable: '--font-orbitron-face' })
 const exo2 = Exo_2({ subsets: ['latin'], display: 'swap', variable: '--font-exo2-face' })
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], display: 'swap', variable: '--font-jetbrains-face' })
+// The mono face only appears in menus and data tables, never in a page's
+// first screen, so it loads when first used instead of being preloaded.
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], display: 'swap', variable: '--font-jetbrains-face', preload: false })
+
+// The header's faction menu, built here on the server so the header does not
+// have to import the full faction profiles into every page's JavaScript.
+// Live factions first, then the in-development roster, alphabetical within each.
+const FACTION_NAV: FactionNavItem[] = getAllFactions()
+  .map((f) => ({
+    id: f.id,
+    name: f.name,
+    status: f.status ?? ('live' as const),
+    color: f.color.primary,
+  }))
+  .sort(
+    (a, b) =>
+      Number(a.status !== 'live') - Number(b.status !== 'live') || a.name.localeCompare(b.name)
+  )
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -76,7 +95,7 @@ export default function RootLayout({
           `}
         </Script>
         <AnalyticsTracker />
-        {children}
+        <FactionNavProvider factions={FACTION_NAV}>{children}</FactionNavProvider>
       </body>
     </html>
   )

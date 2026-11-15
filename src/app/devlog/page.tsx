@@ -81,7 +81,7 @@ export default function DevlogPage() {
               </Link>
             )}
           </div>
-          <EtuTitle as="h1" text="Elliot's Devlog" fit className="text-5xl md:text-7xl mb-6" />
+          <EtuTitle as="h1" text="Elliot's Devlog" fit preload className="text-5xl md:text-7xl mb-6" />
           <p className="text-xl text-slate-300 max-w-3xl mb-4">
             <strong>Behind the Scenes:</strong> Follow my journey building Explore the Universe 2175.
             Regular updates on development progress, technical challenges, design decisions, and what's coming next.

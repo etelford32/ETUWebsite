@@ -5,6 +5,8 @@ Cut the ETU 2175 title letters out of the official reference sheet
 
   public/brand/etu-glyphs.webp         RGBA letters (solid body + glow)
   public/brand/etu-glyphs-sm.webp      the same at half resolution (small titles)
+  public/brand/etu-glyphs{,-sm}.avif   both again as AVIF, under half the bytes;
+                                       the site serves these where supported
   public/brand/etu-glyphs-energy.webp  the cyan emission only, same layout
   public/brand/etu-glyphs.json         atlas metrics for any tool or engine
   src/lib/etuTitle/spriteFont.ts       the same metrics for the site (generated)
@@ -14,7 +16,7 @@ of letters (mirrored, rotated, erased, cut and re-joined) until a sheet
 with those characters exists.
 
 Usage: python3 scripts/extract-title-glyphs.py
-Needs: numpy, opencv-python-headless, pillow
+Needs: numpy, opencv-python-headless, pillow (11.3+ for AVIF)
 """
 
 import json
@@ -321,17 +323,24 @@ def main():
         art[gy:gy + frame_h, gx:gx + gw] = rgba[..., :4]
         energy[gy:gy + frame_h, gx:gx + gw] = energy_map(rgba[..., :4])
 
-    def save(arr, path, scale=1.0, quality=84):
+    def save(arr, path, scale=1.0, quality=84, avif_quality=None):
         if scale != 1.0:
             arr = cv2.resize(arr, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         a = np.clip(arr[..., 3:4], 0, 1)
         straight = np.where(a > 1e-4, arr[..., :3] / np.maximum(a, 1e-4), 0)
         out = np.dstack([np.clip(straight, 0, 1), a]) * 255
-        Image.fromarray(out.round().astype(np.uint8), 'RGBA').save(path, 'WEBP', quality=quality, alpha_quality=90, method=6)
+        image = Image.fromarray(out.round().astype(np.uint8), 'RGBA')
+        image.save(path, 'WEBP', quality=quality, alpha_quality=90, method=6)
         print(path, os.path.getsize(path) // 1024, 'KB')
+        if avif_quality is not None:
+            # Same pixels, under half the bytes. At these qualities the AVIF
+            # is indistinguishable from the lossless render at 2x zoom.
+            avif = os.path.splitext(path)[0] + '.avif'
+            image.save(avif, 'AVIF', quality=avif_quality, speed=1)
+            print(avif, os.path.getsize(avif) // 1024, 'KB')
 
-    save(art, OUT_ART)
-    save(art, OUT_ART_SM, scale=0.5, quality=82)
+    save(art, OUT_ART, avif_quality=58)
+    save(art, OUT_ART_SM, scale=0.5, quality=82, avif_quality=60)
     # The energy layer is soft light: half resolution is plenty.
     save(energy, OUT_ENERGY, scale=0.5, quality=70)
 
@@ -345,6 +354,8 @@ def main():
     font = {
         'art': '/brand/etu-glyphs.webp',
         'artSmall': '/brand/etu-glyphs-sm.webp',
+        'artAvif': '/brand/etu-glyphs.avif',
+        'artSmallAvif': '/brand/etu-glyphs-sm.avif',
         'energy': '/brand/etu-glyphs-energy.webp',
         'width': int(width),
         'height': int(height),
@@ -368,7 +379,7 @@ def main():
         f.write('export interface SpriteGlyph {\n  /** Cell in the atlas, px. */\n  x: number\n  y: number\n  w: number\n')
         f.write('  /** Width of the glyph body; the cell adds `margin` of glow each side. */\n  advance: number\n}\n\n')
         f.write('export const ETU_SPRITE_FONT = {\n')
-        for key in ('art', 'artSmall', 'energy'):
+        for key in ('art', 'artSmall', 'artAvif', 'artSmallAvif', 'energy'):
             f.write(f"  {key}: '{font[key]}',\n")
         f.write(f"  width: {font['width']},\n  height: {font['height']},\n")
         f.write(f"  /** Every cell is this tall: margin + depth + margin. */\n  frameHeight: {font['frameHeight']},\n")

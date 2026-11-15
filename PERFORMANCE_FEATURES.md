@@ -41,9 +41,18 @@ Users can now control the quality of the hero black hole animation to optimize p
 - **Package Optimization**: Framer Motion is optimized via experimental imports
 
 ### 3. Resource Preloading
-- **Three.js Preload**: Critical 3D library is preloaded
-- **Page Prefetching**: Important pages (leaderboard, factions) are prefetched
+- **Page Prefetching**: `next/link` prefetches routes as their links scroll into view
 - **Priority Loading**: Hero images marked as priority for faster LCP
+- **Title Atlas**: `<EtuTitle preload>` on a page's top title fetches the letter atlas
+  with the page, as AVIF (under half the size of the WebP)
+
+### 3a. Lazy Loading
+- **Trailer**: `TrailerPlayer` shows a lazy still and only fetches the video on play
+- **Hero Copy**: `.reveal-now` fades in from CSS alone; `.reveal` (below the fold)
+  waits for scroll
+- **Header Menu**: the faction list comes from the root layout through
+  `FactionNavProvider`, so the full faction profiles are not in every page's JavaScript
+- **Fonts**: the mono face is not preloaded; it loads when first used
 
 ### 4. Network Optimization
 - **Connection Detection**: Automatic quality adjustment based on network speed

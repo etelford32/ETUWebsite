@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QualitySettings, { type QualityLevel } from "@/components/QualitySettings";
 import CameraControls from "@/components/CameraControls";
-import { detectConnectionQuality, initPerformanceOptimizations } from "@/lib/performance";
+import { detectConnectionQuality } from "@/lib/performance";
 
 const Megabot = dynamic(() => import("@/components/Megabot"), { ssr: false });
 const HeroMissileGame = dynamic(() => import("@/components/HeroMissileGame"), { ssr: false });
@@ -96,7 +96,6 @@ export default function MissileGamePage() {
   });
 
   useEffect(() => {
-    initPerformanceOptimizations();
     const saved = typeof window !== "undefined"
       ? (localStorage.getItem("etu-animation-quality") as QualityLevel | null)
       : null;

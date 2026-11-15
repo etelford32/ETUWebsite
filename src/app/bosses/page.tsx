@@ -21,7 +21,7 @@ export default function BossesIndexPage() {
       <main className="min-h-screen bg-deep-900 text-slate-100">
         <section className="max-w-7xl mx-auto px-4 lg:px-6 pt-14 pb-24">
           <div className="eyebrow mb-3">Adversaries</div>
-          <EtuTitle as="h1" text="Bosses" className="text-5xl md:text-7xl" />
+          <EtuTitle as="h1" text="Bosses" preload className="text-5xl md:text-7xl" />
           <p className="mt-3 mb-8 text-lg text-slate-300">
             <span className="font-mono text-cyan-300">{entries.length}</span> in the game.
           </p>

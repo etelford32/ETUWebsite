@@ -71,7 +71,7 @@ export default function FactionsIndexPage() {
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-6 pt-16 pb-12 md:pt-24 md:pb-16">
             <div className="eyebrow mb-3 text-slate-200">Pick Your Allegiance</div>
-            <EtuTitle as="h1" text="One Galaxy at War." fit className="text-4xl md:text-6xl" />
+            <EtuTitle as="h1" text="One Galaxy at War." fit preload className="text-4xl md:text-6xl" />
             <p
               className="mt-5 max-w-2xl text-lg md:text-xl text-slate-100 leading-relaxed"
               style={{ textShadow: '0 2px 10px rgba(0,0,0,.9)' }}

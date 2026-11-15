@@ -1,42 +1,9 @@
 /**
- * Performance optimization utilities for ETU Website
+ * Performance utilities for the ETU website.
+ *
+ * Page prefetching is left to next/link (it prefetches routes as their links
+ * scroll into view) and image lazy loading to next/image and the browser.
  */
-
-/**
- * Preload critical resources
- */
-export function preloadCriticalAssets() {
-  if (typeof window === "undefined") return;
-
-  // Three.js is now bundled as ES module - no need to preload from CDN
-  // Future: Could preload other critical assets here (fonts, images, etc.)
-}
-
-/**
- * Lazy load images that are below the fold
- */
-export function setupLazyLoading() {
-  if (typeof window === "undefined") return;
-  if ("loading" in HTMLImageElement.prototype) {
-    // Browser supports native lazy loading
-    return;
-  }
-
-  // Fallback for older browsers
-  const images = document.querySelectorAll("img[loading='lazy']");
-  const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        const img = entry.target as HTMLImageElement;
-        img.src = img.dataset.src || "";
-        img.classList.remove("lazy");
-        imageObserver.unobserve(img);
-      }
-    });
-  });
-
-  images.forEach((img) => imageObserver.observe(img));
-}
 
 /**
  * Detect connection quality and suggest animation quality
@@ -71,39 +38,4 @@ export function detectConnectionQuality(): "low" | "medium" | "high" {
   }
 
   return "medium";
-}
-
-/**
- * Prefetch next page resources
- */
-export function prefetchNextPage(href: string) {
-  if (typeof window === "undefined") return;
-
-  const link = document.createElement("link");
-  link.rel = "prefetch";
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-/**
- * Initialize all performance optimizations
- */
-export function initPerformanceOptimizations() {
-  if (typeof window === "undefined") return;
-
-  // Preload critical assets
-  preloadCriticalAssets();
-
-  // Setup lazy loading fallback
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", setupLazyLoading);
-  } else {
-    setupLazyLoading();
-  }
-
-  // Prefetch important pages
-  setTimeout(() => {
-    prefetchNextPage("/leaderboard");
-    prefetchNextPage("/factions");
-  }, 2000);
 }

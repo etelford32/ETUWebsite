@@ -112,6 +112,8 @@ P. −46, C- −48. Tunables: `KERN_BANDS`, `KERN_TARGET`, `KERN_STRENGTH`,
 |--------|------|-|
 | `public/brand/etu-glyphs.webp` | ~620 KB | Full-resolution RGBA atlas |
 | `public/brand/etu-glyphs-sm.webp` | ~200 KB | Half resolution, for small titles |
+| `public/brand/etu-glyphs.avif` | ~290 KB | The full atlas as AVIF: what browsers actually load |
+| `public/brand/etu-glyphs-sm.avif` | ~120 KB | The half-resolution atlas as AVIF |
 | `public/brand/etu-glyphs-energy.webp` | ~120 KB | Cyan emission, half resolution |
 | `public/brand/etu-glyphs.json` | ~10 KB | Metrics + kerning (any tool or engine) |
 | `src/lib/etuTitle/spriteFont.ts` | | The same metrics for the site |
@@ -149,6 +151,7 @@ import EtuTitle from '@/components/EtuTitle'
 | `as` | `h2` | Rendered tag (`h1`–`h4`, `p`, `div`, `span`). |
 | `fit` | `false` | Shrink (down to half size) so each line fits its container instead of wrapping. |
 | `compact` | `false` | Use the half-resolution atlas — for titles under ~3rem. |
+| `preload` | `false` | Fetch the atlas early and at high priority. Set it on the title at the top of a page. |
 | `variant` | `cyan` | `amber` / `violet` hue-shift the energy for faction pages; silver barely changes. |
 | `kerning` | `true` | Optical kerning. |
 | `animate` | `true` | Any motion at all (`false` = a still title, no JS work). |
@@ -235,8 +238,11 @@ default. Same atlas, spacing and kerning as the site.
 - **Resolution.** Letters are ~172 px deep; above ~8rem on high-DPI screens
   they upscale and soften. A 2× export of the sheet fixes this with no code
   changes beyond rerunning the extractor.
-- **Weight.** The full atlas is ~620 KB. If first load matters, split it so
-  a page loads only its glyphs, or preload it on the home page.
+- **Weight.** The full atlas is ~290 KB as AVIF (~620 KB as WebP). The site
+  loads the AVIF through `image-set()` and keeps the WebP for browsers that
+  cannot pick a format by type; hero titles set `preload` so it starts
+  downloading with the page. To go further, split the atlas so a page loads
+  only its glyphs.
 - **Lighting is baked.** Mirrored and rotated glyphs (2, 3, 9) have mirrored
   highlights; acceptable at title sizes.
 

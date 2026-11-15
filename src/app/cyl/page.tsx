@@ -419,7 +419,7 @@ export default function CylPage() {
           <div className="relative lg:absolute lg:inset-0">
             <div className="max-w-6xl mx-auto h-full px-4 lg:px-6 -mt-4 lg:mt-0 lg:flex lg:justify-end lg:items-start lg:pt-16">
               <div className="lg:w-[25rem] lg:text-right">
-                <EtuTitle as="h1" text="Cyl" className="text-7xl md:text-8xl lg:text-9xl" />
+                <EtuTitle as="h1" text="Cyl" preload className="text-7xl md:text-8xl lg:text-9xl" />
                 <EtuTitle
                   as="p"
                   text={["A Mind", "Beyond Worlds"]}

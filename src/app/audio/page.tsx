@@ -32,7 +32,7 @@ export default function AudioPage() {
 
           <div className="relative z-10 mx-auto max-w-7xl px-4 pb-9 pt-12 md:pb-10 md:pt-16 lg:px-6">
             <div className="eyebrow mb-3 text-slate-200">Original soundtrack by the E.T.</div>
-            <EtuTitle as="h1" text="Intergalactic Radio" fit className="text-4xl md:text-6xl" />
+            <EtuTitle as="h1" text="Intergalactic Radio" fit preload className="text-4xl md:text-6xl" />
             <p
               className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-100 md:text-xl"
               style={{ textShadow: '0 2px 10px rgba(0,0,0,.9)' }}

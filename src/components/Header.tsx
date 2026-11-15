@@ -6,7 +6,7 @@ import DemoSignupButton from "@/components/DemoSignupButton";
 import DemoRibbon from "@/components/DemoRibbon";
 import Link from "next/link";
 import Image from "next/image";
-import { getAllFactions, type Faction } from "@/data/factions";
+import { useFactionNav } from "@/components/FactionNavProvider";
 
 type MenuKey = "factions" | "features";
 
@@ -31,22 +31,6 @@ const FEATURED_FACTION_PAGES = [
     accent: "#e879f9",
   },
 ] as const;
-
-function factionStatusOrder(f: Faction) {
-  return (f.status ?? "live") === "live" ? 0 : 1;
-}
-
-// Live factions first, then the in-development roster, alphabetical within each.
-const FACTION_LINKS: Faction[] = getAllFactions()
-  .slice()
-  .sort(
-    (a, b) =>
-      factionStatusOrder(a) - factionStatusOrder(b) || a.name.localeCompare(b.name)
-  );
-
-const LIVE_FACTION_COUNT = FACTION_LINKS.filter(
-  (f) => (f.status ?? "live") === "live"
-).length;
 
 // "Megabot • Machine Empire" -> { short: "Megabot", sub: "Machine Empire" }
 function splitFactionName(name: string): { short: string; sub: string } {
@@ -108,6 +92,8 @@ function useStaffAccess(): StaffAccess {
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const staff = useStaffAccess();
+  const factionLinks = useFactionNav();
+  const liveFactionCount = factionLinks.filter((f) => f.status === "live").length;
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
@@ -268,7 +254,7 @@ export default function Header() {
 
           <MobileSection
             title="Factions"
-            aside={`${FACTION_LINKS.length} · ${LIVE_FACTION_COUNT} live`}
+            aside={`${factionLinks.length} · ${liveFactionCount} live`}
           >
             {FEATURED_FACTION_PAGES.map((p) => (
               <MobileNavLink key={p.href} href={p.href} onNavigate={closeMobileMenu}>
@@ -277,7 +263,7 @@ export default function Header() {
             ))}
             <MobileNavLink href="/factions" onNavigate={closeMobileMenu}>All Factions</MobileNavLink>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-2">
-              {FACTION_LINKS.map((f) => {
+              {factionLinks.map((f) => {
                 const { short } = splitFactionName(f.name);
                 const isStub = f.status === "in-development";
                 return (
@@ -289,7 +275,7 @@ export default function Header() {
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: f.color.primary }}
+                      style={{ background: f.color }}
                     />
                     <span className="truncate">{short}</span>
                     {isStub && (
@@ -418,14 +404,16 @@ function NavDropdown({
 // The Factions panel: the two long-form pages up top, then every faction in
 // the registry (live first) linking to its /factions/[slug] profile.
 function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
+  const factionLinks = useFactionNav();
+  const liveFactionCount = factionLinks.filter((f) => f.status === "live").length;
   return (
     <div className="p-3">
       <div className="flex items-center justify-between gap-3 px-2 pb-3">
         <div>
           <div className="eyebrow">Factions</div>
           <div className="mt-0.5 text-xs text-slate-400">
-            <span className="font-mono text-cyan-300">{FACTION_LINKS.length}</span> in the war ·{' '}
-            <span className="font-mono text-emerald-300">{LIVE_FACTION_COUNT}</span> live
+            <span className="font-mono text-cyan-300">{factionLinks.length}</span> in the war ·{' '}
+            <span className="font-mono text-emerald-300">{liveFactionCount}</span> live
           </div>
         </div>
         <Link
@@ -466,7 +454,7 @@ function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
       </div>
 
       <div className="grid grid-cols-2 gap-x-2 max-h-[60vh] overflow-y-auto">
-        {FACTION_LINKS.map((f) => {
+        {factionLinks.map((f) => {
           const { short, sub } = splitFactionName(f.name);
           const isStub = f.status === "in-development";
           return (
@@ -479,7 +467,7 @@ function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
             >
               <span
                 className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: f.color.primary, boxShadow: `0 0 8px ${f.color.primary}` }}
+                style={{ background: f.color, boxShadow: `0 0 8px ${f.color}` }}
               />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm text-slate-200 group-hover:text-cyan-200 truncate">
