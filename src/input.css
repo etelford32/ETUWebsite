@@ -97,6 +97,26 @@
   transform: translateY(0);
 }
 
+/* The same entrance for content on the first screen. It plays from CSS
+   alone, so the text and buttons show with the first paint instead of
+   waiting for the page's JavaScript to download and run. */
+.reveal-now {
+  animation: revealNow 0.6s ease both;
+}
+
+@keyframes revealNow {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-now {
+    animation: none;
+  }
+}
+
 /* Black-hole canvas fills hero */
 .hero-canvas {
   position: absolute;

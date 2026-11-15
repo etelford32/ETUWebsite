@@ -14,6 +14,8 @@ export interface SpriteGlyph {
 export const ETU_SPRITE_FONT = {
   art: '/brand/etu-glyphs.webp',
   artSmall: '/brand/etu-glyphs-sm.webp',
+  artAvif: '/brand/etu-glyphs.avif',
+  artSmallAvif: '/brand/etu-glyphs-sm.avif',
   energy: '/brand/etu-glyphs-energy.webp',
   width: 2042,
   height: 822,

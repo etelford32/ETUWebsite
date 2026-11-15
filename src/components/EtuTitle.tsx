@@ -1,6 +1,7 @@
 'use client'
 
 import { createElement, Fragment, useEffect, useRef, type CSSProperties } from 'react'
+import { preload as preloadResource } from 'react-dom'
 import { DEPTH_EM, ETU_SPRITE_FONT as FONT, TitleMotion, layoutLine, titleWidthEm } from '@/lib/etuTitle'
 
 type TitleTag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'div' | 'span'
@@ -21,6 +22,12 @@ export interface EtuTitleProps {
   fit?: boolean
   /** Use the half-resolution atlas — for titles under ~3rem. */
   compact?: boolean
+  /**
+   * Fetch the letter atlas early and at high priority. Set it on a title at
+   * the top of a page: the atlas is otherwise only discovered once the CSS
+   * has been applied, and queues behind everything else. Default false.
+   */
+  preload?: boolean
   /** Optical kerning between letter pairs. Default true. */
   kerning?: boolean
   /** Any motion at all: intro, hover, glints, crystal breathing. Default true. */
@@ -60,6 +67,7 @@ export default function EtuTitle({
   variant = 'cyan',
   fit = false,
   compact = false,
+  preload = false,
   kerning = true,
   animate = true,
   intro = true,
@@ -97,8 +105,18 @@ export default function EtuTitle({
     }
   }, [label, scaleKey, animate, intro, stagger, interactive, glints, innerLight])
 
+  const art = compact ? FONT.artSmall : FONT.art
+  const artAvif = compact ? FONT.artSmallAvif : FONT.artAvif
+
+  // Emits <link rel="preload"> in the document head. Browsers without AVIF
+  // skip it (the `type`) and fetch the WebP when the CSS asks for it.
+  if (preload) preloadResource(artAvif, { as: 'image', type: 'image/avif', fetchPriority: 'high' })
+
   const vars = {
-    '--etu-art': `url(${compact ? FONT.artSmall : FONT.art})`,
+    '--etu-art': `url(${art})`,
+    // AVIF is under half the bytes; globals.css uses this where image-set()
+    // can pick by type, and --etu-art everywhere else.
+    '--etu-art-set': `image-set(url("${artAvif}") type("image/avif"), url("${art}") type("image/webp"))`,
     '--etu-energy': `url(${FONT.energy})`,
     '--etu-aw': FONT.width,
     '--etu-ah': FONT.height,

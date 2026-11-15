@@ -163,7 +163,7 @@ export default function ShipDesignerPage() {
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="hidden w-40 sm:block" />
             <div className="text-center">
-              <EtuTitle as="h1" text="Ship Designer" className="text-4xl sm:text-5xl md:text-6xl" />
+              <EtuTitle as="h1" text="Ship Designer" preload className="text-4xl sm:text-5xl md:text-6xl" />
               <p className="mt-3 text-sm sm:text-base" style={{ color: UI.hint }}>
                 Profile ship <span aria-hidden>·</span> Level {FRESH_PROFILE.level}{' '}
                 <span aria-hidden>·</span> {skin.name}

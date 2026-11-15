@@ -17,7 +17,11 @@ export default function EyeBackdrop() {
           height={2804}
           priority
           quality={80}
-          sizes="(min-width: 1024px) 100vw, (min-width: 640px) 124vw, 150vw"
+          // Phones show the art at 150vw, but at 3x pixel density that asks
+          // for the 1920px file on a 400px screen. Claiming 90vw lands them
+          // on the 1080-1200px one: still ~2 image pixels per CSS pixel
+          // under the shade, at about 60% of the bytes.
+          sizes="(min-width: 1024px) 100vw, (min-width: 640px) 124vw, 90vw"
         />
         <span className="eye-stage__bloom" />
         <span className="eye-stage__streak" />

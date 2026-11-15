@@ -125,7 +125,7 @@ export default function PressKitPage() {
               </span>
             </div>
 
-            <EtuTitle as="h1" text={['Explore the', 'Universe 2175']} fit className="text-5xl md:text-7xl mb-6" />
+            <EtuTitle as="h1" text={['Explore the', 'Universe 2175']} fit preload className="text-5xl md:text-7xl mb-6" />
 
             <p className="text-xl md:text-2xl text-slate-200 mb-4 font-semibold">
               Media Resources & Brand Assets

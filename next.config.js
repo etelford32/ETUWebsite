@@ -4,7 +4,10 @@ const nextConfig = {
   images: {
     domains: ['api.dicebear.com', 'avatars.steamstatic.com'],
     formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60,
+    // Art keeps its filename only while it is unchanged (replacements ship
+    // under a new name), so resized copies can be kept for a month instead of
+    // being re-encoded every minute.
+    minimumCacheTTL: 2678400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },

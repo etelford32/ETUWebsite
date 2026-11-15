@@ -10,7 +10,7 @@ import WishlistButton from "@/components/WishlistButton";
 import DemoSignupButton from "@/components/DemoSignupButton";
 import DemoSign from "@/components/DemoSign";
 import EyeBackdrop from "@/components/EyeBackdrop";
-import { initPerformanceOptimizations } from "@/lib/performance";
+import TrailerPlayer from "@/components/TrailerPlayer";
 import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 import { useDemoLive } from "@/lib/useDemoLive";
 
@@ -215,9 +215,7 @@ export default function HomePage() {
   const demoLive = useDemoLive();
 
   useEffect(() => {
-    initPerformanceOptimizations();
-
-    // Section reveal animation
+    // Section reveal animation (the hero uses .reveal-now, which needs no JS)
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -247,7 +245,7 @@ export default function HomePage() {
           {/* The gap under this line is left open for the Eye to look out
               over the title. The line crosses the brightest part of the art,
               so it carries its own dark backing. */}
-          <div className="reveal mb-[19vw] sm:mb-[14vw] lg:mb-[5.8vw]">
+          <div className="reveal-now mb-[19vw] sm:mb-[14vw] lg:mb-[5.8vw]">
             <p className="inline-block px-4 py-1.5 rounded-2xl sm:rounded-full bg-slate-950/60 backdrop-blur-sm uppercase font-semibold tracking-[0.18em] text-sm md:text-lg text-white">
               Elliot Telford of Telford Projects Presents
             </p>
@@ -261,6 +259,7 @@ export default function HomePage() {
               wordScale={TITLE_SCALE_STACKED}
               ruled={[3]}
               fit
+              preload
               className="block sm:hidden -mx-2 text-[4.5rem]"
             />
             <EtuTitle
@@ -269,13 +268,14 @@ export default function HomePage() {
               wordScale={TITLE_SCALE}
               ruled={[2]}
               fit
+              preload
               className="hidden sm:block mx-auto sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[8.75rem]"
             />
           </h1>
 
           {/* What the game is, in one line, before anything asks for a click */}
           <p
-            className="reveal mt-3 md:mt-4 text-xl md:text-2xl font-bold text-white leading-snug text-balance"
+            className="reveal-now mt-3 md:mt-4 text-xl md:text-2xl font-bold text-white leading-snug text-balance"
             style={{ textShadow: "0 2px 4px rgba(0,0,0,.95), 0 0 18px rgba(0,0,0,.9)" }}
           >
             An open-galaxy space adventure.{" "}
@@ -286,11 +286,11 @@ export default function HomePage() {
           {/* Demo day comes straight after, so the launch board and its
               buttons share the first screen with the Eye: board, then
               Sign up › Wishlist */}
-          <div className="reveal mt-5 md:mt-6 flex justify-center">
+          <div className="reveal-now mt-5 md:mt-6 flex justify-center">
             <DemoSign />
           </div>
 
-          <div className="reveal mt-5 md:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+          <div className="reveal-now mt-5 md:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
             <DemoSignupButton
               placement="home-hero"
               className="btn-3d btn-3d-demo w-full sm:w-auto text-lg md:text-xl md:px-9 md:py-4 whitespace-nowrap"
@@ -308,7 +308,7 @@ export default function HomePage() {
           {/* Two dates, said plainly: the playtest takes sign-ups today, the
               demo arrives on demo day. Once the demo is out this line goes. */}
           {!demoLive && (
-            <div className="reveal mt-5 md:mt-6 flex justify-center">
+            <div className="reveal-now mt-5 md:mt-6 flex justify-center">
               <WishlistButton
                 placement="home-hero-playtest"
                 intent="playtest"
@@ -329,7 +329,7 @@ export default function HomePage() {
           )}
 
           <p
-            className="reveal mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance"
+            className="reveal-now mt-5 mx-auto max-w-2xl text-lg md:text-xl text-slate-100 text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
             {demoLive
@@ -343,11 +343,11 @@ export default function HomePage() {
             </Link>
           </p>
 
-          <div className="hero-rule reveal mt-9 md:mt-12" aria-hidden="true" />
+          <div className="hero-rule reveal-now mt-9 md:mt-12" aria-hidden="true" />
 
           {/* The pitch: short sentences, one idea each */}
           <p
-            className="reveal mt-7 md:mt-9 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
+            className="reveal-now mt-7 md:mt-9 mx-auto max-w-4xl text-xl md:text-[1.7rem] font-bold text-white leading-snug text-balance"
             style={{ textShadow: "0 2px 12px rgba(0,0,0,.9)" }}
           >
             Explore a new galaxy full of quests, alien bosses and shifting
@@ -358,7 +358,7 @@ export default function HomePage() {
           </p>
 
           <p
-            className="reveal mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
+            className="reveal-now mt-5 md:mt-6 mx-auto max-w-3xl text-lg md:text-xl text-slate-100 leading-relaxed text-balance"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,.85)" }}
           >
             Chart everything from{" "}
@@ -371,7 +371,7 @@ export default function HomePage() {
             play.
           </p>
 
-          <p className="reveal mt-8 text-base md:text-lg font-medium text-slate-300">
+          <p className="reveal-now mt-8 text-base md:text-lg font-medium text-slate-300">
             Windows · macOS · Linux · Early Access 2027
           </p>
         </div>
@@ -434,17 +434,14 @@ export default function HomePage() {
             </p>
           </header>
 
-          <div className="relative aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]">
-            <video
-              controls
-              poster="/art/fleeing-the-colossal-megabot-scene.jpg"
-              className="w-full h-full object-cover bg-black"
-              preload="metadata"
-            >
-              <source src="/ETU_Cinematic_Trailer_4K.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
+          {/* Nothing of the video is fetched until it is played */}
+          <TrailerPlayer
+            src="/ETU_Cinematic_Trailer_4K.mp4"
+            poster="/art/fleeing-the-colossal-megabot-scene.jpg"
+            posterAlt="A lone white fighter banks away from the colossal MEGABOT in front of a burning star"
+            label="Play the Explore the Universe 2175 trailer"
+            className="aspect-video rounded-2xl overflow-hidden ring-2 ring-indigo-500/30 shadow-[0_0_60px_rgba(99,102,241,0.3)]"
+          />
 
           <div className="mt-10 flex justify-center">
             <WishlistButton placement="home-features" className="btn-3d btn-3d-steam group text-lg">
@@ -596,6 +593,7 @@ export default function HomePage() {
                     alt={`${f.name}, ${f.kind}`}
                     width={640}
                     height={400}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     style={{ objectPosition: f.position }}
                   />
