@@ -76,9 +76,18 @@ export interface Boss {
   homeZone?: string;
   homePlanet?: string;
   status: BossStatus;
+  /** Other bosses this one is tied to in the game's own text, with the tie. */
+  related?: { id: string; note: string }[];
   /** Long-form page for this boss outside /bosses/[slug] (e.g. /megabot). */
   featurePage?: { href: string; label: string };
 }
+
+/**
+ * The pages are lore-first for now: hull, shield and reward figures, the
+ * per-ability numbers and the health-bar phase marks stay in this file but
+ * are not rendered until this is switched on.
+ */
+export const SHOW_BOSS_STATS = false;
 
 const SHOT = "/bosses";
 
@@ -154,6 +163,13 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "xj9", note: "The Overlord Suit: the armour he wears to war." },
+      { id: "siege-colossus", note: "His ultimate weapon, and his pet." },
+      { id: "null-architect", note: "His high priest." },
+      { id: "crush", note: "His strangler." },
+      { id: "alpha-robot", note: "The soldier he built, and dispatches." },
+    ],
     featurePage: { href: "/megabot", label: "Meet MEGABOT" },
   },
   {
@@ -330,6 +346,9 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "megabot", note: "The Eye that sends him. He calls it Father." },
+    ],
   },
   {
     id: "sidewinder",
@@ -456,6 +475,9 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "megabot", note: "He is Megabot's high priest." },
+    ],
   },
   {
     id: "siege-colossus",
@@ -545,6 +567,10 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "megabot", note: "Megabot's ultimate weapon, and his pet." },
+      { id: "xj9", note: "When the suit is spent, its pilot comes here." },
+    ],
   },
   {
     id: "crush",
@@ -600,6 +626,9 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "megabot", note: "He is the Megabot's strangler." },
+    ],
   },
   {
     id: "xj9",
@@ -683,6 +712,10 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 4: Evil",
     homePlanet: "Mechatropolis",
     status: "live",
+    related: [
+      { id: "megabot", note: "The Megabot wears this suit to war." },
+      { id: "siege-colossus", note: "When the suit is spent, he ejects to the Colossus." },
+    ],
   },
   {
     id: "siege-mecha",
@@ -877,6 +910,9 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 1: Fungal",
     homePlanet: "Bloomhaven",
     status: "live",
+    related: [
+      { id: "fungal-lord", note: "In Convergence they share one health pool." },
+    ],
   },
   {
     id: "fungal-lord",
@@ -916,6 +952,9 @@ const RAW_BOSSES: RawBoss[] = [
     homeZone: "Zone 1: Fungal",
     homePlanet: "Lordspore",
     status: "live",
+    related: [
+      { id: "bloom-queen", note: "In Convergence they share one health pool." },
+    ],
   },
   {
     id: "arkanvil-king",
@@ -957,53 +996,6 @@ const RAW_BOSSES: RawBoss[] = [
     quote: "Threaten the guild and I'll shatter your hull where it drifts.",
     homeZone: "Zone 10: Crystal",
     homePlanet: "Yllar",
-    status: "live",
-  },
-  {
-    id: "space-jesus",
-    token: "space_jesus",
-    name: "Space Jesus",
-    tagline: "The Terrans' saviour, in a hull built for miracles. The miracles are weapons.",
-    screenshots: [{ src: `${SHOT}/space-jesus.jpg`, alt: "Space Jesus, his cross-shaped hull inside an allied halo" }],
-    color: { primary: "#f6d67e", secondary: "#8ce4ff", accent: "#fdf0c4" },
-    tier: "Legendary",
-    factionToken: "terran_federation",
-    encounter: "Survival: joins you as an ally at 13:00, a minute into the MegaBot battle. Hostile to the Terrans, he judges you instead.",
-    stats: [
-      { label: "Hull", value: "18,000" },
-      { label: "Shield", value: "2,400" },
-      { label: "Armor", value: "180" },
-    ],
-    abilities: [
-      { name: "Blessing Lance", text: "A single bolt that leads its target.", detail: "28 damage, 560 u/s, one a second." },
-      {
-        name: "Judgment",
-        text: "A telegraphed fan of bolts.",
-        detail: "0.6 s wind-up. Three bolts over 24° every 6 s; five over 36° every 4.5 s in phase II. 22 damage a bolt.",
-      },
-      {
-        name: "Benediction",
-        text: "Holds still and prays his hull back. Damage breaks the prayer.",
-        detail: "Phase II. 4 s channel, 1.5% of his hull every 0.5 s, 40 to each Terran within 900 units. 600 damage interrupts it. 20 s cooldown.",
-      },
-      {
-        name: "The Twelve Seats",
-        text: "A ring of twelve seats lights around him as he falls.",
-        detail: "Phase II. One seat for each twelfth of his lower half lost. Ring radius 520 units.",
-      },
-      { name: "Healing", text: "As an ally he mends you and Terran ships near him.", detail: "65 a second within 900 units." },
-    ],
-    phases: {
-      kind: "health",
-      label: "Phases",
-      steps: [
-        { name: "Phase I", at: "100%", line: "Blessing Lance and Judgment." },
-        { name: "Phase II", at: "50%", line: "Benediction, and the Twelve Seats." },
-      ],
-    },
-    quote: "I begin with healing, but I will not let violence take root on Elysium.",
-    homeZone: "Zone 15: Wreckage",
-    homePlanet: "Elysium 2175",
     status: "live",
   },
   {

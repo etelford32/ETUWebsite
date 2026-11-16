@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { Boss } from '@/data/bosses'
+import { SHOW_BOSS_STATS, type Boss } from '@/data/bosses'
 
 export interface RosterEntry {
   boss: Boss
   faction?: { id: string; short: string }
+  zone?: { id: string }
 }
 
 /** Ability names shown in the spotlight before "+N more". */
@@ -146,21 +147,56 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                       {boss.tier}
                     </span>
                   )}
-                  {current.faction && <span className="etu-pill text-slate-300 border-white/15">{current.faction.short}</span>}
+                  {current.faction && (
+                    <Link href={`/factions/${current.faction.id}`} className="etu-pill etu-pill--cyan hover:brightness-125">
+                      {current.faction.short}
+                    </Link>
+                  )}
                 </div>
                 <h2 className="font-display text-3xl md:text-4xl font-bold leading-tight" style={{ color: boss.color.accent }}>
                   {boss.name}
                 </h2>
                 <p className="mt-3 text-slate-300">{boss.tagline}</p>
 
-                <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-                  {boss.stats.slice(0, 2).map(s => (
-                    <div key={s.label}>
-                      <dt className="eyebrow mb-0.5">{s.label}</dt>
-                      <dd className="font-mono text-lg" style={{ color: boss.color.accent }}>{s.value}</dd>
-                    </div>
-                  ))}
-                </dl>
+                {SHOW_BOSS_STATS && (
+                  <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+                    {boss.stats.slice(0, 2).map(s => (
+                      <div key={s.label}>
+                        <dt className="eyebrow mb-0.5">{s.label}</dt>
+                        <dd className="font-mono text-lg" style={{ color: boss.color.accent }}>{s.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+                {(boss.homeZone || boss.homePlanet) && (
+                  <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+                    {boss.homeZone && (
+                      <div>
+                        <dt className="eyebrow mb-0.5">Zone</dt>
+                        <dd className="text-base">
+                          {current.zone ? (
+                            <Link
+                              href={`/zones/${current.zone.id}`}
+                              className="underline decoration-white/20 underline-offset-4 hover:decoration-current"
+                              style={{ color: boss.color.accent }}
+                            >
+                              {boss.homeZone}
+                            </Link>
+                          ) : (
+                            <span style={{ color: boss.color.accent }}>{boss.homeZone}</span>
+                          )}
+                        </dd>
+                      </div>
+                    )}
+                    {boss.homePlanet && (
+                      <div>
+                        <dt className="eyebrow mb-0.5">Home</dt>
+                        <dd className="text-base" style={{ color: boss.color.accent }}>{boss.homePlanet}</dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
 
                 <ul className="mt-6 flex flex-wrap gap-2">
                   {boss.abilities.slice(0, MAX_CHIPS).map(a => (

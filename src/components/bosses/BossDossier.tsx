@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Expand } from 'lucide-react'
-import type { Boss } from '@/data/bosses'
+import { SHOW_BOSS_STATS, type Boss } from '@/data/bosses'
 import Lightbox from './Lightbox'
 import BossPhases from './BossPhases'
 
@@ -26,6 +26,7 @@ export default function BossDossier({ boss, facts }: Props) {
   const [ability, setAbility] = useState(0)
   const { color, screenshots } = boss
   const picked = boss.abilities[ability]
+  const spoken = (boss.phases?.steps ?? []).filter(step => step.spoken && step.line)
   const pickedShot = picked.shot !== undefined ? screenshots[picked.shot] : undefined
 
   return (
@@ -66,16 +67,18 @@ export default function BossDossier({ boss, facts }: Props) {
             <p className="mt-4 text-xl text-slate-300 max-w-xl">{boss.tagline}</p>
             {boss.encounter && <p className="mt-3 text-slate-400 max-w-xl">{boss.encounter}</p>}
 
-            <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
-              {boss.stats.map(s => (
-                <div key={s.label}>
-                  <dt className="eyebrow mb-1">{s.label}</dt>
-                  <dd className="font-mono text-xl" style={{ color: color.accent }}>
-                    {s.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            {SHOW_BOSS_STATS && (
+              <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
+                {boss.stats.map(s => (
+                  <div key={s.label}>
+                    <dt className="eyebrow mb-1">{s.label}</dt>
+                    <dd className="font-mono text-xl" style={{ color: color.accent }}>
+                      {s.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
 
             {boss.featurePage && (
               <div className="mt-8">
@@ -219,7 +222,7 @@ export default function BossDossier({ boss, facts }: Props) {
                       {picked.name}
                     </div>
                     <p className="mt-2 text-lg text-slate-200">{picked.text}</p>
-                    {picked.detail && (
+                    {SHOW_BOSS_STATS && picked.detail && (
                       <p className="mt-3 font-mono text-sm text-slate-400 border-l-2 pl-3" style={{ borderColor: color.primary }}>
                         {picked.detail}
                       </p>
@@ -233,11 +236,32 @@ export default function BossDossier({ boss, facts }: Props) {
       </section>
 
       {/* ---------------------------------------------------------- phases */}
-      {boss.phases && (
+      {SHOW_BOSS_STATS && boss.phases && (
         <section className="py-16 border-t border-white/10">
           <div className="max-w-4xl mx-auto px-4 lg:px-6">
             <h2 className="font-display text-3xl font-bold etu-headline-grad mb-6">{boss.phases.label}</h2>
             <BossPhases phases={boss.phases} color={color} />
+          </div>
+        </section>
+      )}
+
+      {/* ----------------------------------------------- what it says in-game */}
+      {!SHOW_BOSS_STATS && spoken.length > 0 && (
+        <section className="py-16 border-t border-white/10">
+          <div className="max-w-4xl mx-auto px-4 lg:px-6">
+            <h2 className="font-display text-3xl font-bold etu-headline-grad mb-8">In the Fight</h2>
+            <ol className="relative border-l pl-6 space-y-7" style={{ borderColor: color.primary + '44' }}>
+              {spoken.map(step => (
+                <li key={step.name} className="relative">
+                  <span
+                    className="absolute -left-[30px] top-1.5 w-2.5 h-2.5 rounded-full"
+                    style={{ background: color.primary, boxShadow: `0 0 10px ${color.primary}` }}
+                  />
+                  <div className="eyebrow mb-1">{step.name}</div>
+                  <p className="text-lg italic text-slate-100">&ldquo;{step.line}&rdquo;</p>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
       )}
