@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import BossDossier from '@/components/bosses/BossDossier'
-import { getAllBosses, getAllBossSlugs, getBoss } from '@/data/bosses'
+import { getAllBosses, getAllBossSlugs, getBoss, getBossesForFaction, type Boss } from '@/data/bosses'
 import { getFaction } from '@/data/factions'
 import { getZoneForBoss } from '@/data/zones'
 
@@ -37,6 +37,13 @@ export default function BossPage({ params }: { params: { slug: string } }) {
     boss.homePlanet && { label: 'Home', value: boss.homePlanet },
   ].filter(Boolean) as { label: string; value: string; href?: string }[]
 
+  const related = (boss.related ?? [])
+    .map(r => ({ b: getBoss(r.id), note: r.note }))
+    .filter((r): r is { b: Boss; note: string } => Boolean(r.b))
+  const kin = faction
+    ? getBossesForFaction(faction.id).filter(b => b.id !== boss.id && !related.some(r => r.b.id === b.id))
+    : []
+
   const roster = getAllBosses()
   const at = roster.findIndex(b => b.id === boss.id)
   const prev = roster[(at - 1 + roster.length) % roster.length]
@@ -48,6 +55,83 @@ export default function BossPage({ params }: { params: { slug: string } }) {
 
       <main className="min-h-screen bg-deep-900 text-slate-100">
         <BossDossier boss={boss} facts={facts} />
+
+        {/* Connections: lore ties, faction, zone */}
+        <section className="py-16 border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6">
+            <h2 className="font-display text-3xl font-bold etu-headline-grad mb-8">Connections</h2>
+
+            {related.length > 0 && (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+                {related.map(({ b, note }) => (
+                  <Link
+                    key={b.id}
+                    href={`/bosses/${b.id}`}
+                    className="etu-glass group flex items-center gap-4 p-3"
+                    style={{ borderColor: b.color.primary + '40' }}
+                  >
+                    <span className="relative w-16 h-16 shrink-0 overflow-hidden rounded-lg bg-[#070910]">
+                      <Image src={b.heroImage} alt="" fill className="object-cover transition-transform group-hover:scale-110" sizes="64px" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-display text-sm font-bold uppercase tracking-[0.12em]" style={{ color: b.color.accent }}>
+                        {b.name}
+                      </span>
+                      <span className="block text-sm text-slate-400">{note}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-3">
+              {faction && (
+                <Link href={`/factions/${faction.id}`} className="etu-glass group block p-5">
+                  <span className="eyebrow block mb-1">Faction</span>
+                  <span className="block font-display text-lg font-bold" style={{ color: boss.color.accent }}>
+                    {faction.name}{' '}
+                    <span aria-hidden className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                  </span>
+                </Link>
+              )}
+              {zone ? (
+                <Link href={`/zones/${zone.id}`} className="etu-glass group block p-5">
+                  <span className="eyebrow block mb-1">Home</span>
+                  <span className="block font-display text-lg font-bold" style={{ color: boss.color.accent }}>
+                    {boss.homeZone}
+                    {boss.homePlanet ? ` · ${boss.homePlanet}` : ''}{' '}
+                    <span aria-hidden className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                  </span>
+                </Link>
+              ) : (
+                boss.homePlanet && (
+                  <div className="etu-glass p-5">
+                    <span className="eyebrow block mb-1">Home</span>
+                    <span className="block font-display text-lg font-bold" style={{ color: boss.color.accent }}>
+                      {boss.homePlanet}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+
+            {kin.length > 0 && (
+              <nav aria-label="Same faction" className="mt-6 flex flex-wrap items-center gap-2">
+                <span className="eyebrow mr-2">Also under this flag</span>
+                {kin.map(b => (
+                  <Link
+                    key={b.id}
+                    href={`/bosses/${b.id}`}
+                    className="etu-pill hover:brightness-125"
+                    style={{ borderColor: b.color.primary + '66', color: b.color.accent }}
+                  >
+                    {b.name}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </div>
+        </section>
 
         {/* Roster: jump to any other boss */}
         <section className="py-14 border-t border-white/10">

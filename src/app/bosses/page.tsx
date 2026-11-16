@@ -3,13 +3,16 @@ import Footer from '@/components/Footer'
 import BossRoster, { type RosterEntry } from '@/components/bosses/BossRoster'
 import { getAllBosses } from '@/data/bosses'
 import { getFaction } from '@/data/factions'
+import { getZoneForBoss } from '@/data/zones'
 import EtuTitle from '@/components/EtuTitle'
 
 export default function BossesIndexPage() {
   const entries: RosterEntry[] = getAllBosses().map(boss => {
     const faction = boss.factionId ? getFaction(boss.factionId) : undefined
+    const zone = getZoneForBoss(boss)
     return {
       boss,
+      zone: zone ? { id: zone.id } : undefined,
       faction: faction ? { id: faction.id, short: faction.name.split(' • ')[0] } : undefined,
     }
   })

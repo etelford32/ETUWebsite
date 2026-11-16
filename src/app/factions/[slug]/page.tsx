@@ -506,7 +506,7 @@ export default function FactionPage({ params }: { params: { slug: string } }) {
                     <div className="relative aspect-[16/10] bg-black">
                       <Image
                         src={boss.heroImage}
-                        alt={boss.screenshots[0]?.alt ?? boss.name}
+                        alt={boss.image.alt}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
