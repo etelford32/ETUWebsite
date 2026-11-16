@@ -63,6 +63,35 @@ published. Battle Wave, Dock Radio and Epic Encounters stay empty until tracks
 land in `music/combat`, `music/station` and `music/boss`, or are uploaded on
 `/admin/audio`.
 
+## Tracks that ship with the website (AUDIO-03)
+
+71 tracks live in this repository as MP3 under `public/media/audio/`: 9 music
+tracks (`music/`) and 62 sound effects (`sfx/<group>/`), converted from the
+WAV and MP3 files in the composer's Google Drive. Their catalogue rows
+(`source = 'site'`, `storage_path = 'site/<path>'`) are created by
+`supabase/migrations/20261116_audio03_site_tracks.sql`, which is applied. They
+need no storage bucket, token or sync: deploy the site and they play.
+
+- **The files are static, so anyone who has a file's URL can fetch it.** The
+  track list, favourites and stations are still for signed-in players, but
+  this is not the private-bucket protection the other sources have.
+- Stations were assigned from the file names, not by ear: Northern Winds,
+  Cosmic Drift, Dust Collector and World Map are on Deep Space FM; the title,
+  character-screen and loading themes are under Title Themes; Echoes of Lumari
+  and Tidal Wave are under Soundtrack Sessions. Change any of them (or a
+  title, or hide one) on `/admin/audio`; re-running the migration keeps those
+  edits.
+- Sixteen longer masters in the Drive are over the 10 MB the Drive connector
+  will hand over, so they are not here: A Journey Begins, Nebulaes Survival,
+  Stars Within, Into the Dark, Explore the Universe (Intro), Drive, Lower End,
+  Turbulence, New Nebula, Monsieur LeChonk, Going, Binary, A Digital Doom,
+  Grind, Get Down, Emergence 1. Add them with "Add a track" on `/admin/audio`
+  (MP3 or OGG, up to 50 MB), or through the Drive sync below.
+- If the game-repository sync is turned on later, the tracks the game
+  repository also carries will be listed twice; hide one copy.
+- To add another shipped track: put the MP3 under `public/media/audio/`, add
+  its row to a new migration modelled on AUDIO-03, and apply it.
+
 ## Google Drive (AUDIO-02)
 
 A Google Drive folder is a second source of tracks, beside the game
