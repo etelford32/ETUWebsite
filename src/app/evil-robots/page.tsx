@@ -363,11 +363,11 @@ export default function EvilRobotsPage() {
         {/* ------------------------------------------------------- hero --- */}
         <section className="relative overflow-hidden border-b border-red-500/10">
           <Image
-            src="/art/megabot-crimson-eye.jpg"
+            src="/art/megabot-evil-eye-hero.jpg"
             alt=""
             fill
             priority
-            className="object-cover object-[60%_30%] opacity-45"
+            className="object-cover object-[50%_36%] opacity-45"
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-deep-900/70 via-deep-900/75 to-deep-900" />

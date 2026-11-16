@@ -227,15 +227,29 @@ export default function MegabotPage() {
 
               <figure>
                 <div
-                  className="relative aspect-[2/3] max-h-[640px] rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
+                  className="relative aspect-[4/5] max-h-[640px] rounded-xl overflow-hidden border border-red-500/25 bg-black/70"
                   style={{ boxShadow: "0 0 60px rgba(239,68,68,0.16)" }}
                 >
+                  {/* The Evil Eye key art in motion. The still is the poster, and
+                      what stays on screen when motion is turned down. */}
+                  <video
+                    className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
+                    poster="/art/megabot-evil-eye.jpg"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-label="MEGABOT's Evil Eye: a station-sized machine with one burning red iris turns toward a white fighter fleeing on cyan engines, its legion of warships around it"
+                  >
+                    <source src="/megabot/evil-eye-loop.mp4" type="video/mp4" />
+                  </video>
                   <Image
-                    src="/Megabot1.png"
-                    alt="MEGABOT, Enemy of the Universe: a station-sized war machine lit red, towering over a burning city"
+                    src="/art/megabot-evil-eye.jpg"
+                    alt="MEGABOT's Evil Eye: a station-sized machine with one burning red iris turns toward a white fighter fleeing on cyan engines, its legion of warships around it"
                     fill
                     priority
-                    className="object-cover"
+                    className="object-cover hidden motion-reduce:block"
                     sizes="(max-width: 1024px) 100vw, 480px"
                   />
                 </div>
