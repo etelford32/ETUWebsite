@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { NextRequest } from 'next/server'
 import { AUDIO_FORMATS, audioExtension, GAME_AUDIO_BUCKET, MAX_CATALOG_UPLOAD_BYTES } from '@/lib/audio/config'
 import { titleFromStem } from '@/lib/audio/catalog'
+import { getDriveConfig } from '@/lib/audio/drive'
 import { getGameRepoConfig } from '@/lib/audio/gameRepo'
 import { audioDb, cleanText, isMissingSchema, json, readJson, requireAdmin } from '@/lib/audio/server'
 
@@ -28,17 +29,35 @@ export async function GET(request: NextRequest) {
   const config = getGameRepoConfig()
   const repo = config ? { configured: true, repo: config.repo, branch: config.branch, path: config.audioPath } : { configured: false }
 
+  const driveConfig = getDriveConfig()
+  const drive = driveConfig
+    ? {
+        configured: true,
+        folder_url: `https://drive.google.com/drive/folders/${driveConfig.folderId}`,
+        // Who the folder must be shared with; null when an API key is used.
+        account: driveConfig.auth.type === 'service_account' ? driveConfig.auth.email : null,
+        migrated: true,
+      }
+    : { configured: false, migrated: true }
+
   try {
     const db = audioDb()
-    const { data, error } = await db
-      .from('audio_tracks')
-      .select(ADMIN_TRACK_COLUMNS)
-      .order('kind', { ascending: true })
-      .order('category', { ascending: true })
-      .order('sort_order', { ascending: true })
-      .order('title', { ascending: true })
+    const list = (columns: string) =>
+      db
+        .from('audio_tracks')
+        .select(columns)
+        .order('kind', { ascending: true })
+        .order('category', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('title', { ascending: true })
+    let { data, error } = await list(`${ADMIN_TRACK_COLUMNS}, drive_path`)
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+      // AUDIO-01 is applied but AUDIO-02 (the Drive columns) is not.
+      drive.migrated = false
+      ;({ data, error } = await list(ADMIN_TRACK_COLUMNS))
+    }
     if (error) {
-      if (isMissingSchema(error)) return json({ migrated: false, repo, tracks: [] })
+      if (isMissingSchema(error)) return json({ migrated: false, repo, drive, tracks: [] })
       throw error
     }
     const [uploads, playlists] = await Promise.all([
@@ -49,6 +68,7 @@ export async function GET(request: NextRequest) {
     return json({
       migrated: true,
       repo,
+      drive,
       tracks: (data ?? []).map((t: any) => ({ ...t, bytes: Number(t.bytes), duration_seconds: t.duration_seconds === null ? null : Number(t.duration_seconds) })),
       players: {
         uploads: uploadRows.length,

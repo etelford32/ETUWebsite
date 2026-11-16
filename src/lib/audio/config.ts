@@ -128,6 +128,19 @@ export const THEMES_GROUP = {
   color: '#a78bfa',
 } as const
 
+/**
+ * Music from the composer's Google Drive folder that the game doesn't play
+ * yet (AUDIO-02): loose files, and folders that name no station. Website
+ * only; the in-game radio is not sent these.
+ */
+export const SOUNDTRACK_GROUP = {
+  id: 'SESSIONS',
+  name: 'Soundtrack Sessions',
+  description: 'More from the composer: tracks that aren’t in the game yet',
+  category: 'soundtrack',
+  color: '#2dd4bf',
+} as const
+
 const STATION_CATEGORIES = new Set(RADIO_STATIONS.flatMap((s) => s.categories))
 
 /** Does the in-game radio offer music of this category? */

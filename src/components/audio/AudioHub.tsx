@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Heart, Loader2, Lock, Play, Plus, Radio, Satellite, Shuffle, Trash2, Upload as UploadIcon, Zap } from 'lucide-react'
+import { Disc3, Heart, Loader2, Lock, Play, Plus, Radio, Satellite, Shuffle, Trash2, Upload as UploadIcon, Zap } from 'lucide-react'
 import { ApiError, apiGet, apiSend } from './api'
 import { formatDuration, formatRuntime } from './format'
 import PlayerBar from './PlayerBar'
@@ -20,6 +20,7 @@ const SFX_COLOR = '#f97316'
 type Source =
   | { type: 'station'; id: string }
   | { type: 'themes' }
+  | { type: 'sessions' }
   | { type: 'favorites' }
   | { type: 'uploads' }
   | { type: 'playlist'; id: string }
@@ -203,7 +204,9 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
     const map = new Map<string, Playable>()
     for (const t of library.tracks) {
       const subtitle =
-        t.kind === 'sfx' ? dial.sfx_labels[t.category] ?? 'Sound effect' : stationFor(t.category)?.name ?? dial.themes.name
+        t.kind === 'sfx'
+          ? dial.sfx_labels[t.category] ?? 'Sound effect'
+          : stationFor(t.category)?.name ?? (t.category === dial.sessions?.category ? dial.sessions.name : dial.themes.name)
       map.set(`track:${t.id}`, {
         type: 'track',
         id: t.id,
@@ -250,8 +253,17 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
     return out
   }, [dial, music, resolve])
   const themes = useMemo(
-    () => resolve(music.filter((t) => !stationFor(t.category)).map((t) => ({ type: 'track', id: t.id }))),
-    [music, stationFor, resolve]
+    () =>
+      resolve(
+        music
+          .filter((t) => !stationFor(t.category) && t.category !== dial.sessions?.category)
+          .map((t) => ({ type: 'track', id: t.id }))
+      ),
+    [music, stationFor, resolve, dial]
+  )
+  const sessions = useMemo(
+    () => resolve(music.filter((t) => t.category === dial.sessions?.category).map((t) => ({ type: 'track', id: t.id }))),
+    [music, resolve, dial]
   )
   const favorites = useMemo(
     () => Array.from(playables.values()).filter((p) => p.favorite && p.kind !== 'sfx'),
@@ -278,7 +290,11 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
     const first = library.dial.stations.find((s) =>
       library.tracks.some((t) => t.kind === 'music' && s.categories.includes(t.category))
     )
-    return first ? { type: 'station', id: first.id } : { type: 'themes' }
+    if (first) return { type: 'station', id: first.id }
+    const sessionsCategory = library.dial.sessions?.category
+    const onlySessions = library.tracks.some((t) => t.kind === 'music' && t.category === sessionsCategory)
+      && !library.tracks.some((t) => t.kind === 'music' && t.category !== sessionsCategory)
+    return onlySessions ? { type: 'sessions' } : { type: 'themes' }
   })
   const select = useCallback((next: Source) => {
     setSource(next)
@@ -440,6 +456,9 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
   } else if (source.type === 'themes') {
     heading = dial.themes
     items = themes
+  } else if (source.type === 'sessions') {
+    heading = dial.sessions
+    items = sessions
   } else if (source.type === 'favorites') {
     heading = { name: 'Favorites', description: 'Every track you starred', color: FAVORITES_COLOR }
     items = favorites
@@ -500,6 +519,16 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
                 count={themes.length}
                 onClick={() => select({ type: 'themes' })}
                 icon={<Radio className="h-4 w-4" />}
+              />
+            )}
+            {sessions.length > 0 && (
+              <DialButton
+                active={source.type === 'sessions'}
+                color={dial.sessions.color}
+                label={dial.sessions.name}
+                count={sessions.length}
+                onClick={() => select({ type: 'sessions' })}
+                icon={<Disc3 className="h-4 w-4" />}
               />
             )}
           </DialGroup>
@@ -565,7 +594,7 @@ function RadioConsole({ library, setLibrary }: { library: Library; setLibrary: R
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: heading.color, boxShadow: `0 0 12px ${heading.color}` }} />
                 <span className="eyebrow whitespace-nowrap" style={{ color: heading.color }}>
-                  {source.type === 'playlist' ? 'Your station' : source.type === 'sfx' ? 'From the game' : source.type === 'station' ? 'On the air' : 'Your signal'}
+                  {source.type === 'playlist' ? 'Your station' : source.type === 'sfx' ? 'From the game' : source.type === 'station' || source.type === 'themes' ? 'On the air' : source.type === 'sessions' ? 'From the studio' : 'Your signal'}
                 </span>
               </div>
               {playlist ? (
@@ -882,6 +911,7 @@ function EmptyState({ source }: { source: Source }) {
   const copy: Record<Source['type'], { title: string; body: string }> = {
     station: { title: 'No signal yet', body: 'This station’s tracks haven’t been released. They appear here as they are added to the game.' },
     themes: { title: 'No signal yet', body: 'No themes have been released yet.' },
+    sessions: { title: 'No signal yet', body: 'Nothing from the studio yet.' },
     favorites: { title: 'Nothing starred yet', body: 'Press the heart on any track and it lands here.' },
     uploads: { title: 'No uploads yet', body: 'Add your own music above, then put it on a station.' },
     playlist: { title: 'This station is empty', body: 'Add tracks from the list below, or with the add button on any track.' },

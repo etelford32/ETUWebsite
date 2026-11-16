@@ -9,7 +9,8 @@ What `/audio` is, how to turn it on, and what has and has not been verified.
 - **Signed in**: the game's music grouped by the in-game radio's stations, every
   published sound effect ("Sound Lab"), favourites, the player's own stations,
   and their own uploaded music. A player bar plays any of it.
-- **Admin** (`/admin/audio`): import the game repository's audio, publish or hide
+- **Admin** (`/admin/audio`): import the game repository's audio and a Google
+  Drive folder's (see "Google Drive" below), publish or hide
   tracks, retitle them, and upload tracks the repository doesn't carry.
 - **Game** (`GET /api/game/radio`): the player's favourites and stations, and the
   published soundtrack by built-in station, with download URLs. The contract is
@@ -61,6 +62,65 @@ At the time of writing the repository carries 68 audio files: 4 music tracks
 published. Battle Wave, Dock Radio and Epic Encounters stay empty until tracks
 land in `music/combat`, `music/station` and `music/boss`, or are uploaded on
 `/admin/audio`.
+
+## Google Drive (AUDIO-02)
+
+A Google Drive folder is a second source of tracks, beside the game
+repository. It is for music: finished tracks, and tracks the game doesn't play
+yet. The sync **copies** each file into the same private storage the
+repository's audio uses, so players never touch Drive, the sign-in gate is
+unchanged, and nothing breaks if Drive is unreachable later.
+
+### Turning it on
+
+1. **Apply the migration** `supabase/migrations/20261116_audio02_drive_source.sql`
+   (after the AUDIO-01 one). It adds two columns and widens one check.
+2. **Make one folder in Drive** for the website's music and move or copy the
+   tracks into it. Only this folder is read; nothing else in the Drive is
+   visible to the site.
+3. **Create a service account**: in Google Cloud Console pick or create a
+   project, enable the "Google Drive API", then IAM & Admin → Service Accounts
+   → Create. Open it → Keys → Add key → JSON. No roles are needed.
+4. **Share the folder** with the service account's email
+   (`...@...iam.gserviceaccount.com`) as **Viewer**.
+5. **Set two environment variables** on the site and redeploy:
+   `GOOGLE_DRIVE_AUDIO_FOLDER` (the folder's URL or id) and
+   `GOOGLE_DRIVE_SERVICE_ACCOUNT` (the whole JSON key, or its base64).
+6. Open `/admin/audio` and press **Sync from Google Drive**. After that an
+   hourly job (`vercel.json`) picks up changes on its own; it needs
+   `CRON_SECRET` set, like the site's other scheduled jobs.
+
+`GOOGLE_DRIVE_API_KEY` works in place of the service account, but only on a
+folder shared "Anyone with the link", which makes the files public. Prefer the
+service account.
+
+### How the folder maps to the library
+
+| In the folder | Becomes |
+|---|---|
+| a file at the top level | Music under **Soundtrack Sessions** (website only; not sent to the in-game radio) |
+| `Deep Space FM/`, `Battle Wave/`, `Dock Radio/`, `Epic Encounters/` (or `exploration`, `combat`, `station`, `boss`) | Music on that station, on the website and the in-game radio |
+| `Title Themes/` | Music under Title Themes |
+| `Sound Effects/<group>/` (or `sfx/<group>/`) | A sound effect in that group |
+| `music/<state>/`, `sfx/<group>/` | As in the game repository |
+| `Drafts/`, `WIP/`, `Private/`, `Hidden/`, `Disabled/`, `Archive/` | Never imported |
+| any other folder | Music under Soundtrack Sessions |
+
+Folder names ignore case and punctuation. Files that are not OGG, MP3, WAV or
+FLAC (AIFF, images, Google Docs) are ignored.
+
+- **A track is the Drive file, not its name.** Rename it and the track takes
+  the new title; move it to another folder and it changes station. Favourites
+  and players' stations keep it either way. (A title or category edited on
+  `/admin/audio` stays until the file is next renamed or moved.)
+- Replace a file's contents ("Manage versions" in Drive) and the next sync
+  copies the new audio; title and visibility stay.
+- Trash a file, or move it out of the folder or into `Drafts/`, and the track
+  is retired; put it back and it returns.
+- **50 MB per file.** A WAV master is about 10 MB a minute, so longer tracks
+  must be exported as MP3 or OGG. The sync lists what it skipped and why.
+- If the same audio is in both the game repository and the Drive folder it is
+  listed twice; keep each track in one place.
 
 ## Players' uploads
 
@@ -118,6 +178,19 @@ with that migration applied:
   so the function exists when a merge happens.
 - If the migration is missing, the page, the game endpoint and the admin page
   say so, but the stream and write routes answer with a plain 500.
+
+## AUDIO-02 (Google Drive): what was and was not verified
+
+- Verified with a stand-in for the Drive API and the database (50 checks): the
+  service-account token request (signature checked against the key), listing
+  with subfolders and paging, classification of every folder rule above, a
+  first import, an unchanged re-run, changed bytes, rename, move, retire and
+  return, trash, batching, and Drive's error answers. The site type-checks and
+  builds.
+- **Not verified: the real Google Drive API and the real Supabase project.**
+  No service account existed when this was written. The first sync from
+  `/admin/audio` is the real test.
+- The migration was not run against a database.
 
 ## Also changed outside the audio code
 

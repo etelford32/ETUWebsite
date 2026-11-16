@@ -9,8 +9,9 @@ import { formatBytes, formatDuration } from '@/components/audio/format'
 
 interface AdminTrack {
   id: string
-  source: 'repo' | 'website'
+  source: 'repo' | 'website' | 'drive'
   repo_path: string | null
+  drive_path?: string | null
   kind: 'music' | 'sfx'
   category: string
   title: string
@@ -23,6 +24,7 @@ interface AdminTrack {
 interface AdminData {
   migrated: boolean
   repo: { configured: boolean; repo?: string; branch?: string; path?: string }
+  drive?: { configured: boolean; migrated: boolean; folder_url?: string; account?: string | null }
   tracks: AdminTrack[]
   players?: { uploads: number; upload_bytes: number; playlists: number }
 }
@@ -31,6 +33,16 @@ interface SyncReport {
   in_repo: number
   unchanged: number
   uploaded: string[]
+  removed: string[]
+  skipped: { path: string; reason: string }[]
+  remaining: number
+}
+
+interface DriveSyncReport {
+  in_source: number
+  unchanged: number
+  uploaded: string[]
+  updated: string[]
   removed: string[]
   skipped: { path: string; reason: string }[]
   remaining: number
@@ -48,6 +60,7 @@ const MUSIC_CATEGORIES = [
   ['main_menu', 'Title themes · main menu'],
   ['load_menu', 'Title themes · load menu'],
   ['game_over', 'Title themes · game over'],
+  ['soundtrack', 'Soundtrack Sessions · website only'],
 ]
 const SFX_CATEGORIES = ['player', 'cyl', 'enemy', 'impacts', 'station', 'ui', 'progress', 'world', 'general']
 
@@ -85,6 +98,8 @@ export default function AdminAudioPage() {
 
   const [syncing, setSyncing] = useState(false)
   const [syncReport, setSyncReport] = useState<SyncReport | null>(null)
+  const [driveSyncing, setDriveSyncing] = useState(false)
+  const [driveReport, setDriveReport] = useState<DriveSyncReport | null>(null)
 
   const [kind, setKind] = useState<'music' | 'sfx'>('music')
   const [category, setCategory] = useState('playing')
@@ -136,6 +151,33 @@ export default function AdminAudioPage() {
       explain(error, 'The sync failed.')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const syncDrive = async () => {
+    setDriveSyncing(true)
+    setMessage(null)
+    const total: DriveSyncReport = { in_source: 0, unchanged: 0, uploaded: [], updated: [], removed: [], skipped: [], remaining: 0 }
+    try {
+      // Each call copies a batch; keep going until nothing is waiting.
+      for (let round = 0; round < 40; round++) {
+        const report = await apiSend<DriveSyncReport>('POST', '/api/admin/audio/sync/drive')
+        total.in_source = report.in_source
+        total.unchanged = report.unchanged
+        total.uploaded.push(...report.uploaded)
+        total.updated.push(...report.updated)
+        total.removed.push(...report.removed)
+        total.skipped = report.skipped
+        total.remaining = report.remaining
+        setDriveReport({ ...total })
+        if (!report.remaining || !report.uploaded.length) break
+      }
+      await load()
+      say('ok', total.uploaded.length || total.updated.length || total.removed.length ? 'Synced with Google Drive.' : 'Already up to date.')
+    } catch (error) {
+      explain(error, 'The Drive sync failed.')
+    } finally {
+      setDriveSyncing(false)
     }
   }
 
@@ -250,7 +292,7 @@ export default function AdminAudioPage() {
           </div>
         )}
 
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        <div className="mb-8 grid gap-6 lg:grid-cols-3">
           {/* sync */}
           <section className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
             <h2 className="text-lg font-semibold text-slate-100">Game repository</h2>
@@ -289,6 +331,59 @@ export default function AdminAudioPage() {
                 ))}
                 {!syncing && syncReport.remaining > 0 && (
                   <div className="text-yellow-200">{syncReport.remaining} files are still waiting. Run the sync again.</div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* drive */}
+          <section className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
+            <h2 className="text-lg font-semibold text-slate-100">Google Drive</h2>
+            {data?.drive?.configured ? (
+              <p className="mt-1 text-sm text-slate-400">
+                <a href={data.drive.folder_url} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:underline">
+                  The music folder
+                </a>
+                . Drop a track in it (or in a folder named after a station) and sync. Renaming or moving a file keeps the same track.
+                {data.drive.account && (
+                  <>
+                    {' '}
+                    Shared with <span className="break-all font-mono text-slate-300">{data.drive.account}</span>.
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-yellow-200">
+                Not connected. Set <code className="font-mono">GOOGLE_DRIVE_AUDIO_FOLDER</code> and{' '}
+                <code className="font-mono">GOOGLE_DRIVE_SERVICE_ACCOUNT</code> in the site&rsquo;s environment, then redeploy. Steps are in{' '}
+                <code className="font-mono">docs/AUDIO_LIBRARY.md</code>.
+              </p>
+            )}
+            {data?.drive?.configured && !data.drive.migrated && (
+              <p className="mt-2 text-sm text-yellow-200">Apply the AUDIO-02 database migration before syncing.</p>
+            )}
+            <button
+              type="button"
+              onClick={syncDrive}
+              disabled={driveSyncing || !data?.drive?.configured || !data?.drive?.migrated || !data?.migrated}
+              className="mt-4 rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {driveSyncing ? 'Syncing…' : 'Sync from Google Drive'}
+            </button>
+            {driveReport && (
+              <div className="mt-4 space-y-1 text-sm text-slate-300" aria-live="polite">
+                <div>
+                  {driveReport.in_source} audio files in the folder · {driveReport.uploaded.length} copied · {driveReport.updated.length} renamed or
+                  moved · {driveReport.removed.length} retired
+                  {driveSyncing && driveReport.remaining > 0 && ` · ${driveReport.remaining} to go`}
+                </div>
+                {driveReport.skipped.map((s) => (
+                  <div key={s.path} className="text-yellow-200">
+                    Skipped <span className="font-mono">{s.path}</span>: {s.reason}
+                  </div>
+                ))}
+                {!driveSyncing && driveReport.remaining > 0 && (
+                  <div className="text-yellow-200">{driveReport.remaining} files are still waiting. Run the sync again.</div>
                 )}
               </div>
             )}
@@ -422,8 +517,8 @@ export default function AdminAudioPage() {
                   <td className="px-4 py-2 text-slate-300">
                     {track.kind === 'music' ? 'Music' : 'SFX'} · <span className="font-mono text-xs">{track.category}</span>
                   </td>
-                  <td className="max-w-[16rem] truncate px-4 py-2 font-mono text-xs text-slate-400" title={track.repo_path ?? undefined}>
-                    {track.repo_path ?? 'uploaded here'}
+                  <td className="max-w-[16rem] truncate px-4 py-2 font-mono text-xs text-slate-400" title={track.repo_path ?? track.drive_path ?? undefined}>
+                    {track.source === 'drive' ? `Drive · ${track.drive_path ?? ''}` : track.repo_path ?? 'uploaded here'}
                   </td>
                   <td className="px-4 py-2 text-right font-mono text-xs tabular-nums">{formatDuration(track.duration_seconds)}</td>
                   <td className="px-4 py-2 text-right font-mono text-xs tabular-nums">{formatBytes(track.bytes)}</td>
