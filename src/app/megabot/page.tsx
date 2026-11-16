@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import WishlistButton from "@/components/WishlistButton";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -212,16 +213,14 @@ export default function MegabotPage() {
                   Hunted across the galaxy. Never caught.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
-                    Wishlist on Steam
-                  </a>
-                  <Link href="/missile-game" className="btn-ghost">
-                    Pilot MEGABOT
+                <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <WishlistButton placement="megabot-hero" />
+                  <Link href="/missile-game" className="btn-machine">
+                    Pilot MEGABOT <span className="arrow" aria-hidden>&rarr;</span>
                   </Link>
-                  <Link href={`/bosses/${BOSS_SLUG}`} className="btn-ghost">
-                    Boss registry
-                  </Link>
+                  <Link href={`/bosses/${BOSS_SLUG}`} className="link-machine">
+                Boss registry <span className="arrow" aria-hidden>&rarr;</span>
+              </Link>
                 </div>
               </div>
 
@@ -403,7 +402,7 @@ export default function MegabotPage() {
                 </p>
               </div>
               <div className="mt-6">
-                <Link href="/cyl" className="btn-ghost">
+                <Link href="/cyl" className="btn-machine-ghost">
                   Meet Cyl
                 </Link>
               </div>
@@ -444,10 +443,10 @@ export default function MegabotPage() {
                 ))}
               </ul>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/bosses" className="btn-ghost">
+                <Link href="/bosses" className="btn-machine-ghost">
                   See the bosses
                 </Link>
-                <Link href="/evil-robots#xj9" className="btn-ghost">
+                <Link href="/evil-robots#xj9" className="btn-machine-ghost">
                   Meet XJ9, his second
                 </Link>
               </div>
@@ -565,10 +564,10 @@ export default function MegabotPage() {
           )}
 
           <div className="flex flex-wrap gap-3">
-            <Link href="/evil-robots#legion" className="btn-ghost">
+            <Link href="/evil-robots#legion" className="btn-machine-ghost">
               Meet the Legion
             </Link>
-            <Link href="/evil-robots" className="btn-ghost">
+            <Link href="/evil-robots" className="btn-machine-ghost">
               The Machine Empire
             </Link>
           </div>
@@ -603,10 +602,10 @@ export default function MegabotPage() {
                 <p>Signed-in runs post to the leaderboard.</p>
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/missile-game" className="btn-ghost">
+                <Link href="/missile-game" className="btn-machine-ghost">
                   Play Megabot
                 </Link>
-                <Link href="/leaderboard?mode=megabot" className="btn-ghost">
+                <Link href="/leaderboard?mode=megabot" className="btn-machine-ghost">
                   Arena leaderboard
                 </Link>
               </div>
@@ -622,18 +621,16 @@ export default function MegabotPage() {
               have read your file before you arrive.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
-              <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
-                Wishlist on Steam
-              </a>
-              <Link href="/alpha-testing" className="btn-ghost">
-                Join the playtest
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <WishlistButton placement="megabot-cta" />
+              <Link href="/alpha-testing" className="btn-machine">
+                Join the playtest <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
-              <Link href="/evil-robots" className="btn-ghost">
-                The Machine Empire
+              <Link href="/evil-robots" className="link-machine">
+                The Machine Empire <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
-              <Link href="/bosses" className="btn-ghost">
-                All bosses
+              <Link href="/bosses" className="link-machine">
+                All bosses <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
             </div>
 

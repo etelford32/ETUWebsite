@@ -356,7 +356,6 @@ export const factions: Record<string, Faction> = {
         name: "Mini Mecha",
         weightClass: "Line",
         role: "The grunt",
-        image: "/evil-robots/units/mini-mecha.png",
         description:
           "The Empire's foot soldier, stamped out by the thousand. Small, armed three ways, and never alone: minis move in swarms, fall in behind anything bigger than themselves, and answer to MEGABOT before anyone else.",
         quote: "Unauthorized pilot identified. Pursuit authorized.",
@@ -425,7 +424,6 @@ export const factions: Record<string, Faction> = {
         name: "Mecha Factory",
         weightClass: "Structure",
         role: "Roaming forge and hangar",
-        image: "/evil-robots/units/mecha-factory.png",
         description:
           "A forge the size of a small world that never stops moving. It crawls the map, eats what it finds, stamps out new hulls one at a time and keeps them in its hangars until it is time to let them loose. Damaged machines limp home to it. Kill the factory and the legion around it stops growing.",
       },
@@ -497,8 +495,6 @@ export const factions: Record<string, Faction> = {
           "I was a cub when the machines burned the first forest. I carried the clans out of it, and I took their metal to do it.",
         href: "/bosses/ursos",
         hrefLabel: "Ursos boss profile",
-        image: "/wild/ursos.jpg",
-        imageAlt: "A roaring bear in battered armour plate, half its jaw replaced with machinery. Key art",
       },
       {
         name: "EntLord",
@@ -880,14 +876,6 @@ export const factions: Record<string, Faction> = {
         height: 941,
         title: "Pilots & Ships of the Consortium",
         caption: "Five pilots and the hulls they fly. Concept art, and it may change before it reaches the game.",
-      },
-      {
-        src: "/space-dwarves/dwarven-forge.jpg",
-        alt: "In-game screenshot: a Dwarven Forge seen from above, an eight-sided copper platform with two turrets, an anvil and hammer, and a blue crystal burning at its centre, the player's ship passing at the upper right",
-        width: 780,
-        height: 515,
-        title: "Dwarven Forge",
-        caption: "A mason forge as the game draws it. In-game screenshot.",
       },
     ],
     description:
