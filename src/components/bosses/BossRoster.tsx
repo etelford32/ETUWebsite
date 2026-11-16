@@ -11,6 +11,9 @@ export interface RosterEntry {
   faction?: { id: string; short: string }
 }
 
+/** Ability names shown in the spotlight before "+N more". */
+const MAX_CHIPS = 6
+
 export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
   const [filter, setFilter] = useState<string>('all')
   const [selected, setSelected] = useState(entries[0].boss.id)
@@ -93,7 +96,7 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
         })}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6">
+      <div className="grid lg:grid-cols-[1fr_380px] gap-6 items-start">
         {/* Spotlight */}
         <div
           className="relative overflow-hidden rounded-2xl border bg-[#070910] order-2 lg:order-1"
@@ -160,7 +163,7 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                 </dl>
 
                 <ul className="mt-6 flex flex-wrap gap-2">
-                  {boss.abilities.map(a => (
+                  {boss.abilities.slice(0, MAX_CHIPS).map(a => (
                     <li
                       key={a.name}
                       className="text-xs font-display uppercase tracking-[0.12em] rounded-md border px-2.5 py-1"
@@ -169,6 +172,11 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                       {a.name}
                     </li>
                   ))}
+                  {boss.abilities.length > MAX_CHIPS && (
+                    <li className="text-xs font-mono px-1 py-1 text-slate-500">
+                      +{boss.abilities.length - MAX_CHIPS} more
+                    </li>
+                  )}
                 </ul>
 
                 <div className="mt-auto pt-8">
@@ -188,7 +196,7 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
         {/* Rail */}
         <div
           ref={railRef}
-          className="relative order-1 lg:order-2 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x"
+          className="relative order-1 lg:order-2 flex lg:grid lg:grid-cols-2 gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x"
           role="tablist"
           aria-label="Bosses"
         >
@@ -202,18 +210,18 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                 role="tab"
                 aria-selected={on}
                 onClick={() => select(b.id)}
-                className="group snap-start shrink-0 w-44 lg:w-full flex items-center gap-3 rounded-xl border p-2 text-left transition-all"
+                className="group snap-start shrink-0 w-44 lg:w-auto lg:min-w-0 flex items-center gap-2.5 rounded-xl border p-2 text-left transition-all"
                 style={{
                   borderColor: on ? b.color.primary : 'rgba(255,255,255,0.08)',
                   background: on ? b.color.primary + '1A' : 'rgba(255,255,255,0.02)',
                 }}
               >
-                <span className="relative w-12 h-12 shrink-0 overflow-hidden rounded-lg bg-[#070910]">
+                <span className="relative w-12 h-12 lg:w-11 lg:h-11 shrink-0 overflow-hidden rounded-lg bg-[#070910]">
                   <Image src={b.heroImage} alt="" fill className="object-cover transition-transform group-hover:scale-110" sizes="48px" />
                 </span>
                 <span className="min-w-0">
                   <span
-                    className="block font-display text-xs font-bold uppercase tracking-[0.12em] truncate"
+                    className="block font-display text-xs lg:text-[11px] font-bold uppercase tracking-[0.1em] truncate lg:whitespace-normal lg:line-clamp-2 lg:leading-tight"
                     style={{ color: on ? b.color.accent : '#cbd5e1' }}
                   >
                     {b.name}

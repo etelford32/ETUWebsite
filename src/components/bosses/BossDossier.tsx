@@ -120,7 +120,7 @@ export default function BossDossier({ boss, facts }: Props) {
             </button>
 
             {screenshots.length > 1 && (
-              <div className="mt-3 grid grid-cols-4 gap-2" role="tablist" aria-label="Screenshots">
+              <div className={`mt-3 grid gap-2 ${screenshots.length > 4 ? 'grid-cols-5' : 'grid-cols-4'}`} role="tablist" aria-label="Screenshots">
                 {screenshots.map((s, i) => (
                   <button
                     key={s.src}
