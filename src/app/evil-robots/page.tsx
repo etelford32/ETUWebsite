@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { SITE_URL } from "@/lib/siteUrl";
 import { getFaction, type FactionUnit } from "@/data/factions";
 import { getBossesForFaction, type Boss } from "@/data/bosses";
+import WishlistButton from "@/components/WishlistButton";
 import { getZone } from "@/data/zones";
 
 const STEAM_URL =
@@ -186,6 +187,10 @@ const CAMPAIGN_PATHS = [
   },
 ];
 
+// Bosses flying the Machine Empire's flag in the game today. The site has
+// full profiles for fewer than this; the rest are counted, not yet written up.
+const EMPIRE_BOSS_COUNT = 10;
+
 const TIER_ORDER: Record<NonNullable<Boss["tier"]>, number> = {
   Legendary: 0,
   Epic: 1,
@@ -336,7 +341,6 @@ export default function EvilRobotsPage() {
   const faction = getFaction(FACTION_SLUG);
   const zone = getZone("evil");
   const bosses = sortBosses(getBossesForFaction(FACTION_SLUG));
-  const liveBosses = bosses.filter((b) => b.status === "live").length;
   const generals = bosses.filter((b) => b.id !== MEGABOT_SLUG);
 
   const primary = faction?.color.primary ?? "#ef4444";
@@ -347,12 +351,12 @@ export default function EvilRobotsPage() {
   const strengths = faction?.strengths ?? [];
   const weaknesses = faction?.weaknesses ?? [];
 
+  const bossCount = Math.max(EMPIRE_BOSS_COUNT, bosses.length);
   const STATS = [
-    { value: `${bosses.length}`, label: "Bosses" },
-    { value: `${liveBosses}`, label: "Live now" },
-    { value: `${DOCTRINE.length}`, label: "Doctrines" },
-    { value: `${units.length}`, label: "Unit types" },
-    { value: "04", label: "Home zone" },
+    { value: `${bossCount}`, label: "Bosses", note: `${bosses.length} profiled so far`, href: "#generals" },
+    { value: `${units.length}`, label: "Unit types", note: "Scout to forge", href: "#legion" },
+    { value: `${DOCTRINE.length}`, label: "Doctrines", note: "Core abilities", href: "#doctrine" },
+    { value: `${CAMPAIGN_PATHS.length}`, label: "Paths", note: "To choose from", href: "#campaign" },
   ];
 
   return (
@@ -363,11 +367,11 @@ export default function EvilRobotsPage() {
         {/* ------------------------------------------------------- hero --- */}
         <section className="relative overflow-hidden border-b border-red-500/10">
           <Image
-            src="/art/megabot-crimson-eye.jpg"
+            src="/art/megabot-evil-eye-hero.jpg"
             alt=""
             fill
             priority
-            className="object-cover object-[60%_30%] opacity-45"
+            className="object-cover object-[50%_36%] opacity-45"
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-deep-900/70 via-deep-900/75 to-deep-900" />
@@ -410,32 +414,41 @@ export default function EvilRobotsPage() {
                   life as inefficient, obsolete, and in the way.
                 </p>
 
-                <div className="mt-8 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                <dl className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {STATS.map((s) => (
-                    <div
-                      key={s.label}
-                      className="rounded-lg border border-red-500/20 bg-slate-950/50 px-2 py-3 text-center"
-                    >
-                      <div className="font-display text-2xl font-bold text-red-300 leading-none">
-                        {s.value}
-                      </div>
-                      <div className="mt-1.5 font-display text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        {s.label}
-                      </div>
+                    <div key={s.label} className="relative">
+                      <a
+                        href={s.href}
+                        className="group flex h-full flex-col overflow-hidden rounded-lg border border-red-500/25 bg-slate-950/70 px-4 pt-4 pb-3 transition-colors hover:border-red-400/60 hover:bg-red-950/30"
+                      >
+                        <span
+                          aria-hidden
+                          className="absolute inset-x-px top-px h-0.5 rounded-t-lg bg-gradient-to-r from-red-500 via-orange-400 to-transparent"
+                        />
+                        <dd className="order-first font-display text-4xl md:text-5xl font-bold leading-none tabular-nums bg-gradient-to-b from-white via-red-200 to-red-500 bg-clip-text text-transparent">
+                          {s.value}
+                        </dd>
+                        <dt className="mt-3">
+                          <span className="block font-display text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-100 whitespace-nowrap">
+                            {s.label}
+                          </span>
+                          <span className="block mt-1 text-xs text-slate-400 group-hover:text-slate-300 whitespace-nowrap">
+                            {s.note}
+                          </span>
+                        </dt>
+                      </a>
                     </div>
                   ))}
-                </div>
+                </dl>
 
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
-                    Wishlist on Steam
-                  </a>
-                  <Link href="/megabot" className="btn-ghost">
-                    Meet MEGABOT
+                <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <WishlistButton placement="evil-robots-hero" />
+                  <Link href="/megabot" className="btn-machine">
+                    Meet MEGABOT <span className="arrow" aria-hidden>&rarr;</span>
                   </Link>
-                  <Link href={`/factions/${FACTION_SLUG}`} className="btn-ghost">
-                    Faction dossier
-                  </Link>
+                  <Link href={`/factions/${FACTION_SLUG}`} className="link-machine">
+                Faction dossier <span className="arrow" aria-hidden>&rarr;</span>
+              </Link>
                 </div>
               </div>
 
@@ -543,7 +556,7 @@ export default function EvilRobotsPage() {
         </section>
 
         {/* ------------------------------------------------------ doctrine --- */}
-        <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+        <section id="doctrine" className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60 scroll-mt-24">
           <SectionHeading
             eyebrow="Doctrine"
             intro="Slow but unstoppable. The Empire fights sieges and head-on confrontations, and its ability to reconfigure mid-battle makes every engagement unpredictable."
@@ -616,10 +629,10 @@ export default function EvilRobotsPage() {
                 &ldquo;ORGANIC DETECTED. INITIATING PROTOCOL ZERO.&rdquo;
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/megabot" className="btn-ghost">
+                <Link href="/megabot" className="btn-machine-ghost">
                   Meet MEGABOT
                 </Link>
-                <Link href="/missile-game" className="btn-ghost">
+                <Link href="/missile-game" className="btn-machine-ghost">
                   Pilot the prototype
                 </Link>
               </div>
@@ -629,14 +642,16 @@ export default function EvilRobotsPage() {
 
         {/* ------------------------------------------------------ generals --- */}
         {generals.length > 0 && (
-          <section className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60">
+          <section id="generals" className="max-w-6xl mx-auto px-4 lg:px-6 py-14 border-t border-slate-800/60 scroll-mt-24">
             <SectionHeading
               eyebrow="Command Roster"
               intro={
                 <>
+                  <span className="font-mono text-red-300">{bossCount}</span> bosses fly the
+                  Empire&rsquo;s flag, the prototype among them.{" "}
                   <span className="font-mono text-red-300">{generals.length}</span> of the
-                  machines that stand beside the prototype have full boss profiles so far. More
-                  are in the playtest already, and their profiles follow.
+                  machines that stand beside it have full boss profiles so far, and the rest
+                  follow.
                 </>
               }
             >
@@ -941,7 +956,7 @@ export default function EvilRobotsPage() {
           </div>
 
           <div className="mt-6">
-            <Link href="/cyl" className="btn-ghost">
+            <Link href="/cyl" className="btn-machine-ghost">
               Meet Cyl
             </Link>
           </div>
@@ -1005,18 +1020,16 @@ export default function EvilRobotsPage() {
               or play it against everyone else, the galaxy will remember which.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
-              <a href={STEAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
-                Wishlist on Steam
-              </a>
-              <Link href="/alpha-testing" className="btn-ghost">
-                Join the playtest
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <WishlistButton placement="evil-robots-cta" />
+              <Link href="/alpha-testing" className="btn-machine">
+                Join the playtest <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
-              <Link href="/megabot" className="btn-ghost">
-                Meet MEGABOT
+              <Link href="/megabot" className="link-machine">
+                Meet MEGABOT <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
-              <Link href="/factions" className="btn-ghost">
-                All factions
+              <Link href="/factions" className="link-machine">
+                All factions <span className="arrow" aria-hidden>&rarr;</span>
               </Link>
             </div>
 

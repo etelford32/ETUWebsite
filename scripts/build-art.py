@@ -43,6 +43,48 @@ ART = [
     ('Cyl_ The Corrupted Goddess.png', 'cyl-corrupted-goddess', (440, 0, 1500, 941)),
     ('Stellar_Solar_shade.png', 'solar-shade', (0, 0, 1536, 650)),
     ("Megabot's Evil Eye.webp", 'megabot-evil-eye', None),
+    ('ETU_2026-11-12_Wild_Fights_Back_Provisional_Title.jpg', 'wild-fights-back', None),
+    # The same painting without the poster type; the scene drops its black bands.
+    ('wild_rebellion.png', 'wild-rebellion', (0, 300, 1122, 1190)),
+    ('dwarves1.png', 'court-of-yllar', None),
+    ('Crystal Consortium Pilot and Ship Concepts.png', 'crystal-consortium-pilots', None),
+]
+
+# Square and panel crops for leader portraits, pilot cards and unit cards:
+# (source in repo root, output path under public/, crop box in source pixels,
+# longest side of the output in px).
+CROPS = [
+    ('wild_rebellion.png', 'wild/ursos.jpg', (168, 435, 659, 926), 640),
+    ('wild_rebellion.png', 'wild/entlord.jpg', (519, 463, 771, 715), 480),
+    ("Megabot's Evil Eye.webp", 'megabot/evil-eye-portrait.jpg', (210, 379, 673, 842), 640),
+    ("XJ9_ Megabot's Second in Command.png", 'megabot/xj9-portrait.jpg', (298, 210, 859, 771), 640),
+]
+
+# The Crystal Consortium concept sheet: five panels, each a pilot portrait over
+# a three-quarter view of their ship and a top-down view of the same hull.
+CONSORTIUM_SHEET = 'Crystal Consortium Pilot and Ship Concepts.png'
+CONSORTIUM_PANELS = [
+    ('arkanvil', 20, 378),
+    ('arywen', 395, 712),
+    ('arnkanard', 729, 1033),
+    ('arykory', 1050, 1331),
+    ('rianywen', 1348, 1655),
+]
+CONSORTIUM_ROWS = {'pilots': (154, 378), 'ships': (431, 747), 'ships-top': (749, 911)}
+for _name, _l, _r in CONSORTIUM_PANELS:
+    for _row, (_t, _b) in CONSORTIUM_ROWS.items():
+        CROPS.append((CONSORTIUM_SHEET, f'space-dwarves/{_row}/{_name}.jpg', (_l, _t, _r, _b), 640))
+
+# In-game screenshots published on elliottelford.com, kept under
+# scripts/sources/ because they are not in the repo root uploads.
+#   Wild clan mark: "Leaving Yoga, Learning to Code...", Aug 2026.
+#   Dwarven Forge: "Explore the Universe 2175 Trailer #2: Gameplay", Oct 2026.
+SOURCE_DIR = os.path.join(ROOT, 'scripts', 'sources')
+SOURCE_CROPS = [
+    # HUD panels cropped away; the forge and the player's ship are left.
+    ('dwarven-forge-screenshot.png', 'space-dwarves/dwarven-forge.jpg', (60, 0, 840, 515), 780),
+    # The bear-faced clan mark from the August 2026 emblem set.
+    ('wild-emblem-bear.png', 'wild/clan-mark-bear.jpg', (0, 0, 1254, 1254), 800),
 ]
 
 # Full-bleed hero backdrops: output name -> upscale factor. The portrait key
@@ -128,6 +170,18 @@ def main():
             out = os.path.join(ART_DIR, name + '-scene.jpg')
             save_jpeg(crop, out)
             print(f'{name}-scene.jpg  {crop.width}x{crop.height}  {os.path.getsize(out) // 1024} KB')
+
+    public = os.path.join(ROOT, 'public')
+    jobs = [(os.path.join(ROOT, src), dst, box, side) for src, dst, box, side in CROPS]
+    jobs += [(os.path.join(SOURCE_DIR, src), dst, box, side) for src, dst, box, side in SOURCE_CROPS]
+    for src, dst, box, side in jobs:
+        im = Image.open(src).convert('RGB').crop(box)
+        if max(im.size) > side:
+            im.thumbnail((side, side), Image.LANCZOS)
+        out = os.path.join(public, dst)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        save_jpeg(im, out)
+        print(f'{dst}  {im.width}x{im.height}  {os.path.getsize(out) // 1024} KB')
 
     for name, factor in HERO:
         im = Image.open(os.path.join(ART_DIR, name + '.jpg')).convert('RGB')

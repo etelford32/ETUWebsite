@@ -46,6 +46,7 @@ export default function FactionPage({ params }: { params: { slug: string } }) {
   const gallery = faction.gallery ?? []
   const units = faction.units ?? []
   const hasUnitArt = units.some(u => u.image)
+  const pilots = faction.pilots ?? []
 
   return (
     <>
@@ -307,27 +308,94 @@ export default function FactionPage({ params }: { params: { slug: string } }) {
                 {leaders.map(leader => (
                   <article
                     key={leader.name}
-                    className="reveal etu-glass p-7"
+                    className="reveal etu-glass p-7 flex flex-col sm:flex-row gap-6"
                     style={{ borderColor: primary + '40', background: primary + '0A' }}
                   >
-                    <div className="eyebrow mb-2" style={{ color: accent }}>
-                      {leader.title}
-                    </div>
-                    <h3 className="font-display text-2xl font-bold text-white">{leader.name}</h3>
-                    <p className="mt-3 text-slate-200 leading-relaxed">{leader.description}</p>
-                    {leader.quote && (
-                      <p className="mt-4 text-lg italic leading-relaxed" style={{ color: accent }}>
-                        &ldquo;{leader.quote}&rdquo;
-                      </p>
-                    )}
-                    {leader.href && (
-                      <Link
-                        href={leader.href}
-                        className="mt-5 inline-flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300 hover:text-cyan-200"
+                    {leader.image && (
+                      <div
+                        className="relative w-full sm:w-36 aspect-[16/10] sm:aspect-square sm:h-36 shrink-0 rounded-xl overflow-hidden border bg-black"
+                        style={{ borderColor: primary + '55' }}
                       >
-                        {leader.hrefLabel ?? 'Read the dossier'} <span aria-hidden>→</span>
-                      </Link>
+                        <Image
+                          src={leader.image}
+                          alt={leader.imageAlt ?? leader.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, 144px"
+                        />
+                      </div>
                     )}
+                    <div className="min-w-0">
+                      <div className="eyebrow mb-2" style={{ color: accent }}>
+                        {leader.title}
+                      </div>
+                      <h3 className="font-display text-2xl font-bold text-white">{leader.name}</h3>
+                      <p className="mt-3 text-slate-200 leading-relaxed">{leader.description}</p>
+                      {leader.quote && (
+                        <p className="mt-4 text-lg italic leading-relaxed" style={{ color: accent }}>
+                          &ldquo;{leader.quote}&rdquo;
+                        </p>
+                      )}
+                      {leader.href && (
+                        <Link
+                          href={leader.href}
+                          className="mt-5 inline-flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300 hover:text-cyan-200"
+                        >
+                          {leader.hrefLabel ?? 'Read the dossier'} <span aria-hidden>→</span>
+                        </Link>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Pilots and their ships */}
+        {pilots.length > 0 && (
+          <section className="py-16 border-t border-white/10">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6">
+              <div className="reveal mb-8">
+                <div className="eyebrow mb-3">Pilots &amp; Ships</div>
+                <h2 className="font-display text-3xl md:text-4xl font-bold etu-headline-grad">
+                  Who flies for them
+                </h2>
+                {faction.pilotsNote && (
+                  <p className="text-slate-300 mt-2 max-w-3xl">{faction.pilotsNote}</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {pilots.map(pilot => (
+                  <article
+                    key={pilot.name}
+                    className="reveal etu-glass overflow-hidden flex flex-col"
+                    style={{ borderColor: primary + '40' }}
+                  >
+                    <div className="relative aspect-[4/3] bg-black">
+                      <Image
+                        src={pilot.portrait}
+                        alt={`${pilot.name}, concept portrait`}
+                        fill
+                        className="object-cover object-top"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 250px"
+                      />
+                    </div>
+                    <div className="relative aspect-[2/1] bg-[#060b18] border-y border-white/5">
+                      <Image
+                        src={pilot.ship}
+                        alt={`${pilot.name}'s ship from above, concept art`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 250px"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-display text-lg font-bold" style={{ color: accent }}>
+                        {pilot.name}
+                      </h3>
+                      <p className="mt-1.5 text-sm text-slate-300 leading-relaxed">{pilot.note}</p>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -496,11 +564,23 @@ export default function FactionPage({ params }: { params: { slug: string } }) {
                       <div className="relative aspect-[16/9] bg-black/60 border-b border-white/5">
                         <Image
                           src={unit.image}
-                          alt={`${unit.name}, as the game draws it`}
+                          alt={
+                            unit.imageKind === 'concept'
+                              ? `${unit.name}, concept art`
+                              : `${unit.name}, as the game draws it`
+                          }
                           fill
-                          className="object-contain p-3"
+                          className={unit.imageKind === 'concept' ? 'object-contain' : 'object-contain p-3'}
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
                         />
+                        {unit.imageKind === 'concept' && (
+                          <span
+                            className="etu-pill text-[9px] absolute left-3 top-3"
+                            style={{ background: 'rgba(4,6,20,0.75)', borderColor: primary + '66', color: accent }}
+                          >
+                            Concept art
+                          </span>
+                        )}
                       </div>
                     ) : (
                       hasUnitArt && (

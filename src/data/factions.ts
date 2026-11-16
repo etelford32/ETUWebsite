@@ -10,6 +10,8 @@ export interface FactionUnit {
   description: string;
   /** Thumbnail (path under /public). */
   image?: string;
+  /** "game" (default) = drawn by the game itself. "concept" = concept art. */
+  imageKind?: "game" | "concept";
   /** Battlefield role in a few words. */
   role?: string;
   /** Weight class shown as a pill: Light, Line, Support, Hunter, Heavy, Boss-class, Swarm, Structure, Command. */
@@ -29,6 +31,19 @@ export interface FactionLeader {
   /** Their own page: a boss profile or a long-form feature. */
   href?: string;
   hrefLabel?: string;
+  /** Square portrait (path under /public). */
+  image?: string;
+  imageAlt?: string;
+}
+
+/** A named pilot and the ship they fly, from a faction's concept sheet. */
+export interface FactionPilot {
+  name: string;
+  portrait: string;
+  /** Top-down view of their hull. */
+  ship: string;
+  /** What the art shows, in a line. */
+  note: string;
 }
 
 export interface Faction {
@@ -71,6 +86,10 @@ export interface Faction {
   abilitiesLabel?: string;
   lore?: string;
   units?: FactionUnit[];
+  /** Named pilots and their ships, shown as concept art. */
+  pilots?: FactionPilot[];
+  /** Where the pilot art comes from, shown under the section heading. */
+  pilotsNote?: string;
   strengths?: string[];
   weaknesses?: string[];
   /** Heading of the closing call to action. */
@@ -233,6 +252,14 @@ export const factions: Record<string, Faction> = {
     },
     gallery: [
       {
+        src: "/art/megabot-evil-eye.jpg",
+        alt: "MEGABOT's Evil Eye: a station-sized machine with one burning red iris turns toward a white fighter fleeing on cyan engines, a swarm of red-lit warships around it and a black hole beyond",
+        width: 1122,
+        height: 1402,
+        title: "MEGABOT\u2019s Evil Eye",
+        caption: "The legion out in force, and the Eye already on you. Key art, November 2026.",
+      },
+      {
         src: "/art/megabot-crimson-eye.jpg",
         alt: "MEGABOT's Crimson Eye: a bladed iris the size of a station burning red in a wall of dark armour plate and gun towers, with a tiny fighter fleeing across the lower corner",
         width: 1536,
@@ -279,6 +306,8 @@ export const factions: Record<string, Faction> = {
         quote: "EVERY UNIT YOU HAVE DESTROYED WAS A FINGER. I AM THE HAND.",
         href: "/megabot",
         hrefLabel: "Meet MEGABOT",
+        image: "/megabot/evil-eye-portrait.jpg",
+        imageAlt: "MEGABOT's Evil Eye: a red iris the size of a station set in dark armour plate",
       },
       {
         name: "XJ9",
@@ -287,6 +316,8 @@ export const factions: Record<string, Faction> = {
           "A planetary defender in dark mirror chrome, with a two-handed laser sword that drinks the lasers you fire at it. He holds the line over a world while the Empire works. He is being built now and is not in the playtest yet.",
         href: "/evil-robots#xj9",
         hrefLabel: "Read about XJ9",
+        image: "/megabot/xj9-portrait.jpg",
+        imageAlt: "XJ9: a horned war machine in dark chrome with molten orange seams. Concept art",
       },
     ],
     abilities: [
@@ -325,7 +356,6 @@ export const factions: Record<string, Faction> = {
         name: "Mini Mecha",
         weightClass: "Line",
         role: "The grunt",
-        image: "/evil-robots/units/mini-mecha.png",
         description:
           "The Empire's foot soldier, stamped out by the thousand. Small, armed three ways, and never alone: minis move in swarms, fall in behind anything bigger than themselves, and answer to MEGABOT before anyone else.",
         quote: "Unauthorized pilot identified. Pursuit authorized.",
@@ -394,7 +424,6 @@ export const factions: Record<string, Faction> = {
         name: "Mecha Factory",
         weightClass: "Structure",
         role: "Roaming forge and hangar",
-        image: "/evil-robots/units/mecha-factory.png",
         description:
           "A forge the size of a small world that never stops moving. It crawls the map, eats what it finds, stamps out new hulls one at a time and keeps them in its hangars until it is time to let them loose. Damaged machines limp home to it. Kill the factory and the legion around it stops growing.",
       },
@@ -418,14 +447,22 @@ export const factions: Record<string, Faction> = {
     homePlanet: "Urthan Prime",
     description:
       "Tribal animal clans that roam the Wild Zone: mecha-bears, bee swarms, hummingbird scouts and fireflies, with the walking trees of the Ent Council on their siege line. The Wild Clans remember when the stars were forests, and they still run them that way.",
-    heroImage: "/Wild_Race.jpg",
-    heroPosition: "50% 30%",
-    cardImage: "/Wild_Race.jpg",
+    heroImage: "/art/wild-rebellion-scene.jpg",
+    heroPosition: "50% 42%",
+    cardImage: "/art/wild-rebellion-scene.jpg",
     emblem: {
       src: "/emblems/wild.webp",
       alt: "The Wild Clans emblem: a W carved from bark and moss, with bears and a stag worked into its pillars and a green gem at its heart",
     },
     gallery: [
+      {
+        src: "/art/wild-fights-back.jpg",
+        alt: "Poster: a roaring bear in battered armour plate, half its jaw machine, rises from a forest world as an ancient tree-being looks on and red machine fighters chase a white ship overhead. Explore the Universe 2175. The Wild fights back. Wishlist on Steam.",
+        width: 1122,
+        height: 1402,
+        title: "The Wild Fights Back",
+        caption: "Half metal, half fur, and the forest behind him. Key art, November 2026.",
+      },
       {
         src: "/Wild_Race.jpg",
         alt: "A great bear with glowing blue eyes among foxes, owls and birds of the Wild, with an ancient tree-being and a whale-like ship above",
@@ -435,12 +472,12 @@ export const factions: Record<string, Faction> = {
         caption: "Bear, bee, hummingbird, firefly and Ent. They don\u2019t trust metal. Metal takes.",
       },
       {
-        src: "/emblems/wild.webp",
-        alt: "The Wild Clans emblem: a W carved from bark and moss with a green gem at its heart",
+        src: "/wild/clan-mark-bear.jpg",
+        alt: "A Wild clan mark: a W of bark and root with a carved bear's face at its centre, green eyes lit and a green stone hanging below",
         width: 800,
         height: 800,
         title: "Clan Mark",
-        caption: "Bark, moss and a green stone. Nothing forged.",
+        caption: "Bark, root and a green stone. Nothing forged.",
       },
     ],
     color: {
@@ -464,6 +501,8 @@ export const factions: Record<string, Faction> = {
         title: "Lord of Enthara",
         description:
           "The whole Ent Council in one body. Ten Elders sit the Council, from Oakhallow the Speaker to Rotheart, and when they merge they walk as one. He holds Enthara, the world beside Urthan Prime, and he has a trial waiting for you there.",
+        image: "/wild/entlord.jpg",
+        imageAlt: "An ancient tree-being with a mossy face and green eyes, grown into the forest canopy. Key art",
       },
     ],
     abilities: [
@@ -529,6 +568,8 @@ export const factions: Record<string, Faction> = {
       },
       {
         name: "EntLord",
+        image: "/wild/entlord.jpg",
+        imageKind: "concept",
         weightClass: "Boss-class",
         role: "The Council, merged",
         description: "The whole Ent Council in one body, the lord of Enthara.",
@@ -771,9 +812,9 @@ export const factions: Record<string, Faction> = {
     kind: "Playable Faction",
     name: "Space Dwarves • Crystal Masons",
     tagline: "Asteroid clans that forge starships the way smiths forge swords.",
-    heroImage: "/art/space-dwarves-crystal-mine-scene.jpg",
-    heroPosition: "50% 25%",
-    cardImage: "/art/space-dwarves-crystal-mine-scene.jpg",
+    heroImage: "/art/court-of-yllar.jpg",
+    heroPosition: "75% 22%",
+    cardImage: "/art/court-of-yllar.jpg",
     emblem: {
       src: "/emblems/space-dwarves.webp",
       alt: "The Crystal Masons emblem: a gold-banded rune ring around a hammer-and-chisel mark set with violet crystals, a dwarf's face at its foot",
@@ -791,6 +832,8 @@ export const factions: Record<string, Faction> = {
           "Lead? I rule. The guilds of Yllar kneel to me, and I kneel to nothing but a well-cut gem.",
         href: "/bosses/arkanvil-king",
         hrefLabel: "King Arkanvil boss profile",
+        image: "/space-dwarves/pilots/arkanvil.jpg",
+        imageAlt: "King Arkanvil: a braided, grey-bearded dwarf in a crown of violet crystal, a crystal-headed warhammer on his shoulder. Concept art",
       },
       {
         name: "Billybob",
@@ -801,6 +844,14 @@ export const factions: Record<string, Faction> = {
       },
     ],
     gallery: [
+      {
+        src: "/art/court-of-yllar.jpg",
+        alt: "King Arkanvil in a crown of violet crystal holds up a crystal with a galaxy turning inside it, a shield-bearer in a gem-set circlet at his side, armoured marines on the rampart below and crystal-laden barges leaving an asteroid forge behind them",
+        width: 1672,
+        height: 941,
+        title: "The Court of Yllar",
+        caption: "The King, the Heart Crystal and the forge that feeds them both. Key art, November 2026.",
+      },
       {
         src: "/art/space-dwarves-crystal-mine.jpg",
         alt: "Poster: a braided, armoured Space Dwarf looks out over a glowing blue crystal mine as a mining barge hauls a load overhead and a fighter flies past. Explore the Universe 2175. Every alliance has a price. Wishlist on Steam.",
@@ -817,6 +868,14 @@ export const factions: Record<string, Faction> = {
         title: "Arkanvil, Star King of Yllar",
         caption:
           "Concept sheet for the court of Yllar: the crown, the houses and the forge. Lore in development, and it may change before it reaches the game.",
+      },
+      {
+        src: "/art/crystal-consortium-pilots.jpg",
+        alt: "Concept sheet: The Crystal Consortium, pilot and ship concepts. Five dwarf pilots, Arkanvil, Arywen, Arnkanard, Arykory and Rianywen, each above a three-quarter and a top-down view of their ship.",
+        width: 1672,
+        height: 941,
+        title: "Pilots & Ships of the Consortium",
+        caption: "Five pilots and the hulls they fly. Concept art, and it may change before it reaches the game.",
       },
     ],
     description:
@@ -844,7 +903,43 @@ export const factions: Record<string, Faction> = {
       "Long supply lines are easy to cut",
       "Slow to reach far-flung fights",
     ],
+    pilotsNote:
+      "From the Crystal Consortium concept sheet. Concept art: names, faces and hulls may change before they reach the game.",
+    pilots: [
+      {
+        name: "Arkanvil",
+        portrait: "/space-dwarves/pilots/arkanvil.jpg",
+        ship: "/space-dwarves/ships-top/arkanvil.jpg",
+        note: "The King, in his crown of violet crystal. A dark rune-cut flagship with outrigger gun pods and a crystal at its heart.",
+      },
+      {
+        name: "Arywen",
+        portrait: "/space-dwarves/pilots/arywen.jpg",
+        ship: "/space-dwarves/ships-top/arywen.jpg",
+        note: "Circlet, war paint and a gem-set shield. A broad cream-and-gold hull under a projected shield.",
+      },
+      {
+        name: "Arnkanard",
+        portrait: "/space-dwarves/pilots/arnkanard.jpg",
+        ship: "/space-dwarves/ships-top/arnkanard.jpg",
+        note: "Braided beard and a tattooed brow. A blocky gunship with twin forward barrels and red side pods.",
+      },
+      {
+        name: "Arykory",
+        portrait: "/space-dwarves/pilots/arykory.jpg",
+        ship: "/space-dwarves/ships-top/arykory.jpg",
+        note: "Young, scarfed and travelling light. A slim, swept-wing hull built for speed.",
+      },
+      {
+        name: "Rianywen",
+        portrait: "/space-dwarves/pilots/rianywen.jpg",
+        ship: "/space-dwarves/ships-top/rianywen.jpg",
+        note: "A long rifle and a violet crystal shield. A pontooned hull built around one very long barrel.",
+      },
+    ],
     // The Crystal Mason roster as lore. Mechanics stay in the game.
+    // Unit art here is concept art, matched to the roster by what each hull
+    // shows (speed, a long rail, twin tubes, a projected shield).
     units: [
       {
         name: "Worker",
@@ -855,6 +950,8 @@ export const factions: Record<string, Faction> = {
       },
       {
         name: "Dwarven Scout",
+        image: "/space-dwarves/ships/arykory.jpg",
+        imageKind: "concept",
         weightClass: "Light",
         role: "The clan's fast legs",
         description:
@@ -862,6 +959,8 @@ export const factions: Record<string, Faction> = {
       },
       {
         name: "Sniper",
+        image: "/space-dwarves/ships/rianywen.jpg",
+        imageKind: "concept",
         weightClass: "Hunter",
         role: "Rail-shard marksman",
         description:
@@ -869,6 +968,8 @@ export const factions: Record<string, Faction> = {
       },
       {
         name: "Marine",
+        image: "/space-dwarves/ships/arnkanard.jpg",
+        imageKind: "concept",
         weightClass: "Line",
         role: "The reference fighter",
         description:
@@ -884,6 +985,8 @@ export const factions: Record<string, Faction> = {
       },
       {
         name: "Tank",
+        image: "/space-dwarves/ships/arywen.jpg",
+        imageKind: "concept",
         weightClass: "Heavy",
         role: "Vaultwarden bastion",
         description:

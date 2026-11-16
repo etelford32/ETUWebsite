@@ -1389,6 +1389,101 @@ body { font-family: var(--font-body); }
   box-shadow: 0 0 28px rgba(239, 68, 68, 0.35);
 }
 
+/* Machine Empire buttons — armour plate with cut corners, used on the
+   Evil Robots and MEGABOT pages beside the Steam primary. */
+.btn-machine,
+.btn-machine-ghost {
+  --cut: 10px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.6rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  isolation: isolate;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition: filter 150ms ease, transform 150ms ease, color 150ms ease;
+}
+/* The plate itself; a second layer inset by 1px gives the cut corners a rim. */
+.btn-machine::before,
+.btn-machine-ghost::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition: background 150ms ease;
+}
+.btn-machine {
+  color: #fff;
+  background: linear-gradient(180deg, #fca5a5, #ef4444 45%, #7f1d1d);
+  filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.35));
+}
+/* #b91c1c..#991b1b keeps white text above 4.5:1 */
+.btn-machine::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #b91c1c, #991b1b);
+}
+.btn-machine:hover {
+  filter: drop-shadow(0 0 22px rgba(248, 113, 113, 0.6));
+  transform: translateY(-1px);
+}
+.btn-machine:hover::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0) 42%),
+    linear-gradient(180deg, #c81e1e, #a51d1d);
+}
+.btn-machine-ghost {
+  color: #fecaca;
+  background: linear-gradient(180deg, rgba(248,113,113,0.75), rgba(248,113,113,0.3));
+}
+.btn-machine-ghost::before { background: #0d0a14; }
+.btn-machine-ghost:hover {
+  color: #fff;
+  background: linear-gradient(180deg, #fca5a5, #ef4444);
+  filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.35));
+}
+.btn-machine-ghost:hover::before { background: #1c0d14; }
+.btn-machine:active,
+.btn-machine-ghost:active { transform: translateY(0); }
+.btn-machine:focus-visible,
+.btn-machine-ghost:focus-visible {
+  clip-path: none;
+  outline: 2px solid var(--etu-cyan-300);
+  outline-offset: 3px;
+}
+.btn-machine .arrow,
+.btn-machine-ghost .arrow { transition: transform 150ms ease; }
+.btn-machine:hover .arrow,
+.btn-machine-ghost:hover .arrow { transform: translateX(3px); }
+/* Tertiary action beside the two buttons: a link, not a third button. */
+.link-machine {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.25rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fecaca;
+  border-bottom: 1px solid rgba(248, 113, 113, 0.45);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.link-machine:hover { color: #fff; border-color: #f87171; }
+.link-machine .arrow { transition: transform 150ms ease; }
+.link-machine:hover .arrow { transform: translateX(3px); }
+.link-machine:focus-visible { outline: 2px solid var(--etu-cyan-300); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-machine, .btn-machine-ghost, .link-machine .arrow,
+  .btn-machine .arrow, .btn-machine-ghost .arrow { transition: none; transform: none !important; }
+}
+
 /* Legacy black-metal-title kept for compatibility */
 .black-metal-title {
   font-family: var(--font-orbitron), 'Orbitron', sans-serif;
