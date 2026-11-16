@@ -4,16 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
-import { SHOW_BOSS_STATS, type Boss } from '@/data/bosses'
+import type { Boss } from '@/data/bosses'
 
 export interface RosterEntry {
   boss: Boss
   faction?: { id: string; short: string }
   zone?: { id: string }
 }
-
-/** Ability names shown in the spotlight before "+N more". */
-const MAX_CHIPS = 6
 
 export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
   const [filter, setFilter] = useState<string>('all')
@@ -158,17 +155,6 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                 </h2>
                 <p className="mt-3 text-slate-300">{boss.tagline}</p>
 
-                {SHOW_BOSS_STATS && (
-                  <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-                    {boss.stats.slice(0, 2).map(s => (
-                      <div key={s.label}>
-                        <dt className="eyebrow mb-0.5">{s.label}</dt>
-                        <dd className="font-mono text-lg" style={{ color: boss.color.accent }}>{s.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-
                 {(boss.homeZone || boss.homePlanet) && (
                   <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
                     {boss.homeZone && (
@@ -197,23 +183,6 @@ export default function BossRoster({ entries }: { entries: RosterEntry[] }) {
                     )}
                   </dl>
                 )}
-
-                <ul className="mt-6 flex flex-wrap gap-2">
-                  {boss.abilities.slice(0, MAX_CHIPS).map(a => (
-                    <li
-                      key={a.name}
-                      className="text-xs font-display uppercase tracking-[0.12em] rounded-md border px-2.5 py-1"
-                      style={{ borderColor: boss.color.primary + '44', color: '#cbd5e1' }}
-                    >
-                      {a.name}
-                    </li>
-                  ))}
-                  {boss.abilities.length > MAX_CHIPS && (
-                    <li className="text-xs font-mono px-1 py-1 text-slate-500">
-                      +{boss.abilities.length - MAX_CHIPS} more
-                    </li>
-                  )}
-                </ul>
 
                 <div className="mt-auto pt-8">
                   <Link
