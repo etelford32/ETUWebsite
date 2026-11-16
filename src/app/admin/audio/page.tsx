@@ -9,7 +9,7 @@ import { formatBytes, formatDuration } from '@/components/audio/format'
 
 interface AdminTrack {
   id: string
-  source: 'repo' | 'website' | 'drive'
+  source: 'repo' | 'website' | 'drive' | 'site'
   repo_path: string | null
   drive_path?: string | null
   kind: 'music' | 'sfx'
@@ -518,7 +518,11 @@ export default function AdminAudioPage() {
                     {track.kind === 'music' ? 'Music' : 'SFX'} · <span className="font-mono text-xs">{track.category}</span>
                   </td>
                   <td className="max-w-[16rem] truncate px-4 py-2 font-mono text-xs text-slate-400" title={track.repo_path ?? track.drive_path ?? undefined}>
-                    {track.source === 'drive' ? `Drive · ${track.drive_path ?? ''}` : track.repo_path ?? 'uploaded here'}
+                    {track.source === 'drive'
+                      ? `Drive · ${track.drive_path ?? ''}`
+                      : track.source === 'site'
+                        ? 'ships with the website'
+                        : track.repo_path ?? 'uploaded here'}
                   </td>
                   <td className="px-4 py-2 text-right font-mono text-xs tabular-nums">{formatDuration(track.duration_seconds)}</td>
                   <td className="px-4 py-2 text-right font-mono text-xs tabular-nums">{formatBytes(track.bytes)}</td>

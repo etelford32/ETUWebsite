@@ -6,10 +6,13 @@ import {
   GAME_AUDIO_BUCKET,
   GAME_URL_TTL_SECONDS,
   isRadioCategory,
+  isSiteAudioPath,
   RADIO_STATIONS,
+  siteAudioUrl,
   USER_AUDIO_BUCKET,
 } from '@/lib/audio/config'
 import { audioDb, isMissingSchema, signedUrls } from '@/lib/audio/server'
+import { SITE_URL } from '@/lib/siteUrl'
 
 /**
  * GET /api/game/radio — what the in-game Intergalactic Radio tunes for the
@@ -167,7 +170,10 @@ export async function GET(request: NextRequest) {
     const gamePaths: string[] = []
     const userPaths: string[] = []
     for (const id of used) {
-      if (gameTracks.has(id)) gamePaths.push(gameTracks.get(id).storage_path)
+      if (gameTracks.has(id)) {
+        // Tracks that ship with the website need no signing.
+        if (!isSiteAudioPath(gameTracks.get(id).storage_path)) gamePaths.push(gameTracks.get(id).storage_path)
+      }
       else userPaths.push(ownUploads.get(id).storage_path)
     }
     const [gameUrls, userUrls] = await Promise.all([
@@ -179,7 +185,9 @@ export async function GET(request: NextRequest) {
     for (const id of used) {
       const game = gameTracks.get(id)
       if (game) {
-        const url = gameUrls.get(game.storage_path)
+        const url = isSiteAudioPath(game.storage_path)
+          ? `${SITE_URL}${siteAudioUrl(game.storage_path, game.git_sha)}`
+          : gameUrls.get(game.storage_path)
         if (!url) continue
         tracks[id] = {
           id,

@@ -122,6 +122,9 @@ export async function DELETE(request: NextRequest, { params }: Context) {
       .maybeSingle()
     if (error) throw error
     if (!row) return json({ error: 'not_found' }, 404)
+    if (row.source === 'site') {
+      return json({ error: 'site_track', message: 'This track ships with the website. Hide it instead.' }, 409)
+    }
     if (row.source === 'drive' && row.status !== 'removed') {
       return json(
         { error: 'drive_track', message: 'Hide this track, or remove its file from the Drive folder and sync.' },
