@@ -128,6 +128,19 @@ export const THEMES_GROUP = {
   color: '#a78bfa',
 } as const
 
+/**
+ * Music from the composer's Google Drive folder that the game doesn't play
+ * yet (AUDIO-02): loose files, and folders that name no station. Website
+ * only; the in-game radio is not sent these.
+ */
+export const SOUNDTRACK_GROUP = {
+  id: 'SESSIONS',
+  name: 'Soundtrack Sessions',
+  description: 'More from the composer: tracks that aren’t in the game yet',
+  category: 'soundtrack',
+  color: '#2dd4bf',
+} as const
+
 const STATION_CATEGORIES = new Set(RADIO_STATIONS.flatMap((s) => s.categories))
 
 /** Does the in-game radio offer music of this category? */
@@ -157,5 +170,27 @@ export const PLAYLIST_COLORS = [
   '#34d399',
   '#f97316',
 ] as const
+
+/**
+ * AUDIO-03: tracks that ship with the website itself, as files under
+ * `public/media/audio/`. Their `storage_path` is `site/<path under that
+ * folder>`; nothing is in a storage bucket. The files are static, so anyone
+ * who has a file's URL can fetch it; the track list is still for signed-in
+ * players.
+ */
+export const SITE_AUDIO_PREFIX = 'site/'
+
+export function isSiteAudioPath(storagePath: string): boolean {
+  return storagePath.startsWith(SITE_AUDIO_PREFIX)
+}
+
+/**
+ * The URL path of a site track. `version` (the file's hash) keeps a
+ * replaced file from being served out of a year-long cache.
+ */
+export function siteAudioUrl(storagePath: string, version?: string | null): string {
+  const path = storagePath.slice(SITE_AUDIO_PREFIX.length).split('/').map(encodeURIComponent).join('/')
+  return `/media/audio/${path}${version ? `?v=${encodeURIComponent(version.slice(0, 12))}` : ''}`
+}
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

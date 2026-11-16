@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
-import { audioLimits, RADIO_STATIONS, SFX_CATEGORY_LABELS, THEMES_GROUP } from '@/lib/audio/config'
+import { audioLimits, RADIO_STATIONS, SFX_CATEGORY_LABELS, SOUNDTRACK_GROUP, THEMES_GROUP } from '@/lib/audio/config'
 import {
   audioDb,
   isMissingSchema,
@@ -33,6 +33,7 @@ export const dynamic = 'force-dynamic'
 const DIAL = {
   stations: RADIO_STATIONS,
   themes: THEMES_GROUP,
+  sessions: SOUNDTRACK_GROUP,
   sfx_labels: SFX_CATEGORY_LABELS,
 }
 

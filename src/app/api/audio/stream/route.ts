@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { GAME_AUDIO_BUCKET, STREAM_URL_TTL_SECONDS, USER_AUDIO_BUCKET } from '@/lib/audio/config'
+import { GAME_AUDIO_BUCKET, isSiteAudioPath, siteAudioUrl, STREAM_URL_TTL_SECONDS, USER_AUDIO_BUCKET } from '@/lib/audio/config'
 import { audioDb, isUuid, json, requireUser, signedUrl } from '@/lib/audio/server'
 
 /**
@@ -7,7 +7,9 @@ import { audioDb, isUuid, json, requireUser, signedUrl } from '@/lib/audio/serve
  *
  * A signed-in listener trades a track id for a URL that plays it for the
  * next hour. Game tracks must be published; an upload must be the caller's
- * own. The buckets are private, so this is the only way to a file.
+ * own. The buckets are private, so this is the only way to a stored file.
+ * A track that ships with the website (AUDIO-03) answers with its static
+ * path instead.
  */
 
 export const runtime = 'nodejs'
@@ -27,16 +29,18 @@ export async function GET(request: NextRequest) {
     const db = audioDb()
     let bucket: string
     let path: string | null = null
+    let version: string | null = null
     if (type === 'track') {
       bucket = GAME_AUDIO_BUCKET
       const { data, error } = await db
         .from('audio_tracks')
-        .select('storage_path')
+        .select('storage_path, git_sha')
         .eq('id', id)
         .eq('status', 'published')
         .maybeSingle()
       if (error) throw error
       path = data?.storage_path ?? null
+      version = data?.git_sha ?? null
     } else {
       bucket = USER_AUDIO_BUCKET
       const { data, error } = await db
@@ -50,6 +54,9 @@ export async function GET(request: NextRequest) {
       path = data?.storage_path ?? null
     }
     if (!path) return json({ error: 'not_found' }, 404)
+    if (type === 'track' && isSiteAudioPath(path)) {
+      return json({ url: siteAudioUrl(path, version), expires_in: STREAM_URL_TTL_SECONDS })
+    }
 
     const url = await signedUrl(bucket, path, STREAM_URL_TTL_SECONDS)
     if (!url) return json({ error: 'unavailable', message: 'That track is not available right now.' }, 502)

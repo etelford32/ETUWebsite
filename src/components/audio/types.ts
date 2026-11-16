@@ -11,6 +11,8 @@ export interface RadioStationInfo {
 export interface Dial {
   stations: RadioStationInfo[]
   themes: { id: string; name: string; description: string; color: string }
+  /** Music from the composer's Drive folder that the game doesn't play yet. */
+  sessions: { id: string; name: string; description: string; category: string; color: string }
   sfx_labels: Record<string, string>
 }
 

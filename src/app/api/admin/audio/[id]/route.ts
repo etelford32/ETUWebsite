@@ -64,7 +64,13 @@ export async function PATCH(request: NextRequest, { params }: Context) {
     if ('status' in body) {
       if (body.status !== 'published' && body.status !== 'hidden') return json({ error: 'bad_request' }, 400)
       if (row.status === 'removed') {
-        return json({ error: 'removed', message: 'This file is no longer in the game repository.' }, 409)
+        return json(
+          {
+            error: 'removed',
+            message: row.source === 'drive' ? 'This file is no longer in the Drive folder.' : 'This file is no longer in the game repository.',
+          },
+          409
+        )
       }
       patch.status = body.status
     }
@@ -116,6 +122,15 @@ export async function DELETE(request: NextRequest, { params }: Context) {
       .maybeSingle()
     if (error) throw error
     if (!row) return json({ error: 'not_found' }, 404)
+    if (row.source === 'site') {
+      return json({ error: 'site_track', message: 'This track ships with the website. Hide it instead.' }, 409)
+    }
+    if (row.source === 'drive' && row.status !== 'removed') {
+      return json(
+        { error: 'drive_track', message: 'Hide this track, or remove its file from the Drive folder and sync.' },
+        409
+      )
+    }
     if (row.source === 'repo' && row.status !== 'removed') {
       return json(
         { error: 'repo_track', message: 'Hide this track, or delete its file from the game repository and sync.' },

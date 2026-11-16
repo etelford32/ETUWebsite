@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/steam-leaderboard-sync",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/admin/audio/sync/drive",
+      "schedule": "17 * * * *"
     }
   ],
   "headers": [
