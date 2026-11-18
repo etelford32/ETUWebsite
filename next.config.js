@@ -70,13 +70,16 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
+            // GA4 sends hits to regional hosts (region1.google-analytics.com,
+            // *.analytics.google.com), not only www.google-analytics.com;
+            // listing just the www hosts silently dropped most collection.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://*.googletagmanager.com https://*.google-analytics.com https://cdn.jsdelivr.net",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.steampowered.com https://steamcommunity.com https://vercel.live https://www.google-analytics.com https://www.googletagmanager.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.steampowered.com https://steamcommunity.com https://vercel.live https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://stats.g.doubleclick.net https://www.google.com",
               "media-src 'self' blob: https://*.supabase.co",
               "object-src 'none'",
               "frame-src 'self' https://steamcommunity.com https://vercel.live",

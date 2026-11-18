@@ -89,9 +89,18 @@ export default function RootLayout({
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
+            window.gtag = window.gtag || function gtag(){dataLayer.push(arguments);};
             gtag('js', new Date());
-            gtag('config', 'G-6RCVW65DDL');
+            var gaConfig = {};
+            try {
+              // ?debug_mode=1 sends this tab's hits to GA4 DebugView
+              // (same flag as src/lib/gtag.ts; ?debug_mode=0 clears it).
+              var f = new URLSearchParams(location.search).get('debug_mode');
+              if (f === '1' || f === 'true') sessionStorage.setItem('ga_debug_mode', '1');
+              else if (f === '0' || f === 'false') sessionStorage.removeItem('ga_debug_mode');
+              if (sessionStorage.getItem('ga_debug_mode') === '1') gaConfig.debug_mode = true;
+            } catch (e) {}
+            gtag('config', 'G-6RCVW65DDL', gaConfig);
           `}
         </Script>
         <AnalyticsTracker />

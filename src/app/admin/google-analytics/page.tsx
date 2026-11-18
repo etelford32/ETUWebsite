@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import TagHealth from './TagHealth'
 
 type Row = Record<string, string | number>
 
@@ -150,6 +151,7 @@ export default function GoogleAnalyticsPage() {
           )}
         </div>
 
+        <TagHealth />
         {notConfigured && <SetupInstructions detail={notConfigured} />}
         {error && (
           <div className="mb-6 px-4 py-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm">

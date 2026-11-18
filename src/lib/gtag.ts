@@ -46,7 +46,7 @@ export function scrubGtagParams(params: GtagParams = {}): Record<string, string 
  * DebugView: on in development, or for this tab once any URL carries
  * ?debug_mode=1 (?debug_mode=0 turns it back off).
  */
-function isDebugMode(): boolean {
+export function isDebugMode(): boolean {
   if (process.env.NODE_ENV === 'development') return true
   try {
     const flag = new URLSearchParams(window.location.search).get('debug_mode')
@@ -58,17 +58,45 @@ function isDebugMode(): boolean {
   }
 }
 
-export function isGtagAvailable(): boolean {
-  return typeof window !== 'undefined' && typeof window.gtag === 'function'
+/** The GA4 measurement id, loaded in the root layout. */
+export const GA_MEASUREMENT_ID = 'G-6RCVW65DDL'
+
+/**
+ * True once gtag.js itself has loaded and run (it defines
+ * window.google_tag_manager). False while it is still loading, or when an ad
+ * blocker or the CSP stopped it.
+ */
+export function isGtagLoaded(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).google_tag_manager?.[GA_MEASUREMENT_ID]
 }
 
-/** Send one GA4 event. Returns true if it was handed to gtag. */
+/**
+ * window.gtag, created as Google's standard queueing stub if the layout's
+ * inline snippet hasn't run yet. Calls made before gtag.js loads wait in
+ * dataLayer and are sent once it does, instead of being dropped.
+ */
+function getGtag(): (...args: unknown[]) => void {
+  if (typeof window.gtag !== 'function') {
+    window.dataLayer = window.dataLayer || []
+    window.gtag = function gtag() {
+      // gtag.js only reads Arguments objects, not arrays.
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer!.push(arguments)
+    }
+  }
+  return window.gtag
+}
+
+/** Send one GA4 event (queued until gtag.js loads). Returns true if queued or sent. */
 export function sendGtagEvent(eventName: string, params?: GtagParams): boolean {
-  if (!isGtagAvailable()) return false
+  if (typeof window === 'undefined') return false
   try {
     const payload: GtagParams = scrubGtagParams(params)
     if (isDebugMode()) payload.debug_mode = true
-    window.gtag!('event', eventName, payload)
+    // Explicit target, so an event queued ahead of the layout's
+    // gtag('config') still reaches the property.
+    payload.send_to = GA_MEASUREMENT_ID
+    getGtag()('event', eventName, payload)
     return true
   } catch {
     return false

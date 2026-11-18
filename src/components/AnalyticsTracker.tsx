@@ -7,7 +7,7 @@ import {
   trackPageView,
   endSession,
 } from '@/lib/analytics'
-import { SIGNUP_COOKIE, isGtagAvailable, sendGtagEvent } from '@/lib/gtag'
+import { SIGNUP_COOKIE, isGtagLoaded, sendGtagEvent } from '@/lib/gtag'
 
 const SIGNUP_METHODS = new Set(['email', 'google', 'steam', 'invite'])
 
@@ -36,7 +36,7 @@ function reportPendingSignUp(): () => void {
       clearSignUpCookie()
       return
     }
-    if (isGtagAvailable()) {
+    if (isGtagLoaded()) {
       clearSignUpCookie()
       sendGtagEvent('sign_up', { method })
       return
