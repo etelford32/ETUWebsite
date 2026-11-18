@@ -5,38 +5,11 @@ import WishlistButton from "@/components/WishlistButton";
 import DemoSignupButton from "@/components/DemoSignupButton";
 import DemoRibbon from "@/components/DemoRibbon";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useFactionNav } from "@/components/FactionNavProvider";
 
-type MenuKey = "factions" | "features";
-
-// Long-form faction pages that live outside /factions/[slug].
-const FEATURED_FACTION_PAGES = [
-  {
-    href: "/evil-robots",
-    title: "Evil Robots",
-    subtitle: "Machine Empire dossier",
-    accent: "#ef4444",
-  },
-  {
-    href: "/megabot",
-    title: "MEGABOT",
-    subtitle: "Enemy of the Universe",
-    accent: "#f97316",
-  },
-  {
-    href: "/cyl",
-    title: "Cyl",
-    subtitle: "Lumari companion AI",
-    accent: "#e879f9",
-  },
-] as const;
-
-// "Megabot • Machine Empire" -> { short: "Megabot", sub: "Machine Empire" }
-function splitFactionName(name: string): { short: string; sub: string } {
-  const [short, ...rest] = name.split("•");
-  return { short: short.trim(), sub: rest.join("•").trim() };
-}
+type MenuKey = "features";
 
 // useLayoutEffect measures DOM before paint; fall back to useEffect on the server.
 const useIsomorphicLayoutEffect =
@@ -143,15 +116,9 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav ref={navRef} aria-label="Main" className="hidden lg:flex items-center gap-1 flex-1">
-            <NavDropdown
-              label="Factions"
-              open={openMenu === "factions"}
-              onToggle={() => toggleMenu("factions")}
-              align="center"
-              panelClassName="w-[min(40rem,calc(100vw-2rem))]"
-            >
-              <FactionsMenu onNavigate={closeMenus} />
-            </NavDropdown>
+            <NavLink href="/factions" highlight>
+              Factions
+            </NavLink>
 
             <NavDropdown
               label="Game"
@@ -229,6 +196,17 @@ export default function Header() {
             </WishlistButton>
           </div>
 
+          <Link
+            href="/factions"
+            onClick={closeMobileMenu}
+            className="flex items-center justify-between rounded-lg border border-cyan-400/40 bg-cyan-500/10 px-4 py-3 font-display font-semibold tracking-wide text-cyan-100 hover:bg-cyan-500/20 transition-colors"
+          >
+            Factions
+            <span className="font-mono text-xs text-cyan-300/80">
+              {factionLinks.length} · {liveFactionCount} live →
+            </span>
+          </Link>
+
           <MobileSection title="Game">
             {GAME_LINKS.map((l) => (
               <MobileNavLink key={l.href} href={l.href} onNavigate={closeMobileMenu}>
@@ -252,42 +230,6 @@ export default function Header() {
             )}
           </MobileSection>
 
-          <MobileSection
-            title="Factions"
-            aside={`${factionLinks.length} · ${liveFactionCount} live`}
-          >
-            {FEATURED_FACTION_PAGES.map((p) => (
-              <MobileNavLink key={p.href} href={p.href} onNavigate={closeMobileMenu}>
-                {p.title} <span className="text-slate-500">· {p.subtitle}</span>
-              </MobileNavLink>
-            ))}
-            <MobileNavLink href="/factions" onNavigate={closeMobileMenu}>All Factions</MobileNavLink>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-2">
-              {factionLinks.map((f) => {
-                const { short } = splitFactionName(f.name);
-                const isStub = f.status === "in-development";
-                return (
-                  <Link
-                    key={f.id}
-                    href={`/factions/${f.id}`}
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-2 text-sm text-slate-300 hover:text-white hover:border-white/25 transition-colors min-w-0"
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: f.color }}
-                    />
-                    <span className="truncate">{short}</span>
-                    {isStub && (
-                      <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wider text-amber-300/80">
-                        Dev
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </MobileSection>
         </div>
       </div>
     </header>
@@ -401,100 +343,33 @@ function NavDropdown({
   );
 }
 
-// The Factions panel: the two long-form pages up top, then every faction in
-// the registry (live first) linking to its /factions/[slug] profile.
-function FactionsMenu({ onNavigate }: { onNavigate: () => void }) {
-  const factionLinks = useFactionNav();
-  const liveFactionCount = factionLinks.filter((f) => f.status === "live").length;
-  return (
-    <div className="p-3">
-      <div className="flex items-center justify-between gap-3 px-2 pb-3">
-        <div>
-          <div className="eyebrow">Factions</div>
-          <div className="mt-0.5 text-xs text-slate-400">
-            <span className="font-mono text-cyan-300">{factionLinks.length}</span> in the war ·{' '}
-            <span className="font-mono text-emerald-300">{liveFactionCount}</span> live
-          </div>
-        </div>
-        <Link
-          href="/factions"
-          onClick={onNavigate}
-          className="text-xs font-semibold text-cyan-300 hover:text-cyan-200 transition-colors whitespace-nowrap"
-        >
-          All factions →
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 px-1 pb-3">
-        {FEATURED_FACTION_PAGES.map((p) => (
-          <Link
-            key={p.href}
-            href={p.href}
-            onClick={onNavigate}
-            className="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors group hover:bg-white/[0.04]"
-            style={{ borderColor: p.accent + "55", background: p.accent + "0F" }}
-          >
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.accent }} aria-hidden />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-100 group-hover:text-white">
-                {p.title}
-              </span>
-              <span className="block text-[11px] text-slate-400 truncate">{p.subtitle}</span>
-            </span>
-            <svg className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" style={{ color: p.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3 px-2 pb-2">
-        <span className="eyebrow">Roster</span>
-        <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/30 to-transparent" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-2 max-h-[60vh] overflow-y-auto">
-        {factionLinks.map((f) => {
-          const { short, sub } = splitFactionName(f.name);
-          const isStub = f.status === "in-development";
-          return (
-            <Link
-              key={f.id}
-              href={`/factions/${f.id}`}
-              onClick={onNavigate}
-              role="menuitem"
-              className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-cyan-500/10 transition-colors group min-w-0"
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: f.color, boxShadow: `0 0 8px ${f.color}` }}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm text-slate-200 group-hover:text-cyan-200 truncate">
-                  {short}
-                </span>
-                {sub && (
-                  <span className="block text-[11px] text-slate-500 truncate">{sub}</span>
-                )}
-              </span>
-              {isStub && (
-                <span className="shrink-0 text-[9px] font-display font-semibold uppercase tracking-[0.18em] text-amber-300/80">
-                  Dev
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+  highlight = false,
+}: {
+  href: string;
+  children: React.ReactNode;
+  /** The Factions entry: the header's lead item. */
+  highlight?: boolean;
+}) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname?.startsWith(href + "/");
   return (
     <Link
       href={href}
-      className="px-3 py-2 rounded-md text-[15px] font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+      aria-current={active ? "page" : undefined}
+      className={`px-3 py-2 rounded-md text-[15px] font-medium transition-colors ${
+        highlight
+          ? `font-display font-semibold tracking-wide border ${
+              active
+                ? "text-white border-cyan-300/60 bg-cyan-500/15"
+                : "text-cyan-100 border-cyan-400/30 hover:text-white hover:border-cyan-300/60 hover:bg-cyan-500/10"
+            }`
+          : active
+          ? "text-white bg-white/5"
+          : "text-slate-300 hover:text-white hover:bg-white/5"
+      }`}
     >
       {children}
     </Link>
