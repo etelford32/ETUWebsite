@@ -8,6 +8,11 @@ Cut the ETU 2175 title letters out of the official reference sheet
   public/brand/etu-glyphs{,-sm}.avif   both again as AVIF, under half the bytes;
                                        the site serves these where supported
   public/brand/etu-glyphs-energy.webp  the cyan emission only, same layout
+  public/brand/etu-glyphs-hero.{avif,webp}, etu-glyphs-hero-energy.webp
+                                       the same atlases holding only the
+                                       letters of "Explore the Universe 2175"
+                                       (other cells left empty), so the home
+                                       hero downloads under half the bytes
   public/brand/etu-glyphs.json         atlas metrics for any tool or engine
   src/lib/etuTitle/spriteFont.ts       the same metrics for the site (generated)
 
@@ -31,7 +36,12 @@ SRC = os.path.join(ROOT, 'public/brand/etu-title-typography.webp')
 OUT_ART = os.path.join(ROOT, 'public/brand/etu-glyphs.webp')
 OUT_ART_SM = os.path.join(ROOT, 'public/brand/etu-glyphs-sm.webp')
 OUT_ENERGY = os.path.join(ROOT, 'public/brand/etu-glyphs-energy.webp')
+OUT_ART_HERO = os.path.join(ROOT, 'public/brand/etu-glyphs-hero.webp')
+OUT_ENERGY_HERO = os.path.join(ROOT, 'public/brand/etu-glyphs-hero-energy.webp')
 OUT_JSON = os.path.join(ROOT, 'public/brand/etu-glyphs.json')
+# Characters in the hero atlases. Written to spriteFont.ts as heroChars;
+# EtuTitle uses these atlases for any full-size title made only of them.
+HERO_CHARS = 'EXPLORTHUNIVS2175'
 OUT_TS = os.path.join(ROOT, 'src/lib/etuTitle/spriteFont.ts')
 
 # Letter rows on the sheet: characters and the y-band holding their centres.
@@ -323,14 +333,24 @@ def main():
         art[gy:gy + frame_h, gx:gx + gw] = rgba[..., :4]
         energy[gy:gy + frame_h, gx:gx + gw] = energy_map(rgba[..., :4])
 
-    def save(arr, path, scale=1.0, quality=84, avif_quality=None):
+    # The hero atlases: same layout and size, every other cell left empty,
+    # so the same metrics place their letters and the empty space costs
+    # next to nothing.
+    hero_art = np.zeros_like(art)
+    hero_energy = np.zeros_like(art)
+    for ch in HERO_CHARS:
+        gx, gy, gw = rects[ch]
+        hero_art[gy:gy + frame_h, gx:gx + gw] = art[gy:gy + frame_h, gx:gx + gw]
+        hero_energy[gy:gy + frame_h, gx:gx + gw] = energy[gy:gy + frame_h, gx:gx + gw]
+
+    def save(arr, path, scale=1.0, quality=84, alpha_quality=90, avif_quality=None):
         if scale != 1.0:
             arr = cv2.resize(arr, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         a = np.clip(arr[..., 3:4], 0, 1)
         straight = np.where(a > 1e-4, arr[..., :3] / np.maximum(a, 1e-4), 0)
         out = np.dstack([np.clip(straight, 0, 1), a]) * 255
         image = Image.fromarray(out.round().astype(np.uint8), 'RGBA')
-        image.save(path, 'WEBP', quality=quality, alpha_quality=90, method=6)
+        image.save(path, 'WEBP', quality=quality, alpha_quality=alpha_quality, method=6)
         print(path, os.path.getsize(path) // 1024, 'KB')
         if avif_quality is not None:
             # Same pixels, under half the bytes. At these qualities the AVIF
@@ -341,8 +361,12 @@ def main():
 
     save(art, OUT_ART, avif_quality=58)
     save(art, OUT_ART_SM, scale=0.5, quality=82, avif_quality=60)
-    # The energy layer is soft light: half resolution is plenty.
-    save(energy, OUT_ENERGY, scale=0.5, quality=70)
+    # The energy layer is soft light: half resolution is plenty, and its
+    # alpha (most of the file) holds up at 70 as well as at 90 once blended
+    # (mean premultiplied error under 0.5/255) for 40% fewer bytes.
+    save(energy, OUT_ENERGY, scale=0.5, quality=55, alpha_quality=70)
+    save(hero_art, OUT_ART_HERO, avif_quality=58)
+    save(hero_energy, OUT_ENERGY_HERO, scale=0.5, quality=55, alpha_quality=70)
 
     kern_chars = [c for c in order if c not in '’–—']
     kern = kerning(glyphs, kern_chars)
@@ -357,6 +381,10 @@ def main():
         'artAvif': '/brand/etu-glyphs.avif',
         'artSmallAvif': '/brand/etu-glyphs-sm.avif',
         'energy': '/brand/etu-glyphs-energy.webp',
+        'heroArt': '/brand/etu-glyphs-hero.webp',
+        'heroArtAvif': '/brand/etu-glyphs-hero.avif',
+        'heroEnergy': '/brand/etu-glyphs-hero-energy.webp',
+        'heroChars': HERO_CHARS,
         'width': int(width),
         'height': int(height),
         'frameHeight': int(frame_h),
@@ -379,7 +407,7 @@ def main():
         f.write('export interface SpriteGlyph {\n  /** Cell in the atlas, px. */\n  x: number\n  y: number\n  w: number\n')
         f.write('  /** Width of the glyph body; the cell adds `margin` of glow each side. */\n  advance: number\n}\n\n')
         f.write('export const ETU_SPRITE_FONT = {\n')
-        for key in ('art', 'artSmall', 'artAvif', 'artSmallAvif', 'energy'):
+        for key in ('art', 'artSmall', 'artAvif', 'artSmallAvif', 'energy', 'heroArt', 'heroArtAvif', 'heroEnergy', 'heroChars'):
             f.write(f"  {key}: '{font[key]}',\n")
         f.write(f"  width: {font['width']},\n  height: {font['height']},\n")
         f.write(f"  /** Every cell is this tall: margin + depth + margin. */\n  frameHeight: {font['frameHeight']},\n")

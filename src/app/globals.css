@@ -587,6 +587,10 @@ body { font-family: var(--font-body); }
   animation-delay: calc(var(--i) * -0.21s);
 }
 
+@keyframes etu-core-in {
+  from { opacity: 0; }
+}
+
 @keyframes etu-energy-breathe {
   0%, 100% { opacity: 0; }
   50%      { opacity: 0.7; }
@@ -596,8 +600,10 @@ body { font-family: var(--font-body); }
    energy layer's alpha. TitleMotion moves it (--lx/--ly, px in this box)
    and sets its strength from 3D distance (--li). */
 .etu-glyph__core { display: none; }
-.etu-title--lit .etu-glyph__core {
+.etu-title--lit[data-energy] .etu-glyph__core {
   display: block;
+  /* fades in when the energy atlas arrives, then follows --li */
+  animation: etu-core-in 0.9s ease-out;
   background-image: radial-gradient(
     circle 0.95em at var(--lx, 50%) var(--ly, 45%),
     #ffffff 0,
@@ -937,9 +943,23 @@ body { font-family: var(--font-body); }
           backdrop-filter: blur(10px);
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.6),
-    0 0 70px rgba(245, 158, 11, 0.22);
-  animation: demo-sign-glow 3.2s ease-in-out infinite;
+    0 0 60px rgba(245, 158, 11, 0.18);
 }
+/* The board's warm glow swells and fades. The extra glow is its own layer
+   and only its opacity animates, so the browser composites it instead of
+   repainting the blurred board every frame. */
+.demo-sign::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  box-shadow: 0 0 90px rgba(245, 158, 11, 0.4);
+  opacity: 0;
+  animation: demo-sign-glow 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.demo-sign--live::after { display: none; }
 /* A beam of light that runs round the frame */
 .demo-sign::before {
   content: "";
@@ -1140,8 +1160,8 @@ body { font-family: var(--font-body); }
 
 @keyframes demo-beam { to { --demo-angle: 360deg; } }
 @keyframes demo-sign-glow {
-  0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 60px rgba(245, 158, 11, 0.18); }
-  50%      { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 90px rgba(245, 158, 11, 0.4); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 @keyframes demo-ping {
   0%   { transform: scale(1); opacity: 0.8; }
@@ -1259,7 +1279,7 @@ body { font-family: var(--font-body); }
   .eye-stage__core,
   .eye-stage__streak,
   .eye-stage__engines,
-  .demo-sign,
+  .demo-sign::after,
   .demo-sign::before,
   .demo-sign__ping::after,
   .demo-sign__num--tick,

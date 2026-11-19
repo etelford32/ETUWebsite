@@ -11,7 +11,10 @@
  *     crystal from within (.etu-glyph__core); it follows the cursor on hover
  * The ambient crystal "breathing" is pure CSS (see .etu-glyph__energy).
  * The rAF loop only runs while something is moving (always, while the
- * inner light is on and the title is on screen).
+ * inner light is on and the title is on screen). The inner light waits for
+ * the energy atlas (EtuTitle sets [data-energy] and fires `etu-energy` once
+ * it is requested), and drifts at 30 fps; it tracks a cursor at full rate.
+ * Sizes are measured on resize, never per frame, so a frame only writes.
  */
 
 export class Spring {
@@ -224,6 +227,11 @@ export class TitleMotion {
   /** Inner light position (px within the title) and depth off the face. */
   private lamp = { x: 0, y: 0, z: 0, ready: false }
   private lampEl: HTMLElement | null = null
+  private lampAt = 0
+  /** The energy atlas is on its way, so the inner light has a mask. */
+  private lightReady: boolean
+  /** Cached by measure(): letter size and the title's box, px. */
+  private metrics = { size: 48, w: 0, h: 0 }
 
   constructor(host: HTMLElement, options: TitleMotionOptions = {}) {
     this.host = host
@@ -236,6 +244,7 @@ export class TitleMotion {
     }
     this.actors = Array.from(host.querySelectorAll<HTMLElement>('.etu-glyph')).map((el) => new GlyphActor(el))
     this.introPending = this.opts.intro && this.actors.length > 0
+    this.lightReady = 'energy' in host.dataset
     if (this.opts.innerLight && this.actors.length) {
       // soft spill of the light between the letters; painted under them
       this.lampEl = document.createElement('span')
@@ -258,7 +267,17 @@ export class TitleMotion {
     ro.observe(host)
     const onVis = () => this.setVisible(this.visible)
     document.addEventListener('visibilitychange', onVis)
-    this.disposers.push(() => io.disconnect(), () => ro.disconnect(), () => document.removeEventListener('visibilitychange', onVis))
+    const onEnergy = () => {
+      this.lightReady = true
+      if (this.visible && !document.hidden) this.wake()
+    }
+    host.addEventListener('etu-energy', onEnergy)
+    this.disposers.push(
+      () => io.disconnect(),
+      () => ro.disconnect(),
+      () => document.removeEventListener('visibilitychange', onVis),
+      () => host.removeEventListener('etu-energy', onEnergy),
+    )
 
     if (this.opts.interactive) {
       const local = (e: PointerEvent) => {
@@ -316,8 +335,7 @@ export class TitleMotion {
 
   /** The title's letter size (after any fit scaling, before word scales), px. */
   private size() {
-    const el = this.host.querySelector('.etu-title__body') ?? this.actors[0]?.el ?? this.host
-    return parseFloat(getComputedStyle(el).fontSize) || 48
+    return this.metrics.size
   }
 
   private now() {
@@ -325,6 +343,12 @@ export class TitleMotion {
   }
 
   private measure() {
+    const el = this.host.querySelector('.etu-title__body') ?? this.actors[0]?.el ?? this.host
+    this.metrics = {
+      size: parseFloat(getComputedStyle(el).fontSize) || 48,
+      w: this.host.clientWidth,
+      h: this.host.clientHeight,
+    }
     for (const a of this.actors) a.measure()
   }
 
@@ -339,8 +363,7 @@ export class TitleMotion {
 
   /** Move the inner light along its drift (or toward the cursor) and shine it. */
   private updateLamp(t: number, dt: number, size: number) {
-    const w = this.host.clientWidth
-    const h = this.host.clientHeight
+    const { w, h } = this.metrics
     // a slow 3D Lissajous through the title, dipping in and out of the face
     let tx = w * (0.5 + 0.46 * Math.sin(t * 0.38))
     let ty = h * (0.5 + 0.32 * Math.sin(t * 0.83 + 1.1))
@@ -413,8 +436,11 @@ export class TitleMotion {
           a.hover(Math.exp(-d * d), size)
         }
       }
-      const lit = this.opts.innerLight && this.visible && !document.hidden
-      if (lit) this.updateLamp(t, dt, size)
+      const lit = this.opts.innerLight && this.lightReady && this.visible && !document.hidden
+      if (lit && (this.pointer || now - this.lampAt > 30)) {
+        this.updateLamp(t, Math.min((now - (this.lampAt || now)) / 1000, 1 / 15) || dt, size)
+        this.lampAt = now
+      }
       let calm = !this.pointer && !lit
       for (const a of this.actors) {
         if (a.update(t, dt, size)) this.glint(a)

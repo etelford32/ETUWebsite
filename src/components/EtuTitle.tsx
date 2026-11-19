@@ -105,8 +105,39 @@ export default function EtuTitle({
     }
   }, [label, scaleKey, animate, intro, stagger, interactive, glints, innerLight])
 
-  const art = compact ? FONT.artSmall : FONT.art
-  const artAvif = compact ? FONT.artSmallAvif : FONT.artAvif
+  // A full-size title spelled only from the hero's letters ("Explore the
+  // Universe 2175") reads them from the hero atlases: same layout, every
+  // other cell empty, well under half the bytes.
+  const hero = !compact && Array.from(label.replace(/\s+/g, '').toUpperCase()).every((c) => FONT.heroChars.includes(c))
+  const art = compact ? FONT.artSmall : hero ? FONT.heroArt : FONT.art
+  const artAvif = compact ? FONT.artSmallAvif : hero ? FONT.heroArtAvif : FONT.artAvif
+  const energy = hero ? FONT.heroEnergy : FONT.energy
+
+  // The energy layer (the crystal's breathing glow and the inner light's
+  // mask) only ever fades in, so it is fetched once the page has loaded
+  // instead of competing with the letters and the hero art for bandwidth.
+  // Until then [data-energy] is absent and the inner light stays off.
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+    let idle = 0
+    const show = () => {
+      host.style.setProperty('--etu-energy', `url(${energy})`)
+      host.dataset.energy = ''
+      host.dispatchEvent(new Event('etu-energy'))
+    }
+    const schedule = () => {
+      idle = window.setTimeout(show, 200)
+    }
+    if (document.readyState === 'complete') schedule()
+    else window.addEventListener('load', schedule, { once: true })
+    return () => {
+      window.removeEventListener('load', schedule)
+      window.clearTimeout(idle)
+      host.style.removeProperty('--etu-energy')
+      delete host.dataset.energy
+    }
+  }, [energy])
 
   // Emits <link rel="preload"> in the document head. Browsers without AVIF
   // skip it (the `type`) and fetch the WebP when the CSS asks for it.
@@ -117,7 +148,6 @@ export default function EtuTitle({
     // AVIF is under half the bytes; globals.css uses this where image-set()
     // can pick by type, and --etu-art everywhere else.
     '--etu-art-set': `image-set(url("${artAvif}") type("image/avif"), url("${art}") type("image/webp"))`,
-    '--etu-energy': `url(${FONT.energy})`,
     '--etu-aw': FONT.width,
     '--etu-ah': FONT.height,
     '--etu-frame': FONT.frameHeight,

@@ -17,6 +17,10 @@ export const ETU_SPRITE_FONT = {
   artAvif: '/brand/etu-glyphs.avif',
   artSmallAvif: '/brand/etu-glyphs-sm.avif',
   energy: '/brand/etu-glyphs-energy.webp',
+  heroArt: '/brand/etu-glyphs-hero.webp',
+  heroArtAvif: '/brand/etu-glyphs-hero.avif',
+  heroEnergy: '/brand/etu-glyphs-hero-energy.webp',
+  heroChars: 'EXPLORTHUNIVS2175',
   width: 2042,
   height: 822,
   /** Every cell is this tall: margin + depth + margin. */

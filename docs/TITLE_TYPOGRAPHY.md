@@ -114,7 +114,9 @@ P. −46, C- −48. Tunables: `KERN_BANDS`, `KERN_TARGET`, `KERN_STRENGTH`,
 | `public/brand/etu-glyphs-sm.webp` | ~200 KB | Half resolution, for small titles |
 | `public/brand/etu-glyphs.avif` | ~290 KB | The full atlas as AVIF: what browsers actually load |
 | `public/brand/etu-glyphs-sm.avif` | ~120 KB | The half-resolution atlas as AVIF |
-| `public/brand/etu-glyphs-energy.webp` | ~120 KB | Cyan emission, half resolution |
+| `public/brand/etu-glyphs-energy.webp` | ~70 KB | Cyan emission, half resolution |
+| `public/brand/etu-glyphs-hero.avif` (+ `.webp`) | ~130 KB | Same layout, only the letters of "Explore the Universe 2175" |
+| `public/brand/etu-glyphs-hero-energy.webp` | ~30 KB | The hero letters' emission |
 | `public/brand/etu-glyphs.json` | ~10 KB | Metrics + kerning (any tool or engine) |
 | `src/lib/etuTitle/spriteFont.ts` | | The same metrics for the site |
 
@@ -241,8 +243,11 @@ default. Same atlas, spacing and kerning as the site.
 - **Weight.** The full atlas is ~290 KB as AVIF (~620 KB as WebP). The site
   loads the AVIF through `image-set()` and keeps the WebP for browsers that
   cannot pick a format by type; hero titles set `preload` so it starts
-  downloading with the page. To go further, split the atlas so a page loads
-  only its glyphs.
+  downloading with the page. A full-size title spelled only from the hero's
+  letters (`heroChars`) reads the hero atlases instead: the same layout with
+  every other cell empty, ~130 KB. The energy atlas is requested only after
+  the page's `load` event (the glow only ever fades in), and the inner light
+  waits for it ([data-energy] on the title).
 - **Lighting is baked.** Mirrored and rotated glyphs (2, 3, 9) have mirrored
   highlights; acceptable at title sizes.
 
