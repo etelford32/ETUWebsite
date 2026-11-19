@@ -45,9 +45,9 @@ export default function TagHealth() {
       { label: 'Content-Security-Policy', status: 'checking', detail: '' },
     ])
 
-    // gtag.js loads after hydration; give it a few seconds.
+    // gtag.js loads once the page has finished loading; give it up to 10s.
     let loaded = isGtagLoaded()
-    for (let i = 0; i < 20 && !loaded; i++) {
+    for (let i = 0; i < 40 && !loaded; i++) {
       await new Promise((r) => setTimeout(r, 250))
       loaded = isGtagLoaded()
     }

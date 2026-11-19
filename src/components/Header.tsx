@@ -108,6 +108,10 @@ export default function Header() {
               alt=""
               width={73}
               height={30}
+              // With sizes, the browser picks the smallest file that covers
+              // 73 CSS px at its density (128w on most phones) instead of
+              // jumping straight to 2x's 256w file.
+              sizes="73px"
             />
             <span className="font-display font-bold text-sm sm:text-base tracking-wide text-white whitespace-nowrap">
               Explore the Universe 2175

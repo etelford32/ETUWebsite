@@ -44,7 +44,8 @@ Users can now control the quality of the hero black hole animation to optimize p
 - **Page Prefetching**: `next/link` prefetches routes as their links scroll into view
 - **Priority Loading**: Hero images marked as priority for faster LCP
 - **Title Atlas**: `<EtuTitle preload>` on a page's top title fetches the letter atlas
-  with the page, as AVIF (under half the size of the WebP)
+  with the page, as AVIF (under half the size of the WebP). The home hero's title
+  uses a hero-only atlas (~130 KB instead of ~290 KB)
 
 ### 3a. Lazy Loading
 - **Trailer**: `TrailerPlayer` shows a lazy still and only fetches the video on play
@@ -53,6 +54,10 @@ Users can now control the quality of the hero black hole animation to optimize p
 - **Header Menu**: the faction list comes from the root layout through
   `FactionNavProvider`, so the full faction profiles are not in every page's JavaScript
 - **Fonts**: the mono face is not preloaded; it loads when first used
+- **Title glow**: the energy atlas loads after the page's `load` event
+- **Google Analytics**: gtag.js loads `lazyOnload`; the inline dataLayer stub
+  queues config and events until it arrives
+- **Video posters**: go through the image optimizer (`getImageProps`), not the raw JPEG
 
 ### 4. Network Optimization
 - **Connection Detection**: Automatic quality adjustment based on network speed

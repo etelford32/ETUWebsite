@@ -22,8 +22,8 @@ function clearSignUpCookie() {
 
 /**
  * Report GA4's recommended `sign_up` event for an account the server just
- * created (flagged by markSignUpForAnalytics). gtag loads after hydration,
- * so wait briefly for it; the cookie is cleared only once the event is sent,
+ * created (flagged by markSignUpForAnalytics). gtag loads once the page has
+ * finished loading, so wait briefly for it; the cookie is cleared only once the event is sent,
  * so it can't be counted twice. Returns a cleanup for the wait.
  */
 function reportPendingSignUp(): () => void {

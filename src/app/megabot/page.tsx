@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import WishlistButton from "@/components/WishlistButton";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -7,6 +7,18 @@ import Footer from "@/components/Footer";
 import { SITE_URL } from "@/lib/siteUrl";
 import { getBoss, getBossesForFaction } from "@/data/bosses";
 import { getZone } from "@/data/zones";
+
+// The hero video's poster, resized and re-encoded by the image optimizer
+// (the original JPEG is 359 kB). A poster cannot pick a size per screen, so
+// it takes the 828px file: 2x density for the 400px-wide phone figure, and
+// enough for the 480px desktop one. (`src` is the 2x candidate of `width`.)
+const EYE_POSTER = getImageProps({
+  src: "/art/megabot-evil-eye.jpg",
+  alt: "",
+  width: 414,
+  height: 517,
+  quality: 70,
+}).props.src;
 
 const STEAM_URL =
   "https://store.steampowered.com/app/4094340/Explore_the_Universe_2175";
@@ -233,7 +245,7 @@ export default function MegabotPage() {
                       what stays on screen when motion is turned down. */}
                   <video
                     className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
-                    poster="/art/megabot-evil-eye.jpg"
+                    poster={EYE_POSTER}
                     autoPlay
                     muted
                     loop
@@ -247,7 +259,8 @@ export default function MegabotPage() {
                     src="/art/megabot-evil-eye.jpg"
                     alt="MEGABOT's Evil Eye: a station-sized machine with one burning red iris turns toward a white fighter fleeing on cyan engines, its legion of warships around it"
                     fill
-                    priority
+                    // Only shown with reduced motion, so no priority: a
+                    // preload would fetch it for everyone, under the video.
                     className="object-cover hidden motion-reduce:block"
                     sizes="(max-width: 1024px) 100vw, 480px"
                   />

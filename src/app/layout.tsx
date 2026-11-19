@@ -81,10 +81,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${orbitron.variable} ${exo2.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-deep-900 text-slate-100 selection:bg-indigo-500/40">
-        {/* Google Analytics */}
+        {/* Google Analytics. The inline snippet below sets up the dataLayer
+            queue straight away, so config and early events are kept; the
+            ~150 kB library itself waits until the page has loaded instead
+            of competing with the hero for bandwidth and the main thread. */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6RCVW65DDL"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script id="google-analytics" strategy="afterInteractive">
           {`

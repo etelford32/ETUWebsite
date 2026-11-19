@@ -16,7 +16,9 @@ export default function EyeBackdrop() {
           width={2244}
           height={2804}
           priority
-          quality={80}
+          // q70 is indistinguishable from q80 under the hero's shade at 2x
+          // zoom, and ~30% lighter: this is the page's LCP image.
+          quality={70}
           // Phones show the art at 150vw, but at 3x pixel density that asks
           // for the 1920px file on a 400px screen. Claiming 90vw lands them
           // on the 1080-1200px one: still ~2 image pixels per CSS pixel
