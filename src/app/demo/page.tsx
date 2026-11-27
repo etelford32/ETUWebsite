@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/siteUrl";
 import { DEMO_DATE_LABEL } from "@/lib/campaign";
 import DemoDayClient from "./DemoDayClient";
 
-const TITLE = "Free Demo on Thanksgiving Day | Explore the Universe 2175";
+const TITLE = `Free Demo on ${DEMO_DATE_LABEL} | Explore the Universe 2175`;
 const DESCRIPTION = `The free demo of Explore the Universe 2175 lands on Steam on ${DEMO_DATE_LABEL}. Create your commander account, wishlist on Steam and be ready at launch.`;
 
 export const metadata: Metadata = {

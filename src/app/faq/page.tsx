@@ -25,7 +25,7 @@ const faqData: FAQItem[] = [
   {
     id: "release-date",
     question: "When is the game releasing?",
-    answer: `The free demo arrives on Steam on ${DEMO_DATE_LABEL}, 2026. Early Access is planned for 2027. Quality is our top priority - we'd rather deliver an amazing experience than rush to market!`,
+    answer: `The free demo arrives on Steam on ${DEMO_DATE_LABEL}. Early Access is planned for 2027. Quality is our top priority - we'd rather deliver an amazing experience than rush to market!`,
     category: "general"
   },
   {

@@ -11,7 +11,7 @@ import DemoSignupButton from "@/components/DemoSignupButton";
 import DemoSign from "@/components/DemoSign";
 import EyeBackdrop from "@/components/EyeBackdrop";
 import TrailerPlayer from "@/components/TrailerPlayer";
-import { DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
+import { DEMO_DATE_LABEL, DEMO_DATE_SHORT, DEMO_PATH } from "@/lib/campaign";
 import { useDemoLive } from "@/lib/useDemoLive";
 
 // Hero title emphasis: UNIVERSE leads, EXPLORE a step up, THE and 2175 recede
@@ -700,7 +700,7 @@ export default function HomePage() {
               body={
                 demoLive
                   ? "The demo is out now on Steam. Download it and fly."
-                  : "The free demo lands on Steam on Thanksgiving Day. Your checklist keeps the countdown."
+                  : `The free demo lands on Steam on ${DEMO_DATE_LABEL}. Your checklist keeps the countdown.`
               }
               featured={demoLive}
             >

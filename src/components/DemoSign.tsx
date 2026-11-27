@@ -1,6 +1,6 @@
 "use client"
 
-import { DEMO_DATE_LABEL, DEMO_DATE_SHORT, DEMO_RELEASE_AT } from '@/lib/campaign'
+import { DEMO_DATE_LABEL, DEMO_DATE_SHORT, DEMO_DATE_WEEKDAY, DEMO_RELEASE_AT } from '@/lib/campaign'
 import { useCountdown } from '@/lib/useCountdown'
 
 const UNITS = ['Days', 'Hrs', 'Min', 'Sec'] as const
@@ -43,7 +43,7 @@ export default function DemoSign({ className = '' }: { className?: string }) {
         </span>
         <span className="demo-sign__title">Free Demo</span>
         <span className="demo-sign__date">
-          Thanksgiving Day <b>· {DEMO_DATE_SHORT}</b>
+          {DEMO_DATE_WEEKDAY} <b>· {DEMO_DATE_SHORT}</b>
         </span>
       </div>
 
