@@ -300,7 +300,7 @@ export default function DemoDayClient() {
               <p className="text-lg text-slate-100 leading-relaxed">
                 {live
                   ? "The demo is out now. Download it from the Steam store page and fly."
-                  : "The free demo arrives on Steam on Thanksgiving Day. Come back here for the countdown."}
+                  : `The free demo arrives on Steam on ${DEMO_DATE_LABEL}. Come back here for the countdown.`}
               </p>
 
               {live ? (

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { trackEvent, trackWishlistClick } from '@/lib/analytics'
-import { DEMO_DATE_SHORT, DEMO_PATH, DEMO_RELEASE_AT, steamStoreUrl } from '@/lib/campaign'
+import { DEMO_DATE_COMPACT, DEMO_DATE_LABEL, DEMO_PATH, DEMO_RELEASE_AT, steamStoreUrl } from '@/lib/campaign'
 import { useCountdown } from '@/lib/useCountdown'
 
 /** Pages that already carry the full launch board, or are the sign-up form. */
@@ -56,8 +56,8 @@ export default function DemoRibbon() {
         <i aria-hidden="true" />
         Free demo
       </span>
-      <span className="hidden md:inline">Lands on Steam Thanksgiving Day, {DEMO_DATE_SHORT}</span>
-      <span className="md:hidden">{DEMO_DATE_SHORT.replace('November', 'Nov')}</span>
+      <span className="hidden md:inline">Lands on Steam {DEMO_DATE_LABEL}</span>
+      <span className="md:hidden">{DEMO_DATE_COMPACT}</span>
       {/* Seconds only where there is room for them */}
       <span className="demo-ribbon__clock" aria-hidden="true">
         {parts ? (
